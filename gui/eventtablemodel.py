@@ -1,20 +1,16 @@
-import locale
 from decimal import Decimal
 from typing import *
 from enum import auto, IntEnum
 from dataclasses import dataclass, fields, astuple
 
 import lovely_logger as log
-
 from PySide6.QtCore import QModelIndex, Qt, QAbstractItemModel, Signal, QAbstractTableModel, QDate
-from PySide6.QtGui import QColor, QBrush, QFont
+from PySide6.QtGui import QFont
 
 from base.date import date_displstr
-from base.dbhandler import DBHandler
 from base.event import Event, TermRoleFlags, PaymentType, EventCategory, EventField, RowType
 from base.formatting import float_strpercentage, dec_strcommaspace
 from gui.filterlistwidget import TermCategory
-
 
 
 class HeaderFooterField(IntEnum):
@@ -166,7 +162,8 @@ class EventTableModel(QAbstractTableModel):
 
         self.column_count = len(fields(Event))
         if self.column_count != len(EventField):
-            raise ValueError("Число столбцов в модели не совпадает с числом столбцов, объявленных для описания данных")
+            log.c("Число столбцов в модели не совпадает с числом столбцов, объявленных для описания данных")
+            raise ValueError
 
         self.event_list: List = []
         self.events_loaded: bool = False
@@ -348,7 +345,7 @@ class EventTableModel(QAbstractTableModel):
         else:
             raise NotImplementedError(f"data() для класса {entry.__class__.__name__} не реализована")
 
-    def setData(self, index, value, /, role = ..., emit_datachanged: bool = True):
+    def setData(self, index, value, /, role=..., emit_datachanged: bool = True):
         if not index.isValid():
             return False
         try:
@@ -384,20 +381,20 @@ class EventTableModel(QAbstractTableModel):
             return False
         self.beginInsertRows(parent, row, row + count - 1)
         for i in range(count):
-            default_row = Event("", 0, self.last_id + 1, 0, "", Decimal(0), Decimal(0), 0.0, QDate(), 0, QDate(), "", "", Decimal(0), TermRoleFlags.NONE)
+            default_row = Event("", 0, self.last_id + 1, 0, "", Decimal(0), Decimal(0), 0.0, QDate(), 0, QDate(), "", "", Decimal(0), TermRoleFlags.NONE, "", QDate())
             self.event_list.append(default_row)
         self.endInsertRows()
         self.last_id += 1
         return True
 
-    def removeRows(self, row, count, /, parent = ...):
+    def removeRows(self, row, count, /, parent=...):
         self.beginRemoveRows(QModelIndex(), row, row + count - 1)
         for i in range(count):
             self.event_list.pop(row + i)
         self.endRemoveRows()
         return True
 
-    def append_row(self, data: list):
+    def append_row(self, data: list) -> bool:
         if len(data) != len(fields(Event)):
             raise IndexError("Набор передаваемых в append_row данных должен охватывать все атрибуты класса-хранителя, на месте ID ожидается <PLACEHOLDER>")
         position = self.rowCount(QModelIndex())
@@ -413,13 +410,14 @@ class EventTableModel(QAbstractTableModel):
             return True
         return False
 
-    def edit_row(self, rindex: QModelIndex, data: list):
+    def edit_row(self, rindex: QModelIndex, data: list) -> bool:
         if len(data) != len(fields(Event)):
             raise IndexError("Набор передаваемых в edit_row данных должен охватывать все атрибуты класса-хранителя")
         for col, value in enumerate(data):
             index = rindex.siblingAtColumn(col)
             if not self.setData(index, value, self.internalValueRole):
-                raise ValueError(f"Не удалось записать данные {value} в столбец {list(EventField)[col]}")
+                log.c(f"Не удалось записать данные {value} в столбец {list(EventField)[col]}")
+                continue
         self.recalculate_stats()
         return True
 
@@ -457,7 +455,7 @@ class EventTableModel(QAbstractTableModel):
         # Финальный футер
         self.event_list.append(FinalFooter("", RowType.FINALFOOTER, 0, 0, _id))
 
-    def get_last_id(self):
+    def get_last_id(self) -> int:
         return max(self.event_list, key=lambda event: event.id).id
 
     def load_events(self, events: list[Event]) -> bool:
@@ -468,9 +466,6 @@ class EventTableModel(QAbstractTableModel):
             return True
         else:
             return False
-
-    def on_event_change(self):
-        pass
 
     def recalculate_stats(self) -> None:
         # Сброс текущих значений

@@ -573,7 +573,7 @@ class Ui_settingsdialog(object):
 
         self.retranslateUi(settingsdialog)
 
-        self.stw.setCurrentIndex(0)
+        self.stw.setCurrentIndex(1)
         self.lw_menu.setCurrentRow(-1)
 
 
