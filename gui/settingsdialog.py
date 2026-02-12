@@ -1,6 +1,7 @@
 import os.path
 import sys
 from enum import IntEnum
+from pathlib import Path
 
 from PySide6 import QtGui, QtCore
 from PySide6.QtGui import QPalette
@@ -9,8 +10,8 @@ from PySide6.QtCore import Qt, QSize, QModelIndex
 from PySide6.scripts.metaobjectdump import QT_MODULES
 
 from base.casting import str_bool
-from base.font import Fontsize
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
+from gui.eventtablemodel import RowFormatting
 from gui.recoverydialog import RecoveryDialog
 from gui.settings import SettingsHandler
 from gui.ui.settingsdialog_ui import Ui_settingsdialog
@@ -41,7 +42,7 @@ class SettingsDialog(QDialog):
         4: 999,
     }
 
-    def __init__(self, settings_handler: SettingsHandler, parent=None):
+    def __init__(self, settings_handler: SettingsHandler, reject_possible: bool = True, parent=None):
         super(SettingsDialog, self).__init__(parent)
         self.ui = Ui_settingsdialog()
         self.ui.setupUi(self)
@@ -52,6 +53,10 @@ class SettingsDialog(QDialog):
         self.autosave_needed: bool = False
 
         self.ui.lw_menu.setIconSize(QSize(30, 30))
+        self.ui.pb_cancel.setEnabled(reject_possible)
+        if not reject_possible:
+            self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowType.CustomizeWindowHint)
+            self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowType.WindowCloseButtonHint)
 
         # Центрирование элементов списка меню
         for row in range(self.ui.lw_menu.count()):
@@ -92,6 +97,10 @@ class SettingsDialog(QDialog):
         self.load_settings_values()
 
     def accept(self):
+        if not self.ui.le_backuppath.text() or not Path(self.ui.le_backuppath.text()).is_dir():
+            msg_box = ErrorInfoMessageBox("Папка для резервного копирования не указана или указана неверно")
+            msg_box.exec()
+            return
         self.save_settings_values()
         self.settings_handler.apply_settings(self.autosave_needed)
         QDialog.accept(self)
@@ -114,7 +123,7 @@ class SettingsDialog(QDialog):
 
         ## Размер шрифта
         try:
-            self.rbg_fontsize.button(int(self.settings_handler.settings.value("Appearance/fontsize", Fontsize.SMALL))).setChecked(True)
+            self.rbg_fontsize.button(int(self.settings_handler.settings.value("Appearance/fontsize", 0))).setChecked(True)
         except TypeError:
             self.rbg_fontsize.button(0).setChecked(True)
 
@@ -171,27 +180,27 @@ class SettingsDialog(QDialog):
         self.ui.le_exportpath.setText(self.settings_handler.settings.value("Export/path", os.getcwd()))
 
         ## Форматирование строк
-        self.ui.chb_verticalgrid.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/verticalgrid"), True))
-        self.ui.chb_zebrastyle.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/zebrastyle"), True))
+        self.ui.chb_verticalgrid.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/verticalgrid"), RowFormatting().vertical_grid))
+        self.ui.chb_zebrastyle.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/zebrastyle"), RowFormatting().zebra_style))
 
-        self.ui.pb_backgrounddue.set_color(self.settings_handler.settings.value("Tableformat/backgrounddue", "#FFFFFF"))
-        self.ui.pb_backgroundtoday.set_color(self.settings_handler.settings.value("Tableformat/backgroundtoday", "#FFFFFF"))
-        self.ui.pb_foregrounddue.set_color(self.settings_handler.settings.value("Tableformat/foregrounddue", "#000000"))
-        self.ui.pb_foregroundtoday.set_color(self.settings_handler.settings.value("Tableformat/foregroundtoday", "#000000"))
-        self.ui.chb_formatbolddue.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/boldforegrounddue", "0"), True))
-        self.ui.chb_formatboldtoday.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/boldforegroundtoday", "0"), True))
+        self.ui.pb_backgrounddue.set_color(self.settings_handler.settings.value("Tableformat/backgrounddue", RowFormatting().due_backcolor))
+        self.ui.pb_backgroundtoday.set_color(self.settings_handler.settings.value("Tableformat/backgroundtoday", RowFormatting().today_backcolor))
+        self.ui.pb_foregrounddue.set_color(self.settings_handler.settings.value("Tableformat/foregrounddue", RowFormatting().due_forecolor))
+        self.ui.pb_foregroundtoday.set_color(self.settings_handler.settings.value("Tableformat/foregroundtoday", RowFormatting().today_forecolor))
+        self.ui.chb_formatbolddue.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/boldforegrounddue", RowFormatting().due_textbold)))
+        self.ui.chb_formatboldtoday.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/boldforegroundtoday", RowFormatting().today_textbold)))
 
-        self.ui.chb_formatboldheader.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/boldforegroundheader", "0")))
-        self.ui.pb_foregroundsectionheader.set_color(self.settings_handler.settings.value("Tableformat/foregroundsectionheader", "#000000"))
-        self.ui.pb_backgroundsectionheader.set_color(self.settings_handler.settings.value("Tableformat/backgroundsectionheader", "#FFFFFF"))
-        self.ui.pb_foregroundsubsectionheader.set_color(self.settings_handler.settings.value("Tableformat/foregroundsubsectionheader", "#000000"))
-        self.ui.pb_backgroundsubsectionheader.set_color(self.settings_handler.settings.value("Tableformat/backgroundsubsectionheader", "#FFFFFF"))
+        self.ui.chb_formatboldheader.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/boldforegroundheader", RowFormatting().header_textbold)))
+        self.ui.pb_foregroundsectionheader.set_color(self.settings_handler.settings.value("Tableformat/foregroundsectionheader", RowFormatting().header_section_forecolor))
+        self.ui.pb_backgroundsectionheader.set_color(self.settings_handler.settings.value("Tableformat/backgroundsectionheader", RowFormatting().header_section_backcolor))
+        self.ui.pb_foregroundsubsectionheader.set_color(self.settings_handler.settings.value("Tableformat/foregroundsubsectionheader", RowFormatting().header_subsection_forecolor))
+        self.ui.pb_backgroundsubsectionheader.set_color(self.settings_handler.settings.value("Tableformat/backgroundsubsectionheader", RowFormatting().header_subsection_backcolor))
 
-        self.ui.chb_formatboldfooter.setChecked(bool(int(self.settings_handler.settings.value("Tableformat/boldforegroundfooter", 0))))
-        self.ui.pb_foregroundsectionfooter.set_color(self.settings_handler.settings.value("Tableformat/foregroundsectionfooter", "#000000"))
-        self.ui.pb_backgroundsectionfooter.set_color(self.settings_handler.settings.value("Tableformat/backgroundsectionfooter", "#FFFFFF"))
-        self.ui.pb_foregroundsubsectionfooter.set_color(self.settings_handler.settings.value("Tableformat/foregroundsubsectionfooter", "#000000"))
-        self.ui.pb_backgroundsubsectionfooter.set_color(self.settings_handler.settings.value("Tableformat/backgroundsubsectionfooter", "#FFFFFF"))
+        self.ui.chb_formatboldfooter.setChecked(bool(int(self.settings_handler.settings.value("Tableformat/boldforegroundfooter", RowFormatting().footer_textbold))))
+        self.ui.pb_foregroundsectionfooter.set_color(self.settings_handler.settings.value("Tableformat/foregroundsectionfooter", RowFormatting().footer_section_forecolor))
+        self.ui.pb_backgroundsectionfooter.set_color(self.settings_handler.settings.value("Tableformat/backgroundsectionfooter", RowFormatting().footer_section_backcolor))
+        self.ui.pb_foregroundsubsectionfooter.set_color(self.settings_handler.settings.value("Tableformat/foregroundsubsectionfooter", RowFormatting().footer_subsection_forecolor))
+        self.ui.pb_backgroundsubsectionfooter.set_color(self.settings_handler.settings.value("Tableformat/backgroundsubsectionfooter", RowFormatting().footer_subsection_backcolor))
 
         # Хранение
         self.ui.cmb_autosave.setCurrentIndex(1)

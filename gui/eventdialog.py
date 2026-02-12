@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QSortFilterProxyModel
-from PySide6.QtWidgets import QDialog, QButtonGroup, QCompleter, QMessageBox
+from PySide6.QtWidgets import QDialog, QButtonGroup, QCompleter
 
 from base.event import EventField, PaymentType, RowType, term_filter_flags, TermRoleFlags
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox

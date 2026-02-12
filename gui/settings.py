@@ -1,19 +1,15 @@
 from PySide6 import QtWidgets
-from PySide6.QtCore import QSettings, QDir, Qt, QDate, QByteArray, QSize, QPoint
-from PySide6.QtWidgets import QApplication, QMainWindow, QSpacerItem, QSizePolicy, QWidget
+from PySide6.QtCore import QSettings, QDir, QDate, QSize, QPoint
+from PySide6.QtWidgets import QApplication, QMainWindow
 
 from base.casting import str_bool
-from base.font import Fontsize
-from gui.eventtablemodel import RowFormatting
 from base.event import EventField
+from gui.eventtablemodel import RowFormatting
+
 
 class SettingsHandler:
 
-    DEFAULT_ROW_FORMATTING: RowFormatting = RowFormatting(False, False, "black", "black", "white", "white",
-                                                          False, "black", "white", "black", "white",
-                                                          False, "black", "white", "black", "white")
-
-    def __init__(self, main_window: QMainWindow):
+    def __init__(self, main_window):
         settings_file: str = QDir.currentPath() + "/settings.ini"
         self.settings = QSettings(settings_file, QSettings.Format.IniFormat)
 
@@ -44,7 +40,7 @@ class SettingsHandler:
         ## Геометрия окна
         self.mw.resize(self.settings.value("Mainwindow/size", QSize(1300, 750)))
         self.mw.move(self.settings.value("Mainwindow/pos", QPoint(50, 50)))
-        if str_bool(self.settings.value("Mainwindow/fullscreen", 0)):
+        if str_bool(self.settings.value("Mainwindow/fullscreen", "0")):
             self.mw.showMaximized()
 
         # Интерфейс
@@ -97,8 +93,7 @@ class SettingsHandler:
             widget.setVisible(str_bool(self.settings.value("Infopanel/descr"), True))
 
         ## Форматирование строк
-        try:
-            self.mw.event_model.set_row_formatting(RowFormatting(
+        if not self.mw.event_model.set_row_formatting(RowFormatting(
                 str_bool(self.settings.value("Tableformat/boldforegrounddue")),
                 str_bool(self.settings.value("Tableformat/boldforegroundtoday")),
                 self.settings.value("Tableformat/foregrounddue"),
@@ -120,10 +115,8 @@ class SettingsHandler:
 
                 str_bool(self.settings.value("Tableformat/verticalgrid")),
                 str_bool(self.settings.value("Tableformat/zebrastyle")),
-                ))
-
-        except (ValueError, TypeError):
-            self.mw.event_model.set_row_formatting(self.DEFAULT_ROW_FORMATTING)
+                )):
+            self.mw.event_model.set_row_formatting(RowFormatting())
 
         ## Отображение заголовков/футеров
         try:
@@ -149,24 +142,17 @@ class SettingsHandler:
 
     def change_fontsize(self):
         font_sizes = (9, 11, 13)
-        try:
-            setting_value: int = int(self.settings.value("Appearance/fontsize", Fontsize.SMALL))
-        except (ValueError, TypeError):
-            setting_value: int = 0
-
+        setting_value: int = int(self.settings.value("Appearance/fontsize", 0))
         self.app.setStyleSheet(f"QWidget {{ font-size: {font_sizes[setting_value]}pt;}}")
 
+        # Установка ширины некоторых виджетов вручную
         forced_size = {
-            self.mw.ui.wdg_eventfilter: (200, 245, 270, 0, 0, 0),
-            self.mw.ui.wdg_eventinfo: (300, 360, 410, 0, 0, 0),
-            self.mw.ui.tv_payment: (190, 210, 230, 0, 0, 0),
-        }
+            self.mw.ui.wdg_eventfilter: (200, 245, 270),
+            self.mw.ui.wdg_eventinfo: (300, 360, 410),
+            self.mw.ui.tv_payment: (190, 210, 230),}
         for option in forced_size.items():
-            widget, width, height = option[0], option[1][setting_value], option[1][setting_value - 3]
-            if width:
-                widget.setFixedWidth(width)
-            if height:
-                widget.setFixedHeight(height)
+            widget, width = option[0], option[1][setting_value]
+            widget.setFixedWidth(width)
 
         # Виджеты с самостоятельной регулировкой
         for filterwdg in (self.mw.ui.lw_term, self.mw.ui.lw_category):

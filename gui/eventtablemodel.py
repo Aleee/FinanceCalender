@@ -64,9 +64,9 @@ class FinalFooter:
 @dataclass()
 class RowFormatting:
     due_textbold: bool = False
-    today_textbold: bool = False
+    today_textbold: bool = True
     due_forecolor: str = "#aa0000"
-    today_forecolor: str = "#405007"
+    today_forecolor: str = "black"
     due_backcolor: str = "white"
     today_backcolor: str = "white"
 
@@ -431,8 +431,12 @@ class EventTableModel(QAbstractTableModel):
         else:
             return 0
 
-    def set_row_formatting(self, row_formatting: RowFormatting) -> None:
+    def set_row_formatting(self, row_formatting: RowFormatting) -> bool:
+        for var in astuple(row_formatting):
+            if var is None:
+                return False
         self.row_formatting = row_formatting
+        return True
 
     def create_headersfooters(self) -> None:
         # К каждой категории (разделу и подразделу) создается по одному заголовку и одному футеру

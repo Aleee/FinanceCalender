@@ -173,7 +173,7 @@ class MainWindow(QMainWindow):
         self.ui.act_edit.triggered.connect(lambda: self.open_event_dialog(edit=True))
         self.ui.act_delete.triggered.connect(self.delete_event)
         self.ui.act_export.triggered.connect(self.open_export_dialog)
-        self.ui.act_settings.triggered.connect(self.open_settings_dialog)
+        self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog(True))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.event_proxy_model.set_filter(Filter.HEADER, checked))
         self.ui.act_togglefooters.toggled.connect(lambda checked: self.event_proxy_model.set_filter(Filter.FOOTER, checked))
 
@@ -223,15 +223,10 @@ class MainWindow(QMainWindow):
 
     def make_backup(self):
         backup_path = self.settings_handler.settings.value("Backup/path")
-        if not backup_path:
-            msg_box = ErrorInfoMessageBox("Резервное копирование не выполнено: не указана папка. Обновите настройки", parent=self)
-            msg_box.exec()
+        if not backup_path or not Path(backup_path).is_dir():
+            log.w(f"Путь для резервного копирования не указан или неверен: {backup_path}")
             self.update_toolbar_info(backup_time=QTime(), backup_status=BackupAutosaveStatus.ERROR, initial=True)
-        if not Path(backup_path).is_dir():
-            msg_box = ErrorInfoMessageBox("Резервное копирование не выполнено: указанная папка не найдена. Обновите настройки", parent=self)
-            msg_box.exec()
-            self.update_toolbar_info(backup_time=QTime(), backup_status=BackupAutosaveStatus.ERROR, initial=True)
-
+            return False
         backup_filename = Path(backup_path).joinpath("backup_" + QDateTime().currentDateTime().toString("yyyyMMdd-hhmmss") + ".db")
         try:
             shutil.copy(os.path.abspath(self.db_handler.DEFAULT_DB_RELPATH), backup_filename)
@@ -246,7 +241,7 @@ class MainWindow(QMainWindow):
 
     def clean_backup_folder(self):
         backup_path = self.settings_handler.settings.value("Backup/path")
-        if not Path(backup_path).is_dir():
+        if not backup_path or not Path(backup_path).is_dir():
             return False
         try:
             cleanup_period = int(self.settings_handler.settings.value("Backup/cleanupperiod"))
@@ -507,8 +502,8 @@ class MainWindow(QMainWindow):
         else:
             return False
 
-    def open_settings_dialog(self):
-        settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, self)
+    def open_settings_dialog(self, reject_possible: bool = True):
+        settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, reject_possible, self)
         # Запомнить состояние информационной панели (при применении настроек становится видимой)
         eventinfo_index = self.ui.stw_eventinfo.currentIndex()
         settings_dialog.exec()

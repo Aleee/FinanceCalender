@@ -17,9 +17,12 @@ class App(QApplication):
 
         self.loading_dialog = LoadingDialog()
         self.loading_dialog.show()
-        self.window = MainWindow()
+        self.window: MainWindow = MainWindow()
         self.loading_dialog.load_completed.connect(self.window.show)
         self.window.settings_handler.apply_settings()
+        if not self.window.settings_handler.settings.value("Autosave/interval"):
+            print("called")
+            self.window.open_settings_dialog(reject_possible=False)
 
 
 # pr = cProfile.Profile()
