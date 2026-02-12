@@ -1,0 +1,14 @@
+/.idea/
+/.pytest_cache/
+/.venv/
+/__pycache__/
+/bin/
+/build/
+/dist/
+/export/*
+!export/.gitkeep
+/backup/*
+!backup/.gitkeep
+profile_results.pstat
+resources.qrc
+log.log
