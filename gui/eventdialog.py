@@ -1,10 +1,9 @@
 from decimal import Decimal
 
-from PySide6 import QtWidgets
 from PySide6.QtCore import QModelIndex, Qt, QDate, QSortFilterProxyModel
 from PySide6.QtWidgets import QDialog, QButtonGroup, QCompleter, QMessageBox
 
-from base.event import EventField, PaymentType, EventCategory, RowType, Event, term_filter_flags, TermRoleFlags
+from base.event import EventField, PaymentType, RowType, term_filter_flags, TermRoleFlags
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.eventproxymodel import EventListFinalFilterModel
 from gui.eventtablemodel import EventTableModel
@@ -12,7 +11,6 @@ from gui.ui.eventdialog_ui import Ui_EventDialog
 
 
 class EventDialog(QDialog):
-
 
     DESCR_COMPLETER_LIST = ["Акт сдачи-приемки оказанных услуг №", "ТТН №", "ТН №", "Договор №", "Приложение №", "Счет на оплату №",
                             "Договор аренды №", "Счет №", "Акт выполненных работ №", "Счет на оплату №", "Акт сдачи-приемки оказанных услуг №",

@@ -9,6 +9,9 @@
 !export/.gitkeep
 /backup/*
 !backup/.gitkeep
+/db/*
+!db/.gitkeep
 profile_results.pstat
 resources.qrc
+settings.ini
 log.log
