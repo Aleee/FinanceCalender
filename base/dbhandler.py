@@ -7,9 +7,10 @@ from PySide6.QtCore import QDate
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 import lovely_logger as log
 
-from base.event import Event, term_filter_flags, RowType
+from base.event import Event, term_filter_flags, RowType, TermRoleFlags
 from base.date import str_date, date_str
 from base.payment import Payment
+from gui.settings import SettingsHandler
 
 
 class DBHandler:
@@ -20,10 +21,10 @@ class DBHandler:
 
     def __init__(self, settings_handler):
         self.settings_handler = settings_handler
-        self.db = QSqlDatabase.addDatabase("QSQLITE")
+        self.db: QSqlDatabase = QSqlDatabase.addDatabase("QSQLITE")
 
     def check_if_db_files_exists(self) -> bool:
-        db_path = os.path.abspath(self.DEFAULT_DB_RELPATH)
+        db_path: str = os.path.abspath(self.DEFAULT_DB_RELPATH)
         if not Path(db_path).is_file():
             log.w(f"Не удалось открыть базу данных по стандартному пути (файла не существует): {db_path}")
             return False
@@ -31,15 +32,13 @@ class DBHandler:
 
     def check_db_file_integrity(self, alternative_path: str = "") -> bool:
         if alternative_path:
-            db_path = alternative_path
+            db_path: str = alternative_path
         else:
-            db_path = os.path.abspath(self.DEFAULT_DB_RELPATH)
+            db_path: str = os.path.abspath(self.DEFAULT_DB_RELPATH)
         self.db.setDatabaseName(db_path)
-
         if not self.db.open():
             log.w(f"Не удалось открыть базу данных по указанному пути (неизвестная ошибка): {db_path}")
             return False
-
         query = QSqlQuery("SELECT COUNT(*) FROM pragma_table_info('event')")
         if not query.exec():
             log.w(f"Не удалось проверить количество столбцов в таблице event. Ошибка: {query.lastError().text()}")
@@ -50,7 +49,6 @@ class DBHandler:
             log.w(f"Количество столбцов в таблице event ({query.value(0)}) не соответствует ожидаемому ({self.EVENT_TABLE_COLUMNUM}).")
             self.db.close()
             return False
-
         query = QSqlQuery("SELECT COUNT(*) FROM pragma_table_info('payment')")
         if not query.exec():
             log.w(f"Не удалось проверить количество столбцов в таблице payment. Ошибка: {query.lastError().text()}")
@@ -61,7 +59,6 @@ class DBHandler:
             log.w(f"Количество столбцов в таблице payment ({query.value(0)}) не соответствует ожидаемому ({self.PAYMENT_TABLE_COLUMNUM}).")
             self.db.close()
             return False
-
         query = QSqlQuery("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='event_temp'")
         if not query.exec():
             log.w(f"Не удалось проверить наличие таблицы event_temp. Ошибка: {query.lastError().text()}")
@@ -72,7 +69,6 @@ class DBHandler:
             log.w(f"При инициализации обнаружена таблица event_temp. Возможно, предыдущее сохранение было завершено некорректно. Таблица будет удалена.")
             query = QSqlQuery("DROP TABLE event_temp")
             query.exec()
-
         query = QSqlQuery("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='payment_temp'")
         if not query.exec():
             log.w(f"Не удалось проверить наличие таблицы payment_temp. Ошибка: {query.lastError().text()}")
@@ -88,7 +84,7 @@ class DBHandler:
         return True
 
     def open_db_connection(self) -> bool:
-        db_path = os.path.abspath(self.DEFAULT_DB_RELPATH)
+        db_path: str = os.path.abspath(self.DEFAULT_DB_RELPATH)
         self.db.setDatabaseName(db_path)
         if not self.db.open():
             log.c(f"Не удалось открыть базу данных по указанному пути (неизвестная ошибка): {db_path}")
@@ -129,32 +125,32 @@ class DBHandler:
                     return False
                 total_paid: Decimal = Decimal(0)
                 last_payment_date: QDate = QDate()
-                are_today_payments_present = False
+                are_today_payments_present: bool = False
                 while pquery.next():
                     # Проверка на сброс сегодняшней суммы: при отсутствии оплат на текущую дату столбец обнуляется
-                    today_date_cutoff = QDate().currentDate()
-                    date_paid = str_date(pquery.value(2))
+                    today_date_cutoff: QDate = QDate().currentDate()
+                    date_paid: QDate = str_date(pquery.value(2))
                     if date_paid == today_date_cutoff:
                         are_today_payments_present = True
                     # Выбор наиболее поздней даты для last_payment_date
                     if not last_payment_date.isValid() or date_paid > last_payment_date:
                         last_payment_date = date_paid
                     # Накопленная сумма платежей
-                    sum_paid = Decimal(pquery.value(1))
+                    sum_paid: Decimal = Decimal(pquery.value(1))
                     total_paid += sum_paid
 
                     payments.append(Payment(int(pquery.value(0)), int(query.value(0)), date_paid, sum_paid, str_date(pquery.value(3))))
 
                 total_amount: Decimal = Decimal(query.value(4))
-                remainamount = total_amount - total_paid
-                percentage = float(total_paid / total_amount)
-                duedate = str_date(query.value(6))
-                today_share = Decimal(query.value(5))
+                remainamount: Decimal = total_amount - total_paid
+                percentage: float = float(total_paid / total_amount)
+                duedate: QDate = str_date(query.value(6))
+                today_share: Decimal = Decimal(query.value(5))
                 if today_share != 0 and not are_today_payments_present:
                     today_share = Decimal(0)
                 if not duedate.isValid():
                     continue
-                termflags = term_filter_flags(remainamount, duedate, are_today_payments_present)
+                termflags: TermRoleFlags = term_filter_flags(remainamount, duedate, are_today_payments_present)
 
                 #                         0         1           2                   3                  4              5             6            7
                 events.append(Event(query.value(2), 2, int(query.value(0)), int(query.value(1)), query.value(3), remainamount, total_amount, percentage,
@@ -164,6 +160,7 @@ class DBHandler:
                                     query.value(10), last_payment_date))
         except TypeError as e:
             log.x(f"Некоторые данные из базы данных не смогли быть преобразованы при загрузке\n{str(e)}")
+            QSqlDatabase.database().close()
             raise TypeError
 
         QSqlDatabase.database().close()

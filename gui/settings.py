@@ -1,20 +1,28 @@
+from enum import IntEnum
+
 from PySide6 import QtWidgets
-from PySide6.QtCore import QSettings, QDir, QDate, QSize, QPoint
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtCore import QSettings, QDir, QDate, QSize, QPoint, QCoreApplication
+from PySide6.QtWidgets import QApplication
 
 from base.casting import str_bool
 from base.event import EventField
 from gui.eventtablemodel import RowFormatting
 
 
+class FontSize(IntEnum):
+    SMALL = 9
+    MEDIUM = 11
+    LARGE = 13
+
+
 class SettingsHandler:
 
     def __init__(self, main_window):
         settings_file: str = QDir.currentPath() + "/settings.ini"
-        self.settings = QSettings(settings_file, QSettings.Format.IniFormat)
+        self.settings: QSettings = QSettings(settings_file, QSettings.Format.IniFormat)
 
         self.mw = main_window
-        self.app = QApplication.instance()
+        self.app: QCoreApplication = QApplication.instance()
 
     def apply_settings(self, autosave_needed: bool = False) -> None:
         # Отключение фильтра на время применения настроек
@@ -31,7 +39,7 @@ class SettingsHandler:
         ## Ширина столбцов
         columnwidth_data: str = self.settings.value("Appearance/columnwidth")
         try:
-            columnwidth_listdata = list(map(int, columnwidth_data.split()))
+            columnwidth_listdata: list = list(map(int, columnwidth_data.split()))
             for index, width in enumerate(columnwidth_listdata):
                 self.mw.ui.trw_event.setColumnWidth(index, width)
         except (AttributeError, ValueError, TypeError):
@@ -72,23 +80,18 @@ class SettingsHandler:
         self.mw.ui.ln_totalsum.setVisible(setting_value and str_bool(self.settings.value("Infopanel/percentage"), True))
         spacer_width: int = 15 if setting_value else 0
         self.mw.ui.hs_totalsum.changeSize(spacer_width, 10, QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Expanding)
-
         for widget in (self.mw.ui.la_percentage, self.mw.ui.tla_percentage):
             widget.setVisible(str_bool(self.settings.value("Infopanel/percentage"), True))
-
         setting_value = str_bool(self.settings.value("Infopanel/paymenttype"), True)
         for widget in (self.mw.ui.la_paymenttype, self.mw.ui.tla_paymenttype):
             widget.setVisible(setting_value)
         self.mw.ui.ln_paymenttype.setVisible(setting_value and str_bool(self.settings.value("Infopanel/createdate"), True))
         spacer_width: int = 10 if setting_value else 0
         self.mw.ui.hs_paymenttype.changeSize(spacer_width, 10, QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Expanding)
-
         for widget in (self.mw.ui.la_createdate, self.mw.ui.tla_createdate):
             widget.setVisible(str_bool(self.settings.value("Infopanel/createdate"), True))
-
         for widget in (self.mw.ui.la_responsible, self.mw.ui.tla_responsible):
             widget.setVisible(str_bool(self.settings.value("Infopanel/responsible"), True))
-
         for widget in (self.mw.ui.te_descr, self.mw.ui.tla_descr):
             widget.setVisible(str_bool(self.settings.value("Infopanel/descr"), True))
 
@@ -140,8 +143,8 @@ class SettingsHandler:
         ## Обновить отрисовку
         self.mw.ui.trw_event.viewport().update()
 
-    def change_fontsize(self):
-        font_sizes = (9, 11, 13)
+    def change_fontsize(self) -> None:
+        font_sizes: tuple = (FontSize.SMALL, FontSize.MEDIUM, FontSize.LARGE)
         setting_value: int = int(self.settings.value("Appearance/fontsize", 0))
         self.app.setStyleSheet(f"QWidget {{ font-size: {font_sizes[setting_value]}pt;}}")
 
@@ -164,7 +167,7 @@ class SettingsHandler:
         for widget in (self.mw.la_autosavestatus, self.mw.la_backupstatus, self.mw.la_autosavebackup):
            widget.setStyleSheet(f"QWidget {{ font-size: {font_sizes[0]}pt;}}")
 
-    def save_settings(self):
+    def save_settings(self) -> None:
         # Отображение
         ## Ширина столбцов
         column_widths: list = []
@@ -186,4 +189,3 @@ class SettingsHandler:
         self.settings.setValue("Mainwindow/size", self.mw.size())
         self.settings.setValue("Mainwindow/pos", self.mw.pos())
         self.settings.setValue("Mainwindow/fullscreen", int(self.mw.isMaximized()))
-

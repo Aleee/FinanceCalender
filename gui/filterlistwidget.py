@@ -1,8 +1,9 @@
 from enum import IntEnum
 
+import resources_rc
+import lovely_logger as log
 from PySide6 import QtWidgets, QtCore
 from PySide6.QtGui import QIcon
-import resources_rc
 
 
 class TermCategory(IntEnum):
@@ -26,10 +27,8 @@ class FilterListWidget(QtWidgets.QListWidget):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         # Цвет выделения в фокусе и без
-        self.setStyleSheet("""
-                    QListWidget::item:selected {background-color: #dae8f5; color: black;}
-                    QListWidget::item:selected:!focus {background-color: #dae8f5; color: black;}
-                """)
+        self.setStyleSheet("""QListWidget::item:selected {background-color: #dae8f5; color: black;}
+                    QListWidget::item:selected:!focus {background-color: #dae8f5; color: black;}""")
 
         # Присвоение имен и иконок
         for entry in self.ITEMS.values():
@@ -38,10 +37,10 @@ class FilterListWidget(QtWidgets.QListWidget):
 
     def update_height(self) -> None:
         # Подгонка высоты виджета под размер шрифта
-        item_height = self.sizeHintForRow(0)
-        total_items = self.count()
-        frame_width = self.frameWidth() * 2
-        required_height = item_height * total_items + frame_width
+        item_height: int = self.sizeHintForRow(0)
+        total_items: int = self.count()
+        frame_width: int = self.frameWidth() * 2
+        required_height: int = item_height * total_items + frame_width
         self.setFixedHeight(required_height)
 
 
@@ -63,11 +62,13 @@ class TermFilterListWidget(FilterListWidget):
     @QtCore.Slot(object)
     def update_labels(self, stats: dict) -> None:
         try:
-            filter_stats = stats["term_filter"]
+            filter_stats: dict = stats["term_filter"]
         except KeyError:
-            raise KeyError(f"В словаре, переданном функции, отсутствует часть '{self.FILTER_ID}'")
+            log.x(f"В словаре, переданном функции, отсутствует часть '{self.FILTER_ID}'")
+            raise KeyError
         if len(filter_stats) != len(self.ITEMS):
-            raise IndexError("Длина словаря, переданная функции, не соответствует количеству элементов в списке")
+            log.x("Длина словаря, переданная функции, не соответствует количеству элементов в списке")
+            raise IndexError
         for row in range(self.count()):
             self.item(row).setText(self.ITEMS[row][0] + f" ({len(filter_stats[row])})")
 
@@ -101,7 +102,7 @@ class CategoryFilterListWidget(FilterListWidget):
         super(CategoryFilterListWidget, self).__init__(parent)
 
         self.term_filter_state_paid: bool = False
-        self.saved_stats: bool | None = None
+        self.saved_stats: dict | None = None
 
     @QtCore.Slot(bool)
     def on_term_filter_state_change(self, is_paid_chosen: bool) -> None:
@@ -116,11 +117,12 @@ class CategoryFilterListWidget(FilterListWidget):
             category_paid_stats: dict = stats["category_filter_paid"]
             category_notpaid_stats: dict = stats["category_filter_notpaid"]
         except KeyError:
-            raise KeyError(f"В словаре, переданном функции, отсутствует часть '{self.FILTER_ID}'")
+            log.x(f"В словаре, переданном функции, отсутствует часть '{self.FILTER_ID}'")
+            raise KeyError
         if len(category_paid_stats) != len(self.ITEMS) or len(category_notpaid_stats) != len(self.ITEMS):
-            raise IndexError("Длина словаря, переданная функции, не соответствует количеству элементов в списке")
-
+            log.x("Длина словаря, переданная функции, не соответствует количеству элементов в списке")
+            raise IndexError
         self.saved_stats = stats
-        stats_as_list = list(category_paid_stats.values()) if self.term_filter_state_paid else list(category_notpaid_stats.values())
+        stats_as_list: list = list(category_paid_stats.values()) if self.term_filter_state_paid else list(category_notpaid_stats.values())
         for row in range(self.count()):
             self.item(row).setText(self.ITEMS[row][0] + f" ({len(stats_as_list[row]) if self.term_filter_state_paid else len(stats_as_list[row])})")

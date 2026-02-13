@@ -1,7 +1,9 @@
+import lovely_logger as log
 from PySide6.QtWidgets import QTreeView, QAbstractItemView
 from PySide6.QtCore import Qt, QModelIndex
 
 from base.event import EventField
+from gui.common import model_atlevel
 from gui.eventtablemodel import EventTableModel
 from gui.eventproxymodel import EventListProxyModel
 from gui.itemdelegate import CustomDelegate
@@ -57,7 +59,7 @@ class EventWidget(QTreeView):
         if to_hide:
             columns_to_hide.extend(to_hide)
         # Сперва все столбцы восстанавливаются (скрытые - с шириной по умолчанию)
-        for col in range(self.model().sourceModel().sourceModel().columnCount()):
+        for col in range(model_atlevel(-2, self.model()).columnCount()):
             self.setColumnHidden(col, False)
             if self.columnWidth(col) == 0:
                 self.setColumnWidth(col, self.DEFAULT_COLUMN_WIDTH[col])
@@ -66,21 +68,22 @@ class EventWidget(QTreeView):
             self.setColumnHidden(col, True)
 
     def get_columnvisibility_list(self) -> list[bool]:
-        return [not self.isColumnHidden(col) for col in range(self.model().sourceModel().sourceModel().columnCount())]
+        return [not self.isColumnHidden(col) for col in range(model_atlevel(-2, self.model()).columnCount())]
 
     def set_eventlistmodel(self, model: EventListProxyModel) -> bool:
         if model:
             self.setModel(model)
-            if len(self.DEFAULT_COLUMN_WIDTH) != self.model().sourceModel().sourceModel().column_count:
-                raise ValueError("Количество столбцов в модели и в отображении не совпадает")
+            if len(self.DEFAULT_COLUMN_WIDTH) != model_atlevel(-2, self.model()).column_count:
+                log.x("Количество столбцов в модели и в отображении не совпадает")
+                raise ValueError()
             return True
         else:
             return False
 
     def regain_state_after_model_changes(self):
         # Каждое применение setFirstColumnSpanned() вызывает фильтрацию, поэтому на время она отключается
-        self.model().sourceModel().enable_sortfilter(False)
+        model_atlevel(-1, self.model()).enable_sortfilter(False)
         for row in range(self.model().rowCount()):
             if self.model().index(row, 0, QModelIndex()).data(EventTableModel.customSpanRole):
                 self.setFirstColumnSpanned(row, QModelIndex(), True)
-        self.model().sourceModel().enable_sortfilter(True)
+        model_atlevel(-1, self.model()).enable_sortfilter(True)

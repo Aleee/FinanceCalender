@@ -3,7 +3,7 @@
 
 from PySide6.QtGui import QFont, QFontMetrics
 from PySide6.QtWidgets import QHeaderView, QStyleOptionHeader, QStyle
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import QSize
 
 
 class PersistentHeader(QHeaderView):

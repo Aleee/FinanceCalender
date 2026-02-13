@@ -3,8 +3,8 @@ from PySide6.QtWidgets import QPushButton, QMessageBox
 
 class YesNoMessagebox(QMessageBox):
 
-    YES_RETURN_VALUE = 2
-    NO_RETURN_VALUE = 3
+    YES_RETURN_VALUE: int = 2
+    NO_RETURN_VALUE: int = 3
 
     def __init__(self, text, parent=None):
         super(YesNoMessagebox, self).__init__(parent)
@@ -13,8 +13,8 @@ class YesNoMessagebox(QMessageBox):
         self.setText(text)
         self.setIcon(QMessageBox.Icon.Question)
 
-        self.yes_button = QPushButton("Да", self)
-        self.cancel_button = QPushButton("Отмена", self)
+        self.yes_button: QPushButton = QPushButton("Да", self)
+        self.cancel_button: QPushButton = QPushButton("Отмена", self)
 
         self.addButton(self.yes_button, QMessageBox.ButtonRole.AcceptRole)
         self.addButton(self.cancel_button, QMessageBox.ButtonRole.RejectRole)
@@ -28,5 +28,5 @@ class ErrorInfoMessageBox(QMessageBox):
         self.setText(text)
         self.setIcon(QMessageBox.Icon.Information if is_info else QMessageBox.Icon.Warning)
 
-        self.ok_button = QPushButton("OK", self)
+        self.ok_button: QPushButton = QPushButton("OK", self)
         self.addButton(self.ok_button, QMessageBox.ButtonRole.AcceptRole)

@@ -1,14 +1,14 @@
+import re
 from decimal import Decimal
 from enum import IntEnum, auto
-import re
-import inspect
-from typing import Any, List
+from typing import Any
 
-from PySide6.QtCore import QSortFilterProxyModel, QDate, Signal, Qt, QModelIndex
+from PySide6.QtCore import QSortFilterProxyModel, QDate, Qt, QModelIndex
 from PySide6.QtGui import QFont
 
 from base.event import EventField, RowType, EventCategory
 from base.formatting import dec_strcommaspace
+from gui.common import model_atlevel
 from gui.eventtablemodel import EventTableModel, TermRoleFlags, HeaderFooterSubtype, HeaderFooterField
 from gui.filterlistwidget import TermCategory
 
@@ -24,8 +24,6 @@ class Filter(IntEnum):
 
 
 class EventListProxyModel(QSortFilterProxyModel):
-
-    #widget_must_check_selection_visibility = Signal()
 
     def __init__(self, parent=None):
         super(EventListProxyModel, self).__init__(parent)
@@ -134,7 +132,6 @@ class EventListProxyModel(QSortFilterProxyModel):
                 if data_from_row(EventField.TODAYSHARE) == 0:
                     return False
 
-
         ### Фильтрация заголовков и футеров
         else:
             # Не показывать, если отключены через тулбар
@@ -164,8 +161,10 @@ class EventListProxyModel(QSortFilterProxyModel):
         right_category: int = self.sourceModel().index(source_right.row(), EventField.CATEGORY, source_right.parent()).data(EventTableModel.sortRole)
         left_type: RowType = self.sourceModel().index(source_left.row(), HeaderFooterField.TYPE, source_left.parent()).data(EventTableModel.internalValueRole)
         right_type: RowType = self.sourceModel().index(source_right.row(), HeaderFooterField.TYPE, source_right.parent()).data(EventTableModel.internalValueRole)
-        left_subtype: HeaderFooterSubtype = self.sourceModel().index(source_left.row(), HeaderFooterField.SUBTYPE, source_left.parent()).data(EventTableModel.internalValueRole)
-        right_subtype: HeaderFooterSubtype = self.sourceModel().index(source_right.row(), HeaderFooterField.SUBTYPE, source_right.parent()).data(EventTableModel.internalValueRole)
+        left_subtype: HeaderFooterSubtype = (self.sourceModel().index(source_left.row(), HeaderFooterField.SUBTYPE, source_left.parent())
+                                             .data(EventTableModel.internalValueRole))
+        right_subtype: HeaderFooterSubtype = (self.sourceModel().index(source_right.row(), HeaderFooterField.SUBTYPE, source_right.parent())
+                                              .data(EventTableModel.internalValueRole))
 
         # Последний футер сразу внизу
         if left_type == RowType.FINALFOOTER or right_type == RowType.FINALFOOTER:
@@ -190,6 +189,9 @@ class EventListProxyModel(QSortFilterProxyModel):
 
 class EventListFinalFilterModel(QSortFilterProxyModel):
 
+    TOTAL_CATEGORY = 9999
+    TOTAL_DECIMALS_FONTFAMILY = "Roboto"
+
     decimalValueRole: int = Qt.ItemDataRole.UserRole + 4
 
     def __init__(self, parent=None):
@@ -203,25 +205,23 @@ class EventListFinalFilterModel(QSortFilterProxyModel):
         self.stored_remain = dict()
         self.stored_today = dict()
 
-
-    def recalculate_totals(self):
+    def recalculate_totals(self) -> None:
         for stored_dict in self.stored_total, self.stored_remain, self.stored_today:
             for category in EventCategory:
                 stored_dict[category] = 0
-            # 9999 - полные итоги
-            stored_dict[9999] = 0
+            stored_dict[self.TOTAL_CATEGORY] = 0
 
         for row in range(self.rowCount()):
             if self.index(row, EventField.TYPE).data(EventTableModel.internalValueRole) == RowType.EVENT:
-                category = self.index(row, EventField.CATEGORY).data(EventTableModel.internalValueRole)
-                totalamount = self.index(row, EventField.TOTALAMOUNT, QModelIndex()).data(EventTableModel.internalValueRole)
+                category: int = self.index(row, EventField.CATEGORY).data(EventTableModel.internalValueRole)
+                totalamount: Decimal = self.index(row, EventField.TOTALAMOUNT, QModelIndex()).data(EventTableModel.internalValueRole)
                 self.stored_total[category] += totalamount
-                remainamount = self.index(row, EventField.REMAINAMOUNT, QModelIndex()).data(EventTableModel.internalValueRole)
+                remainamount: Decimal = self.index(row, EventField.REMAINAMOUNT, QModelIndex()).data(EventTableModel.internalValueRole)
                 self.stored_remain[category] += remainamount
-                todayshare = self.index(row, EventField.TODAYSHARE, QModelIndex()).data(EventTableModel.internalValueRole)
+                todayshare: Decimal = self.index(row, EventField.TODAYSHARE, QModelIndex()).data(EventTableModel.internalValueRole)
                 self.stored_today[category] += todayshare
         for stored_dict in self.stored_total, self.stored_remain, self.stored_today:
-            total_total = 0
+            total_total: Decimal = Decimal(0)
             for category in stored_dict.keys():
                 if category % 100 == 0:
                     category_prefix: int = category // 1000
@@ -232,29 +232,27 @@ class EventListFinalFilterModel(QSortFilterProxyModel):
                     stored_dict[category] = running_total
                 if category % 1000 != 0:
                     total_total += stored_dict[category]
-            stored_dict[9999] = total_total
+            stored_dict[self.TOTAL_CATEGORY] = total_total
         self.layoutChanged.emit()
 
-
     def filterAcceptsRow(self, source_row, source_parent, /):
-
         # Фильтрация заголовков пустых подразделов
         if self.sourceModel().index(source_row, HeaderFooterField.TYPE).data(EventTableModel.internalValueRole) == RowType.FINALFOOTER:
             return True
         category: int = self.sourceModel().index(source_row, HeaderFooterField.CATEGORY, source_parent).data(EventTableModel.internalValueRole)
         return self.iterate_source_model(category, category == EventCategory.TOP_CURRENT)
 
-    def data(self, index, /, role = ...):
+    def data(self, index, /, role=...):
         if role == Qt.ItemDataRole.FontRole:
             if index.siblingAtColumn(EventField.TYPE).data(EventTableModel.internalValueRole) in (RowType.FOOTER, RowType.FINALFOOTER):
                 if index.column() in (EventField.TOTALAMOUNT, EventField.REMAINAMOUNT, EventField.TODAYSHARE):
-                    font = QFont()
+                    font: QFont = QFont()
                     font.setBold(True)
-                    font.setFamily("Roboto")
+                    font.setFamily(self.TOTAL_DECIMALS_FONTFAMILY)
                     return font
         if role == Qt.ItemDataRole.DisplayRole:
             if index.siblingAtColumn(EventField.TYPE).data(EventTableModel.internalValueRole) == RowType.FOOTER:
-                category = index.siblingAtColumn(EventField.CATEGORY).data(EventTableModel.internalValueRole)
+                category: int = index.siblingAtColumn(EventField.CATEGORY).data(EventTableModel.internalValueRole)
                 if index.column() == EventField.TOTALAMOUNT:
                     value = self.stored_total[category]
                     return "" if value == Decimal(0) else dec_strcommaspace(value)
@@ -266,17 +264,17 @@ class EventListFinalFilterModel(QSortFilterProxyModel):
                     return "" if value == Decimal(0) else dec_strcommaspace(value)
             elif index.siblingAtColumn(EventField.TYPE).data(EventTableModel.internalValueRole) == RowType.FINALFOOTER:
                 if index.column() == EventField.TOTALAMOUNT:
-                    value = self.stored_total[9999]
+                    value = self.stored_total[self.TOTAL_CATEGORY]
                     return "" if value == Decimal(0) else dec_strcommaspace(value)
                 if index.column() == EventField.REMAINAMOUNT:
-                    value = self.stored_remain[9999]
+                    value = self.stored_remain[self.TOTAL_CATEGORY]
                     return "" if value == Decimal(0) else dec_strcommaspace(value)
                 if index.column() == EventField.TODAYSHARE:
-                    value = self.stored_today[9999]
+                    value = self.stored_today[self.TOTAL_CATEGORY]
                     return "" if value == Decimal(0) else dec_strcommaspace(value)
         if role == self.decimalValueRole:
             if index.siblingAtColumn(EventField.TYPE).data(EventTableModel.internalValueRole) == RowType.FOOTER:
-                category = index.siblingAtColumn(EventField.CATEGORY).data(EventTableModel.internalValueRole)
+                category: int = index.siblingAtColumn(EventField.CATEGORY).data(EventTableModel.internalValueRole)
                 if index.column() == EventField.TOTALAMOUNT:
                     return self.stored_total[category]
                 if index.column() == EventField.REMAINAMOUNT:
@@ -285,19 +283,18 @@ class EventListFinalFilterModel(QSortFilterProxyModel):
                     return self.stored_today[category]
             elif index.siblingAtColumn(EventField.TYPE).data(EventTableModel.internalValueRole) == RowType.FINALFOOTER:
                 if index.column() == EventField.TOTALAMOUNT:
-                    return self.stored_total[9999]
+                    return self.stored_total[self.TOTAL_CATEGORY]
                 if index.column() == EventField.REMAINAMOUNT:
-                    return self.stored_remain[9999]
+                    return self.stored_remain[self.TOTAL_CATEGORY]
                 if index.column() == EventField.TODAYSHARE:
-                    return self.stored_today[9999]
+                    return self.stored_today[self.TOTAL_CATEGORY]
 
         return QSortFilterProxyModel.data(self, index, role)
 
-
     def iterate_source_model(self, category: int, subcategories: bool = False):
-        source_model: EventListProxyModel = self.sourceModel()
+        source_model = model_atlevel(-1, self)
         row_count: int = source_model.rowCount()
-        subcategory_prefix = category // 1000
+        subcategory_prefix: int = category // 1000
         for i in range(row_count):
             if source_model.index(i, EventField.TYPE).data(EventTableModel.internalValueRole) == RowType.EVENT:
                 if subcategories:
@@ -309,4 +306,3 @@ class EventListFinalFilterModel(QSortFilterProxyModel):
             else:
                 continue
         return False
-

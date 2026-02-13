@@ -4,6 +4,7 @@ from PySide6.QtCore import QModelIndex, Qt, QDate, QSortFilterProxyModel
 from PySide6.QtWidgets import QDialog, QButtonGroup, QCompleter
 
 from base.event import EventField, PaymentType, RowType, term_filter_flags, TermRoleFlags
+from gui.common import model_atlevel, map_to_source
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.eventproxymodel import EventListFinalFilterModel
 from gui.eventtablemodel import EventTableModel
@@ -27,12 +28,12 @@ class EventDialog(QDialog):
 
         self.edit_mode: bool = edit_mode
         self.copy_mode: bool = copy_mode
-        self.non_editable_values = {"id": 0, "paidamount": Decimal(0), "createdate": QDate(), "todayshare": Decimal(0)}
+        self.non_editable_values: dict = {"id": 0, "paidamount": Decimal(0), "createdate": QDate(), "todayshare": Decimal(0)}
 
-        self.index = current_index
+        self.index: QModelIndex = current_index
         self.model: EventListFinalFilterModel = self.index.model()
 
-        self.button_group = QButtonGroup(self)
+        self.button_group: QButtonGroup = QButtonGroup(self)
         self.button_group.addButton(self.ui.rb_typenormal, PaymentType.NORMAL)
         self.button_group.addButton(self.ui.rb_typeadvance, PaymentType.ADVANCE)
         self.ui.pb_accept.clicked.connect(self.accept)
@@ -50,7 +51,8 @@ class EventDialog(QDialog):
             self.ui.pb_accept.setText("Применить")
             # Сохранение значений, которые не будут напрямую редактироваться
             self.non_editable_values["id"] = self.index.siblingAtColumn(EventField.ID).data(EventTableModel.internalValueRole)
-            self.non_editable_values["paidamount"] = self.index.siblingAtColumn(EventField.TOTALAMOUNT).data(EventTableModel.internalValueRole) - self.index.siblingAtColumn(EventField.REMAINAMOUNT).data(EventTableModel.internalValueRole)
+            self.non_editable_values["paidamount"] = (self.index.siblingAtColumn(EventField.TOTALAMOUNT).data(EventTableModel.internalValueRole)
+                                                      - self.index.siblingAtColumn(EventField.REMAINAMOUNT).data(EventTableModel.internalValueRole))
             self.non_editable_values["createdate"] = self.index.siblingAtColumn(EventField.CREATEDATE).data(EventTableModel.internalValueRole)
             self.non_editable_values["todayshare"] = self.index.siblingAtColumn(EventField.TODAYSHARE).data(EventTableModel.internalValueRole)
 
@@ -61,7 +63,7 @@ class EventDialog(QDialog):
             self.ui.le_name.setText(self.index.siblingAtColumn(EventField.NAME).data(EventTableModel.internalValueRole))
             self.ui.dsb_totalamount.setValue(self.index.siblingAtColumn(EventField.TOTALAMOUNT).data(EventTableModel.internalValueRole))
             self.ui.de_duedate.setDate(self.index.siblingAtColumn(EventField.DUEDATE).data(EventTableModel.internalValueRole))
-            cmb_index = self.ui.cmb_category.findData(self.index.siblingAtColumn(EventField.CATEGORY).data(EventTableModel.internalValueRole))
+            cmb_index: int = self.ui.cmb_category.findData(self.index.siblingAtColumn(EventField.CATEGORY).data(EventTableModel.internalValueRole))
             self.ui.cmb_category.setCurrentIndex(cmb_index)
             self.button_group.button(self.index.siblingAtColumn(EventField.PAYMENTTYPE).data(EventTableModel.internalValueRole)).setChecked(True)
             self.ui.le_responsible.setText(self.index.siblingAtColumn(EventField.RESPONSIBLE).data(EventTableModel.internalValueRole))
@@ -74,7 +76,7 @@ class EventDialog(QDialog):
             self.ui.le_receiver.setFocus()
 
     def set_completers(self):
-        origin_model: EventTableModel = self.model.sourceModel().sourceModel()
+        origin_model: EventTableModel = model_atlevel(-2, self.model)
         name_compl_list, receiver_compl_list, responsible_compl_list = [], [], []
         for row in range(origin_model.rowCount()):
             if origin_model.index(row, EventField.TYPE).data(EventTableModel.internalValueRole) == RowType.EVENT:
@@ -92,7 +94,7 @@ class EventDialog(QDialog):
         self.ui.le_responsible.setCompleter(responsible_compl)
         self.ui.te_descr.completions.setStringList(self.DESCR_COMPLETER_LIST)
 
-    def check_integrity(self):
+    def check_integrity(self) -> bool:
         text = ""
         if self.ui.le_name.text().strip() == "":
             text = "Наименование платежа должно быть указано"
@@ -108,7 +110,8 @@ class EventDialog(QDialog):
             return False
 
         text = ""
-        if self.ui.de_duedate.date() < QDate.currentDate() and TermRoleFlags.DUE not in self.index.siblingAtColumn(EventField.TERMFLAGS).data(EventTableModel.internalValueRole):
+        if (self.ui.de_duedate.date() < QDate.currentDate() and
+                TermRoleFlags.DUE not in self.index.siblingAtColumn(EventField.TERMFLAGS).data(EventTableModel.internalValueRole)):
             text += "Дата платежа меньше текущей даты. "
         if self.ui.le_responsible.text().strip() == "":
             text += "Ответственное лицо не указано. "
@@ -135,9 +138,9 @@ class EventDialog(QDialog):
             data.append(self.ui.le_name.text())
             # Остаток задолженности
             if not self.edit_mode:
-                remain_amount = Decimal(self.ui.dsb_totalamount.value())
+                remain_amount: Decimal = Decimal(self.ui.dsb_totalamount.value())
             else:
-                remain_amount = Decimal(self.ui.dsb_totalamount.value()) - self.non_editable_values["paidamount"]
+                remain_amount: Decimal = Decimal(self.ui.dsb_totalamount.value()) - self.non_editable_values["paidamount"]
             data.append(remain_amount)
             data.append(Decimal(self.ui.dsb_totalamount.value()))
             data.append(float(remain_amount) / self.ui.dsb_totalamount.value())
@@ -159,19 +162,13 @@ class EventDialog(QDialog):
                 today_payments: bool = (self.non_editable_values["todayshare"] != 0)
             data.append(term_filter_flags(remain_amount, self.ui.de_duedate.date(), today_payments))
             data.append(self.ui.te_notes.toPlainText())
+            data.append(QDate())
 
-            original_model: EventTableModel = self.model.sourceModel().sourceModel()
+            original_model: EventTableModel = model_atlevel(-2, self.model)
 
             if not self.edit_mode:
                 original_model.append_row(data)
             else:
-                proxy_model: QSortFilterProxyModel = self.model.sourceModel()
-                original_model.edit_row(proxy_model.mapToSource(self.model.mapToSource(self.index)), data)
+                original_model.edit_row(map_to_source(-2, self.index), data)
 
             QDialog.accept(self)
-
-
-
-
-
-

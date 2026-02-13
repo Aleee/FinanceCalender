@@ -1,19 +1,17 @@
-import inspect
-
-from PySide6.QtCore import QSortFilterProxyModel
+from PySide6.QtCore import QSortFilterProxyModel, QModelIndex
 from PySide6.QtWidgets import QTreeView, QTableView
 
 
-def is_selection_filteredout(proxy_model: QSortFilterProxyModel, widget: QTreeView | QTableView, two_proxies: bool = False, current_instead: bool = False):
-    filteredout = False
+def is_selection_filteredout(proxy_model: QSortFilterProxyModel, widget: QTreeView | QTableView, two_proxies: bool = False, current_instead: bool = False) -> bool:
+    filteredout: bool = False
     if not current_instead:
-        s_indexes = widget.selectionModel().selectedIndexes()
+        s_indexes: list = widget.selectionModel().selectedIndexes()
         try:
-            s_index = s_indexes[0]
+            s_index: QModelIndex = s_indexes[0]
         except IndexError:
             return True
     else:
-        s_index = widget.selectionModel().currentIndex()
+        s_index: QModelIndex = widget.selectionModel().currentIndex()
     if not s_index:
         filteredout = True
     if two_proxies:

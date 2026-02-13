@@ -1,8 +1,8 @@
+import resources_rc
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QMovie
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel
-import resources_rc
 
 
 class LoadingDialog(QDialog):

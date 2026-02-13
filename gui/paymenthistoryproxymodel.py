@@ -1,8 +1,7 @@
-from PySide6.QtCore import QSortFilterProxyModel, QModelIndex, Qt, QDate
+from PySide6.QtCore import QSortFilterProxyModel, Qt
 
-from base.event import EventField, RowType
 from base.payment import PaymentField
-from gui.eventtablemodel import EventTableModel
+from gui.common import model_atlevel
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 
 
@@ -13,13 +12,12 @@ class PaymentHistoryProxyModel(QSortFilterProxyModel):
 
         self.sort(2)
         self.setDynamicSortFilter(True)
-
         self.current_event_id: int = 0
 
     def filterAcceptsRow(self, source_row, source_parent, /):
-        return self.sourceModel().index(source_row, PaymentField.EVENT, source_parent).data(PaymentHistoryTableModel.internalValueRole) == self.current_event_id
+        return model_atlevel(-1, self).index(source_row, PaymentField.EVENT, source_parent).data(PaymentHistoryTableModel.internalValueRole) == self.current_event_id
 
-    def headerData(self, section, orientation, /, role = ...):
+    def headerData(self, section, orientation, /, role=...):
         if orientation == Qt.Orientation.Vertical and role == Qt.ItemDataRole.DisplayRole:
             return section + 1
         return super().headerData(section, orientation, role)

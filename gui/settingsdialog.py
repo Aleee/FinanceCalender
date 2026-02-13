@@ -61,7 +61,7 @@ class SettingsDialog(QDialog):
             self.ui.lw_menu.item(row).setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         # Группы кнопок
-        self.rbg_fontsize = QButtonGroup()
+        self.rbg_fontsize: QButtonGroup = QButtonGroup()
         self.rbg_fontsize.addButton(self.ui.rb_fontsize_1, 0)
         self.rbg_fontsize.addButton(self.ui.rb_fontsize_2, 1)
         self.rbg_fontsize.addButton(self.ui.rb_fontsize_3, 2)
@@ -95,7 +95,7 @@ class SettingsDialog(QDialog):
 
     def accept(self):
         if not self.ui.le_backuppath.text() or not Path(self.ui.le_backuppath.text()).is_dir():
-            msg_box = ErrorInfoMessageBox("Папка для резервного копирования не указана или указана неверно")
+            msg_box: ErrorInfoMessageBox = ErrorInfoMessageBox("Папка для резервного копирования не указана или указана неверно")
             msg_box.exec()
             return
         self.save_settings_values()
@@ -103,7 +103,7 @@ class SettingsDialog(QDialog):
         QDialog.accept(self)
 
     def change_path(self, le_widget: QLineEdit) -> None:
-        path = QFileDialog.getExistingDirectory(self, "Выберите папку", le_widget.text())
+        path: str = QFileDialog.getExistingDirectory(self, "Выберите папку", le_widget.text())
         if path:
             le_widget.setText(path)
 
@@ -160,7 +160,7 @@ class SettingsDialog(QDialog):
         # Хранение
         self.ui.cmb_autosave.setCurrentIndex(1)
         try:
-            probable_setting = int(self.settings_handler.settings.value("Autosave/interval"))
+            probable_setting: int = int(self.settings_handler.settings.value("Autosave/interval"))
             for autosave_option in self.AUTOSAVE_SET.items():
                 if probable_setting == autosave_option[1]:
                     self.ui.cmb_autosave.itemData(self.ui.cmb_autosave.setCurrentIndex(autosave_option[0]))
@@ -226,14 +226,14 @@ class SettingsDialog(QDialog):
     def change_stw_page(self, current_item: QListWidgetItem, previous_item: QListWidgetItem) -> None:
         self.ui.stw.setCurrentIndex(self.ui.lw_menu.row(current_item))
 
-    def restore_backup(self):
+    def restore_backup(self) -> None:
         dlg = RecoveryDialog(self.settings_handler, self.parent().db_handler,
                              "Обратите внимание, что данные текущей сессии будут заменены выбранными и в результате полностью\n"
                              "утрачены (в случае успешного резервного копирования при запуске приложения будет доступно их\n"
                              "восстановление в контрольной точке, соответствующей запуску приложения)", True, self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self.parent().nosave_exit = True
-            msg_box = ErrorInfoMessageBox("Приложение будет перезапущено", is_info=True, parent=self)
+            msg_box: ErrorInfoMessageBox = ErrorInfoMessageBox("Приложение будет перезапущено", is_info=True, parent=self)
             msg_box.exec()
             QtCore.QCoreApplication.quit()
             QtCore.QProcess.startDetached(sys.executable, sys.argv)

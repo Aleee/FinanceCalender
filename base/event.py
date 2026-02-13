@@ -94,8 +94,8 @@ class Event:
 
 
 def term_filter_flags(remainamount: Decimal, duedate: QDate, are_today_payments_present: bool) -> TermRoleFlags:
-    current_date = get_current_date()
-    term_flags = TermRoleFlags.NONE
+    current_date: QDate = get_current_date()
+    term_flags: TermRoleFlags = TermRoleFlags.NONE
     # Проверка на оплаченность
     if remainamount <= 0 and not are_today_payments_present:
         term_flags |= TermRoleFlags.PAID

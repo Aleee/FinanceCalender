@@ -1,9 +1,7 @@
-from datetime import datetime, timedelta
-
-from base.canvas import MplCanvas
 import matplotlib.ticker as ticker
 import matplotlib.dates as mdates
 
+from base.canvas import MplCanvas
 from base.formatting import float_strcommaspace
 
 
@@ -13,24 +11,13 @@ class PaymentHistoryGraph:
         self.ax = self.canvas.axes
 
     def update_plot(self, dates: list, amounts: list):
-        dates = dates
-        amounts = amounts
-
         self.canvas.axes.cla()
-
-        # original_dates = ['2025-01-02', '2025-01-08', '2025-02-03', '2025-04-04', '2025-05-08']
-        # amounts = [568752.54, 394252.56, 125752.41, 96520.10, 0]
-        # dates = [datetime.strptime(d, '%Y-%m-%d') for d in original_dates]
-
-        # 2. Create the plot
         self.ax.plot(dates, amounts, marker='o', markersize=3, linestyle='-')  # Plot the data
-
-        # Optional: Improve readability by rotating the x-axis labels
         self.canvas.fig.autofmt_xdate()
 
-        yticks = []
-        amounts_reversed = amounts[::-1]
-        min_distance = float(max(amounts)) * 0.05
+        yticks: list = []
+        amounts_reversed: list = amounts[::-1]
+        min_distance: float = float(max(amounts)) * 0.05
         for index, y in enumerate(amounts_reversed):
             if index == 0:
                 yticks.append(y)
@@ -39,8 +26,8 @@ class PaymentHistoryGraph:
                     yticks.append(y)
         yticks.reverse()
 
-        xticks = []
-        dates_reversed = dates[::-1]
+        xticks: list = []
+        dates_reversed: list = dates[::-1]
         min_distance = (max(dates) - min(dates)) * 0.05
         for index, x in enumerate(dates_reversed):
             if index == 0 or index == len(dates_reversed) - 1:
@@ -54,7 +41,6 @@ class PaymentHistoryGraph:
 
         self.ax.set_xticks(xticks)
         self.ax.set_yticks(yticks)
-
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m.%Y"))
         self.ax.tick_params(axis='x', labelsize=8, rotation=45)
         self.ax.yaxis.set_major_formatter(ticker.FuncFormatter(float_strcommaspace))
@@ -71,16 +57,12 @@ class PaymentHistoryGraph:
 
         for i, (x, y) in enumerate(zip(dates, amounts)):
             label = f"{(1-y/max(amounts))*100:.1f}%"
-            #if y != max(amounts) and y != 0:
             self.ax.annotate(label,
                             (x, y),
                             textcoords="offset points",
                             xytext=(15, 10),
                             ha='center',
                             fontsize=9)
-
-        #self.canvas.fig.subplots_adjust(bottom=0.22, top=1, left=0.22, right=0.99)
-
         self.ax.fill_between(dates, amounts, color="lightblue", alpha=0.5)
 
         self.canvas.fig.tight_layout()

@@ -7,19 +7,22 @@ from enum import IntEnum, auto
 import pywintypes
 import win32com.client
 from PySide6.QtCore import QDate, QModelIndex, Qt
-from PySide6.QtWidgets import QTableView, QMessageBox
+from PySide6.QtWidgets import QTableView
+from xlsxwriter.worksheet import Worksheet
 
 from base.casting import str_bool
-from base.date import date_purestr, date_str, date_displstr
+from base.date import date_purestr, date_displstr
 from base.event import EventField, RowType, TermRoleFlags, Event
+from gui.common import model_atlevel
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.eventproxymodel import EventListFinalFilterModel
 from gui.eventtablemodel import EventTableModel, HeaderFooterField, HeaderFooterSubtype, RowFormatting
 from gui.settings import SettingsHandler
 from gui.itemdelegate import CustomDelegate
 from typing import get_type_hints
-from xlsxwriter.exceptions import FileCreateError
 from xlsxwriter import Workbook
+from xlsxwriter.exceptions import FileCreateError
+from xlsxwriter.format import Format
 
 
 def xlsx_to_pdf_win32(xlsx_path, pdf_path):
@@ -30,7 +33,8 @@ def xlsx_to_pdf_win32(xlsx_path, pdf_path):
         wb.ActiveSheet.ExportAsFixedFormat(0, os.path.abspath(pdf_path))
         return True
     except pywintypes.com_error:
-        msg_box = ErrorInfoMessageBox("Не удалось записать файл. Возможно, файл с таким же именем используется другим приложением или в настройках указан неверный путь")
+        msg_box: ErrorInfoMessageBox = ErrorInfoMessageBox("Не удалось записать файл. Возможно, файл с таким же именем используется "
+                                                           "другим приложением или в настройках указан неверный путь")
         msg_box.exec()
         return False
     finally:
@@ -47,7 +51,6 @@ class ExportFormat(IntEnum):
 
 
 class XlsWriter:
-
     DEFAULT_XLSCOLUMN_WIDTH = {
         EventField.RECEIVER: 28,
         EventField.TYPE: 0,
@@ -66,50 +69,58 @@ class XlsWriter:
         EventField.TERMFLAGS: 0,
     }
 
-    BORDER_COLOR = "#D0D0D0"
-    HEADER_ROWS_NUMBER = 4
+    BORDER_COLOR: str = "#D0D0D0"
+    HEADER_ROWS_NUMBER: int = 4
 
     def __init__(self, model: EventListFinalFilterModel, view: QTableView, settings_handler: SettingsHandler):
-        self.model = model
-        self.view = view
-        self.settings_handler = settings_handler
+        self.model: EventListFinalFilterModel = model
+        self.view: QTableView = view
+        self.settings_handler: SettingsHandler = settings_handler
 
         # Индексы столбцов с финансовыми данными
-        type_hints = list(get_type_hints(Event).values())
+        type_hints: list = list(get_type_hints(Event).values())
         self.decimalcolumns_numbers = [index for index, datatype in enumerate(type_hints) if datatype == Decimal]
 
-    def write(self, export_format: ExportFormat, columns_to_export: list[bool]):
+    def write(self, export_format: ExportFormat, columns_to_export: list[bool]) -> None:
 
-        row_formatting: RowFormatting = self.model.sourceModel().sourceModel().row_formatting
+        row_formatting: RowFormatting = model_atlevel(-2, self.model).row_formatting
 
-        export_dir = self.settings_handler.settings.value("Export/path", os.getcwd())
-        xls_file_path = os.path.join(export_dir, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.xlsx")
-        temp_file_path = os.path.join(os.getcwd(), ''.join(random.choices(string.ascii_uppercase + string.digits, k=14))+".pdf")
-        pdf_file_path = os.path.join(export_dir, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.pdf")
+        export_dir: str = self.settings_handler.settings.value("Export/path", os.getcwd())
+        xls_file_path: str = os.path.join(export_dir, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.xlsx")
+        temp_file_path: str = os.path.join(os.getcwd(), ''.join(random.choices(string.ascii_uppercase + string.digits, k=14)) + ".pdf")
+        pdf_file_path: str = os.path.join(export_dir, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.pdf")
 
-        workbook = Workbook(xls_file_path) if export_format == ExportFormat.XLSX else Workbook(temp_file_path)
+        workbook: Workbook = Workbook(xls_file_path) if export_format == ExportFormat.XLSX else Workbook(temp_file_path)
 
-        worksheet = workbook.add_worksheet()
+        worksheet: Worksheet = workbook.add_worksheet()
         worksheet.set_landscape()
         worksheet.fit_to_pages(1, 0)
 
         ### Форматы ###
-        # f_global = workbook.add_format()
-        f_fileheader1 = workbook.add_format({"font_size": 22, "bold": True, "align": "center", "valign": "vcenter"})
-        f_fileheader2 = workbook.add_format({"font_size": 16, "bold": True, "align": "center", "valign": "vcenter"})
-
-        f_tableheader = workbook.add_format({"font_size": 14, "bold": True, "align": "center", "valign": "vcenter", 'text_wrap': True})
-
-        f_event_normal = workbook.add_format({"font_size": 14, "bold": False, 'text_wrap': True, "valign": "vcenter", "border": 1, "border_color": self.BORDER_COLOR})
-        f_event_due = workbook.add_format({"font_size": 14, "bold": row_formatting.due_textbold, 'text_wrap': True, "valign": "vcenter", "font_color": f"{row_formatting.due_forecolor}", "bg_color": f"{row_formatting.due_backcolor}", "border": 1, "border_color": self.BORDER_COLOR})
-        f_event_today = workbook.add_format({"font_size": 14, "bold": row_formatting.today_textbold, 'text_wrap': True, "valign": "vcenter", "font_color": f"{row_formatting.today_forecolor}", "bg_color": f"{row_formatting.today_backcolor}", "border": 1, "border_color": self.BORDER_COLOR})
-        f_header_top = workbook.add_format({"font_size": 16, "bold": False, "font_color": f"{row_formatting.header_section_forecolor}", "bg_color": f"{row_formatting.header_section_backcolor}", "border": 1, "border_color": self.BORDER_COLOR, "top_color": "#000000", "align": "center"})
-        f_header_sub = workbook.add_format({"font_size": 16, "bold": False, "font_color": f"{row_formatting.header_subsection_forecolor}", "bg_color": f"{row_formatting.header_subsection_backcolor}", "border": 1, "border_color": self.BORDER_COLOR, "top_color": "#000000", "align": "center"})
-        f_footer_top = workbook.add_format({"font_size": 14, "bold": True, "font_color": f"{row_formatting.footer_section_forecolor}", "bg_color": f"{row_formatting.footer_section_backcolor}", "border": 1, "border_color": self.BORDER_COLOR})
-        f_footer_sub = workbook.add_format({"font_size": 14, "bold": True, "font_color": f"{row_formatting.footer_subsection_forecolor}", "bg_color": f"{row_formatting.footer_subsection_backcolor}", "border": 1, "border_color": self.BORDER_COLOR})
-        f_footer_final = workbook.add_format({"font_size": 14, "bold": True, "bg_color": f"{CustomDelegate.FINALFOOTER_BACK_COLOR.name()}", "border": 1, "border_color": self.BORDER_COLOR, "top_color": "#000000"})
+        f_fileheader1: Format = workbook.add_format({"font_size": 22, "bold": True, "align": "center", "valign": "vcenter"})
+        f_fileheader2: Format = workbook.add_format({"font_size": 16, "bold": True, "align": "center", "valign": "vcenter"})
+        f_tableheader: Format = workbook.add_format({"font_size": 14, "bold": True, "align": "center", "valign": "vcenter", 'text_wrap': True})
+        f_event_normal: Format = workbook.add_format({"font_size": 14, "bold": False, 'text_wrap': True, "valign": "vcenter", "border": 1,
+                                                      "border_color": self.BORDER_COLOR})
+        f_event_due: Format = workbook.add_format({"font_size": 14, "bold": row_formatting.due_textbold, 'text_wrap': True, "valign": "vcenter",
+                                                   "font_color": f"{row_formatting.due_forecolor}", "bg_color": f"{row_formatting.due_backcolor}",
+                                                   "border": 1, "border_color": self.BORDER_COLOR})
+        f_event_today: Format = workbook.add_format({"font_size": 14, "bold": row_formatting.today_textbold, 'text_wrap': True, "valign": "vcenter",
+                                                     "font_color": f"{row_formatting.today_forecolor}", "bg_color": f"{row_formatting.today_backcolor}",
+                                                     "border": 1, "border_color": self.BORDER_COLOR})
+        f_header_top: Format = workbook.add_format({"font_size": 16, "bold": False, "font_color": f"{row_formatting.header_section_forecolor}",
+                                                    "bg_color": f"{row_formatting.header_section_backcolor}", "border": 1, "border_color": self.BORDER_COLOR,
+                                                    "top_color": "#000000", "align": "center"})
+        f_header_sub: Format = workbook.add_format({"font_size": 16, "bold": False, "font_color": f"{row_formatting.header_subsection_forecolor}",
+                                                    "bg_color": f"{row_formatting.header_subsection_backcolor}", "border": 1, "border_color": self.BORDER_COLOR,
+                                                    "top_color": "#000000", "align": "center"})
+        f_footer_top: Format = workbook.add_format({"font_size": 14, "bold": True, "font_color": f"{row_formatting.footer_section_forecolor}",
+                                                    "bg_color": f"{row_formatting.footer_section_backcolor}", "border": 1, "border_color": self.BORDER_COLOR})
+        f_footer_sub: Format = workbook.add_format({"font_size": 14, "bold": True, "font_color": f"{row_formatting.footer_subsection_forecolor}",
+                                                    "bg_color": f"{row_formatting.footer_subsection_backcolor}", "border": 1, "border_color": self.BORDER_COLOR})
+        f_footer_final: Format = workbook.add_format({"font_size": 14, "bold": True, "bg_color": f"{CustomDelegate.FINALFOOTER_BACK_COLOR.name()}",
+                                                      "border": 1, "border_color": self.BORDER_COLOR, "top_color": "#000000"})
         ###############
-
 
         ### Форматирование столбцов ###
         # Ширина
@@ -133,38 +144,39 @@ class XlsWriter:
         for row in range(self.model.rowCount()):
 
             # Определяем формат для строки
-            row_type = self.model.index(row, EventField.TYPE, QModelIndex()).data(EventTableModel.internalValueRole)
+            row_type: RowType = self.model.index(row, EventField.TYPE, QModelIndex()).data(EventTableModel.internalValueRole)
             if row_type == RowType.EVENT:
-                term_flags = self.model.index(row, EventField.TERMFLAGS, QModelIndex()).data(EventTableModel.internalValueRole)
+                term_flags: TermRoleFlags = self.model.index(row, EventField.TERMFLAGS, QModelIndex()).data(EventTableModel.internalValueRole)
                 if TermRoleFlags.DUE in term_flags:
-                    row_format = f_event_due
+                    row_format: Format = f_event_due
                 elif TermRoleFlags.TODAY in term_flags:
-                    row_format = f_event_today
+                    row_format: Format = f_event_today
                 else:
-                    row_format = f_event_normal
+                    row_format: Format = f_event_normal
             elif row_type == RowType.HEADER:
-                row_subtype = self.model.index(row, HeaderFooterField.SUBTYPE, QModelIndex()).data(EventTableModel.internalValueRole)
+                row_subtype: HeaderFooterSubtype = self.model.index(row, HeaderFooterField.SUBTYPE, QModelIndex()).data(EventTableModel.internalValueRole)
                 if row_subtype == HeaderFooterSubtype.NEXTLEVEL:
-                    row_format = f_header_sub
+                    row_format: Format = f_header_sub
                 else:
-                    row_format = f_header_top
+                    row_format: Format = f_header_top
             elif row_type == RowType.FOOTER:
-                row_subtype = self.model.index(row, HeaderFooterField.SUBTYPE, QModelIndex()).data(EventTableModel.internalValueRole)
+                row_subtype: HeaderFooterSubtype = self.model.index(row, HeaderFooterField.SUBTYPE, QModelIndex()).data(EventTableModel.internalValueRole)
                 if row_subtype == HeaderFooterSubtype.NEXTLEVEL:
-                    row_format = f_footer_sub
+                    row_format: Format = f_footer_sub
                 else:
-                    row_format = f_footer_top
+                    row_format: Format = f_footer_top
             elif row_type == RowType.FINALFOOTER:
-                row_format = f_footer_final
+                row_format: Format = f_footer_final
             else:
-                row_format = f_event_normal
+                row_format: Format = f_event_normal
 
             # Заполнение строки
             for col in range(self.model.columnCount()):
                 if not columns_to_export[col]:
                     continue
                 if row_type == RowType.HEADER and col == 0:
-                    worksheet.merge_range(row + self.HEADER_ROWS_NUMBER, 0, row + self.HEADER_ROWS_NUMBER, len(columns_to_export) - 1, self.model.index(row, 0, QModelIndex()).data(Qt.ItemDataRole.DisplayRole), row_format)
+                    worksheet.merge_range(row + self.HEADER_ROWS_NUMBER, 0, row + self.HEADER_ROWS_NUMBER, len(columns_to_export) - 1,
+                                          self.model.index(row, 0, QModelIndex()).data(Qt.ItemDataRole.DisplayRole), row_format)
                 else:
                     if col in self.decimalcolumns_numbers:
                         if row_type in (RowType.FOOTER, RowType.FINALFOOTER):
@@ -191,6 +203,7 @@ class XlsWriter:
                 xlsx_to_pdf_win32(temp_file_path, pdf_file_path)
                 os.remove(temp_file_path)
         except FileCreateError as e:
-            msg_box = ErrorInfoMessageBox(f"Не удалось записать файл \"ПлатежныйКалендарь_{xls_file_path if export_format == ExportFormat.XLSX else temp_file_path}\". Возможно, файл с таким именем используется другим приложением или в настройках указан неверный путь.")
+            msg_box: ErrorInfoMessageBox = ErrorInfoMessageBox(f"Не удалось записать файл \"ПлатежныйКалендарь_"
+                                                               f"{xls_file_path if export_format == ExportFormat.XLSX else temp_file_path}\". Возможно, файл "
+                                                               f"с таким именем используется другим приложением или в настройках указан неверный путь.")
             msg_box.exec_()
-
