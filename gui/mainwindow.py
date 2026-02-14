@@ -43,10 +43,11 @@ class BackupAutosaveStatus(IntEnum):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, loading_dialog: QDialog):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        self.loading_dialog: QDialog = loading_dialog
         self.settings_handler: SettingsHandler = SettingsHandler(self)
         self.db_handler = DBHandler(self.settings_handler)
         app = QtWidgets.QApplication.instance()
@@ -59,6 +60,7 @@ class MainWindow(QMainWindow):
         # Загрузка данных из БД
         ## Проверка на наличие файла
         if not self.db_handler.check_if_db_files_exists():
+            self.close_loading_dialog()
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,
                                          text="К сожалению, найти файл базы данных в стандартном расположении не удалось. "
                                               "Выберите файл для восстановления",
@@ -66,6 +68,7 @@ class MainWindow(QMainWindow):
             recover_dlg.exec()
         ## Проверка файла
         if not self.db_handler.check_db_file_integrity():
+            self.close_loading_dialog()
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,
                                          text="К сожалению, при проверке файла базы данных обнаружены ошибки (подробности см. в логе). "
                                               "Выберите файл для восстановления",
@@ -75,6 +78,7 @@ class MainWindow(QMainWindow):
         self.db_handler.open_db_connection()
         load_result = self.db_handler.load_from_db()
         while not load_result:
+            self.close_loading_dialog()
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,
                                          text="К сожалению, выполнить загрузку данных из файла базы данных не удалось "
                                               "(подробности см. в логе). Выберите файл для восстановления",
@@ -216,10 +220,16 @@ class MainWindow(QMainWindow):
         self.backup_text = "НЕТ"
         self.make_backup()
 
+        self.close_loading_dialog()
+
         QApplication.instance().processEvents()  # Обновить анимацию загрузки
 
         # Завершение работы
         app.aboutToQuit.connect(self.on_quit_actions)
+
+    def close_loading_dialog(self):
+        if self.loading_dialog.isVisible():
+            self.loading_dialog.accept()
 
     def make_backup(self):
         backup_path = self.settings_handler.settings.value("Backup/path")

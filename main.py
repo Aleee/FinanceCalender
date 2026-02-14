@@ -17,8 +17,9 @@ class App(QApplication):
 
         self.loading_dialog = LoadingDialog()
         self.loading_dialog.show()
-        self.window: MainWindow = MainWindow()
-        self.loading_dialog.load_completed.connect(self.window.show)
+        QApplication.instance().processEvents()
+        self.window: MainWindow = MainWindow(self.loading_dialog)
+        self.window.show()
         self.window.settings_handler.apply_settings()
         if not self.window.settings_handler.settings.value("Autosave/interval"):
             self.window.open_settings_dialog(reject_possible=False)
