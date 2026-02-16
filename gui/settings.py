@@ -2,7 +2,7 @@ from enum import IntEnum
 
 from PySide6 import QtWidgets
 from PySide6.QtCore import QSettings, QDir, QDate, QSize, QPoint, QCoreApplication
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QWidget
 
 from base.casting import str_bool
 from base.event import EventField
@@ -146,6 +146,14 @@ class SettingsHandler:
     def change_fontsize(self) -> None:
         font_sizes: tuple = (FontSize.SMALL, FontSize.MEDIUM, FontSize.LARGE)
         setting_value: int = int(self.settings.value("Appearance/fontsize", 0))
+
+        exclusions: tuple[QWidget] = (self.mw.la_autosavestatus, self.mw.la_backupstatus, self.mw.la_autosavebackup)
+        saved_stylesheets: dict = {}
+
+        # Сохранение значений исключений
+        for widget in exclusions:
+            saved_stylesheets[widget] = widget.styleSheet()
+
         self.app.setStyleSheet(f"QWidget {{ font-size: {font_sizes[setting_value]}pt;}}")
 
         # Установка ширины некоторых виджетов вручную
@@ -163,9 +171,9 @@ class SettingsHandler:
         self.mw.ui.tv_payment.update_column_width(setting_value)
         self.mw.update_plot_area()
 
-        # Исключения
-        for widget in (self.mw.la_autosavestatus, self.mw.la_backupstatus, self.mw.la_autosavebackup):
-           widget.setStyleSheet(f"QWidget {{ font-size: {font_sizes[0]}pt;}}")
+        # Вернуть исключениям свои стили
+        for widget in exclusions:
+            widget.setStyleSheet(saved_stylesheets[widget])
 
     def save_settings(self) -> None:
         # Отображение
