@@ -21,6 +21,7 @@ from gui.commonwidgets.persistentheader import PersistentHeader
 from gui.eventdialog import EventDialog
 from gui.eventproxymodel import EventListProxyModel, Filter, EventListFinalFilterModel
 from gui.eventtablemodel import EventTableModel
+from gui.finplandialog import FinPlanDialog
 from gui.plot import PaymentHistoryGraph
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
@@ -72,7 +73,7 @@ class MainWindow(QMainWindow):
             recover_dlg.exec()
         ## Попытка загрузки
         self.db_handler.open_db_connection()
-        load_result = self.db_handler.load_from_db()
+        load_result = self.db_handler.load_eventspayments_from_db()
         while not load_result:
             self.close_loading_dialog()
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,
@@ -80,7 +81,7 @@ class MainWindow(QMainWindow):
                                               "(подробности см. в логе). Выберите файл для восстановления",
                                          cancel_available=False, parent=self)
             recover_dlg.exec()
-            load_result: tuple = self.db_handler.load_from_db()
+            load_result: tuple = self.db_handler.load_eventspayments_from_db()
         events, payments = load_result[0], load_result[1]
 
         QApplication.instance().processEvents()  # Обновить анимацию загрузки
@@ -172,6 +173,7 @@ class MainWindow(QMainWindow):
         self.ui.act_copy.triggered.connect(lambda: self.open_event_dialog(copy=True))
         self.ui.act_edit.triggered.connect(lambda: self.open_event_dialog(edit=True))
         self.ui.act_delete.triggered.connect(self.delete_event)
+        self.ui.act_finplan.triggered.connect(self.open_finplan_dialog)
         self.ui.act_export.triggered.connect(self.open_export_dialog)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog(True))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.event_proxy_model.set_filter(Filter.HEADER, checked))
@@ -294,7 +296,7 @@ class MainWindow(QMainWindow):
         return True
 
     def autosave(self) -> None:
-        if self.db_handler.save_to_db(self.event_model, self.payment_model):
+        if self.db_handler.save_eventspayments_to_db(self.event_model, self.payment_model):
             self.update_toolbar_info(autosave_time=QTime.currentTime(), autosave_status=BackupAutosaveStatus.SUCCESS)
         else:
             self.update_toolbar_info(autosave_time=QTime.currentTime(), autosave_status=BackupAutosaveStatus.ERROR)
@@ -544,6 +546,10 @@ class MainWindow(QMainWindow):
         dlg: ExportDialog = ExportDialog(self.xls_writer, self.ui.trw_event.get_columnvisibility_list(), self)
         return dlg.exec() == QDialog.DialogCode.Accepted
 
+    def open_finplan_dialog(self):
+        dlg: FinPlanDialog = FinPlanDialog(self.db_handler, 2026, self)
+        dlg.exec()
+
     def delete_event(self) -> bool:
         curr_index: QModelIndex = self.get_current_event_index()
         if not curr_index.isValid():
@@ -566,7 +572,7 @@ class MainWindow(QMainWindow):
         if self.nosave_exit:
             event.accept()
             return
-        if self.db_handler.save_to_db(self.event_model, self.payment_model):
+        if self.db_handler.save_eventspayments_to_db(self.event_model, self.payment_model):
             self.saved_before_exit = True
             event.accept()
             return
@@ -579,4 +585,4 @@ class MainWindow(QMainWindow):
 
     def on_quit_actions(self):
         if not self.saved_before_exit and not self.nosave_exit:
-            self.db_handler.save_to_db(self.event_model, self.payment_model)
+            self.db_handler.save_eventspayments_to_db(self.event_model, self.payment_model)

@@ -105,7 +105,7 @@ class DBHandler:
         return False
 
     @staticmethod
-    def load_from_db() -> tuple[list[Event], list[Payment]] | bool:
+    def load_eventspayments_from_db() -> tuple[list[Event], list[Payment]] | bool:
 
         events: list = []
         payments: list = []
@@ -166,7 +166,7 @@ class DBHandler:
         QSqlDatabase.database().close()
         return events, payments
 
-    def save_to_db(self, event_model, payment_model) -> bool:
+    def save_eventspayments_to_db(self, event_model, payment_model) -> bool:
         if not self.open_db_connection():
             log.w("Не удалось открыть соединение с базой данных при попытке сохранения")
             return False
@@ -250,3 +250,43 @@ class DBHandler:
 
         QSqlDatabase.database().close()
         return True
+
+
+    def load_finplan_from_db(self, year: int, finplan_structure: dict):
+        if not self.open_db_connection():
+            return None
+        # Создаем базовый словарь для заполнения, оставляя только самостоятельные категории
+        finplan_structure_copy = finplan_structure.copy()
+        for key, value in list(finplan_structure_copy.items()):
+            if value[0]:
+                finplan_structure_copy.pop(key)
+        values: dict = dict.fromkeys(finplan_structure_copy, None)
+
+        query = QSqlQuery()
+        query.prepare("SELECT * FROM finplan WHERE year = ?")
+        query.addBindValue(year)
+        if not query.exec():
+            log.c(f"Не удалось выполнить запрос для таблицы finplan. Ошибка: {query.lastError().text()}")
+            QSqlDatabase.database().close()
+            return None
+        results_available: bool = False
+        while query.next():
+            results_available = True
+            category: int = int(query.value(1))
+            try:
+                values[category] = [query.value(2), query.value(3), query.value(4), query.value(5), query.value(6), query.value(7), query.value(8), query.value(9),
+                                    query.value(10), query.value(11), query.value(12), query.value(13)]
+            except KeyError:
+                log.w(f"В словаре финансового плана не найдена категория {category}, полученная из базы данных")
+                continue
+        # На случай, если данные по указанному году ранее не задавались
+        if not results_available:
+            for key in values.keys():
+                values[key] = [0] * 12
+
+        QSqlDatabase.database().close()
+        return values
+
+
+
+

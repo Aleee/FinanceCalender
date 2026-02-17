@@ -767,6 +767,8 @@
    <addaction name="act_toggleheaders"/>
    <addaction name="act_togglefooters"/>
    <addaction name="separator"/>
+   <addaction name="act_finplan"/>
+   <addaction name="separator"/>
    <addaction name="act_export"/>
    <addaction name="act_settings"/>
   </widget>
@@ -876,6 +878,18 @@
    </property>
    <property name="text">
     <string>Экспорт</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="act_finplan">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/icon-toolbar/designer/icons/financing.svg</normaloff>:/icon-toolbar/designer/icons/financing.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Финансовый план</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

@@ -1,4 +1,5 @@
 import lovely_logger as log
+from PySide6 import QtGui, QtWidgets, QtCore
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QSortFilterProxyModel, QAbstractItemModel
 
