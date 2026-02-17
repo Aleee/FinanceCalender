@@ -5,7 +5,7 @@ def dec_strcommaspace(dec: Decimal) -> str:
     return f"{dec:,.2f}".replace(",", " ").replace(".", ",")
 
 
-def float_strcommaspace(fl: float) -> str:
+def float_strcommaspace(fl: float, pos: int | None = None) -> str:
     return f"{fl:,.2f}".replace(",", " ").replace(".", ",")
 
 

@@ -220,8 +220,6 @@ class MainWindow(QMainWindow):
 
         self.close_loading_dialog()
 
-        QApplication.instance().processEvents()  # Обновить анимацию загрузки
-
         # Завершение работы
         app.aboutToQuit.connect(self.on_quit_actions)
 
