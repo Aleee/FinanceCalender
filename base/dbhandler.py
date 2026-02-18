@@ -10,6 +10,7 @@ import lovely_logger as log
 from base.event import Event, term_filter_flags, RowType, TermRoleFlags
 from base.date import str_date, date_str
 from base.payment import Payment
+from gui.finplanmodel import FinPlanTableModel
 from gui.settings import SettingsHandler
 
 
@@ -287,6 +288,29 @@ class DBHandler:
         QSqlDatabase.database().close()
         return values
 
-
+    def save_finplan_to_db(self, year: int, finplan_structure: dict, finplanmodel: FinPlanTableModel):
+        if not self.open_db_connection():
+            log.w("Не удалось открыть соединение с базой данных при попытке сохранения")
+            return False
+        query = QSqlQuery()
+        query.prepare("DELETE FROM finplan WHERE year = ?")
+        query.addBindValue(year)
+        if not query.exec():
+            log.w(f"Ошибка SQL при попытке удалить данные из таблицы finplan: {query.lastError().text()}")
+            QSqlDatabase.database().close()
+            return False
+        for category in finplan_structure.keys():
+            query.prepare("INSERT INTO finplan VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            query.addBindValue(year)
+            query.addBindValue(category)
+            for month in range(1, 13):
+                value = finplanmodel.index(finplanmodel.categories.index(category), month).data()
+                value = 0 if value == "" else value
+                query.addBindValue(value)
+            if not query.exec():
+                log.w(f"Ошибка SQL при попытке внести данные в таблицу finplan: {query.lastError().text()}")
+                QSqlDatabase.database().close()
+                return False
+        return True
 
 

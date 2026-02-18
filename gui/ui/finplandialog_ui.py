@@ -39,15 +39,17 @@ class Ui_FinPlanDialog(object):
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
 
-        self.pushButton_2 = QPushButton(FinPlanDialog)
-        self.pushButton_2.setObjectName(u"pushButton_2")
+        self.pb_cancel = QPushButton(FinPlanDialog)
+        self.pb_cancel.setObjectName(u"pb_cancel")
+        self.pb_cancel.setAutoDefault(False)
 
-        self.horizontalLayout.addWidget(self.pushButton_2)
+        self.horizontalLayout.addWidget(self.pb_cancel)
 
-        self.pushButton = QPushButton(FinPlanDialog)
-        self.pushButton.setObjectName(u"pushButton")
+        self.pb_save = QPushButton(FinPlanDialog)
+        self.pb_save.setObjectName(u"pb_save")
+        self.pb_save.setAutoDefault(False)
 
-        self.horizontalLayout.addWidget(self.pushButton)
+        self.horizontalLayout.addWidget(self.pb_save)
 
 
         self.gridLayout.addLayout(self.horizontalLayout, 3, 0, 1, 2)
@@ -57,6 +59,8 @@ class Ui_FinPlanDialog(object):
 
         self.gridLayout.addWidget(self.tv_finplan, 0, 0, 1, 2)
 
+        QWidget.setTabOrder(self.tv_finplan, self.pb_save)
+        QWidget.setTabOrder(self.pb_save, self.pb_cancel)
 
         self.retranslateUi(FinPlanDialog)
 
@@ -64,8 +68,8 @@ class Ui_FinPlanDialog(object):
     # setupUi
 
     def retranslateUi(self, FinPlanDialog):
-        FinPlanDialog.setWindowTitle(QCoreApplication.translate("FinPlanDialog", u"Dialog", None))
-        self.pushButton_2.setText(QCoreApplication.translate("FinPlanDialog", u" \u041e\u0442\u043c\u0435\u043d\u0430 ", None))
-        self.pushButton.setText(QCoreApplication.translate("FinPlanDialog", u" \u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c ", None))
+        FinPlanDialog.setWindowTitle(QCoreApplication.translate("FinPlanDialog", u"\u0424\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u044b\u0439 \u043f\u043b\u0430\u043d", None))
+        self.pb_cancel.setText(QCoreApplication.translate("FinPlanDialog", u" \u041e\u0442\u043c\u0435\u043d\u0430 ", None))
+        self.pb_save.setText(QCoreApplication.translate("FinPlanDialog", u" \u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c ", None))
     # retranslateUi
 

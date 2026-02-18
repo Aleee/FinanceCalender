@@ -19,6 +19,10 @@
   <property name="windowTitle">
    <string>Платежный календарь</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="../../resources.qrc">
+    <normaloff>:/icon-app/designer/icons/app.png</normaloff>:/icon-app/designer/icons/app.png</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="1">
@@ -768,6 +772,7 @@
    <addaction name="act_togglefooters"/>
    <addaction name="separator"/>
    <addaction name="act_finplan"/>
+   <addaction name="act_fulfillment"/>
    <addaction name="separator"/>
    <addaction name="act_export"/>
    <addaction name="act_settings"/>
@@ -784,7 +789,7 @@
     <string>Настройки</string>
    </property>
    <property name="toolTip">
-    <string>Вызывает меню настроек</string>
+    <string>Настройки</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -843,9 +848,6 @@
    <property name="text">
     <string>Редактировать платеж</string>
    </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
-   </property>
   </action>
   <action name="act_delete">
    <property name="icon">
@@ -890,6 +892,21 @@
    </property>
    <property name="text">
     <string>Финансовый план</string>
+   </property>
+   <property name="toolTip">
+    <string>Финансовый план (ПКМ: выбор года)</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="act_fulfillment">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/icon-toolbar/designer/icons/fulfillment.svg</normaloff>:/icon-toolbar/designer/icons/fulfillment.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Исполнение финансового плана</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

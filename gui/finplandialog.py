@@ -1,8 +1,10 @@
+import lovely_logger as log
+from PySide6.QtCore import QModelIndex, Qt
 from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtWidgets import QDialog, QHeaderView, QApplication
-import lovely_logger as log
 
 from base.dbhandler import DBHandler
+from gui.commonwidgets.eventfilter import TooltipFilter
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.finplanmodel import FinPlanTableModel
 from gui.ui.finplandialog_ui import Ui_FinPlanDialog
@@ -15,7 +17,8 @@ class FinPlanDialog(QDialog):
         self.ui = Ui_FinPlanDialog()
         self.ui.setupUi(self)
 
-        self.db_handler = db_handler
+        self.db_handler: DBHandler = db_handler
+        self.year: int = year
 
         self.model = FinPlanTableModel()
         values = self.db_handler.load_finplan_from_db(year, self.model.FINPLAN_STRUCTURE)
@@ -33,22 +36,45 @@ class FinPlanDialog(QDialog):
         self.ui.tv_finplan.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         self.ui.tv_finplan.verticalHeader().setDefaultSectionSize(20)
 
-        self.shortcut_copy = QShortcut(QKeySequence.StandardKey.Copy, self.ui.tv_finplan)
+        self.shortcut_copy: QShortcut = QShortcut(QKeySequence.StandardKey.Copy, self.ui.tv_finplan)
         self.shortcut_copy.activated.connect(self.copy)
-        # self.shortcut_copy = QShortcut(QKeySequence.StandardKey.Paste, self.ui.tv_finplan)
-        # self.shortcut_copy.activated.connect(self.paste)
+        self.shortcut_copy: QShortcut = QShortcut(QKeySequence.StandardKey.Paste, self.ui.tv_finplan)
+        self.shortcut_copy.activated.connect(self.paste)
+
+        self.tooltip_eventfilter: TooltipFilter = TooltipFilter(self.ui.tv_finplan)
+        self.ui.tv_finplan.installEventFilter(self.tooltip_eventfilter)
+
+        self.ui.pb_cancel.clicked.connect(self.reject)
+        self.ui.pb_save.clicked.connect(self.accept)
 
     def copy(self):
-        values = ""
-        selection_range = self.ui.tv_finplan.selectionModel().selection().first()
+        values: str = ""
+        selection_range = self.ui.tv_finplan.selectionModel().selection()[0]
         for i in range(selection_range.top(), selection_range.bottom() + 1):
-            row_content = []
+            row_content: list = []
             for j in range(selection_range.left(), selection_range.right() + 1):
                 row_content.append(str(self.ui.tv_finplan.model().index(i, j).data()))
             values += "\t".join(row_content) + "\n"
         QApplication.clipboard().setText(values)
 
     def paste(self):
-        start_index = self.ui.tv_finplan.selectionModel().selectedIndexes().first()
-        cbtext = QApplication.clipboard().text()
+        start_index: QModelIndex = self.ui.tv_finplan.selectionModel().selectedIndexes()[0]
+        cbtext: str = QApplication.clipboard().text()
+        i, j = 0, 0
+        for row_text in cbtext.split("\n"):
+            j = 0
+            for cell_text in row_text.split("\t"):
+                index = self.ui.tv_finplan.model().index(start_index.row() + i, start_index.column() + j)
+                print(index, cell_text)
+                QApplication.clipboard().setText(cell_text)
+                if index.isValid() and index.data(self.model.EditableRole):
+                    self.ui.tv_finplan.model().setData(index, cell_text, Qt.ItemDataRole.EditRole)
+                j += 1
+            i += 1
 
+    def accept(self, /):
+        if not self.db_handler.save_finplan_to_db(self.year, self.model.FINPLAN_STRUCTURE, self.model):
+            msg_box = ErrorInfoMessageBox("К сожалению, данные не удалось сохранить (см. подробности в логе)")
+            msg_box.exec()
+            return
+        QDialog.accept(self)

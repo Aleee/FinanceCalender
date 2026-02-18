@@ -16,6 +16,7 @@ from base.formatting import dec_strcommaspace, str_rubstr
 from base.payment import PaymentField
 from base.xlswriter import XlsWriter
 from gui.commonwidgets.common import is_selection_filteredout
+from gui.commonwidgets.eventfilter import RightClickFilter
 from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
 from gui.eventdialog import EventDialog
@@ -29,6 +30,7 @@ from gui.recoverydialog import RecoveryDialog
 from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
+from gui.ui.yearinputdialog_ui import Ui_YearInputDialog
 from gui.filterlistwidget import TermCategory
 from gui.exportdialog import ExportDialog
 
@@ -37,6 +39,17 @@ class BackupAutosaveStatus(IntEnum):
     SUCCESS = auto()
     ERROR = auto()
     NOCHANGE = auto()
+
+
+class YearInputDialog(QDialog):
+    def __init__(self, default_year: int, parent=None):
+        super(YearInputDialog, self).__init__(parent)
+        self.ui = Ui_YearInputDialog()
+        self.ui.setupUi(self)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.FramelessWindowHint)
+        self.setStyleSheet("background-color: #D5D6D8")
+        self.ui.spinBox.setValue(default_year)
+        self.ui.pushButton.clicked.connect(self.accept)
 
 
 class MainWindow(QMainWindow):
@@ -174,6 +187,9 @@ class MainWindow(QMainWindow):
         self.ui.act_edit.triggered.connect(lambda: self.open_event_dialog(edit=True))
         self.ui.act_delete.triggered.connect(self.delete_event)
         self.ui.act_finplan.triggered.connect(self.open_finplan_dialog)
+        self.rmb_finplan_filter = RightClickFilter(self)
+        self.rmb_finplan_filter.rightmousebutton_clicked.connect(lambda: self.open_finplan_dialog(ask_year=True))
+        self.ui.tlbr.widgetForAction(self.ui.act_finplan).installEventFilter(self.rmb_finplan_filter)
         self.ui.act_export.triggered.connect(self.open_export_dialog)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog(True))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.event_proxy_model.set_filter(Filter.HEADER, checked))
@@ -204,6 +220,7 @@ class MainWindow(QMainWindow):
         # Косметика
         self.ui.te_descr.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
         self.ui.tv_payment.set_columns_visibility()
+        self.ui.tlbr.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         # Постоянный вертикальный header
         self.ui.tv_payment.setVerticalHeader(PersistentHeader(Qt.Orientation.Vertical, self.ui.tv_payment))
 
@@ -427,7 +444,7 @@ class MainWindow(QMainWindow):
     def save_notes(self) -> None:
         self.set_data_to_current_event(EventField.NOTES, self.ui.te_notes.toPlainText(), False)
 
-    def make_new_payment(self) -> True:
+    def make_new_payment(self) -> bool:
         date: QDate = self.ui.de_paymentdate.date()
         amount: Decimal = Decimal(str(self.ui.dsb_paymentsum.value()))
         if amount == 0:
@@ -546,8 +563,12 @@ class MainWindow(QMainWindow):
         dlg: ExportDialog = ExportDialog(self.xls_writer, self.ui.trw_event.get_columnvisibility_list(), self)
         return dlg.exec() == QDialog.DialogCode.Accepted
 
-    def open_finplan_dialog(self):
-        dlg: FinPlanDialog = FinPlanDialog(self.db_handler, 2026, self)
+    def open_finplan_dialog(self, ask_year: bool = False):
+        current_year: int = QDate().currentDate().year()
+        if ask_year:
+            tdlg: YearInputDialog = YearInputDialog(current_year, self)
+            tdlg.exec()
+        dlg: FinPlanDialog = FinPlanDialog(self.db_handler, tdlg.ui.spinBox.value() if ask_year else current_year, self)
         dlg.exec()
 
     def delete_event(self) -> bool:

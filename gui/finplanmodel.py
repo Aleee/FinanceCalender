@@ -1,10 +1,7 @@
 from typing import Any
 
 from PySide6.QtCore import QAbstractTableModel, Qt, QModelIndex
-from PySide6.QtGui import QFont
-
-from base.dbhandler import DBHandler
-
+from PySide6.QtGui import QFont, QColor
 
 
 class FinPlanTableModel(QAbstractTableModel):
@@ -59,7 +56,7 @@ class FinPlanTableModel(QAbstractTableModel):
         self.values: dict = {}
 
     def calculate_add_totals(self):
-        for skey, svalue in self.FINPLAN_STRUCTURE.items():
+        for skey, svalue in reversed(list(self.FINPLAN_STRUCTURE.items())):
             if svalue[0]:
                 running_totals = [0] * 12
                 for key, value in self.values.items():
@@ -85,13 +82,24 @@ class FinPlanTableModel(QAbstractTableModel):
             if index.column() == 0:
                 return self.FINPLAN_STRUCTURE[self.categories[index.row()]][2]
             else:
-                return self.values[self.categories[index.row()]][index.column() - 1]
+                value = self.values[self.categories[index.row()]][index.column() - 1]
+                return value if value else ""
         elif role == Qt.ItemDataRole.FontRole:
-            font = QFont()
+            font: QFont = QFont()
             font.setBold(self.FINPLAN_STRUCTURE[self.categories[index.row()]][3])
             return font
         elif role == self.EditableRole:
             return not bool(self.FINPLAN_STRUCTURE[self.categories[index.row()]][0])
+        elif role == Qt.ItemDataRole.BackgroundRole:
+            if self.categories[index.row()] in (10000, 40000):
+                return QColor("#E2D5B8")
+            elif self.categories[index.row()] % 10000 == 0:
+                return QColor("#9EC1A3")
+            elif self.FINPLAN_STRUCTURE[self.categories[index.row()]][0]:
+                if self.categories[index.row()] % 1000 == 0:
+                    return QColor("#EAF1E4")
+                else:
+                    return QColor("#F5F8F2")
 
     def headerData(self, section, orientation, /, role=...):
         if role == Qt.ItemDataRole.DisplayRole:
@@ -103,8 +111,9 @@ class FinPlanTableModel(QAbstractTableModel):
     def setData(self, index, value, /, role=...):
         if role == Qt.ItemDataRole.EditRole:
             try:
-                int_value = int(value)
+                int_value: int = int(value)
                 self.values[self.categories[index.row()]][index.column() - 1] = int_value
+                self.calculate_add_totals()
                 self.dataChanged.emit(index, index)
                 return True
             except ValueError:

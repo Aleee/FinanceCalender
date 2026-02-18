@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Финансовый план</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="1" column="0" colspan="2">
@@ -37,16 +37,22 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_2">
+      <widget class="QPushButton" name="pb_cancel">
        <property name="text">
         <string> Отмена </string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="pb_save">
        <property name="text">
         <string> Сохранить </string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
@@ -57,6 +63,11 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>tv_finplan</tabstop>
+  <tabstop>pb_save</tabstop>
+  <tabstop>pb_cancel</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

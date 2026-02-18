@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt, QModelIndex
 
 from base.event import EventField
 from gui.common import model_atlevel
+from gui.commonwidgets.eventfilter import TooltipFilter
 from gui.eventtablemodel import EventTableModel
 from gui.eventproxymodel import EventListProxyModel
 from gui.itemdelegate import CustomDelegate
@@ -51,6 +52,9 @@ class EventWidget(QTreeView):
         self.header().setFirstSectionMovable(False)
         self.header().setStretchLastSection(False)
         self.header().setTextElideMode(Qt.TextElideMode.ElideRight)
+
+        self.tooltip_eventfilter = TooltipFilter(self)
+        self.installEventFilter(self.tooltip_eventfilter)
 
         self.setItemDelegate(CustomDelegate())
 
