@@ -9,8 +9,8 @@ from PySide6.QtGui import QFont
 from base.event import EventField, RowType, EventCategory
 from base.formatting import dec_strcommaspace
 from gui.common import model_atlevel
-from gui.eventtablemodel import EventTableModel, TermRoleFlags, HeaderFooterSubtype, HeaderFooterField
-from gui.filterlistwidget import TermCategory
+from gui.eventmodel import EventTableModel, TermRoleFlags, HeaderFooterSubtype, HeaderFooterField
+from gui.filterwidget import TermCategory
 
 
 class Filter(IntEnum):

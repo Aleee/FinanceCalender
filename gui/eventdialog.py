@@ -7,7 +7,7 @@ from base.event import EventField, PaymentType, RowType, term_filter_flags, Term
 from gui.common import model_atlevel, map_to_source
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.eventproxymodel import EventListFinalFilterModel
-from gui.eventtablemodel import EventTableModel
+from gui.eventmodel import EventTableModel
 from gui.ui.eventdialog_ui import Ui_EventDialog
 
 

@@ -10,7 +10,7 @@ from PySide6.QtGui import QFont
 from base.date import date_displstr
 from base.event import Event, TermRoleFlags, PaymentType, EventCategory, EventField, RowType
 from base.formatting import float_strpercentage, dec_strcommaspace
-from gui.filterlistwidget import TermCategory
+from gui.filterwidget import TermCategory
 
 
 class HeaderFooterField(IntEnum):
@@ -139,7 +139,7 @@ class EventTableModel(QAbstractTableModel):
         EventCategory.BANKING: "1.11.  Банковские расходы",
         EventCategory.TELECOM: "1.12.  Услуги связи",
         EventCategory.TRAINING: "1.13.  Расходы на обучение и повышение квалификации",
-        EventCategory.INVENTORY: "1.14.  Товарно-материальные ценности",
+        EventCategory.INVENTORY: "1.14.  Услуги сторонних организаций",
         EventCategory.COMMISSION: "1.15.  Комиссионные расходы",
         EventCategory.MEDEQREPAIR: "1.16.  Ремонт, обслуживание и страхование мед. оборудования",
         EventCategory.TOP_FINANCES: "2.    Финансовая деятельность",

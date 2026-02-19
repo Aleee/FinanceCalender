@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt, QSize
 
 from base.casting import str_bool
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
-from gui.eventtablemodel import RowFormatting
+from gui.eventmodel import RowFormatting
 from gui.recoverydialog import RecoveryDialog
 from gui.settings import SettingsHandler
 from gui.ui.settingsdialog_ui import Ui_settingsdialog

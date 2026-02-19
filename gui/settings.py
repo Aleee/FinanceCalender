@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from base.casting import str_bool
 from base.event import EventField
-from gui.eventtablemodel import RowFormatting
+from gui.eventmodel import RowFormatting
 
 
 class FontSize(IntEnum):

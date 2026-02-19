@@ -4,7 +4,7 @@ from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QPalette
 from PySide6.QtCore import QModelIndex
 
 from base.event import EventField, RowType, TermRoleFlags
-from gui.eventtablemodel import EventTableModel, HeaderFooterSubtype, HeaderFooterField, RowFormatting
+from gui.eventmodel import EventTableModel, HeaderFooterSubtype, HeaderFooterField, RowFormatting
 from gui.common import model_atlevel
 
 

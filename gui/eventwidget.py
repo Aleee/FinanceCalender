@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, QModelIndex
 from base.event import EventField
 from gui.common import model_atlevel
 from gui.commonwidgets.eventfilter import TooltipFilter
-from gui.eventtablemodel import EventTableModel
+from gui.eventmodel import EventTableModel
 from gui.eventproxymodel import EventListProxyModel
 from gui.itemdelegate import CustomDelegate
 

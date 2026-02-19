@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QDateE
 from gui.commonwidgets.autoresizetextedit import AutoResizingTextEdit
 from gui.commonwidgets.switchpushbutton import SwitchPushButton
 from gui.eventwidget import EventWidget
-from gui.filterlistwidget import (CategoryFilterListWidget, TermFilterListWidget)
+from gui.filterwidget import (CategoryFilterListWidget, TermFilterListWidget)
 from gui.paymenthistorywidget import PaymentHistoryTableView
 import resources_rc
 

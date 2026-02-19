@@ -21,7 +21,7 @@ from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
 from gui.eventdialog import EventDialog
 from gui.eventproxymodel import EventListProxyModel, Filter, EventListFinalFilterModel
-from gui.eventtablemodel import EventTableModel
+from gui.eventmodel import EventTableModel
 from gui.finplandialog import FinPlanDialog
 from gui.plot import PaymentHistoryGraph
 from gui.paymenthistorymodel import PaymentHistoryTableModel
@@ -31,7 +31,7 @@ from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
 from gui.ui.yearinputdialog_ui import Ui_YearInputDialog
-from gui.filterlistwidget import TermCategory
+from gui.filterwidget import TermCategory
 from gui.exportdialog import ExportDialog
 
 
@@ -218,7 +218,6 @@ class MainWindow(QMainWindow):
             wdg.setStyleSheet("font-size:9pt")
 
         # Косметика
-        self.ui.te_descr.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
         self.ui.tv_payment.set_columns_visibility()
         self.ui.tlbr.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         # Постоянный вертикальный header

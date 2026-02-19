@@ -1,8 +1,33 @@
+import os
+
 from PySide6.QtWidgets import QDialog, QButtonGroup
 
 from base.event import EventField
 from base.xlswriter import XlsWriter, ExportFormat
 from gui.ui.exportdialog_ui import Ui_ExportDialog
+from gui.ui.exportsuccessdialog_ui import Ui_ExportSuccessDialog
+
+
+class ExportSuccessDialog(QDialog):
+    def __init__(self, path: str, parent=None):
+        super(ExportSuccessDialog, self).__init__(parent)
+        self.ui = Ui_ExportSuccessDialog()
+        self.ui.setupUi(self)
+
+        self.path: str = path
+
+        self.ui.le_path.setText(self.path)
+        self.ui.pb_openfile.clicked.connect(self.open_file)
+        self.ui.pb_opendir.clicked.connect(self.open_dir)
+        self.ui.pb_continue.clicked.connect(lambda: self.accept())
+
+    def open_file(self):
+        os.startfile(self.path)
+        self.accept()
+
+    def open_dir(self):
+        os.startfile(self.path[:self.path.rindex("\\")+1])
+        self.accept()
 
 
 class ExportDialog(QDialog):
@@ -73,5 +98,7 @@ class ExportDialog(QDialog):
     def export(self) -> None:
         fileformat: ExportFormat = ExportFormat(self.rbg_exporttype.checkedId())
         columns: list[bool] = self.columns_to_export()
-        self.xls_writer.write(fileformat, columns)
-        self.accept()
+        if self.xls_writer.write(fileformat, columns):
+            self.accept()
+            dlg = ExportSuccessDialog(self.xls_writer.last_path)
+            dlg.exec()

@@ -3,10 +3,11 @@ import random
 import string
 from decimal import Decimal
 from enum import IntEnum, auto
+from pathlib import Path
 
 import pywintypes
 import win32com.client
-from PySide6.QtCore import QDate, QModelIndex, Qt
+from PySide6.QtCore import QDate, QModelIndex, Qt, QTime
 from PySide6.QtWidgets import QTableView
 from xlsxwriter.worksheet import Worksheet
 
@@ -16,7 +17,7 @@ from base.event import EventField, RowType, TermRoleFlags, Event
 from gui.common import model_atlevel
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.eventproxymodel import EventListFinalFilterModel
-from gui.eventtablemodel import EventTableModel, HeaderFooterField, HeaderFooterSubtype, RowFormatting
+from gui.eventmodel import EventTableModel, HeaderFooterField, HeaderFooterSubtype, RowFormatting
 from gui.settings import SettingsHandler
 from gui.itemdelegate import CustomDelegate
 from typing import get_type_hints
@@ -76,12 +77,13 @@ class XlsWriter:
         self.model: EventListFinalFilterModel = model
         self.view: QTableView = view
         self.settings_handler: SettingsHandler = settings_handler
+        self.last_path: str = ""
 
         # Индексы столбцов с финансовыми данными
         type_hints: list = list(get_type_hints(Event).values())
         self.decimalcolumns_numbers = [index for index, datatype in enumerate(type_hints) if datatype == Decimal]
 
-    def write(self, export_format: ExportFormat, columns_to_export: list[bool]) -> None:
+    def write(self, export_format: ExportFormat, columns_to_export: list[bool]) -> bool:
 
         row_formatting: RowFormatting = model_atlevel(-2, self.model).row_formatting
 
@@ -89,6 +91,9 @@ class XlsWriter:
         xls_file_path: str = os.path.join(export_dir, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.xlsx")
         temp_file_path: str = os.path.join(os.getcwd(), ''.join(random.choices(string.ascii_uppercase + string.digits, k=14)) + ".pdf")
         pdf_file_path: str = os.path.join(export_dir, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.pdf")
+
+        if export_format == ExportFormat.XLSX and Path(xls_file_path).exists():
+            xls_file_path = xls_file_path[:-5] + "_" + QTime().currentTime().toString("hhmmss") + ".xlsx"
 
         workbook: Workbook = Workbook(xls_file_path) if export_format == ExportFormat.XLSX else Workbook(temp_file_path)
 
@@ -199,11 +204,18 @@ class XlsWriter:
             workbook.close()
             del worksheet
             del workbook
+            self.last_path = xls_file_path
             if export_format == ExportFormat.PDF:
+                if Path(pdf_file_path).exists():
+                    pdf_file_path = pdf_file_path[:-4] + "_" + QTime().currentTime().toString("hhmmss") + ".pdf"
                 xlsx_to_pdf_win32(temp_file_path, pdf_file_path)
                 os.remove(temp_file_path)
+                self.last_path = pdf_file_path
         except FileCreateError as e:
             msg_box: ErrorInfoMessageBox = ErrorInfoMessageBox(f"Не удалось записать файл \"ПлатежныйКалендарь_"
-                                                               f"{xls_file_path if export_format == ExportFormat.XLSX else temp_file_path}\". Возможно, файл "
+                                                               f"{xls_file_path if export_format == ExportFormat.XLSX else pdf_file_path}\". Возможно, файл "
                                                                f"с таким именем используется другим приложением или в настройках указан неверный путь.")
             msg_box.exec_()
+            raise FileCreateError
+
+        return True
