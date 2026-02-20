@@ -17,7 +17,7 @@ from gui.settings import SettingsHandler
 class DBHandler:
 
     DEFAULT_DB_RELPATH = "db/db.db"
-    EVENT_TABLE_COLUMNUM = 12
+    EVENT_TABLE_COLUMNUM = 13
     PAYMENT_TABLE_COLUMNUM = 5
 
     def __init__(self, settings_handler):
@@ -66,8 +66,8 @@ class DBHandler:
             self.db.close()
             return False
         query.next()
-        if query.value(1) == 1:
-            log.w(f"При инициализации обнаружена таблица event_temp. Возможно, предыдущее сохранение было завершено некорректно. Таблица будет удалена.")
+        if query.value(0) == 1:
+            log.w(f"При инициализации обнаружена таблица event_temp. Возможно, предыдущее сохранение было завершено некорректно.")
             query = QSqlQuery("DROP TABLE event_temp")
             query.exec()
         query = QSqlQuery("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='payment_temp'")
@@ -76,10 +76,11 @@ class DBHandler:
             self.db.close()
             return False
         query.next()
-        if query.value(1) == 1:
+        if query.value(0) == 1:
             log.w(f"При инициализации обнаружена таблица payment_temp. Возможно, предыдущее сохранение было завершено некорректно. Таблица будет удалена.")
             query = QSqlQuery("DROP TABLE payment_temp")
             query.exec()
+
 
         self.db.close()
         return True
@@ -111,8 +112,8 @@ class DBHandler:
         events: list = []
         payments: list = []
 
-        #                          0      1         2       3        4            5         6          7        8         9        10        11
-        query = QSqlQuery("SELECT id, category, receiver, name, totalamount, todayshare, duedate, createdate, descr, responsible, notes, paymenttype FROM event")
+        #                          0      1         2       3        4            5         6          7        8         9        10        11       12
+        query = QSqlQuery("SELECT id, category, receiver, name, totalamount, todayshare, duedate, createdate, descr, responsible, notes, paymenttype, nds FROM event")
         if not query.exec():
             log.c(f"Не удалось выполнить запрос для таблицы event. Ошибка: {query.lastError().text()}")
             return False
@@ -158,7 +159,7 @@ class DBHandler:
                                     #  8              9                       10                  11              12              13          14
                                     duedate, int(query.value(11)), str_date(query.value(7)), query.value(8), query.value(9), today_share, termflags,
                                     #      15                16
-                                    query.value(10), last_payment_date))
+                                    query.value(10), last_payment_date, int(query.value(12))))
         except TypeError as e:
             log.x(f"Некоторые данные из базы данных не смогли быть преобразованы при загрузке\n{str(e)}")
             QSqlDatabase.database().close()
@@ -226,7 +227,7 @@ class DBHandler:
         for event in event_model.event_list:
             if event.type != RowType.EVENT:
                 continue
-            query.prepare("INSERT INTO event VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            query.prepare("INSERT INTO event VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             query.addBindValue(event.id)
             query.addBindValue(event.category)
             query.addBindValue(event.receiver)
@@ -239,6 +240,7 @@ class DBHandler:
             query.addBindValue(event.responsible)
             query.addBindValue(event.notes)
             query.addBindValue(event.paymenttype)
+            query.addBindValue(event.nds)
             if not query.exec():
                 log.w(f"Ошибка SQL при попытке заполнения таблицы event: {query.lastError().text()}")
                 restore(tables=0)

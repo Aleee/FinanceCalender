@@ -3,7 +3,7 @@ from enum import IntEnum
 import resources_rc
 import lovely_logger as log
 from PySide6 import QtWidgets, QtCore
-from PySide6.QtGui import QIcon, QBrush
+from PySide6.QtGui import QIcon, QBrush, QFont
 
 
 class TermCategory(IntEnum):
@@ -48,12 +48,12 @@ class TermFilterListWidget(FilterListWidget):
 
     FILTER_ID = "term_filter"
     ITEMS = {
-        TermCategory.UNPAID: ("Все неоплаченные", ":/icon-terms/designer/icons/allitems.svg", "#ECECE9"),
-        TermCategory.DUE: ("Просроченные", ":/icon-terms/designer/icons/termdue.svg", None),
-        TermCategory.TODAY: ("Сегодня", ":/icon-terms/designer/icons/termtoday.svg", None),
-        TermCategory.WEEK: ("На этой неделе", ":/icon-terms/designer/icons/termweek.svg", None),
-        TermCategory.MONTH: ("В этом месяце", ":/icon-terms/designer/icons/termmonth.svg", None),
-        TermCategory.PAID: ("Оплаченные", ":/icon-terms/designer/icons/termpaid.svg", "#ECECE9"),
+        TermCategory.UNPAID: ("Все неоплаченные", ":/icon-terms/designer/icons/allitems.svg", True),    # 2 - is bold
+        TermCategory.DUE: ("Просроченные", ":/icon-terms/designer/icons/termdue.svg", False),
+        TermCategory.TODAY: ("Сегодня", ":/icon-terms/designer/icons/termtoday.svg", False),
+        TermCategory.WEEK: ("На этой неделе", ":/icon-terms/designer/icons/termweek.svg", False),
+        TermCategory.MONTH: ("В этом месяце", ":/icon-terms/designer/icons/termmonth.svg", False),
+        TermCategory.PAID: ("Оплаченные", ":/icon-terms/designer/icons/termpaid.svg", True),
     }
 
     def __init__(self, parent=None):
@@ -71,9 +71,9 @@ class TermFilterListWidget(FilterListWidget):
             raise IndexError
         for row in range(self.count()):
             self.item(row).setText(self.ITEMS[row][0] + f" ({len(filter_stats[row])})")
-            custom_background_color: str | None = self.ITEMS[row][2]
-            if custom_background_color:
-                self.item(row).setBackground(QBrush(custom_background_color))
+            font = QFont()
+            font.setBold(self.ITEMS[row][2])
+            self.item(row).setFont(font)
 
 
 class CategoryFilterListWidget(FilterListWidget):

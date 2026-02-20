@@ -31,7 +31,7 @@ class RecoveryDialog(QDialog):
                 self.reject()
             return False
         if self.db_handler.check_db_file_integrity(path):
-            if self.db_handler.switch_db_files(path):
+            if self.db_handler.switch_db_files(path, close_current_connection=True):
                 self.accept()
             else:
                 msg_box: ErrorInfoMessageBox = ErrorInfoMessageBox("При попытке заменить файл базы данных произошла ошибка (для подробностей см. лог)", parent=self)

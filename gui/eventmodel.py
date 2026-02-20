@@ -102,6 +102,7 @@ class EventTableModel(QAbstractTableModel):
         EventField.TERMFLAGS: "",
         EventField.NOTES: "",
         EventField.LASTPAYMENTDATE: "",
+        EventField.NDS: "",
     }
 
     ALIGNMENT = {
@@ -122,6 +123,7 @@ class EventTableModel(QAbstractTableModel):
         EventField.TERMFLAGS: Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
         EventField.NOTES: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         EventField.LASTPAYMENTDATE: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+        EventField.NDS: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
     }
 
     CATEGORY_NAMES = {
@@ -139,11 +141,33 @@ class EventTableModel(QAbstractTableModel):
         EventCategory.BANKING: "1.11.  Банковские расходы",
         EventCategory.TELECOM: "1.12.  Услуги связи",
         EventCategory.TRAINING: "1.13.  Расходы на обучение и повышение квалификации",
-        EventCategory.INVENTORY: "1.14.  Услуги сторонних организаций",
+        EventCategory.THIRDPARTYSERVICES: "1.14.  Услуги сторонних организаций",
         EventCategory.COMMISSION: "1.15.  Комиссионные расходы",
         EventCategory.MEDEQREPAIR: "1.16.  Ремонт, обслуживание и страхование мед. оборудования",
         EventCategory.TOP_FINANCES: "2.    Финансовая деятельность",
         EventCategory.TOP_INVESTMENT: "3.    Инвестиционная деятельность",
+    }
+
+    NDS_VALUE = {
+        EventCategory.TOP_CURRENT: 0,
+        EventCategory.SALARIES: 0,
+        EventCategory.TAXES: 0,
+        EventCategory.CONSUMABLES: 10,
+        EventCategory.ENERGY: 20,
+        EventCategory.MARKETING: 20,
+        EventCategory.OFFICERENT: 20,
+        EventCategory.ROOMRENT: 20,
+        EventCategory.EQUIPMENT: 20,
+        EventCategory.CURRENT: 20,
+        EventCategory.BUILDINGMAINT: 20,
+        EventCategory.BANKING: 0,
+        EventCategory.TELECOM: 25,
+        EventCategory.TRAINING: 20,
+        EventCategory.THIRDPARTYSERVICES: 20,
+        EventCategory.COMMISSION: 20,
+        EventCategory.MEDEQREPAIR: 20,
+        EventCategory.TOP_FINANCES: 0,
+        EventCategory.TOP_INVESTMENT: 20,
     }
 
     PAYMENTTYPE_NAMES = {
@@ -381,7 +405,7 @@ class EventTableModel(QAbstractTableModel):
             return False
         self.beginInsertRows(parent, row, row + count - 1)
         for i in range(count):
-            default_row = Event("", 0, self.last_id + 1, 0, "", Decimal(0), Decimal(0), 0.0, QDate(), 0, QDate(), "", "", Decimal(0), TermRoleFlags.NONE, "", QDate())
+            default_row = Event("", 0, self.last_id + 1, 0, "", Decimal(0), Decimal(0), 0.0, QDate(), 0, QDate(), "", "", Decimal(0), TermRoleFlags.NONE, "", QDate(), 0)
             self.event_list.append(default_row)
         self.endInsertRows()
         self.last_id += 1

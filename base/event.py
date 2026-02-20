@@ -37,6 +37,7 @@ class EventField(IntEnum):
     TERMFLAGS = 14
     NOTES = 15
     LASTPAYMENTDATE = 16
+    NDS = 17
 
 
 class EventCategory(IntEnum):
@@ -54,7 +55,7 @@ class EventCategory(IntEnum):
     BANKING = 1111
     TELECOM = 1112
     TRAINING = 1113
-    INVENTORY = 1114
+    THIRDPARTYSERVICES = 1114
     COMMISSION = 1115
     MEDEQREPAIR = 1116
     TOP_FINANCES = 2100
@@ -91,6 +92,7 @@ class Event:
     termflags: TermRoleFlags    # 14
     notes: str                  # 15
     lastpaymentdate: QDate      # 16
+    nds: int                    # 17
 
 
 def term_filter_flags(remainamount: Decimal, duedate: QDate, are_today_payments_present: bool) -> TermRoleFlags:

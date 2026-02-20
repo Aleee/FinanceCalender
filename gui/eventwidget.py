@@ -30,10 +30,11 @@ class EventWidget(QTreeView):
         EventField.TERMFLAGS: 0,
         EventField.NOTES: 0,
         EventField.LASTPAYMENTDATE: 0,
+        EventField.NDS: 0
     }
 
-    COLUMNS_HIDDEN_BYDEFAULT = [EventField.TYPE, EventField.ID, EventField.CATEGORY, EventField.TERMFLAGS,
-                                EventField.PERCENTAGE, EventField.CREATEDATE, EventField.NOTES, EventField.LASTPAYMENTDATE]
+    COLUMNS_HIDDEN_BYDEFAULT = [EventField.TYPE, EventField.ID, EventField.CATEGORY, EventField.TERMFLAGS, EventField.PERCENTAGE,
+                                EventField.CREATEDATE, EventField.NOTES, EventField.LASTPAYMENTDATE, EventField.NDS]
 
     def __init__(self, parent=None):
         super().__init__(parent)

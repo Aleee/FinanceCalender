@@ -57,6 +57,31 @@ class Ui_EventDialog(object):
 
         self.horizontalLayout_6.addWidget(self.rb_typeadvance)
 
+        self.horizontalSpacer_6 = QSpacerItem(5, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_6.addItem(self.horizontalSpacer_6)
+
+        self.line = QFrame(EventDialog)
+        self.line.setObjectName(u"line")
+        self.line.setFrameShape(QFrame.Shape.VLine)
+        self.line.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.horizontalLayout_6.addWidget(self.line)
+
+        self.horizontalSpacer_7 = QSpacerItem(5, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_6.addItem(self.horizontalSpacer_7)
+
+        self.label_10 = QLabel(EventDialog)
+        self.label_10.setObjectName(u"label_10")
+
+        self.horizontalLayout_6.addWidget(self.label_10)
+
+        self.cmb_nds = QComboBox(EventDialog)
+        self.cmb_nds.setObjectName(u"cmb_nds")
+
+        self.horizontalLayout_6.addWidget(self.cmb_nds)
+
         self.horizontalSpacer_10 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_6.addItem(self.horizontalSpacer_10)
@@ -100,9 +125,20 @@ class Ui_EventDialog(object):
 
         self.horizontalLayout_4.addWidget(self.dsb_totalamount)
 
-        self.horizontalSpacer_5 = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_5 = QSpacerItem(5, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_4.addItem(self.horizontalSpacer_5)
+
+        self.line_2 = QFrame(EventDialog)
+        self.line_2.setObjectName(u"line_2")
+        self.line_2.setFrameShape(QFrame.Shape.VLine)
+        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.horizontalLayout_4.addWidget(self.line_2)
+
+        self.horizontalSpacer_3 = QSpacerItem(5, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_4.addItem(self.horizontalSpacer_3)
 
         self.label_4 = QLabel(EventDialog)
         self.label_4.setObjectName(u"label_4")
@@ -115,21 +151,6 @@ class Ui_EventDialog(object):
         self.de_duedate.setCalendarPopup(True)
 
         self.horizontalLayout_4.addWidget(self.de_duedate)
-
-        self.horizontalSpacer_3 = QSpacerItem(5, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_4.addItem(self.horizontalSpacer_3)
-
-        self.line_2 = QFrame(EventDialog)
-        self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShape(QFrame.Shape.VLine)
-        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.horizontalLayout_4.addWidget(self.line_2)
-
-        self.horizontalSpacer_6 = QSpacerItem(5, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_4.addItem(self.horizontalSpacer_6)
 
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -262,6 +283,7 @@ class Ui_EventDialog(object):
         self.label_8.setText(QCoreApplication.translate("EventDialog", u"\u0412\u0438\u0434:", None))
         self.rb_typenormal.setText(QCoreApplication.translate("EventDialog", u"\u043f\u043e \u0444\u0430\u043a\u0442\u0443", None))
         self.rb_typeadvance.setText(QCoreApplication.translate("EventDialog", u"\u043f\u0440\u0435\u0434\u043e\u043f\u043b\u0430\u0442\u0430", None))
+        self.label_10.setText(QCoreApplication.translate("EventDialog", u"\u041d\u0414\u0421: ", None))
         self.label_5.setText(QCoreApplication.translate("EventDialog", u"\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f:", None))
         self.label_3.setText(QCoreApplication.translate("EventDialog", u"\u0421\u0443\u043c\u043c\u0430:", None))
         self.label_4.setText(QCoreApplication.translate("EventDialog", u"\u0414\u0430\u0442\u0430:", None))

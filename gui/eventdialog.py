@@ -1,17 +1,18 @@
 from decimal import Decimal
 
-from PySide6.QtCore import QModelIndex, Qt, QDate, QSortFilterProxyModel
+from PySide6.QtCore import QModelIndex, Qt, QDate
 from PySide6.QtWidgets import QDialog, QButtonGroup, QCompleter
 
 from base.event import EventField, PaymentType, RowType, term_filter_flags, TermRoleFlags
 from gui.common import model_atlevel, map_to_source
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
-from gui.eventproxymodel import EventListFinalFilterModel
 from gui.eventmodel import EventTableModel
 from gui.ui.eventdialog_ui import Ui_EventDialog
 
 
 class EventDialog(QDialog):
+
+    NDS_COMBOBOX = [("нет", 0), ("10%", 10), ("20%", 20), ("25%", 25)]
 
     DESCR_COMPLETER_LIST = ["Акт сдачи-приемки оказанных услуг №", "ТТН №", "ТН №", "Договор №", "Приложение №", "Счет на оплату №",
                             "Договор аренды №", "Счет №", "Акт выполненных работ №", "Счет на оплату №", "Акт сдачи-приемки оказанных услуг №",
@@ -41,10 +42,13 @@ class EventDialog(QDialog):
 
         self.set_completers()
 
-        # Заполнение комбобокса категорий
+        # Заполнение комбобоксов
         for cat_id, cat_name in EventTableModel.CATEGORY_NAMES.items():
             if cat_id % 1000 != 0:
                 self.ui.cmb_category.addItem(cat_name, int(cat_id))
+        for row in self.NDS_COMBOBOX:
+            self.ui.cmb_nds.addItem(row[0], row[1])
+
 
         if self.edit_mode:
             self.setWindowTitle("Редактирование платежа")
@@ -55,6 +59,7 @@ class EventDialog(QDialog):
                                                       - self.index.siblingAtColumn(EventField.REMAINAMOUNT).data(EventTableModel.internalValueRole))
             self.non_editable_values["createdate"] = self.index.siblingAtColumn(EventField.CREATEDATE).data(EventTableModel.internalValueRole)
             self.non_editable_values["todayshare"] = self.index.siblingAtColumn(EventField.TODAYSHARE).data(EventTableModel.internalValueRole)
+            self.non_editable_values["lastpaymentdate"] = self.index.siblingAtColumn(EventField.LASTPAYMENTDATE).data(EventTableModel.internalValueRole)
 
 
         if self.edit_mode or self.copy_mode:
@@ -66,6 +71,8 @@ class EventDialog(QDialog):
             cmb_index: int = self.ui.cmb_category.findData(self.index.siblingAtColumn(EventField.CATEGORY).data(EventTableModel.internalValueRole))
             self.ui.cmb_category.setCurrentIndex(cmb_index)
             self.button_group.button(self.index.siblingAtColumn(EventField.PAYMENTTYPE).data(EventTableModel.internalValueRole)).setChecked(True)
+            cmb_index: int = self.ui.cmb_nds.findData(self.index.siblingAtColumn(EventField.NDS).data(EventTableModel.internalValueRole))
+            self.ui.cmb_nds.setCurrentIndex(cmb_index)
             self.ui.le_responsible.setText(self.index.siblingAtColumn(EventField.RESPONSIBLE).data(EventTableModel.internalValueRole))
             self.ui.te_descr.setPlainText(self.index.siblingAtColumn(EventField.DESCR).data(EventTableModel.internalValueRole))
             self.ui.te_notes.setPlainText(self.index.siblingAtColumn(EventField.NOTES).data(EventTableModel.internalValueRole))
@@ -74,6 +81,9 @@ class EventDialog(QDialog):
             self.ui.de_duedate.setDate(QDate.currentDate())
             self.ui.rb_typenormal.setChecked(True)
             self.ui.le_receiver.setFocus()
+
+        # Сигнал: изменение НДС при изменении категории
+        self.ui.cmb_category.currentIndexChanged.connect(lambda row_num: self.change_nds(row_num))
 
     def set_completers(self):
         origin_model: EventTableModel = model_atlevel(-2, self.model)
@@ -93,6 +103,11 @@ class EventDialog(QDialog):
         self.ui.le_receiver.setCompleter(receiver_compl)
         self.ui.le_responsible.setCompleter(responsible_compl)
         self.ui.te_descr.completions.setStringList(self.DESCR_COMPLETER_LIST)
+
+    def change_nds(self, row: int):
+        cmb_index: int = self.ui.cmb_nds.findData(model_atlevel(-2, self.model).NDS_VALUE[self.ui.cmb_category.currentData()])
+        self.ui.cmb_nds.setCurrentIndex(cmb_index)
+
 
     def check_integrity(self) -> bool:
         text = ""
@@ -163,7 +178,11 @@ class EventDialog(QDialog):
                 today_payments: bool = (self.non_editable_values["todayshare"] != 0)
             data.append(term_filter_flags(remain_amount, self.ui.de_duedate.date(), today_payments))
             data.append(self.ui.te_notes.toPlainText())
-            data.append(QDate())
+            if self.edit_mode:
+                data.append(self.non_editable_values["lastpaymentdate"])
+            else:
+                data.append(QDate())
+            data.append(self.ui.cmb_nds.currentData())
 
             original_model: EventTableModel = model_atlevel(-2, self.model)
 
