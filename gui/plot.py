@@ -28,7 +28,7 @@ class PaymentHistoryGraph:
 
         xticks: list = []
         dates_reversed: list = dates[::-1]
-        min_distance = (max(dates) - min(dates)) * 0.05
+        min_distance = (max(dates) - min(dates)) * 0.07
         for index, x in enumerate(dates_reversed):
             if index == 0 or index == len(dates_reversed) - 1:
                 xticks.append(x)

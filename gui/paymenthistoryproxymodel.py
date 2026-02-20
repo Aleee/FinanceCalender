@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSortFilterProxyModel, Qt
+from PySide6.QtCore import QSortFilterProxyModel, Qt, QDate
 
 from base.payment import PaymentField
 from gui.common import model_atlevel
@@ -25,3 +25,17 @@ class PaymentHistoryProxyModel(QSortFilterProxyModel):
     def reset_filter(self, event_id: int):
         self.current_event_id = event_id
         self.invalidate()
+
+    def get_last_paymentdate(self, new_paymentdate: QDate | None) -> QDate:
+        last_paymentdate: QDate = QDate()
+        for row in range(self.rowCount()):
+            date: QDate = self.index(row, PaymentField.PAYMENT_DATE).data(PaymentHistoryTableModel.internalValueRole)
+            if date.isValid():
+                if not last_paymentdate.isValid():
+                    last_paymentdate = date
+                else:
+                    last_paymentdate = date if date > last_paymentdate else last_paymentdate
+        if new_paymentdate:
+            return last_paymentdate if last_paymentdate.isValid() and last_paymentdate > new_paymentdate else new_paymentdate
+        else:
+            return last_paymentdate

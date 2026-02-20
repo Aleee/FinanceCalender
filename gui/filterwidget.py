@@ -3,7 +3,7 @@ from enum import IntEnum
 import resources_rc
 import lovely_logger as log
 from PySide6 import QtWidgets, QtCore
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QBrush
 
 
 class TermCategory(IntEnum):
@@ -48,12 +48,12 @@ class TermFilterListWidget(FilterListWidget):
 
     FILTER_ID = "term_filter"
     ITEMS = {
-        TermCategory.UNPAID: ("Все неоплаченные", ":/icon-terms/designer/icons/allitems.svg"),
-        TermCategory.DUE: ("Просроченные", ":/icon-terms/designer/icons/termdue.svg"),
-        TermCategory.TODAY: ("Сегодня", ":/icon-terms/designer/icons/termtoday.svg"),
-        TermCategory.WEEK: ("На этой неделе", ":/icon-terms/designer/icons/termweek.svg"),
-        TermCategory.MONTH: ("В этом месяце", ":/icon-terms/designer/icons/termmonth.svg"),
-        TermCategory.PAID: ("Оплаченные", ":/icon-terms/designer/icons/termpaid.svg"),
+        TermCategory.UNPAID: ("Все неоплаченные", ":/icon-terms/designer/icons/allitems.svg", "#ECECE9"),
+        TermCategory.DUE: ("Просроченные", ":/icon-terms/designer/icons/termdue.svg", None),
+        TermCategory.TODAY: ("Сегодня", ":/icon-terms/designer/icons/termtoday.svg", None),
+        TermCategory.WEEK: ("На этой неделе", ":/icon-terms/designer/icons/termweek.svg", None),
+        TermCategory.MONTH: ("В этом месяце", ":/icon-terms/designer/icons/termmonth.svg", None),
+        TermCategory.PAID: ("Оплаченные", ":/icon-terms/designer/icons/termpaid.svg", "#ECECE9"),
     }
 
     def __init__(self, parent=None):
@@ -71,6 +71,9 @@ class TermFilterListWidget(FilterListWidget):
             raise IndexError
         for row in range(self.count()):
             self.item(row).setText(self.ITEMS[row][0] + f" ({len(filter_stats[row])})")
+            custom_background_color: str | None = self.ITEMS[row][2]
+            if custom_background_color:
+                self.item(row).setBackground(QBrush(custom_background_color))
 
 
 class CategoryFilterListWidget(FilterListWidget):

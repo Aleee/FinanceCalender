@@ -18,7 +18,7 @@ class EventDialog(QDialog):
                             "Акт оказания услуг №", "Акт №", "Акт сдачи-приемки выполненных работ №", "Счет-акт оказанных услуг", "Реестр №",
                             "Счет-фактура №", "Договор финансового лизинга №", "Договор лизинга №", "Кредитный договор №", "Договор поставки №"]
 
-    def __init__(self, edit_mode: bool = False, copy_mode: bool = False, current_index: QModelIndex | None = None, parent=None):
+    def __init__(self, final_proxy_model, edit_mode: bool = False, copy_mode: bool = False, current_index: QModelIndex | None = None, parent=None):
         super(EventDialog, self).__init__(parent)
         self.ui = Ui_EventDialog()
         self.ui.setupUi(self)
@@ -26,12 +26,12 @@ class EventDialog(QDialog):
         if not current_index or not current_index.isValid():
             self.reject()
 
+        self.model = final_proxy_model
         self.edit_mode: bool = edit_mode
         self.copy_mode: bool = copy_mode
         self.non_editable_values: dict = {"id": 0, "paidamount": Decimal(0), "createdate": QDate(), "todayshare": Decimal(0)}
 
         self.index: QModelIndex = current_index
-        self.model: EventListFinalFilterModel = self.index.model()
 
         self.button_group: QButtonGroup = QButtonGroup(self)
         self.button_group.addButton(self.ui.rb_typenormal, PaymentType.NORMAL)
@@ -110,7 +110,7 @@ class EventDialog(QDialog):
             return False
 
         text = ""
-        if (self.ui.de_duedate.date() < QDate.currentDate() and
+        if (self.ui.de_duedate.date() < QDate.currentDate() and self.index.isValid() and
                 TermRoleFlags.DUE not in self.index.siblingAtColumn(EventField.TERMFLAGS).data(EventTableModel.internalValueRole)):
             text += "Дата платежа меньше текущей даты. "
         if self.ui.le_responsible.text().strip() == "":
@@ -142,8 +142,9 @@ class EventDialog(QDialog):
             else:
                 remain_amount: Decimal = Decimal(self.ui.dsb_totalamount.value()) - self.non_editable_values["paidamount"]
             data.append(remain_amount)
-            data.append(Decimal(self.ui.dsb_totalamount.value()))
-            data.append(float(remain_amount) / self.ui.dsb_totalamount.value())
+            total_amount = Decimal(self.ui.dsb_totalamount.value())
+            data.append(total_amount)
+            data.append(float(total_amount - remain_amount) / self.ui.dsb_totalamount.value())
             data.append(self.ui.de_duedate.date())
             data.append(self.button_group.checkedId())
             # Дата создания

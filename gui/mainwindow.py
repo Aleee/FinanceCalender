@@ -23,6 +23,7 @@ from gui.eventdialog import EventDialog
 from gui.eventproxymodel import EventListProxyModel, Filter, EventListFinalFilterModel
 from gui.eventmodel import EventTableModel
 from gui.finplandialog import FinPlanDialog
+from gui.fulfillmentdialog import FulfillmentDialog
 from gui.plot import PaymentHistoryGraph
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
@@ -190,6 +191,7 @@ class MainWindow(QMainWindow):
         self.rmb_finplan_filter = RightClickFilter(self)
         self.rmb_finplan_filter.rightmousebutton_clicked.connect(lambda: self.open_finplan_dialog(ask_year=True))
         self.ui.tlbr.widgetForAction(self.ui.act_finplan).installEventFilter(self.rmb_finplan_filter)
+        self.ui.act_fulfillment.triggered.connect(self.open_fulfillment_dialog)
         self.ui.act_export.triggered.connect(self.open_export_dialog)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog(True))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.event_proxy_model.set_filter(Filter.HEADER, checked))
@@ -478,6 +480,7 @@ class MainWindow(QMainWindow):
             old_term_flags: TermRoleFlags = self.data_from_current_event(EventField.TERMFLAGS)
             new_term_flags: TermRoleFlags = term_filter_flags(new_remain, self.data_from_current_event(EventField.DUEDATE), bool(today_share))
             self.set_data_to_current_event(EventField.TERMFLAGS, new_term_flags)
+            self.set_data_to_current_event(EventField.LASTPAYMENTDATE, self.payment_proxy_model.get_last_paymentdate(date))
             if old_term_flags != new_term_flags:
                 self.event_model.recalculate_stats()
             self.update_eventinfo()
@@ -518,6 +521,7 @@ class MainWindow(QMainWindow):
             old_term_flags: TermRoleFlags = self.data_from_current_event(EventField.TERMFLAGS)
             new_term_flags: TermRoleFlags = term_filter_flags(new_remain, self.data_from_current_event(EventField.DUEDATE), bool(today_share))
             self.set_data_to_current_event(EventField.TERMFLAGS, new_term_flags)
+            self.set_data_to_current_event(EventField.LASTPAYMENTDATE, self.payment_proxy_model.get_last_paymentdate(None))
             if old_term_flags != new_term_flags:
                 self.event_model.recalculate_stats()
             self.update_eventinfo()
@@ -541,7 +545,7 @@ class MainWindow(QMainWindow):
             selection_not_visible: bool = is_selection_filteredout(self.event_finalfilter_model, self.ui.trw_event, two_proxies=True, current_instead=True)
             if selection_not_visible:
                 return False
-        event_dialog: EventDialog = EventDialog(edit_mode=edit, copy_mode=copy, current_index=curr_index, parent=self)
+        event_dialog: EventDialog = EventDialog(final_proxy_model=self.event_finalfilter_model, edit_mode=edit, copy_mode=copy, current_index=curr_index, parent=self)
         if event_dialog.exec():
             if not edit:
                 self.ui.trw_event.selectionModel().clear()
@@ -568,6 +572,10 @@ class MainWindow(QMainWindow):
             tdlg: YearInputDialog = YearInputDialog(current_year, self)
             tdlg.exec()
         dlg: FinPlanDialog = FinPlanDialog(self.db_handler, tdlg.ui.spinBox.value() if ask_year else current_year, self)
+        dlg.exec()
+
+    def open_fulfillment_dialog(self):
+        dlg: FulfillmentDialog = FulfillmentDialog(self)
         dlg.exec()
 
     def delete_event(self) -> bool:

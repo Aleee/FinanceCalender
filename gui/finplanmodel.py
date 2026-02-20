@@ -125,3 +125,6 @@ class FinPlanTableModel(QAbstractTableModel):
             return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
         else:
             return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+
+    def load_values(self):
+        pass

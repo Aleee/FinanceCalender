@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QDialog, QHeaderView, QApplication
 
 from base.dbhandler import DBHandler
 from gui.commonwidgets.eventfilter import TooltipFilter
-from gui.commonwidgets.messagebox import ErrorInfoMessageBox
+from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.finplanmodel import FinPlanTableModel
 from gui.ui.finplandialog_ui import Ui_FinPlanDialog
 
@@ -78,3 +78,8 @@ class FinPlanDialog(QDialog):
             msg_box.exec()
             return
         QDialog.accept(self)
+
+    def reject(self, /):
+        msg_box = YesNoMessagebox("Вы уверены, что хотите выйти без сохранения изменений?")
+        if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
+            QDialog.reject(self)
