@@ -6,32 +6,35 @@ from PySide6.QtCore import QModelIndex
 from base.event import EventField, RowType, TermRoleFlags
 from gui.eventmodel import EventTableModel, HeaderFooterSubtype, HeaderFooterField, RowFormatting
 from gui.common import model_atlevel
+from gui.filterwidget import TermCategory
 
 
-class CustomDelegate(QStyledItemDelegate):
+class EventItemDelegate(QStyledItemDelegate):
 
     VERTICAL_GRID_COLOR: QColor = QColor("#EEEEEE")
     ALTERNATE_ROW_COLOR: QColor = QColor("#f7f7f7")
-    FINALFOOTER_BACK_COLOR: QColor = QColor("#fff9cd")
+    FINALFOOTER_BACK_COLOR: QColor = QColor("#D2DABE")
     DARKER_RATIO: int = 110
     BORDER_WIDTH: int = 1
 
     def __init__(self, parent=None):
-        super(CustomDelegate, self).__init__(parent)
+        super(EventItemDelegate, self).__init__(parent)
 
     def initStyleOption(self, option, index, /):
-        super(CustomDelegate, self).initStyleOption(option, index)
+        super(EventItemDelegate, self).initStyleOption(option, index)
 
         row_formatting: RowFormatting = model_atlevel(-2, index).row_formatting
+        if not row_formatting:
+            return
         if index.siblingAtColumn(EventField.TYPE).data(EventTableModel.internalValueRole) == RowType.EVENT:
             option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Highlight, (QColor("#CDE8FF")))
             term_flags: TermRoleFlags = index.siblingAtColumn(EventField.TERMFLAGS).data(EventTableModel.internalValueRole)
-            if TermRoleFlags.DUE in term_flags:
+            if TermRoleFlags.DUE in term_flags and model_atlevel(-1, index).term_filter != TermCategory.DUE:
                 option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
                                         QColor(row_formatting.due_forecolor))
                 option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.HighlightedText,
                                         QColor(row_formatting.due_forecolor))
-            elif TermRoleFlags.TODAY in term_flags:
+            elif TermRoleFlags.TODAY in term_flags and model_atlevel(-1, index).term_filter != TermCategory.TODAY:
                 option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
                                         QColor(row_formatting.today_forecolor))
                 option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.HighlightedText,
@@ -67,10 +70,10 @@ class CustomDelegate(QStyledItemDelegate):
             due_backcolor_setting: QColor = QColor(row_formatting.due_backcolor)
             today_backcolor_setting: QColor = QColor(row_formatting.today_backcolor)
             vertical_grid_color: QColor = self.VERTICAL_GRID_COLOR
-            if due_backcolor_setting != QtGui.QColorConstants.White and TermRoleFlags.DUE in term_flags:
+            if due_backcolor_setting != QtGui.QColorConstants.White and TermRoleFlags.DUE in term_flags and model_atlevel(-1, index).term_filter != TermCategory.DUE:
                 option.backgroundBrush = QBrush(QColor(row_formatting.due_backcolor))
                 vertical_grid_color = QColor(row_formatting.due_backcolor).darker(self.DARKER_RATIO)
-            elif today_backcolor_setting != QtGui.QColorConstants.White and TermRoleFlags.TODAY in term_flags:
+            elif today_backcolor_setting != QtGui.QColorConstants.White and TermRoleFlags.TODAY in term_flags and model_atlevel(-1, index).term_filter != TermCategory.TODAY:
                 option.backgroundBrush = QBrush(QColor(row_formatting.today_backcolor))
                 vertical_grid_color: QColor = QColor(row_formatting.today_backcolor).darker(self.DARKER_RATIO)
             else:
@@ -112,6 +115,8 @@ class CustomDelegate(QStyledItemDelegate):
             pen: QPen = QPen(QColor("grey"), self.BORDER_WIDTH)
             painter.setPen(pen)
             painter.drawLine(option.rect.bottomRight(), option.rect.bottomLeft())
-            if row_type == RowType.FOOTER:
+            if row_type == RowType.FOOTER and index.siblingAtColumn(EventField.CATEGORY).data(EventTableModel.internalValueRole) % 1000 != 0:
+                pen.setWidth(self.BORDER_WIDTH)
+                painter.setPen(pen)
                 painter.drawLine(option.rect.topRight(), option.rect.topLeft())
         painter.restore()

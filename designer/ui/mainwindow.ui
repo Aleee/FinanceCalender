@@ -886,6 +886,9 @@
    </property>
   </action>
   <action name="act_finplan">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset resource="../../resources.qrc">
      <normaloff>:/icon-toolbar/designer/icons/financing.svg</normaloff>:/icon-toolbar/designer/icons/financing.svg</iconset>
@@ -901,6 +904,9 @@
    </property>
   </action>
   <action name="act_fulfillment">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset resource="../../resources.qrc">
      <normaloff>:/icon-toolbar/designer/icons/fulfillment.svg</normaloff>:/icon-toolbar/designer/icons/fulfillment.svg</iconset>
@@ -927,12 +933,12 @@
   <customwidget>
    <class>TermFilterListWidget</class>
    <extends>QListWidget</extends>
-   <header>gui/filterlistwidget.h</header>
+   <header>gui/filterwidget.h</header>
   </customwidget>
   <customwidget>
    <class>CategoryFilterListWidget</class>
    <extends>QListWidget</extends>
-   <header>gui/filterlistwidget.h</header>
+   <header>gui/filterwidget.h</header>
   </customwidget>
   <customwidget>
    <class>AutoResizingTextEdit</class>

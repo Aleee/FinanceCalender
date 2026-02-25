@@ -24,20 +24,21 @@ class EventField(IntEnum):
     TYPE = 1
     ID = 2
     CATEGORY = 3
-    NAME = 4
-    REMAINAMOUNT = 5
-    TOTALAMOUNT = 6
-    PERCENTAGE = 7
-    DUEDATE = 8
-    PAYMENTTYPE = 9
-    CREATEDATE = 10
-    DESCR = 11
-    RESPONSIBLE = 12
-    TODAYSHARE = 13
-    TERMFLAGS = 14
-    NOTES = 15
-    LASTPAYMENTDATE = 16
-    NDS = 17
+    SUBCATEGORY = 4
+    NAME = 5
+    REMAINAMOUNT = 6
+    TOTALAMOUNT = 7
+    PERCENTAGE = 8
+    DUEDATE = 9
+    PAYMENTTYPE = 10
+    CREATEDATE = 11
+    DESCR = 12
+    RESPONSIBLE = 13
+    TODAYSHARE = 14
+    TERMFLAGS = 15
+    NOTES = 16
+    LASTPAYMENTDATE = 17
+    NDS = 18
 
 
 class EventCategory(IntEnum):
@@ -62,6 +63,13 @@ class EventCategory(IntEnum):
     TOP_INVESTMENT = 3100
 
 
+class EventFinanceSubcategory(IntEnum):
+    LOAN = 1
+    LEASING = 2
+    INTEREST = 3
+    FOUNDERLOAN = 4
+
+
 class TermRoleFlags(Flag):
     PAID = auto()
     NOTPAID = auto()
@@ -79,20 +87,21 @@ class Event:
     type: int                   # 1
     id: int                     # 2
     category: int               # 3
-    name: str                   # 4
-    remainamount: Decimal       # 5
-    totalamount: Decimal        # 6
-    percentage: float           # 7
-    duedate: QDate              # 8
-    paymenttype: int            # 9
-    createdate: QDate           # 10
-    descr: str                  # 11
-    responsible: str            # 12
-    todayshare: Decimal         # 13
-    termflags: TermRoleFlags    # 14
-    notes: str                  # 15
-    lastpaymentdate: QDate      # 16
-    nds: int                    # 17
+    subcategory: int            # 4
+    name: str                   # 5
+    remainamount: Decimal       # 6
+    totalamount: Decimal        # 7
+    percentage: float           # 8
+    duedate: QDate              # 9
+    paymenttype: int            # 10
+    createdate: QDate           # 11
+    descr: str                  # 12
+    responsible: str            # 13
+    todayshare: Decimal         # 14
+    termflags: TermRoleFlags    # 15
+    notes: str                  # 16
+    lastpaymentdate: QDate      # 17
+    nds: int                    # 18
 
 
 def term_filter_flags(remainamount: Decimal, duedate: QDate, are_today_payments_present: bool) -> TermRoleFlags:

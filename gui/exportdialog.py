@@ -81,6 +81,7 @@ class ExportDialog(QDialog):
         self.rbg_todayshare.button(int(self.column_visibility[EventField.TODAYSHARE])).setChecked(True)
 
         self.ui.pb_export.clicked.connect(self.export)
+        self.ui.pb_cancel.clicked.connect(self.reject)
 
     def columns_to_export(self) -> list[bool]:
         column_visibility_edited: list[bool] = self.column_visibility

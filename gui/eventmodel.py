@@ -5,7 +5,6 @@ from dataclasses import dataclass, fields, astuple
 
 import lovely_logger as log
 from PySide6.QtCore import QModelIndex, Qt, QAbstractItemModel, Signal, QAbstractTableModel, QDate
-from PySide6.QtGui import QFont
 
 from base.date import date_displstr
 from base.event import Event, TermRoleFlags, PaymentType, EventCategory, EventField, RowType
@@ -88,6 +87,7 @@ class EventTableModel(QAbstractTableModel):
         EventField.ID: "",
         EventField.TYPE: "",
         EventField.CATEGORY: "Категория",
+        EventField.SUBCATEGORY: "",
         EventField.RECEIVER: "Получатель платежа",
         EventField.NAME: "Наименование (предмет) платежа",
         EventField.TOTALAMOUNT: "Сумма платежа",
@@ -109,6 +109,7 @@ class EventTableModel(QAbstractTableModel):
         EventField.ID: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         EventField.TYPE: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         EventField.CATEGORY: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+        EventField.SUBCATEGORY: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         EventField.RECEIVER: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         EventField.NAME: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         EventField.REMAINAMOUNT: Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
@@ -171,6 +172,7 @@ class EventTableModel(QAbstractTableModel):
     }
 
     PAYMENTTYPE_NAMES = {
+        0: "",
         PaymentType.NORMAL: "По факту",
         PaymentType.ADVANCE: "Предоплата",
     }
@@ -244,6 +246,8 @@ class EventTableModel(QAbstractTableModel):
             return ""
         elif column == EventField.CATEGORY:
             return self.CATEGORY_NAMES[event.category]
+        elif column == EventField.SUBCATEGORY:
+            return ""
         elif column == EventField.RECEIVER:
             return event.receiver
         elif column == EventField.NAME:
@@ -298,16 +302,6 @@ class EventTableModel(QAbstractTableModel):
                 return self.ALIGNMENT[index.column()]
             elif role == self.customSpanRole:
                 return False
-            elif role == Qt.ItemDataRole.FontRole:
-                term_flags = index.siblingAtColumn(EventField.TERMFLAGS).data(self.internalValueRole)
-                if TermRoleFlags.DUE in term_flags:
-                    font = QFont()
-                    font.setBold(self.row_formatting.due_textbold)
-                    return font
-                if TermRoleFlags.TODAY in term_flags:
-                    font = QFont()
-                    font.setBold(self.row_formatting.today_textbold)
-                    return font
 
         elif isinstance(entry, EventHeader):
             if role == Qt.ItemDataRole.DisplayRole:
@@ -322,10 +316,6 @@ class EventTableModel(QAbstractTableModel):
                 return entry.category
             elif role == self.customSpanRole:
                 return True
-            elif role == Qt.ItemDataRole.FontRole:
-                font = QFont()
-                font.setBold(self.row_formatting.header_textbold)
-                return font
             else:
                 return None
 
@@ -344,10 +334,7 @@ class EventTableModel(QAbstractTableModel):
                 return entry.category
             elif role == self.customSpanRole:
                 return False
-            elif role == Qt.ItemDataRole.FontRole:
-                font = QFont()
-                font.setBold(self.row_formatting.footer_textbold)
-                return font
+
         elif isinstance(entry, FinalFooter):
             if role == Qt.ItemDataRole.DisplayRole:
                 if index.column() == 0:
@@ -361,10 +348,6 @@ class EventTableModel(QAbstractTableModel):
                     return None
             elif role == self.sortRole:
                 return 0
-            elif role == Qt.ItemDataRole.FontRole:
-                font = QFont()
-                font.setBold(True)
-                return font
 
         else:
             raise NotImplementedError(f"data() для класса {entry.__class__.__name__} не реализована")
@@ -405,7 +388,7 @@ class EventTableModel(QAbstractTableModel):
             return False
         self.beginInsertRows(parent, row, row + count - 1)
         for i in range(count):
-            default_row = Event("", 0, self.last_id + 1, 0, "", Decimal(0), Decimal(0), 0.0, QDate(), 0, QDate(), "", "", Decimal(0), TermRoleFlags.NONE, "", QDate(), 0)
+            default_row = Event("", 0, self.last_id + 1, 0, 0, "", Decimal(0), Decimal(0), 0.0, QDate(), 0, QDate(), "", "", Decimal(0), TermRoleFlags.NONE, "", QDate(), 0)
             self.event_list.append(default_row)
         self.endInsertRows()
         self.last_id += 1

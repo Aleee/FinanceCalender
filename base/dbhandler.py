@@ -7,8 +7,9 @@ from PySide6.QtCore import QDate
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 import lovely_logger as log
 
+from base.casting import str_int
 from base.event import Event, term_filter_flags, RowType, TermRoleFlags
-from base.date import str_date, date_str
+from base.date import str_date, date_str, date_displstr
 from base.payment import Payment
 from gui.finplanmodel import FinPlanTableModel
 from gui.settings import SettingsHandler
@@ -17,7 +18,7 @@ from gui.settings import SettingsHandler
 class DBHandler:
 
     DEFAULT_DB_RELPATH = "db/db.db"
-    EVENT_TABLE_COLUMNUM = 13
+    EVENT_TABLE_COLUMNUM = 14
     PAYMENT_TABLE_COLUMNUM = 5
 
     def __init__(self, settings_handler):
@@ -112,8 +113,8 @@ class DBHandler:
         events: list = []
         payments: list = []
 
-        #                          0      1         2       3        4            5         6          7        8         9        10        11       12
-        query = QSqlQuery("SELECT id, category, receiver, name, totalamount, todayshare, duedate, createdate, descr, responsible, notes, paymenttype, nds FROM event")
+        #                          0      1                      2       3        4            5         6          7        8         9        10        11       12
+        query = QSqlQuery("SELECT id, category, subcategory, receiver, name, totalamount, todayshare, duedate, createdate, descr, responsible, notes, paymenttype, nds FROM event")
         if not query.exec():
             log.c(f"Не удалось выполнить запрос для таблицы event. Ошибка: {query.lastError().text()}")
             return False
@@ -143,23 +144,23 @@ class DBHandler:
 
                     payments.append(Payment(int(pquery.value(0)), int(query.value(0)), date_paid, sum_paid, str_date(pquery.value(3))))
 
-                total_amount: Decimal = Decimal(query.value(4))
+                total_amount: Decimal = Decimal(query.value(5))
                 remainamount: Decimal = total_amount - total_paid
                 percentage: float = float(total_paid / total_amount)
-                duedate: QDate = str_date(query.value(6))
-                today_share: Decimal = Decimal(query.value(5))
+                duedate: QDate = str_date(query.value(7))
+                today_share: Decimal = Decimal(query.value(6))
                 if today_share != 0 and not are_today_payments_present:
                     today_share = Decimal(0)
                 if not duedate.isValid():
                     continue
                 termflags: TermRoleFlags = term_filter_flags(remainamount, duedate, are_today_payments_present)
 
-                #                         0         1           2                   3                  4              5             6            7
-                events.append(Event(query.value(2), 2, int(query.value(0)), int(query.value(1)), query.value(3), remainamount, total_amount, percentage,
-                                    #  8              9                       10                  11              12              13          14
-                                    duedate, int(query.value(11)), str_date(query.value(7)), query.value(8), query.value(9), today_share, termflags,
-                                    #      15                16
-                                    query.value(10), last_payment_date, int(query.value(12))))
+                #                         0         1           2                   3                    4                  5               6            7
+                events.append(Event(query.value(3), 2, int(query.value(0)), int(query.value(1)), int(query.value(2)), query.value(4), remainamount, total_amount,
+                                    #   8         9              10                  11                       12              13              14           15
+                                    percentage, duedate, int(query.value(12)), str_date(query.value(8)), query.value(9), query.value(10), today_share, termflags,
+                                    #      16                17                    18
+                                    query.value(11), last_payment_date, int(query.value(13))))
         except TypeError as e:
             log.x(f"Некоторые данные из базы данных не смогли быть преобразованы при загрузке\n{str(e)}")
             QSqlDatabase.database().close()
@@ -227,9 +228,10 @@ class DBHandler:
         for event in event_model.event_list:
             if event.type != RowType.EVENT:
                 continue
-            query.prepare("INSERT INTO event VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            query.prepare("INSERT INTO event VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             query.addBindValue(event.id)
             query.addBindValue(event.category)
+            query.addBindValue(event.subcategory)
             query.addBindValue(event.receiver)
             query.addBindValue(event.name)
             query.addBindValue(float(event.totalamount))
@@ -254,8 +256,35 @@ class DBHandler:
         QSqlDatabase.database().close()
         return True
 
+    def load_fulfillmentdata_from_db(self, begin_date: QDate, end_date: QDate) -> list | None:
+        if not self.open_db_connection():
+            return None
+        query = QSqlQuery()
+        query.prepare("SELECT * FROM fulfillmentdata WHERE startdate = ? AND enddate = ?")
+        query.addBindValue(date_str(begin_date))
+        query.addBindValue(date_str(end_date))
+        if not query.exec():
+            QSqlDatabase.database().close()
+            return None
+        query.next()
+        QSqlDatabase.database().close()
+        return [query.value(2), query.value(3), query.value(4), query.value(5), query.value(6)] if query.value(0) else None
 
-    def load_finplan_from_db(self, year: int, finplan_structure: dict):
+    def save_fulfillmentdata_to_db(self, begin_date: QDate, end_date: QDate, values: list) -> None:
+        if not self.open_db_connection():
+            return
+        query = QSqlQuery()
+        query.prepare("INSERT OR REPLACE INTO fulfillmentdata VALUES(?, ?, ?, ?, ?, ?, ?)")
+        query.addBindValue(date_str(begin_date))
+        query.addBindValue(date_str(end_date))
+        for value in values:
+            query.addBindValue(value)
+        if not query.exec():
+            log.c(f"Не удалось сохранить данные в таблицу fulfillmentdata: {query.lastError().text()}")
+        QSqlDatabase.database().close()
+        return
+
+    def load_finplan_from_db(self, year: int, finplan_structure: dict) -> dict | None:
         if not self.open_db_connection():
             return None
         # Создаем базовый словарь для заполнения, оставляя только самостоятельные категории
@@ -315,4 +344,18 @@ class DBHandler:
                 return False
         return True
 
-
+    def load_fulfillmentpayments_from_db(self, start_date: QDate, end_date: QDate) -> None | list:
+        if not self.open_db_connection():
+            return None
+        query = QSqlQuery(f"SELECT E.category, P.sum, P.paymentdate, E.receiver, E.name FROM payment AS P "
+                          f"INNER JOIN event AS E ON P.eventid = E.id "
+                          f"WHERE P.paymentdate BETWEEN \'{date_str(start_date)}\' AND \'{date_str(end_date)}\' "
+                          f"ORDER BY E.category ASC, CAST(P.sum AS decimal) DESC")
+        if not query.exec():
+            log.w(f"Ошибка SQL при попытке загрузить платежи для таблицы исполнения плана: {query.lastError().text()}")
+            QSqlDatabase.database().close()
+            return None
+        values = []
+        while query.next():
+            values.append([query.value(0), query.value(1), query.value(2), query.value(3), query.value(4)])
+        return values

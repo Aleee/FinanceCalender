@@ -27,17 +27,151 @@ class Ui_EventDialog(object):
     def setupUi(self, EventDialog):
         if not EventDialog.objectName():
             EventDialog.setObjectName(u"EventDialog")
-        EventDialog.resize(599, 420)
+        EventDialog.resize(599, 452)
         self.gridLayout_2 = QGridLayout(EventDialog)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.gridLayout_2.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         self.gridLayout = QGridLayout()
         self.gridLayout.setSpacing(8)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.label_6 = QLabel(EventDialog)
-        self.label_6.setObjectName(u"label_6")
+        self.te_notes = QPlainTextEdit(EventDialog)
+        self.te_notes.setObjectName(u"te_notes")
+        self.te_notes.setMinimumSize(QSize(0, 70))
+        self.te_notes.setMaximumSize(QSize(16777215, 70))
 
-        self.gridLayout.addWidget(self.label_6, 7, 1, 1, 1)
+        self.gridLayout.addWidget(self.te_notes, 11, 1, 1, 1)
+
+        self.te_descr = CompletingPlainTextEdit(EventDialog)
+        self.te_descr.setObjectName(u"te_descr")
+        self.te_descr.setMinimumSize(QSize(0, 50))
+        self.te_descr.setMaximumSize(QSize(16777215, 50))
+
+        self.gridLayout.addWidget(self.te_descr, 9, 1, 1, 1)
+
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.gridLayout_3 = QGridLayout()
+        self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.gridLayout_3.setVerticalSpacing(8)
+        self.label = QLabel(EventDialog)
+        self.label.setObjectName(u"label")
+
+        self.gridLayout_3.addWidget(self.label, 1, 0, 1, 1)
+
+        self.label_2 = QLabel(EventDialog)
+        self.label_2.setObjectName(u"label_2")
+
+        self.gridLayout_3.addWidget(self.label_2, 2, 0, 1, 1)
+
+        self.le_receiver = QLineEdit(EventDialog)
+        self.le_receiver.setObjectName(u"le_receiver")
+
+        self.gridLayout_3.addWidget(self.le_receiver, 1, 2, 1, 1)
+
+        self.le_name = QLineEdit(EventDialog)
+        self.le_name.setObjectName(u"le_name")
+
+        self.gridLayout_3.addWidget(self.le_name, 2, 2, 1, 1)
+
+        self.horizontalSpacer_4 = QSpacerItem(5, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_3.addItem(self.horizontalSpacer_4, 2, 1, 1, 1)
+
+
+        self.horizontalLayout_2.addLayout(self.gridLayout_3)
+
+
+        self.gridLayout.addLayout(self.horizontalLayout_2, 0, 1, 1, 1)
+
+        self.horizontalLayout_7 = QHBoxLayout()
+        self.horizontalLayout_7.setSpacing(8)
+        self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
+        self.label_7 = QLabel(EventDialog)
+        self.label_7.setObjectName(u"label_7")
+
+        self.horizontalLayout_7.addWidget(self.label_7)
+
+        self.le_responsible = QLineEdit(EventDialog)
+        self.le_responsible.setObjectName(u"le_responsible")
+        self.le_responsible.setMinimumSize(QSize(200, 0))
+
+        self.horizontalLayout_7.addWidget(self.le_responsible)
+
+        self.horizontalSpacer_9 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_7.addItem(self.horizontalSpacer_9)
+
+
+        self.gridLayout.addLayout(self.horizontalLayout_7, 7, 1, 1, 1)
+
+        self.label_9 = QLabel(EventDialog)
+        self.label_9.setObjectName(u"label_9")
+
+        self.gridLayout.addWidget(self.label_9, 10, 1, 1, 1)
+
+        self.wdg_subcategory = QWidget(EventDialog)
+        self.wdg_subcategory.setObjectName(u"wdg_subcategory")
+        self.horizontalLayout_5 = QHBoxLayout(self.wdg_subcategory)
+        self.horizontalLayout_5.setSpacing(6)
+        self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
+        self.horizontalLayout_5.setContentsMargins(0, 0, 0, 0)
+        self.label_11 = QLabel(self.wdg_subcategory)
+        self.label_11.setObjectName(u"label_11")
+
+        self.horizontalLayout_5.addWidget(self.label_11)
+
+        self.cmb_subcategory = QComboBox(self.wdg_subcategory)
+        self.cmb_subcategory.setObjectName(u"cmb_subcategory")
+        self.cmb_subcategory.setMinimumSize(QSize(300, 0))
+        self.cmb_subcategory.setMaximumSize(QSize(300, 16777215))
+
+        self.horizontalLayout_5.addWidget(self.cmb_subcategory)
+
+        self.horizontalSpacer_11 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_5.addItem(self.horizontalSpacer_11)
+
+
+        self.gridLayout.addWidget(self.wdg_subcategory, 5, 1, 1, 1)
+
+        self.horizontalLayout_8 = QHBoxLayout()
+        self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
+        self.label_5 = QLabel(EventDialog)
+        self.label_5.setObjectName(u"label_5")
+
+        self.horizontalLayout_8.addWidget(self.label_5)
+
+        self.cmb_category = QComboBox(EventDialog)
+        self.cmb_category.setObjectName(u"cmb_category")
+        self.cmb_category.setMinimumSize(QSize(400, 0))
+
+        self.horizontalLayout_8.addWidget(self.cmb_category)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_8.addItem(self.horizontalSpacer_2)
+
+
+        self.gridLayout.addLayout(self.horizontalLayout_8, 4, 1, 1, 1)
+
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.horizontalSpacer_8 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_3.addItem(self.horizontalSpacer_8)
+
+        self.pb_accept = QPushButton(EventDialog)
+        self.pb_accept.setObjectName(u"pb_accept")
+
+        self.horizontalLayout_3.addWidget(self.pb_accept)
+
+        self.pb_cancel = QPushButton(EventDialog)
+        self.pb_cancel.setObjectName(u"pb_cancel")
+
+        self.horizontalLayout_3.addWidget(self.pb_cancel)
+
+
+        self.gridLayout.addLayout(self.horizontalLayout_3, 12, 1, 1, 1)
 
         self.horizontalLayout_6 = QHBoxLayout()
         self.horizontalLayout_6.setSpacing(8)
@@ -87,27 +221,12 @@ class Ui_EventDialog(object):
         self.horizontalLayout_6.addItem(self.horizontalSpacer_10)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout_6, 5, 1, 1, 1)
+        self.gridLayout.addLayout(self.horizontalLayout_6, 6, 1, 1, 1)
 
-        self.horizontalLayout_8 = QHBoxLayout()
-        self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
-        self.label_5 = QLabel(EventDialog)
-        self.label_5.setObjectName(u"label_5")
+        self.label_6 = QLabel(EventDialog)
+        self.label_6.setObjectName(u"label_6")
 
-        self.horizontalLayout_8.addWidget(self.label_5)
-
-        self.cmb_category = QComboBox(EventDialog)
-        self.cmb_category.setObjectName(u"cmb_category")
-        self.cmb_category.setMinimumSize(QSize(400, 0))
-
-        self.horizontalLayout_8.addWidget(self.cmb_category)
-
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_8.addItem(self.horizontalSpacer_2)
-
-
-        self.gridLayout.addLayout(self.horizontalLayout_8, 4, 1, 1, 1)
+        self.gridLayout.addWidget(self.label_6, 8, 1, 1, 1)
 
         self.horizontalLayout_4 = QHBoxLayout()
         self.horizontalLayout_4.setSpacing(10)
@@ -159,105 +278,6 @@ class Ui_EventDialog(object):
 
         self.gridLayout.addLayout(self.horizontalLayout_4, 1, 1, 1, 1)
 
-        self.horizontalLayout_7 = QHBoxLayout()
-        self.horizontalLayout_7.setSpacing(8)
-        self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
-        self.label_7 = QLabel(EventDialog)
-        self.label_7.setObjectName(u"label_7")
-
-        self.horizontalLayout_7.addWidget(self.label_7)
-
-        self.le_responsible = QLineEdit(EventDialog)
-        self.le_responsible.setObjectName(u"le_responsible")
-        self.le_responsible.setMinimumSize(QSize(200, 0))
-
-        self.horizontalLayout_7.addWidget(self.le_responsible)
-
-        self.horizontalSpacer_9 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_7.addItem(self.horizontalSpacer_9)
-
-
-        self.gridLayout.addLayout(self.horizontalLayout_7, 6, 1, 1, 1)
-
-        self.te_descr = CompletingPlainTextEdit(EventDialog)
-        self.te_descr.setObjectName(u"te_descr")
-        self.te_descr.setMinimumSize(QSize(0, 50))
-        self.te_descr.setMaximumSize(QSize(16777215, 50))
-
-        self.gridLayout.addWidget(self.te_descr, 8, 1, 1, 1)
-
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-
-        self.gridLayout.addLayout(self.horizontalLayout, 5, 4, 1, 1)
-
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.gridLayout_3 = QGridLayout()
-        self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.gridLayout_3.setVerticalSpacing(8)
-        self.label = QLabel(EventDialog)
-        self.label.setObjectName(u"label")
-
-        self.gridLayout_3.addWidget(self.label, 1, 0, 1, 1)
-
-        self.label_2 = QLabel(EventDialog)
-        self.label_2.setObjectName(u"label_2")
-
-        self.gridLayout_3.addWidget(self.label_2, 2, 0, 1, 1)
-
-        self.le_receiver = QLineEdit(EventDialog)
-        self.le_receiver.setObjectName(u"le_receiver")
-
-        self.gridLayout_3.addWidget(self.le_receiver, 1, 2, 1, 1)
-
-        self.le_name = QLineEdit(EventDialog)
-        self.le_name.setObjectName(u"le_name")
-
-        self.gridLayout_3.addWidget(self.le_name, 2, 2, 1, 1)
-
-        self.horizontalSpacer_4 = QSpacerItem(5, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout_3.addItem(self.horizontalSpacer_4, 2, 1, 1, 1)
-
-
-        self.horizontalLayout_2.addLayout(self.gridLayout_3)
-
-
-        self.gridLayout.addLayout(self.horizontalLayout_2, 0, 1, 1, 1)
-
-        self.label_9 = QLabel(EventDialog)
-        self.label_9.setObjectName(u"label_9")
-
-        self.gridLayout.addWidget(self.label_9, 9, 1, 1, 1)
-
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.horizontalSpacer_8 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_3.addItem(self.horizontalSpacer_8)
-
-        self.pb_accept = QPushButton(EventDialog)
-        self.pb_accept.setObjectName(u"pb_accept")
-
-        self.horizontalLayout_3.addWidget(self.pb_accept)
-
-        self.pb_cancel = QPushButton(EventDialog)
-        self.pb_cancel.setObjectName(u"pb_cancel")
-
-        self.horizontalLayout_3.addWidget(self.pb_cancel)
-
-
-        self.gridLayout.addLayout(self.horizontalLayout_3, 11, 1, 1, 1)
-
-        self.te_notes = QPlainTextEdit(EventDialog)
-        self.te_notes.setObjectName(u"te_notes")
-        self.te_notes.setMinimumSize(QSize(0, 70))
-        self.te_notes.setMaximumSize(QSize(16777215, 70))
-
-        self.gridLayout.addWidget(self.te_notes, 10, 1, 1, 1)
-
 
         self.gridLayout_2.addLayout(self.gridLayout, 1, 0, 1, 1)
 
@@ -279,19 +299,20 @@ class Ui_EventDialog(object):
 
     def retranslateUi(self, EventDialog):
         EventDialog.setWindowTitle(QCoreApplication.translate("EventDialog", u"\u041d\u043e\u0432\u044b\u0439 \u043f\u043b\u0430\u0442\u0435\u0436", None))
-        self.label_6.setText(QCoreApplication.translate("EventDialog", u"\u041e\u0441\u043d\u043e\u0432\u0430\u043d\u0438\u0435:", None))
+        self.label.setText(QCoreApplication.translate("EventDialog", u"\u041f\u043e\u043b\u0443\u0447\u0430\u0442\u0435\u043b\u044c:", None))
+        self.label_2.setText(QCoreApplication.translate("EventDialog", u"\u041d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u0435:", None))
+        self.label_7.setText(QCoreApplication.translate("EventDialog", u"\u041e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439:", None))
+        self.label_9.setText(QCoreApplication.translate("EventDialog", u"\u0417\u0430\u043c\u0435\u0442\u043a\u0438:", None))
+        self.label_11.setText(QCoreApplication.translate("EventDialog", u"\u041f\u043e\u0434\u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f: ", None))
+        self.label_5.setText(QCoreApplication.translate("EventDialog", u"\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f: ", None))
+        self.pb_accept.setText(QCoreApplication.translate("EventDialog", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c", None))
+        self.pb_cancel.setText(QCoreApplication.translate("EventDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
         self.label_8.setText(QCoreApplication.translate("EventDialog", u"\u0412\u0438\u0434:", None))
         self.rb_typenormal.setText(QCoreApplication.translate("EventDialog", u"\u043f\u043e \u0444\u0430\u043a\u0442\u0443", None))
         self.rb_typeadvance.setText(QCoreApplication.translate("EventDialog", u"\u043f\u0440\u0435\u0434\u043e\u043f\u043b\u0430\u0442\u0430", None))
         self.label_10.setText(QCoreApplication.translate("EventDialog", u"\u041d\u0414\u0421: ", None))
-        self.label_5.setText(QCoreApplication.translate("EventDialog", u"\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f:", None))
+        self.label_6.setText(QCoreApplication.translate("EventDialog", u"\u041e\u0441\u043d\u043e\u0432\u0430\u043d\u0438\u0435:", None))
         self.label_3.setText(QCoreApplication.translate("EventDialog", u"\u0421\u0443\u043c\u043c\u0430:", None))
         self.label_4.setText(QCoreApplication.translate("EventDialog", u"\u0414\u0430\u0442\u0430:", None))
-        self.label_7.setText(QCoreApplication.translate("EventDialog", u"\u041e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439:", None))
-        self.label.setText(QCoreApplication.translate("EventDialog", u"\u041f\u043e\u043b\u0443\u0447\u0430\u0442\u0435\u043b\u044c:", None))
-        self.label_2.setText(QCoreApplication.translate("EventDialog", u"\u041d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u0435:", None))
-        self.label_9.setText(QCoreApplication.translate("EventDialog", u"\u0417\u0430\u043c\u0435\u0442\u043a\u0438:", None))
-        self.pb_accept.setText(QCoreApplication.translate("EventDialog", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c", None))
-        self.pb_cancel.setText(QCoreApplication.translate("EventDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
     # retranslateUi
 

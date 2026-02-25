@@ -1,13 +1,20 @@
-from PySide6 import QtWidgets
-from PySide6 import QtCore, QtGui
+from decimal import Decimal
+
+from PySide6 import QtCore
 from PySide6.QtCore import Qt, QModelIndex
+from PySide6.QtGui import QFont, QColor
+
+from base.date import str_date, date_displstr
+from base.event import EventCategory, EventFinanceSubcategory
+from base.formatting import dec_strcommaspace
 
 
 class TreeItem:
-    def __init__(self, data, parent=None):
+    def __init__(self, data, parent=None, categorie: int = 0):
         self.parentItem = parent
         self.itemData = data
         self.childItems = []
+        self.categorie: int = categorie
 
     def appendChild(self, item):
         self.childItems.append(item)
@@ -38,57 +45,91 @@ class TreeItem:
 
 class FulfillmentModel(QtCore.QAbstractItemModel):
 
+    CATEGORY_MAP = {
+        EventCategory.SALARIES: 31101,
+        EventCategory.TAXES: 31201,
+        EventCategory.CONSUMABLES: 31102,
+        EventCategory.ENERGY: 31202,
+        EventCategory.MARKETING: 31203,
+        EventCategory.OFFICERENT: 31204,
+        EventCategory.ROOMRENT: 31205,
+        EventCategory.EQUIPMENT: 31206,
+        EventCategory.CURRENT: 31207,
+        EventCategory.BUILDINGMAINT: 31208,
+        EventCategory.BANKING: 31209,
+        EventCategory.TELECOM: 31210,
+        EventCategory.TRAINING: 31212,
+        EventCategory.THIRDPARTYSERVICES: 31103,
+        EventCategory.COMMISSION: 31211,
+        EventCategory.MEDEQREPAIR: 31213,
+        EventCategory.TOP_FINANCES * 10 + EventFinanceSubcategory.LOAN: 32101,
+        EventCategory.TOP_FINANCES * 10 + EventFinanceSubcategory.LEASING: 32102,
+        EventCategory.TOP_FINANCES * 10 + EventFinanceSubcategory.INTEREST: 32200,
+        EventCategory.TOP_FINANCES * 10 + EventFinanceSubcategory.FOUNDERLOAN: 32300,
+        EventCategory.TOP_INVESTMENT: 33000,
+    }
+
     FULFILLMENT_STRUCTURE = {
         # 0: список подкатегорий, 1: вертикальный хедер, 2: жирный, 3: считается ли исполнение
-        10000: ([], "1. Остаток средств на начало периода", True, False),
-        20000: ([21000, 22000, 23000], "2. Поступление денежных средств", True, True),
-        21000: ([], "2.1. выручка от реализации услуг", False, True),
-        22000: ([], "2.2. прочие доходы", False, True),
-        23000: ([23100, 23200], "2.3. кредиты и займы", False, True),
-        23100: ([], "2.3.1. овердрафт", False, True),
-        23200: ([], "2.3.2. кредит", False, True),
-        30000: ([31000, 32000], "3. Расходование денежных средств", True, True),
-        31000: ([31100, 31200], "3.1. текущая деятельность", True, True),
-        31100: ([31101, 31102, 31103], "3.1.1. переменные затраты", True, True),
-        31101: ([], "3.1.1.1. заработная плата с налогами", False, True),
-        31102: ([], "3.1.1.2. материалы", False, True),
-        31103: ([], "3.1.1.3. услуги сторонних организаций", False, True),
-        31200: ([31201, 31202, 31203, 31204, 31205, 31206, 31207, 31208, 31209, 31210, 31211, 31212, 31213], "3.1.2. постоянные затраты", True, True),
-        31201: ([], "3.1.2.1. налоги", False, True),
-        31202: ([], "3.1.2.2. энергоносители", False, True),
-        31203: ([], "3.1.2.3. маркетинг", False, True),
-        31204: ([], "3.1.2.4. аренда офиса", False, True),
-        31205: ([], "3.1.2.5. аренда помещений", False, True),
-        31206: ([], "3.1.2.6. IT обслуживание", False, True),
-        31207: ([], "3.1.2.7. обеспечение текущей деятельности", False, True),
-        31208: ([], "3.1.2.8. обслуживание здания", False, True),
-        31209: ([], "3.1.2.9. банковские расходы", False, True),
+        10000: ([], "1.        Остаток средств на начало периода", True, False),
+        20000: ([21000, 22000, 23000], "2.        Поступление денежных средств", True, True),
+        21000: ([], "2.1.      выручка от реализации услуг", False, True),
+        22000: ([], "2.2.      прочие доходы", False, True),
+        23000: ([23100, 23200], "2.3.      кредиты и займы", False, True),
+        23100: ([], "2.3.1.    овердрафт", False, True),
+        23200: ([], "2.3.2.    кредит", False, True),
+        30000: ([31000, 32000], "3.        Расходование денежных средств", True, True),
+        31000: ([31100, 31200], "3.1.      текущая деятельность", True, True),
+        31100: ([31101, 31102, 31103], "3.1.1.    переменные затраты", True, True),
+        31101: ([], "3.1.1.1.  заработная плата с налогами", False, True),
+        31102: ([], "3.1.1.2.  материалы", False, True),
+        31103: ([], "3.1.1.3.  услуги сторонних организаций", False, True),
+        31200: ([31201, 31202, 31203, 31204, 31205, 31206, 31207, 31208, 31209, 31210, 31211, 31212, 31213], "3.1.2.    постоянные затраты", True, True),
+        31201: ([], "3.1.2.1.  налоги", False, True),
+        31202: ([], "3.1.2.2.  энергоносители", False, True),
+        31203: ([], "3.1.2.3.  маркетинг", False, True),
+        31204: ([], "3.1.2.4.  аренда офиса", False, True),
+        31205: ([], "3.1.2.5.  аренда помещений", False, True),
+        31206: ([], "3.1.2.6.  IT обслуживание", False, True),
+        31207: ([], "3.1.2.7.  обеспечение текущей деятельности", False, True),
+        31208: ([], "3.1.2.8.  обслуживание здания", False, True),
+        31209: ([], "3.1.2.9.  банковские расходы", False, True),
         31210: ([], "3.1.2.10. услуги связи", False, True),
         31211: ([], "3.1.2.11. комиссионное вознаграждение", False, True),
         31212: ([], "3.1.2.12. обучение персонала", False, True),
         31213: ([], "3.1.2.13. техническое обслуживание и страхование оборудования", False, True),
-        32000: ([32100, 32200, 32300], "3.2. финансовая деятельность", True, True),
-        32100: ([32101, 32102], "3.2.1. погашение кредитных обязательств", False, True),
-        32101: ([], "3.2.1.1. погашение кредитов", False, True),
-        32102: ([], "3.2.1.2. погашение лизинга", False, True),
-        32200: ([], "3.2.2. погашение процентов по кредитам, займам", False, True),
-        32300: ([], "3.2.3. погашение займов учредителям", False, True),
-        33000: ([], "3.3. инвестиционная деятельность", True, True),
-        40000: ([], "4. Остаток средств на конец периода", True, False),
+        32000: ([32100, 32200, 32300], "3.2.      финансовая деятельность", True, True),
+        32100: ([32101, 32102], "3.2.1.    погашение кредитных обязательств", False, True),
+        32101: ([], "3.2.1.1.  погашение кредитов", False, True),
+        32102: ([], "3.2.1.2.  погашение лизинга", False, True),
+        32200: ([], "3.2.2.    погашение процентов по кредитам, займам", False, True),
+        32300: ([], "3.2.3.    погашение займов учредителям", False, True),
+        33000: ([], "3.3.      инвестиционная деятельность", True, True),
+        40000: ([], "4.        Остаток средств на конец периода", True, False),
     }
 
     spanRole = Qt.ItemDataRole.UserRole + 1
 
-    def __init__(self, data, parent=None):
+    def __init__(self, parent=None):
         super(FulfillmentModel, self).__init__(parent)
-
         self.rootItem = TreeItem(("Виды поступлений и расходов", "План", "Факт", "Отклонение", "Исполнение"))
 
-    def setup_model(self):
-        for data in self.FULFILLMENT_STRUCTURE.values():
-            self.rootItem.appendChild(TreeItem((data[1], ""), self.rootItem))
-        for values in (("Пример 1 --------------------", 346436), ("Пример 2 --------------------------------", 5646)):
-            self.rootItem.child(8).appendChild(TreeItem(values, self.rootItem.child(8)))
+    def setup_model(self, payments: list, inflow_values: list):
+        totals = self.calculate_totals(payments, inflow_values)
+        for categorie, data in self.FULFILLMENT_STRUCTURE.items():
+            self.rootItem.appendChild(TreeItem((data[1], ""), self.rootItem, categorie))
+        for payment in payments:
+            category, amount, textamount, date, receiver, name = (str(payment[0]), Decimal(payment[1]), dec_strcommaspace(Decimal(payment[1])),
+                                                                  date_displstr(str_date(payment[2])), str(payment[3]), str(payment[4]))
+            text = f"{textamount} руб.\t{date}\t{receiver} ({name})"
+            self.rootItem.child(8).appendChild(TreeItem((text,), self.rootItem.child(8)))
+
+    def calculate_factuals(self, payments: list, inflow_values: list):
+        factuals_dict = dict.fromkeys(self.FULFILLMENT_STRUCTURE, 0)
+        factuals_dict[10000], factuals_dict[21000], factuals_dict[22000], factuals_dict[23100], factuals_dict[23200] = inflow_values
+        for payment in payments:
+            pass
+
 
     def columnCount(self, parent):
         if parent.isValid():
@@ -104,19 +145,39 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
             return item.data(index.column())
         elif role == self.spanRole:
             return not index.parent() == QModelIndex()
+        elif role == Qt.ItemDataRole.FontRole:
+            if index.parent() == QModelIndex():
+                if index.column() == 0:
+                    font = QFont()
+                    font.setFamily("Courier New")
+                    font.setBold(self.FULFILLMENT_STRUCTURE[index.internalPointer().categorie][2])
+                    return font
+            else:
+                font = QFont()
+                font.setPointSize(9)
+                return font
+        elif role == Qt.ItemDataRole.BackgroundRole:
+            if index.parent() == QModelIndex():
+                categorie: int = index.internalPointer().categorie
+                subcategories_present = bool(self.FULFILLMENT_STRUCTURE[categorie][0])
+                if categorie % 10000 == 0:
+                    return QColor("#CED4DA")
+                elif categorie % 100 == 0 and subcategories_present:
+                    return QColor("#E9ECEF")
+
         else:
             return None
 
     def flags(self, index):
         if not index.isValid():
             return QtCore.Qt.NoItemFlags
-
         return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 
     def headerData(self, section, orientation, role):
         if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             return self.rootItem.data(section)
-
+        if role == Qt.ItemDataRole.TextAlignmentRole:
+            return Qt.AlignmentFlag.AlignCenter
         return None
 
     def index(self, row, column, parent):

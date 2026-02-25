@@ -24,6 +24,7 @@ from gui.eventproxymodel import EventListProxyModel, Filter, EventListFinalFilte
 from gui.eventmodel import EventTableModel
 from gui.finplandialog import FinPlanDialog
 from gui.fulfillmentdialog import FulfillmentDialog
+from gui.fulfillmentoptiondialog import FulfillmentOptionDialog
 from gui.plot import PaymentHistoryGraph
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
@@ -111,6 +112,9 @@ class MainWindow(QMainWindow):
         self.event_finalfilter_model: EventListFinalFilterModel = EventListFinalFilterModel()
         self.event_finalfilter_model.setSourceModel(self.event_proxy_model)
         self.ui.trw_event.set_eventlistmodel(self.event_finalfilter_model)
+
+        # Временный запрет на инвалидацию моделей в процессе загрузки
+        self.allow_proxymodels_sortfliter(False)
 
         self.payment_model: PaymentHistoryTableModel = PaymentHistoryTableModel()
         self.payment_model.load_payments(payments)
@@ -242,6 +246,9 @@ class MainWindow(QMainWindow):
 
         # Завершение работы
         app.aboutToQuit.connect(self.on_quit_actions)
+
+    def allow_proxymodels_sortfliter(self, allow: bool) -> None:
+        self.event_proxy_model.enable_sortfilter(allow)
 
     def close_loading_dialog(self):
         if self.loading_dialog.isVisible():
@@ -575,7 +582,8 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def open_fulfillment_dialog(self):
-        dlg: FulfillmentDialog = FulfillmentDialog(self)
+        #dlg: FulfillmentDialog = FulfillmentDialog(self)
+        dlg: FulfillmentOptionDialog = FulfillmentOptionDialog(self.db_handler, self)
         dlg.exec()
 
     def delete_event(self) -> bool:

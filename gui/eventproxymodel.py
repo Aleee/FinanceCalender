@@ -6,10 +6,10 @@ from typing import Any
 from PySide6.QtCore import QSortFilterProxyModel, QDate, Qt, QModelIndex
 from PySide6.QtGui import QFont
 
-from base.event import EventField, RowType, EventCategory
+from base.event import EventField, RowType, EventCategory, Event
 from base.formatting import dec_strcommaspace
 from gui.common import model_atlevel
-from gui.eventmodel import EventTableModel, TermRoleFlags, HeaderFooterSubtype, HeaderFooterField
+from gui.eventmodel import EventTableModel, TermRoleFlags, HeaderFooterSubtype, HeaderFooterField, EventHeader, EventFooter, FinalFooter, RowFormatting
 from gui.filterwidget import TermCategory
 
 
@@ -68,10 +68,43 @@ class EventListProxyModel(QSortFilterProxyModel):
             self.footer_filter = condition
         elif filter_type == Filter.PAYTODAY:
             self.paytoday_filter = condition
-        self.invalidate()
+        if self.sortfilter_enabled:
+            self.invalidate()
 
     def filters_active(self) -> bool:
         return self.term_filter != 0 or self.category_filter != 0 or self.receiver_filter != "" or self.responsible_filter != "" or self.paytoday_filter
+
+    def data(self, index, /, role=...):
+        if not index.isValid():
+            return None
+        if role == Qt.ItemDataRole.FontRole:
+            try:
+                entry = self.sourceModel().event_list[self.mapToSource(index).row()]
+            except IndexError:
+                return QSortFilterProxyModel.data(self, index, role)
+            font = QFont()
+            row_formatting: RowFormatting = self.sourceModel().row_formatting
+            if not row_formatting:
+                return QSortFilterProxyModel.data(self, index, role)
+            if isinstance(entry, Event):
+                term_flags = index.siblingAtColumn(EventField.TERMFLAGS).data(EventTableModel.internalValueRole)
+                if TermRoleFlags.DUE in term_flags and self.term_filter != TermCategory.DUE:
+                    font.setBold(self.sourceModel().row_formatting.due_textbold)
+                    return font
+                if TermRoleFlags.TODAY in term_flags and self.term_filter != TermCategory.TODAY:
+                    font.setBold(self.sourceModel().row_formatting.today_textbold)
+                    return font
+            elif isinstance(entry, EventHeader):
+                font.setBold(self.sourceModel().row_formatting.header_textbold)
+                return font
+            elif isinstance(entry, EventFooter):
+                font.setBold(self.sourceModel().row_formatting.footer_textbold)
+                return font
+            elif isinstance(entry, FinalFooter):
+                font.setBold(True)
+                return font
+
+        return QSortFilterProxyModel.data(self, index, role)
 
     def filterAcceptsRow(self, source_row, source_parent):
         if not self.sortfilter_enabled:
@@ -198,8 +231,6 @@ class EventListFinalFilterModel(QSortFilterProxyModel):
         super(EventListFinalFilterModel, self).__init__(parent)
 
         self.setDynamicSortFilter(True)
-
-        self.sortfilter_enabled: bool = True
 
         self.stored_total = dict()
         self.stored_remain = dict()

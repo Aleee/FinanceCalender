@@ -19,7 +19,7 @@ from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.eventproxymodel import EventListFinalFilterModel
 from gui.eventmodel import EventTableModel, HeaderFooterField, HeaderFooterSubtype, RowFormatting
 from gui.settings import SettingsHandler
-from gui.itemdelegate import CustomDelegate
+from gui.eventitemdelegate import EventItemDelegate
 from typing import get_type_hints
 from xlsxwriter import Workbook
 from xlsxwriter.exceptions import FileCreateError
@@ -123,7 +123,7 @@ class XlsWriter:
                                                     "bg_color": f"{row_formatting.footer_section_backcolor}", "border": 1, "border_color": self.BORDER_COLOR})
         f_footer_sub: Format = workbook.add_format({"font_size": 14, "bold": True, "font_color": f"{row_formatting.footer_subsection_forecolor}",
                                                     "bg_color": f"{row_formatting.footer_subsection_backcolor}", "border": 1, "border_color": self.BORDER_COLOR})
-        f_footer_final: Format = workbook.add_format({"font_size": 14, "bold": True, "bg_color": f"{CustomDelegate.FINALFOOTER_BACK_COLOR.name()}",
+        f_footer_final: Format = workbook.add_format({"font_size": 14, "bold": True, "bg_color": f"{EventItemDelegate.FINALFOOTER_BACK_COLOR.name()}",
                                                       "border": 1, "border_color": self.BORDER_COLOR, "top_color": "#000000"})
         ###############
 

@@ -7,7 +7,7 @@ from gui.common import model_atlevel
 from gui.commonwidgets.eventfilter import TooltipFilter
 from gui.eventmodel import EventTableModel
 from gui.eventproxymodel import EventListProxyModel
-from gui.itemdelegate import CustomDelegate
+from gui.eventitemdelegate import EventItemDelegate
 
 
 class EventWidget(QTreeView):
@@ -17,6 +17,7 @@ class EventWidget(QTreeView):
         EventField.TYPE: 0,
         EventField.ID: 0,
         EventField.CATEGORY: 0,
+        EventField.SUBCATEGORY: 0,
         EventField.NAME: 400,
         EventField.REMAINAMOUNT: 100,
         EventField.TOTALAMOUNT: 122,
@@ -33,7 +34,7 @@ class EventWidget(QTreeView):
         EventField.NDS: 0
     }
 
-    COLUMNS_HIDDEN_BYDEFAULT = [EventField.TYPE, EventField.ID, EventField.CATEGORY, EventField.TERMFLAGS, EventField.PERCENTAGE,
+    COLUMNS_HIDDEN_BYDEFAULT = [EventField.TYPE, EventField.ID, EventField.CATEGORY, EventField.SUBCATEGORY, EventField.TERMFLAGS, EventField.PERCENTAGE,
                                 EventField.CREATEDATE, EventField.NOTES, EventField.LASTPAYMENTDATE, EventField.NDS]
 
     def __init__(self, parent=None):
@@ -57,7 +58,7 @@ class EventWidget(QTreeView):
         self.tooltip_eventfilter = TooltipFilter(self)
         self.installEventFilter(self.tooltip_eventfilter)
 
-        self.setItemDelegate(CustomDelegate())
+        self.setItemDelegate(EventItemDelegate())
 
     def set_columns_visibility(self, to_hide: list) -> None:
         columns_to_hide: list = self.COLUMNS_HIDDEN_BYDEFAULT.copy()

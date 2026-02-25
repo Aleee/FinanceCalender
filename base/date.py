@@ -25,11 +25,11 @@ def days_to_month(from_date) -> int:
 
 
 def str_date(string) -> QDate:
-    return QDate.fromString(string, "dd-MM-yyyy")
+    return QDate.fromString(string, "yyyy-MM-dd")
 
 
 def date_str(date) -> str:
-    return date.toString("dd-MM-yyyy")
+    return date.toString("yyyy-MM-dd")
 
 
 def date_purestr(date) -> str:
@@ -40,9 +40,9 @@ def date_displstr(date) -> str:
     return date.toString("dd.MM.yyyy")
 
 
-def str_datetime(datetime) -> QDateTime:
-    return QDateTime.fromString(datetime, "dd-MM-yyyy HH:mm:ss")
+def first_date_of_month(date) -> QDate:
+    return QDate(date.year(), date.month(), 1)
 
 
-def datetime_str(datetime) -> str:
-    return QDateTime.toString(datetime, "dd-MM-yyyy HH:mm:ss")
+def last_date_of_month(date) -> QDate:
+    return QDate(date.year(), date.month(), date.daysInMonth())
