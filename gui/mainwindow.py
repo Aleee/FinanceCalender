@@ -5,6 +5,7 @@ from decimal import Decimal
 from enum import IntEnum, auto
 from pathlib import Path
 from typing import Any
+import traceback
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QTime, QDateTime, QTimer, QCoreApplication
 from PySide6.QtWidgets import QMainWindow, QDialog, QVBoxLayout, QApplication, QLabel, QSizePolicy, QWidget
@@ -265,17 +266,21 @@ class MainWindow(QMainWindow):
         self.ui.act_copy.setDisabled(filtered_out)
         self.ui.act_edit.setDisabled(filtered_out)
         self.ui.act_delete.setDisabled(filtered_out)
-        self.ui.stw_eventinfo.setCurrentIndex(int(filtered_out))
+        if self.get_current_event_index().siblingAtColumn(EventField.TYPE).data(EventTableModel.internalValueRole) != RowType.EVENT:
+            self.ui.stw_eventinfo.setCurrentIndex(1)
+        else:
+            self.ui.stw_eventinfo.setCurrentIndex(int(filtered_out))
 
     def check_payment_selection_visibility(self) -> None:
         filtered_out = is_selection_filteredout(self.payment_proxy_model, self.ui.tv_payment)
         self.ui.pb_deletepayment.setDisabled(filtered_out)
 
     def on_currentevent_change(self, current_index: QModelIndex) -> None:
+        row_type = current_index.siblingAtColumn(EventField.TYPE).data(EventTableModel.internalValueRole)
         self.reset_paymentproxymodel_filter(current_index)
         self.check_payment_selection_visibility()
         self.check_event_selection_visibility()
-        if current_index.siblingAtColumn(EventField.TYPE).data(EventTableModel.internalValueRole) != RowType.EVENT:
+        if row_type != RowType.EVENT:
             for act in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete):
                 act.setEnabled(False)
         self.update_eventinfo()
@@ -539,10 +544,8 @@ class MainWindow(QMainWindow):
 
     def open_settings_dialog(self, reject_possible: bool = True):
         settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, reject_possible, self)
-        # Запомнить состояние информационной панели (при применении настроек становится видимой)
-        eventinfo_index: QModelIndex = self.ui.stw_eventinfo.currentIndex()
         settings_dialog.exec()
-        self.ui.stw_eventinfo.setCurrentIndex(eventinfo_index)
+        self.on_currentevent_change(self.ui.trw_event.currentIndex())
 
     def open_event_dialog(self, edit: bool = False, copy: bool = False):
         curr_index: QModelIndex = self.get_current_event_index()
