@@ -347,7 +347,7 @@ class DBHandler:
     def load_fulfillmentpayments_from_db(self, start_date: QDate, end_date: QDate) -> None | list:
         if not self.open_db_connection():
             return None
-        query = QSqlQuery(f"SELECT E.category, P.sum, P.paymentdate, E.receiver, E.name FROM payment AS P "
+        query = QSqlQuery(f"SELECT E.category, P.sum, P.paymentdate, E.receiver, E.name, E.subcategory FROM payment AS P "
                           f"INNER JOIN event AS E ON P.eventid = E.id "
                           f"WHERE P.paymentdate BETWEEN \'{date_str(start_date)}\' AND \'{date_str(end_date)}\' "
                           f"ORDER BY E.category ASC, CAST(P.sum AS decimal) DESC")
@@ -357,5 +357,19 @@ class DBHandler:
             return None
         values = []
         while query.next():
-            values.append([query.value(0), query.value(1), query.value(2), query.value(3), query.value(4)])
+            values.append([query.value(0), query.value(1), query.value(2), query.value(3), query.value(4), query.value(5)])
         return values
+
+    def load_fulfillmentplanvalues_from_db(self, year: int, start_month: int, end_month: int) -> None | dict:
+        if not self.open_db_connection():
+            return None
+        query = QSqlQuery(f"SELECT category, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12 FROM finplan WHERE year = {year}")
+        if not query.exec():
+            log.w(f"Ошибка SQL при попытке получить данные из таблицы finplan: {query.lastError().text()}")
+            QSqlDatabase.database().close()
+            return None
+        values = {}
+        while query.next():
+            category = int(query.value(0))
+            values[category] = sum([query.value(n) for n in range(start_month, end_month + 1)])
+        return values if values else None

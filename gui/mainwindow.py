@@ -462,7 +462,7 @@ class MainWindow(QMainWindow):
         amount: Decimal = Decimal(str(self.ui.dsb_paymentsum.value()))
         if amount == 0:
             return False
-        if amount > self.data_from_current_event(EventField.REMAINAMOUNT):
+        if (amount - self.data_from_current_event(EventField.REMAINAMOUNT)) > 0.01:
             msg_box = YesNoMessagebox(f"Сумма оплаты ({dec_strcommaspace(amount)}) превышает остаток задолженности ({dec_strcommaspace(
                 self.data_from_current_event(EventField.REMAINAMOUNT))}). Уверены, что хотите продолжить?")
             if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:
@@ -488,11 +488,10 @@ class MainWindow(QMainWindow):
             else:
                 today_share: Decimal = old_today_amount
             self.set_data_to_current_event(EventField.TODAYSHARE, today_share)
-            self.update_eventinfo()
+            self.set_data_to_current_event(EventField.LASTPAYMENTDATE, self.payment_proxy_model.get_last_paymentdate(date))
             old_term_flags: TermRoleFlags = self.data_from_current_event(EventField.TERMFLAGS)
             new_term_flags: TermRoleFlags = term_filter_flags(new_remain, self.data_from_current_event(EventField.DUEDATE), bool(today_share))
             self.set_data_to_current_event(EventField.TERMFLAGS, new_term_flags)
-            self.set_data_to_current_event(EventField.LASTPAYMENTDATE, self.payment_proxy_model.get_last_paymentdate(date))
             if old_term_flags != new_term_flags:
                 self.event_model.recalculate_stats()
             self.update_eventinfo()

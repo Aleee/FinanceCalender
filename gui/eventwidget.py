@@ -7,7 +7,7 @@ from gui.common import model_atlevel
 from gui.commonwidgets.eventfilter import TooltipFilter
 from gui.eventmodel import EventTableModel
 from gui.eventproxymodel import EventListProxyModel
-from gui.eventitemdelegate import EventItemDelegate
+from gui.commonwidgets.itemdelegate import EventItemDelegate
 
 
 class EventWidget(QTreeView):

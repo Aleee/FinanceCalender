@@ -66,7 +66,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QDateEdit" name="de_customperiod_begin">
+          <widget class="FirstDayDateEdit" name="de_customperiod_begin">
            <property name="calendarPopup">
             <bool>true</bool>
            </property>
@@ -273,26 +273,20 @@
           <widget class="QComboBox" name="cmb_severalmonths_begin"/>
          </item>
          <item>
-          <widget class="QSpinBox" name="spb_severalmonths_year_begin">
-           <property name="minimumSize">
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Policy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
             <size>
              <width>70</width>
-             <height>0</height>
+             <height>20</height>
             </size>
            </property>
-           <property name="maximumSize">
-            <size>
-             <width>70</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <property name="minimum">
-            <number>2026</number>
-           </property>
-           <property name="maximum">
-            <number>2099</number>
-           </property>
-          </widget>
+          </spacer>
          </item>
         </layout>
        </item>
@@ -528,6 +522,11 @@
    <class>AutoSelectSpinbox</class>
    <extends>QSpinBox</extends>
    <header>gui/commonwidgets/autoselectwidgets.h</header>
+  </customwidget>
+  <customwidget>
+   <class>FirstDayDateEdit</class>
+   <extends>QDateEdit</extends>
+   <header>gui/commonwidgets/firstdaydateedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

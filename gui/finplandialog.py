@@ -65,7 +65,6 @@ class FinPlanDialog(QDialog):
             j = 0
             for cell_text in row_text.split("\t"):
                 index = self.ui.tv_finplan.model().index(start_index.row() + i, start_index.column() + j)
-                print(index, cell_text)
                 QApplication.clipboard().setText(cell_text)
                 if index.isValid() and index.data(self.model.EditableRole):
                     self.ui.tv_finplan.model().setData(index, cell_text, Qt.ItemDataRole.EditRole)

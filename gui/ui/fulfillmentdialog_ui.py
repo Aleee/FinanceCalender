@@ -24,7 +24,7 @@ class Ui_FulfillmentDialog(object):
     def setupUi(self, FulfillmentDialog):
         if not FulfillmentDialog.objectName():
             FulfillmentDialog.setObjectName(u"FulfillmentDialog")
-        FulfillmentDialog.resize(545, 394)
+        FulfillmentDialog.resize(1040, 638)
         self.gridLayout = QGridLayout(FulfillmentDialog)
         self.gridLayout.setObjectName(u"gridLayout")
         self.tv_fulfillment = FulfillmentWidget(FulfillmentDialog)

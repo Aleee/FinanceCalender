@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QComboBox, QDateE
     QSpacerItem, QSpinBox, QStackedWidget, QWidget)
 
 from gui.commonwidgets.autoselectwidgets import AutoSelectSpinbox
+from gui.commonwidgets.firstdaydateedit import FirstDayDateEdit
 
 class Ui_FulfillmentOptionDialog(object):
     def setupUi(self, FulfillmentOptionDialog):
@@ -60,7 +61,7 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.horizontalLayout.addWidget(self.label)
 
-        self.de_customperiod_begin = QDateEdit(self.page)
+        self.de_customperiod_begin = FirstDayDateEdit(self.page)
         self.de_customperiod_begin.setObjectName(u"de_customperiod_begin")
         self.de_customperiod_begin.setCalendarPopup(True)
 
@@ -160,14 +161,9 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.horizontalLayout_3.addWidget(self.cmb_severalmonths_begin)
 
-        self.spb_severalmonths_year_begin = QSpinBox(self.page)
-        self.spb_severalmonths_year_begin.setObjectName(u"spb_severalmonths_year_begin")
-        self.spb_severalmonths_year_begin.setMinimumSize(QSize(70, 0))
-        self.spb_severalmonths_year_begin.setMaximumSize(QSize(70, 16777215))
-        self.spb_severalmonths_year_begin.setMinimum(2026)
-        self.spb_severalmonths_year_begin.setMaximum(2099)
+        self.horizontalSpacer = QSpacerItem(70, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_3.addWidget(self.spb_severalmonths_year_begin)
+        self.horizontalLayout_3.addItem(self.horizontalSpacer)
 
 
         self.gridLayout_2.addLayout(self.horizontalLayout_3, 3, 0, 1, 1)

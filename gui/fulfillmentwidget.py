@@ -1,13 +1,13 @@
 from PySide6.QtCore import QModelIndex
-from PySide6.QtWidgets import QTreeView, QAbstractItemView
+from PySide6.QtWidgets import QTreeView, QAbstractItemView, QStyledItemDelegate
 
-from gui.commonwidgets.nohighlightdelegate import NoHighlightItemDelegate
+from gui.commonwidgets.itemdelegate import FulfillmentItemDelegate
 from gui.fulfillmentmodel import FulfillmentModel
 
 
 class FulfillmentWidget(QTreeView):
 
-    COL_WIDTH = [500, 100, 100, 80, 80]
+    COL_WIDTH = [80, 450, 110, 110, 110, 100]
 
     def __init__(self, parent=None):
         super(FulfillmentWidget, self).__init__(parent)
@@ -16,10 +16,11 @@ class FulfillmentWidget(QTreeView):
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 
-        no_highlight_delegate = NoHighlightItemDelegate()
-        self.setItemDelegate(no_highlight_delegate)
         self.setStyleSheet("QTreeView {show-decoration-selected: 0}")
+        item_delegate: QStyledItemDelegate = FulfillmentItemDelegate()
+        self.setItemDelegate(item_delegate)
 
+        self.clicked.connect(self.on_item_click)
 
     def setup_rows(self):
         self.expandAll()
@@ -35,3 +36,10 @@ class FulfillmentWidget(QTreeView):
     def setup_columns(self):
         for col in range(self.model().rootItem.columnCount()):
             self.setColumnWidth(col, self.COL_WIDTH[col])
+
+    def on_item_click(self, index):
+        if index.isValid():
+            if self.isExpanded(index.siblingAtColumn(0)):
+                self.collapse(index.siblingAtColumn(0))
+            else:
+                self.expand(index.siblingAtColumn(0))

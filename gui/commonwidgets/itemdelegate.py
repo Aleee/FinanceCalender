@@ -7,6 +7,7 @@ from base.event import EventField, RowType, TermRoleFlags
 from gui.eventmodel import EventTableModel, HeaderFooterSubtype, HeaderFooterField, RowFormatting
 from gui.common import model_atlevel
 from gui.filterwidget import TermCategory
+from gui.fulfillmentmodel import FulfillmentModel
 
 
 class EventItemDelegate(QStyledItemDelegate):
@@ -119,4 +120,32 @@ class EventItemDelegate(QStyledItemDelegate):
                 pen.setWidth(self.BORDER_WIDTH)
                 painter.setPen(pen)
                 painter.drawLine(option.rect.topRight(), option.rect.topLeft())
+        painter.restore()
+
+
+class FulfillmentItemDelegate(QStyledItemDelegate):
+
+    def __init__(self, parent=None):
+        super(FulfillmentItemDelegate, self).__init__(parent)
+
+    def initStyleOption(self, option, index, /):
+        super(FulfillmentItemDelegate, self).initStyleOption(option, index)
+
+        if option.state & QStyle.StateFlag.State_Selected:
+            option.state &= ~QStyle.StateFlag.State_Selected
+        if option.state & QStyle.StateFlag.State_HasFocus:
+            option.state &= ~QStyle.StateFlag.State_HasFocus
+
+    def paint(self, painter, option, index):
+        super(FulfillmentItemDelegate, self).initStyleOption(option, index)
+        super().paint(painter, option, index)
+
+        painter.save()
+        painter.setClipRect(option.rect)
+        pen: QPen = QPen(QColor("#b0b5e8"), 1)
+        painter.setPen(pen)
+        if (index.siblingAtColumn(0).data(FulfillmentModel.spanRole) and not index.sibling(index.row() + 1, 0).data(FulfillmentModel.spanRole)
+                or not index.siblingAtColumn(0).data(FulfillmentModel.spanRole)):
+            painter.drawLine(option.rect.bottomLeft(), option.rect.bottomRight())
+        painter.drawLine(option.rect.topRight(), option.rect.bottomRight())
         painter.restore()

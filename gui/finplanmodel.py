@@ -3,6 +3,8 @@ from typing import Any
 from PySide6.QtCore import QAbstractTableModel, Qt, QModelIndex
 from PySide6.QtGui import QFont, QColor
 
+from base.formatting import int_strspace
+
 
 class FinPlanTableModel(QAbstractTableModel):
 
@@ -15,7 +17,7 @@ class FinPlanTableModel(QAbstractTableModel):
         23000: ([23100, 23200], "2.3.", "кредиты и займы", False, True),
         23100: ([], "2.3.1.", "овердрафт", False, True),
         23200: ([], "2.3.2.", "кредит", False, True),
-        30000: ([31000, 32000], "3.", "Расходование денежных средств", True, True),
+        30000: ([31000, 32000, 33000], "3.", "Расходование денежных средств", True, True),
         31000: ([31100, 31200], "3.1.", "текущая деятельность", True, True),
         31100: ([31101, 31102, 31103], "3.1.1.", "переменные затраты", True, True),
         31101: ([], "3.1.1.1.", "заработная плата с налогами", False, True),
@@ -84,6 +86,10 @@ class FinPlanTableModel(QAbstractTableModel):
             else:
                 value = self.values[self.categories[index.row()]][index.column() - 1]
                 return value if value else ""
+        elif role == Qt.ItemDataRole.TextAlignmentRole:
+            if index.column() == 0:
+                return Qt.AlignmentFlag.AlignLeft
+            return Qt.AlignmentFlag.AlignRight
         elif role == Qt.ItemDataRole.FontRole:
             font: QFont = QFont()
             font.setBold(self.FINPLAN_STRUCTURE[self.categories[index.row()]][3])

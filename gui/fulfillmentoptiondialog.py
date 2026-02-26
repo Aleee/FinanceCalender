@@ -32,7 +32,7 @@ class FulfillmentOptionDialog(QDialog):
 
         self.widgets_by_group = {
             1: (self.ui.cmb_onemonth, self.ui.spb_onemonth_year),
-            2: (self.ui.cmb_severalmonths_end, self.ui.cmb_severalmonths_begin, self.ui.spb_severalmonths_year_end, self.ui.spb_severalmonths_year_begin),
+            2: (self.ui.cmb_severalmonths_end, self.ui.cmb_severalmonths_begin, self.ui.spb_severalmonths_year_end),
             3: (self.ui.label, self.ui.label_2, self.ui.de_customperiod_end, self.ui.de_customperiod_begin),
         }
 
@@ -42,7 +42,7 @@ class FulfillmentOptionDialog(QDialog):
                 cmb.addItem(name, index + 1)
         current_date: QDate = QDate.currentDate()
         self.ui.cmb_onemonth.setCurrentText(self.MONTHS[current_date.month() - 1])
-        for spb in (self.ui.spb_onemonth_year, self.ui.spb_severalmonths_year_begin, self.ui.spb_severalmonths_year_end):
+        for spb in (self.ui.spb_onemonth_year, self.ui.spb_severalmonths_year_end):
             spb.setValue(current_date.year())
         for quart in self.QUARTALS:
             if current_date.month() in quart:
@@ -51,9 +51,11 @@ class FulfillmentOptionDialog(QDialog):
         self.ui.de_customperiod_begin.setDate(first_date_of_month(current_date))
         self.ui.de_customperiod_end.setDate(current_date)
 
+
         # Косметика
         self.layout().setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetFixedSize)
         self.ui.rb_onemonth.click()
+
 
     def change_enablestate(self, checked_id: int):
         for group_id, widgets in self.widgets_by_group.items():
@@ -67,11 +69,15 @@ class FulfillmentOptionDialog(QDialog):
                 msg_box = ErrorInfoMessageBox("Дата начала превышает дату окончания периода")
                 msg_box.exec()
                 return
+            if begin_date.year() != end_date.year():
+                msg_box = ErrorInfoMessageBox("Начало и конец периода должны быть в пределах одного года")
+                msg_box.exec()
+                return
             self.load_inflow(begin_date, end_date)
             self.ui.stackedWidget.setCurrentIndex(1)
         else:
             self.save_inflow(begin_date, end_date)
-            dlg: FulfillmentDialog = FulfillmentDialog(self.db_handler, begin_date, end_date, self.get_inflow_data(), self)
+            dlg: FulfillmentDialog = FulfillmentDialog(self.db_handler, begin_date, end_date, self.get_inflow_data(), self.load_plan(begin_date, end_date), self)
             dlg.exec()
             self.accept()
 
@@ -97,7 +103,7 @@ class FulfillmentOptionDialog(QDialog):
             begin_date: QDate = QDate(self.ui.spb_onemonth_year.value(), self.ui.cmb_onemonth.currentData(), 1)
             end_date: QDate = QDate(begin_date.year(), begin_date.month(), begin_date.daysInMonth())
         elif self.rb_group.checkedId() == 2:
-            begin_date: QDate = QDate(self.ui.spb_severalmonths_year_begin.value(), self.ui.cmb_severalmonths_begin.currentData(), 1)
+            begin_date: QDate = QDate(self.ui.spb_severalmonths_year_end.value(), self.ui.cmb_severalmonths_begin.currentData(), 1)
             end_temp_date: QDate = QDate(self.ui.spb_severalmonths_year_end.value(), self.ui.cmb_severalmonths_end.currentData(), 1)
             end_date: QDate = last_date_of_month(end_temp_date)
         elif self.rb_group.checkedId() == 3:
@@ -106,7 +112,5 @@ class FulfillmentOptionDialog(QDialog):
             raise IndexError
         return begin_date, end_date
 
-
-
-
-
+    def load_plan(self, begin_date: QDate, end_date: QDate):
+        return self.db_handler.load_fulfillmentplanvalues_from_db(begin_date.year(), begin_date.month(), end_date.month())

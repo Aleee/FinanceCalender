@@ -19,7 +19,7 @@ from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.eventproxymodel import EventListFinalFilterModel
 from gui.eventmodel import EventTableModel, HeaderFooterField, HeaderFooterSubtype, RowFormatting
 from gui.settings import SettingsHandler
-from gui.eventitemdelegate import EventItemDelegate
+from gui.commonwidgets.itemdelegate import EventItemDelegate
 from typing import get_type_hints
 from xlsxwriter import Workbook
 from xlsxwriter.exceptions import FileCreateError
