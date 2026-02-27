@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QModelIndex
@@ -129,35 +129,87 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
 
     def __init__(self, parent=None):
         super(FulfillmentModel, self).__init__(parent)
-        self.rootItem = TreeItem(("#", "Виды поступлений и расходов", "План", "Факт", "Отклонение", "Исполнение"))
+        self.rootItem = None
+        self.fulfillment_mode: bool = True
         self.categories = list(self.FULFILLMENT_STRUCTURE.keys())
+        self.payments_categories = list(key for key in self.FULFILLMENT_STRUCTURE.keys() if key // 10000 == 3)
         self.plt = Palette()
 
-    def setup_model(self, payments: list, inflow_values: list, plan_values: dict):
-        # Заполнение заголовочных строк
-        factuals: dict = self.calculate_factuals(payments, inflow_values)
-        for categorie, data in self.FULFILLMENT_STRUCTURE.items():
-            try:
-                plan_value = plan_values[categorie]
-            except KeyError, AttributeError:
-                plan_value = None
-            if plan_value is not None:
-                deviation = factuals[categorie] - plan_value
-                if plan_value != 0:
-                    fulfillment = factuals[categorie] / plan_value
+    def setup_model(self, is_fulfillment: bool, payments: list, inflow_values: list, plan_values: dict):
+        if is_fulfillment:
+            self.rootItem = TreeItem(("#", "Виды поступлений и расходов", "План", "Факт", "Отклонение", "Исполнение"))
+        else:
+            self.rootItem = TreeItem(("#", "Виды поступлений и расходов", "Сумма", "Сумма без НДС"))
+        self.fulfillment_mode = is_fulfillment
+        if is_fulfillment:
+            # Заполнение заголовочных строк
+            factuals: dict = self.calculate_factuals(payments, inflow_values)
+            for categorie, data in self.FULFILLMENT_STRUCTURE.items():
+                try:
+                    plan_value = plan_values[categorie]
+                except KeyError, AttributeError:
+                    plan_value = None
+                if plan_value is not None:
+                    deviation = factuals[categorie] - plan_value
+                    if plan_value != 0:
+                        fulfillment = factuals[categorie] / plan_value
+                    else:
+                        fulfillment = -1
                 else:
-                    fulfillment = -1
-            else:
-                deviation = ""
-                fulfillment = ""
-            self.rootItem.appendChild(TreeItem((data[1], data[2], plan_value, factuals[categorie], deviation, fulfillment), self.rootItem, categorie))
-        # Заполнение платежей
+                    deviation = ""
+                    fulfillment = ""
+                self.rootItem.appendChild(TreeItem((data[1], data[2], plan_value, factuals[categorie], deviation, fulfillment), self.rootItem, categorie))
+            # Заполнение платежей
+            for payment in payments:
+                category, amount, textamount, date, receiver, name, subcategory = (int(payment[0]), Decimal(payment[1]), dec_strcommaspace(Decimal(payment[1])),
+                                                                                   date_displstr(str_date(payment[2])), str(payment[3]), str(payment[4]), int(payment[5]))
+                text = f"{textamount} р.\t{date}\t{receiver}  ({name})"
+                mapped_category: int = self.CATEGORY_MAP[category] if category != EventCategory.TOP_FINANCES else self.CATEGORY_MAP[category*10+subcategory]
+                self.rootItem.child(self.categories.index(mapped_category)).appendChild(TreeItem((text,), self.rootItem.child(self.categories.index(mapped_category))))
+        else:
+            factuals, ndsfree = self.calculate_ndsfree(payments)
+            for categorie, data in self.FULFILLMENT_STRUCTURE.items():
+                if categorie // 10000 != 3:
+                    continue
+                self.rootItem.appendChild(TreeItem((data[1], data[2], factuals[categorie], ndsfree[categorie]), self.rootItem, categorie))
+            for payment in payments:
+                category, amount, textamount, date, receiver, name, subcategory, nds = (int(payment[0]), Decimal(str(payment[1])),
+                                                                                        dec_strcommaspace(Decimal(str(payment[1]))), date_displstr(str_date(payment[2])),
+                                                                                        str(payment[3]), str(payment[4]), int(payment[5]), int(payment[6]))
+                mapped_category: int = self.CATEGORY_MAP[category] if category != EventCategory.TOP_FINANCES else self.CATEGORY_MAP[category * 10 + subcategory]
+                if mapped_category // 10000 != 3:
+                    continue
+                ndsfree = self.nds_free_value(amount, nds)
+                ndsfree_text = dec_strcommaspace(ndsfree)
+                text = f"{textamount} р. (НДС {str(nds)}%)\t {ndsfree_text} р.\t{date}\t{receiver}  ({name})"
+                self.rootItem.child(self.payments_categories.index(mapped_category)).appendChild(TreeItem((text,), self.rootItem.child(self.payments_categories.index(mapped_category))))
+
+    def calculate_ndsfree(self, payments: list) -> tuple[dict, dict]:
+        factuals_dict = dict.fromkeys(self.FULFILLMENT_STRUCTURE, 0)
+        ndsfree_dict = dict.fromkeys(self.FULFILLMENT_STRUCTURE, 0)
         for payment in payments:
-            category, amount, textamount, date, receiver, name, subcategory = (int(payment[0]), Decimal(payment[1]), dec_strcommaspace(Decimal(payment[1])),
-                                                                               date_displstr(str_date(payment[2])), str(payment[3]), str(payment[4]), int(payment[5]))
-            text = f"{textamount} р.\t{date}\t{receiver}  ({name})"
-            mapped_category: int = self.CATEGORY_MAP[category] if category != EventCategory.TOP_FINANCES else self.CATEGORY_MAP[category*10+subcategory]
-            self.rootItem.child(self.categories.index(mapped_category)).appendChild(TreeItem((text,), self.rootItem.child(self.categories.index(mapped_category))))
+            category, subcategory, amount, nds = int(payment[0]), int(payment[5]), Decimal(payment[1]), int(payment[6])
+            mapped_category: int = self.CATEGORY_MAP[category] if category != EventCategory.TOP_FINANCES else self.CATEGORY_MAP[category * 10 + subcategory]
+            factuals_dict[mapped_category] += amount
+            ndsfree_amount = self.nds_free_value(amount, nds)
+            ndsfree_dict[mapped_category] += ndsfree_amount
+        for skey, svalue in reversed(list(self.FULFILLMENT_STRUCTURE.items())):
+            if svalue[0]:
+                running_total = 0
+                for key, value in factuals_dict.items():
+                    if key in svalue[0]:
+                        running_total += value
+                factuals_dict[skey] = running_total
+                running_total = 0
+                for key, value in ndsfree_dict.items():
+                    if key in svalue[0]:
+                        running_total += value
+                ndsfree_dict[skey] = running_total
+        return factuals_dict, ndsfree_dict
+
+    @staticmethod
+    def nds_free_value(total_value: Decimal, nds: int):
+        return Decimal(total_value / (1+Decimal(str(nds/100)))).quantize(Decimal('0.01'), ROUND_HALF_UP)
 
     def calculate_factuals(self, payments: list, inflow_values: list) -> dict:
         factuals_dict = dict.fromkeys(self.FULFILLMENT_STRUCTURE, 0)
@@ -195,7 +247,10 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
                 elif not item.data(index.column()):
                     return "0"
                 else:
-                    return int_strspace(item.data(index.column()))
+                    if self.fulfillment_mode:
+                        return int_strspace(item.data(index.column()))
+                    else:
+                        return dec_strcommaspace(item.data(index.column()))
             elif index.column() == 5:
                 if not item.data(index.column()):
                     return ""
@@ -229,29 +284,29 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
                 categorie: int = index.internalPointer().categorie
                 subcategories_present = bool(self.FULFILLMENT_STRUCTURE[categorie][0])
                 if categorie % 10000 == 0:
-                    if index.internalPointer().itemData[5] <= 1:
+                    if not self.fulfillment_mode or index.internalPointer().itemData[5] <= 1.05:
                         return self.plt.high
-                    elif 1 < index.internalPointer().itemData[5] < 1.2:
+                    elif index.internalPointer().itemData[5] < 1.2:
                         return self.plt.high1
-                    elif 1 < index.internalPointer().itemData[5] < 1.4:
+                    elif index.internalPointer().itemData[5] < 1.4:
                         return self.plt.high2
                     else:
                         return self.plt.high3
                 elif (categorie % 100 == 0 and subcategories_present) or categorie == self.CATEGORY_MAP[EventCategory.TOP_INVESTMENT]:
-                    if index.internalPointer().itemData[5] <= 1:
+                    if not self.fulfillment_mode or index.internalPointer().itemData[5] <= 1.05:
                         return self.plt.mid
-                    elif 1 < index.internalPointer().itemData[5] < 1.2:
+                    elif index.internalPointer().itemData[5] < 1.2:
                         return self.plt.mid1
-                    elif 1 < index.internalPointer().itemData[5] < 1.4:
+                    elif index.internalPointer().itemData[5] < 1.4:
                         return self.plt.mid2
                     else:
                         return self.plt.mid3
                 else:
-                    if index.internalPointer().itemData[5] <= 1:
+                    if not self.fulfillment_mode or index.internalPointer().itemData[5] <= 1.05:
                         return self.plt.base
-                    elif 1 < index.internalPointer().itemData[5] < 1.2:
+                    elif index.internalPointer().itemData[5] < 1.2:
                         return self.plt.base1
-                    elif 1 < index.internalPointer().itemData[5] < 1.4:
+                    elif index.internalPointer().itemData[5] < 1.4:
                         return self.plt.base2
                     else:
                         return self.plt.base3

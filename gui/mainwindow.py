@@ -378,7 +378,7 @@ class MainWindow(QMainWindow):
         is_paid: bool = TermRoleFlags.PAID in self.get_current_event_index().siblingAtColumn(EventField.TERMFLAGS).data(EventTableModel.internalValueRole)
         fully_paid_today: bool = (self.get_current_event_index().siblingAtColumn(EventField.TOTALAMOUNT).data(EventTableModel.internalValueRole) ==
                                   self.get_current_event_index().siblingAtColumn(EventField.TODAYSHARE).data(EventTableModel.internalValueRole))
-        if (is_paid or fully_paid_today) and payments_count < 2 or not is_paid and payments_count == 0:
+        if ((is_paid or fully_paid_today) and payments_count < 2) or (not is_paid and payments_count == 0):
             self.plot_available = False
             self.update_plot_area()
             return

@@ -166,13 +166,13 @@ class EventDialog(QDialog):
             data.append(self.ui.cmb_category.currentData())
             data.append(self.ui.cmb_subcategory.currentData() if self.ui.cmb_category.currentData() == EventCategory.TOP_FINANCES else 0)
             data.append(self.ui.le_name.text())
+            total_amount = Decimal(str(self.ui.dsb_totalamount.value()))
             # Остаток задолженности
             if not self.edit_mode:
-                remain_amount: Decimal = Decimal(self.ui.dsb_totalamount.value())
+                remain_amount: Decimal = total_amount
             else:
-                remain_amount: Decimal = Decimal(self.ui.dsb_totalamount.value()) - self.non_editable_values["paidamount"]
+                remain_amount: Decimal = total_amount - self.non_editable_values["paidamount"]
             data.append(remain_amount)
-            total_amount = Decimal(self.ui.dsb_totalamount.value())
             data.append(total_amount)
             data.append(float(total_amount - remain_amount) / self.ui.dsb_totalamount.value())
             data.append(self.ui.de_duedate.date())

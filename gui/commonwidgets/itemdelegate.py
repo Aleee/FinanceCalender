@@ -30,12 +30,12 @@ class EventItemDelegate(QStyledItemDelegate):
         if index.siblingAtColumn(EventField.TYPE).data(EventTableModel.internalValueRole) == RowType.EVENT:
             option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Highlight, (QColor("#CDE8FF")))
             term_flags: TermRoleFlags = index.siblingAtColumn(EventField.TERMFLAGS).data(EventTableModel.internalValueRole)
-            if TermRoleFlags.DUE in term_flags and model_atlevel(-1, index).term_filter != TermCategory.DUE:
+            if TermRoleFlags.DUE in term_flags and model_atlevel(-1, index).term_filter != TermCategory.DUE and not model_atlevel(-1, index).paytoday_filter:
                 option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
                                         QColor(row_formatting.due_forecolor))
                 option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.HighlightedText,
                                         QColor(row_formatting.due_forecolor))
-            elif TermRoleFlags.TODAY in term_flags and model_atlevel(-1, index).term_filter != TermCategory.TODAY:
+            elif TermRoleFlags.TODAY in term_flags and model_atlevel(-1, index).term_filter != TermCategory.TODAY and not model_atlevel(-1, index).paytoday_filter:
                 option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
                                         QColor(row_formatting.today_forecolor))
                 option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.HighlightedText,
@@ -71,10 +71,10 @@ class EventItemDelegate(QStyledItemDelegate):
             due_backcolor_setting: QColor = QColor(row_formatting.due_backcolor)
             today_backcolor_setting: QColor = QColor(row_formatting.today_backcolor)
             vertical_grid_color: QColor = self.VERTICAL_GRID_COLOR
-            if due_backcolor_setting != QtGui.QColorConstants.White and TermRoleFlags.DUE in term_flags and model_atlevel(-1, index).term_filter != TermCategory.DUE:
+            if due_backcolor_setting != QtGui.QColorConstants.White and TermRoleFlags.DUE in term_flags and model_atlevel(-1, index).term_filter != TermCategory.DUE and not model_atlevel(-1, index).paytoday_filter:
                 option.backgroundBrush = QBrush(QColor(row_formatting.due_backcolor))
                 vertical_grid_color = QColor(row_formatting.due_backcolor).darker(self.DARKER_RATIO)
-            elif today_backcolor_setting != QtGui.QColorConstants.White and TermRoleFlags.TODAY in term_flags and model_atlevel(-1, index).term_filter != TermCategory.TODAY:
+            elif today_backcolor_setting != QtGui.QColorConstants.White and TermRoleFlags.TODAY in term_flags and model_atlevel(-1, index).term_filter != TermCategory.TODAY and not model_atlevel(-1, index).paytoday_filter:
                 option.backgroundBrush = QBrush(QColor(row_formatting.today_backcolor))
                 vertical_grid_color: QColor = QColor(row_formatting.today_backcolor).darker(self.DARKER_RATIO)
             else:

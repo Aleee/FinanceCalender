@@ -1,5 +1,5 @@
 from PySide6.QtCore import QObject, QEvent, Qt, Signal, QPoint, QModelIndex, QRect
-from PySide6.QtWidgets import QApplication, QAbstractItemView, QToolTip
+from PySide6.QtWidgets import QAbstractItemView, QToolTip
 
 
 class RightClickFilter(QObject):
@@ -26,7 +26,7 @@ class TooltipFilter(QObject):
             if not index.isValid():
                 return False
             value = index.data(Qt.ItemDataRole.DisplayRole)
-            value_width: int = self.view.fontMetrics().boundingRect(value).width()
+            value_width: int = self.view.fontMetrics().boundingRect(str(value)).width()
             rect: QRect = self.view.visualRect(index)
             rect_width: int = rect.width()
             if value_width > rect_width - 10:

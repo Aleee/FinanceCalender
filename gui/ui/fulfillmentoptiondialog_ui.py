@@ -27,7 +27,7 @@ class Ui_FulfillmentOptionDialog(object):
     def setupUi(self, FulfillmentOptionDialog):
         if not FulfillmentOptionDialog.objectName():
             FulfillmentOptionDialog.setObjectName(u"FulfillmentOptionDialog")
-        FulfillmentOptionDialog.resize(348, 257)
+        FulfillmentOptionDialog.resize(342, 318)
         self.gridLayout = QGridLayout(FulfillmentOptionDialog)
         self.gridLayout.setObjectName(u"gridLayout")
         self.gridLayout.setContentsMargins(-1, 3, -1, -1)
@@ -42,44 +42,9 @@ class Ui_FulfillmentOptionDialog(object):
         self.page.setObjectName(u"page")
         self.gridLayout_2 = QGridLayout(self.page)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.rb_customperiod = QRadioButton(self.page)
-        self.rb_customperiod.setObjectName(u"rb_customperiod")
-        font = QFont()
-        font.setBold(False)
-        self.rb_customperiod.setFont(font)
+        self.verticalSpacer_2 = QSpacerItem(20, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        self.horizontalLayout.addWidget(self.rb_customperiod)
-
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout.addItem(self.horizontalSpacer_2)
-
-        self.label = QLabel(self.page)
-        self.label.setObjectName(u"label")
-
-        self.horizontalLayout.addWidget(self.label)
-
-        self.de_customperiod_begin = FirstDayDateEdit(self.page)
-        self.de_customperiod_begin.setObjectName(u"de_customperiod_begin")
-        self.de_customperiod_begin.setCalendarPopup(True)
-
-        self.horizontalLayout.addWidget(self.de_customperiod_begin)
-
-        self.label_2 = QLabel(self.page)
-        self.label_2.setObjectName(u"label_2")
-
-        self.horizontalLayout.addWidget(self.label_2)
-
-        self.de_customperiod_end = QDateEdit(self.page)
-        self.de_customperiod_end.setObjectName(u"de_customperiod_end")
-        self.de_customperiod_end.setCalendarPopup(True)
-
-        self.horizontalLayout.addWidget(self.de_customperiod_end)
-
-
-        self.gridLayout_2.addLayout(self.horizontalLayout, 6, 0, 1, 1)
+        self.gridLayout_2.addItem(self.verticalSpacer_2, 8, 0, 1, 1)
 
         self.horizontalLayout_4 = QHBoxLayout()
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
@@ -117,23 +82,7 @@ class Ui_FulfillmentOptionDialog(object):
         self.horizontalLayout_4.addWidget(self.spb_severalmonths_year_end)
 
 
-        self.gridLayout_2.addLayout(self.horizontalLayout_4, 4, 0, 1, 1)
-
-        self.verticalSpacer_2 = QSpacerItem(20, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-
-        self.gridLayout_2.addItem(self.verticalSpacer_2, 5, 0, 1, 1)
-
-        self.rb_severalmonths = QRadioButton(self.page)
-        self.rb_severalmonths.setObjectName(u"rb_severalmonths")
-        self.rb_severalmonths.setFont(font)
-
-        self.gridLayout_2.addWidget(self.rb_severalmonths, 2, 0, 1, 1)
-
-        self.rb_onemonth = QRadioButton(self.page)
-        self.rb_onemonth.setObjectName(u"rb_onemonth")
-        self.rb_onemonth.setFont(font)
-
-        self.gridLayout_2.addWidget(self.rb_onemonth, 0, 0, 1, 1)
+        self.gridLayout_2.addLayout(self.horizontalLayout_4, 7, 0, 1, 1)
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
@@ -166,7 +115,63 @@ class Ui_FulfillmentOptionDialog(object):
         self.horizontalLayout_3.addItem(self.horizontalSpacer)
 
 
-        self.gridLayout_2.addLayout(self.horizontalLayout_3, 3, 0, 1, 1)
+        self.gridLayout_2.addLayout(self.horizontalLayout_3, 6, 0, 1, 1)
+
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.rb_customperiod = QRadioButton(self.page)
+        self.rb_customperiod.setObjectName(u"rb_customperiod")
+        font = QFont()
+        font.setBold(False)
+        self.rb_customperiod.setFont(font)
+
+        self.horizontalLayout.addWidget(self.rb_customperiod)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer_2)
+
+        self.label = QLabel(self.page)
+        self.label.setObjectName(u"label")
+
+        self.horizontalLayout.addWidget(self.label)
+
+        self.de_customperiod_begin = FirstDayDateEdit(self.page)
+        self.de_customperiod_begin.setObjectName(u"de_customperiod_begin")
+        self.de_customperiod_begin.setCalendarPopup(True)
+
+        self.horizontalLayout.addWidget(self.de_customperiod_begin)
+
+        self.label_2 = QLabel(self.page)
+        self.label_2.setObjectName(u"label_2")
+
+        self.horizontalLayout.addWidget(self.label_2)
+
+        self.de_customperiod_end = QDateEdit(self.page)
+        self.de_customperiod_end.setObjectName(u"de_customperiod_end")
+        self.de_customperiod_end.setCalendarPopup(True)
+
+        self.horizontalLayout.addWidget(self.de_customperiod_end)
+
+
+        self.gridLayout_2.addLayout(self.horizontalLayout, 9, 0, 1, 1)
+
+        self.line_3 = QFrame(self.page)
+        self.line_3.setObjectName(u"line_3")
+        self.line_3.setFrameShape(QFrame.Shape.HLine)
+        self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_2.addWidget(self.line_3, 2, 0, 1, 1)
+
+        self.rb_planfulfillment = QRadioButton(self.page)
+        self.rb_planfulfillment.setObjectName(u"rb_planfulfillment")
+        self.rb_planfulfillment.setChecked(True)
+
+        self.gridLayout_2.addWidget(self.rb_planfulfillment, 0, 0, 1, 1)
+
+        self.verticalSpacer = QSpacerItem(20, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+
+        self.gridLayout_2.addItem(self.verticalSpacer, 10, 0, 1, 1)
 
         self.horizontalLayout_5 = QHBoxLayout()
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
@@ -192,11 +197,24 @@ class Ui_FulfillmentOptionDialog(object):
         self.horizontalLayout_5.addWidget(self.spb_onemonth_year)
 
 
-        self.gridLayout_2.addLayout(self.horizontalLayout_5, 1, 0, 1, 1)
+        self.gridLayout_2.addLayout(self.horizontalLayout_5, 4, 0, 1, 1)
 
-        self.verticalSpacer = QSpacerItem(20, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        self.rb_onemonth = QRadioButton(self.page)
+        self.rb_onemonth.setObjectName(u"rb_onemonth")
+        self.rb_onemonth.setFont(font)
 
-        self.gridLayout_2.addItem(self.verticalSpacer, 7, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.rb_onemonth, 3, 0, 1, 1)
+
+        self.rb_severalmonths = QRadioButton(self.page)
+        self.rb_severalmonths.setObjectName(u"rb_severalmonths")
+        self.rb_severalmonths.setFont(font)
+
+        self.gridLayout_2.addWidget(self.rb_severalmonths, 5, 0, 1, 1)
+
+        self.rb_ndsfreepayments = QRadioButton(self.page)
+        self.rb_ndsfreepayments.setObjectName(u"rb_ndsfreepayments")
+
+        self.gridLayout_2.addWidget(self.rb_ndsfreepayments, 1, 0, 1, 1)
 
         self.stackedWidget.addWidget(self.page)
         self.page_2 = QWidget()
@@ -317,13 +335,15 @@ class Ui_FulfillmentOptionDialog(object):
     def retranslateUi(self, FulfillmentOptionDialog):
         FulfillmentOptionDialog.setWindowTitle(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0418\u0441\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0444\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u043e\u0433\u043e \u043f\u043b\u0430\u043d\u0430", None))
         self.pb_continue.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0414\u0430\u043b\u0435\u0435", None))
+        self.label_4.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u043f\u043e", None))
+        self.label_3.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0441", None))
         self.rb_customperiod.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0417\u0430 \u043f\u0435\u0440\u0438\u043e\u0434:", None))
         self.label.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0441", None))
         self.label_2.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u043f\u043e", None))
-        self.label_4.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u043f\u043e", None))
-        self.rb_severalmonths.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0417\u0430 \u043c\u0435\u0441\u044f\u0446\u044b:", None))
+        self.rb_planfulfillment.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0418\u0441\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0444\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u043e\u0433\u043e \u043f\u043b\u0430\u043d\u0430", None))
         self.rb_onemonth.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0417\u0430 \u043c\u0435\u0441\u044f\u0446:", None))
-        self.label_3.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0441", None))
+        self.rb_severalmonths.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0417\u0430 \u043c\u0435\u0441\u044f\u0446\u044b:", None))
+        self.rb_ndsfreepayments.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0420\u0430\u0441\u0445\u043e\u0434\u043e\u0432\u0430\u043d\u0438\u0435 \u0434\u0435\u043d\u0435\u0436\u043d\u044b\u0445 \u0441\u0440\u0435\u0434\u0441\u0442\u0432", None))
         self.label_10.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0421\u0432\u0435\u0434\u0435\u043d\u0438\u044f \u043e \u043f\u043e\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u044f\u0445:", None))
         self.label_7.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"2.2. \u041f\u0440\u043e\u0447\u0438\u0435 \u0434\u043e\u0445\u043e\u0434\u044b:", None))
         self.label_5.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"1. \u041e\u0441\u0442\u0430\u0442\u043e\u043a \u0441\u0440\u0435\u0434\u0441\u0442\u0432 \u043d\u0430 \u043d\u0430\u0447\u0430\u043b\u043e \u043f\u0435\u0440\u0438\u043e\u0434\u0430:  ", None))

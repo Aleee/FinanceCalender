@@ -88,10 +88,10 @@ class EventListProxyModel(QSortFilterProxyModel):
                 return QSortFilterProxyModel.data(self, index, role)
             if isinstance(entry, Event):
                 term_flags = index.siblingAtColumn(EventField.TERMFLAGS).data(EventTableModel.internalValueRole)
-                if TermRoleFlags.DUE in term_flags and self.term_filter != TermCategory.DUE:
+                if TermRoleFlags.DUE in term_flags and self.term_filter != TermCategory.DUE and not self.paytoday_filter:
                     font.setBold(self.sourceModel().row_formatting.due_textbold)
                     return font
-                if TermRoleFlags.TODAY in term_flags and self.term_filter != TermCategory.TODAY:
+                if TermRoleFlags.TODAY in term_flags and self.term_filter != TermCategory.TODAY and not self.paytoday_filter:
                     font.setBold(self.sourceModel().row_formatting.today_textbold)
                     return font
             elif isinstance(entry, EventHeader):

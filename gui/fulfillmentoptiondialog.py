@@ -27,6 +27,10 @@ class FulfillmentOptionDialog(QDialog):
         self.rb_group.addButton(self.ui.rb_customperiod, 3)
         self.rb_group.buttonClicked.connect(lambda: self.change_enablestate(self.rb_group.checkedId()))
 
+        self.rb_group_type: QButtonGroup = QButtonGroup(self)
+        self.rb_group_type.addButton(self.ui.rb_planfulfillment, 1)
+        self.rb_group_type.addButton(self.ui.rb_ndsfreepayments, 2)
+
         self.ui.pb_cancel.clicked.connect(self.reject)
         self.ui.pb_continue.clicked.connect(self.continue_clicked)
 
@@ -74,10 +78,15 @@ class FulfillmentOptionDialog(QDialog):
                 msg_box.exec()
                 return
             self.load_inflow(begin_date, end_date)
-            self.ui.stackedWidget.setCurrentIndex(1)
+            if self.ui.rb_planfulfillment.isChecked():
+                self.ui.stackedWidget.setCurrentIndex(1)
+            else:
+                dlg: FulfillmentDialog = FulfillmentDialog(False, self.db_handler, begin_date, end_date, self.get_inflow_data(), self.load_plan(begin_date, end_date), self)
+                dlg.exec()
+                self.accept()
         else:
             self.save_inflow(begin_date, end_date)
-            dlg: FulfillmentDialog = FulfillmentDialog(self.db_handler, begin_date, end_date, self.get_inflow_data(), self.load_plan(begin_date, end_date), self)
+            dlg: FulfillmentDialog = FulfillmentDialog(True, self.db_handler, begin_date, end_date, self.get_inflow_data(), self.load_plan(begin_date, end_date), self)
             dlg.exec()
             self.accept()
 
