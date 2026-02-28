@@ -1,12 +1,15 @@
 import os
 import random
 import string
+import platform
 from decimal import Decimal
 from enum import IntEnum, auto
 from pathlib import Path
 
-import pywintypes
-import win32com.client
+if platform.system() == "Windows":
+    import pywintypes
+    import win32com.client
+
 from PySide6.QtCore import QDate, QModelIndex, Qt, QTime
 from PySide6.QtWidgets import QTableView
 from xlsxwriter.worksheet import Worksheet
@@ -84,6 +87,11 @@ class XlsWriter:
         self.decimalcolumns_numbers = [index for index, datatype in enumerate(type_hints) if datatype == Decimal]
 
     def write(self, export_format: ExportFormat, columns_to_export: list[bool]) -> bool:
+
+        if platform.system() != "Windows":
+            msg_box = ErrorInfoMessageBox("Экспорт для этой платфоры недоступен")
+            msg_box.exec()
+            return False
 
         row_formatting: RowFormatting = model_atlevel(-2, self.model).row_formatting
 
