@@ -5,8 +5,7 @@ from PySide6.QtCore import QSettings, QDir, QDate, QSize, QPoint, QCoreApplicati
 from PySide6.QtWidgets import QApplication, QWidget
 
 from base.casting import str_bool
-from base.event import EventField
-from gui.eventmodel import RowFormatting
+from gui.eventsqlmodel import Col, RowFormatting
 
 
 class FontSize(IntEnum):
@@ -31,9 +30,9 @@ class SettingsHandler:
         # Основные настройки
         ## Отображение оплаченных
         try:
-            self.mw.event_model.paid_minimum_date = QDate().currentDate().addDays(-30 * int(self.settings.value("Common/paidloadperiod")))
+            self.mw.base_model.paid_minimum_date = QDate().currentDate().addDays(-30 * int(self.settings.value("Common/paidloadperiod")))
         except (ValueError, TypeError):
-            self.mw.event_model.paid_minimum_date = QDate().currentDate().addDays(-30 * 999)
+            self.mw.base_model.paid_minimum_date = QDate().currentDate().addDays(-30 * 999)
         ## Размер шрифта
         self.change_fontsize()
         ## Ширина столбцов
@@ -62,17 +61,17 @@ class SettingsHandler:
         ## Скрытие и отображение столбцов
         hidden_columns: list = []
         for column_state_settings in (
-            ("Columns/totalamount", EventField.TOTALAMOUNT),
-            ("Columns/paymenttype", EventField.PAYMENTTYPE),
-            ("Columns/descr", EventField.DESCR),
-            ("Columns/responsible", EventField.RESPONSIBLE),
+            ("Columns/totalamount", Col.TOTALAMOUNT),
+            ("Columns/paymenttype", Col.PAYMENTTYPE),
+            ("Columns/descr", Col.DESCR),
+            ("Columns/responsible", Col.RESPONSIBLE),
         ):
             try:
                 if not bool(int(self.settings.value(column_state_settings[0]))):
                     hidden_columns.append(column_state_settings[1])
             except (ValueError, TypeError):
                 pass
-        self.mw.ui.trw_event.set_columns_visibility(hidden_columns)
+        self.mw.ui.trw_event.hide_columns(hidden_columns)
         # Скрытие полей в информационной панели
         setting_value = str_bool(self.settings.value("Infopanel/totalamount"), True)
         for widget in (self.mw.ui.la_totalsum, self.mw.ui.tla_totalsum):
@@ -96,7 +95,7 @@ class SettingsHandler:
             widget.setVisible(str_bool(self.settings.value("Infopanel/descr"), True))
 
         ## Форматирование строк
-        if not self.mw.event_model.set_row_formatting(RowFormatting(
+        if not self.mw.base_model.set_row_formatting(RowFormatting(
                 str_bool(self.settings.value("Tableformat/boldforegrounddue")),
                 str_bool(self.settings.value("Tableformat/boldforegroundtoday")),
                 self.settings.value("Tableformat/foregrounddue"),
@@ -119,7 +118,7 @@ class SettingsHandler:
                 str_bool(self.settings.value("Tableformat/verticalgrid")),
                 str_bool(self.settings.value("Tableformat/zebrastyle")),
                 )):
-            self.mw.event_model.set_row_formatting(RowFormatting())
+            self.mw.base_model.set_row_formatting(RowFormatting())
 
         ## Отображение заголовков/футеров
         try:
@@ -131,15 +130,10 @@ class SettingsHandler:
         except (ValueError, TypeError):
             self.mw.ui.act_togglefooters.setChecked(False)
 
-        ## Обновление таймера автосохранения
-        if autosave_needed:
-            self.mw.autosave()
-            self.mw.update_autosave_timer()
-
         ## Включение фильтра после применения настроек
         self.mw.ui.trw_event.model().sourceModel().enable_sortfilter(True)
         ## Обновление статистики и сортировки
-        self.mw.event_model.recalculate_stats()
+        self.mw.update_filters_and_select()
         ## Обновить отрисовку
         self.mw.ui.trw_event.viewport().update()
 
@@ -147,7 +141,7 @@ class SettingsHandler:
         font_sizes: tuple = (FontSize.SMALL, FontSize.MEDIUM, FontSize.LARGE)
         setting_value: int = int(self.settings.value("Appearance/fontsize", 0))
 
-        exclusions: tuple[QWidget] = (self.mw.la_autosavestatus, self.mw.la_backupstatus, self.mw.la_autosavebackup)
+        exclusions: tuple[QWidget] = ()
         saved_stylesheets: dict = {}
 
         # Сохранение значений исключений
@@ -169,7 +163,8 @@ class SettingsHandler:
         for filterwdg in (self.mw.ui.lw_term, self.mw.ui.lw_category):
             filterwdg.update_height()
         self.mw.ui.tv_payment.update_column_width(setting_value)
-        self.mw.update_plot_area()
+        # Включить после возвращения графиков
+        # self.mw.update_plot_area()
 
         # Вернуть исключениям свои стили
         for widget in exclusions:

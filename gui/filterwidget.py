@@ -5,6 +5,8 @@ import lovely_logger as log
 from PySide6 import QtWidgets, QtCore
 from PySide6.QtGui import QIcon, QBrush, QFont
 
+from base.liability import CATEGORY_NAMES
+
 
 class TermCategory(IntEnum):
     UNPAID = 0
@@ -59,18 +61,17 @@ class TermFilterListWidget(FilterListWidget):
     def __init__(self, parent=None):
         super(TermFilterListWidget, self).__init__(parent)
 
+    def current_term(self):
+        return TermCategory(self.currentRow())
+
     @QtCore.Slot(object)
     def update_labels(self, stats: dict) -> None:
-        try:
-            filter_stats: dict = stats["term_filter"]
-        except KeyError:
-            log.x(f"В словаре, переданном функции, отсутствует часть '{self.FILTER_ID}'")
-            raise KeyError
-        if len(filter_stats) != len(self.ITEMS):
+        if len(stats) != len(self.ITEMS):
             log.x("Длина словаря, переданная функции, не соответствует количеству элементов в списке")
             raise IndexError
+        stats_as_list = list(stats.values())
         for row in range(self.count()):
-            self.item(row).setText(self.ITEMS[row][0] + f" ({len(filter_stats[row])})")
+            self.item(row).setText(self.ITEMS[row][0] + f" ({stats_as_list[row]})")
             font = QFont()
             font.setBold(self.ITEMS[row][2])
             self.item(row).setFont(font)
@@ -112,23 +113,17 @@ class CategoryFilterListWidget(FilterListWidget):
         self.term_filter_state_paid = is_paid_chosen
         self.update_labels()
 
+    def current_category(self):
+        return list(CATEGORY_NAMES.keys())[self.currentRow()]
+
     @QtCore.Slot(object)
     def update_labels(self, stats: dict | None = None) -> None:
-        if not stats:
-            stats = self.saved_stats
-        try:
-            category_paid_stats: dict = stats["category_filter_paid"]
-            category_notpaid_stats: dict = stats["category_filter_notpaid"]
-        except KeyError:
-            log.x(f"В словаре, переданном функции, отсутствует часть '{self.FILTER_ID}'")
-            raise KeyError
-        if len(category_paid_stats) != len(self.ITEMS) or len(category_notpaid_stats) != len(self.ITEMS):
+        if len(stats) != len(self.ITEMS):
             log.x("Длина словаря, переданная функции, не соответствует количеству элементов в списке")
             raise IndexError
-        self.saved_stats = stats
-        stats_as_list: list = list(category_paid_stats.values()) if self.term_filter_state_paid else list(category_notpaid_stats.values())
+        stats_as_list = list(stats.values())
         for row in range(self.count()):
-            self.item(row).setText(self.ITEMS[row][0] + f" ({len(stats_as_list[row]) if self.term_filter_state_paid else len(stats_as_list[row])})")
+            self.item(row).setText(self.ITEMS[row][0] + f" ({stats_as_list[row]})")
             font = QFont()
             font.setBold(self.ITEMS[row][2])
             self.item(row).setFont(font)

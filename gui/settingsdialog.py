@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt, QSize
 
 from base.casting import str_bool
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
-from gui.eventmodel import RowFormatting
+from gui.eventsqlmodel import RowFormatting
 from gui.recoverydialog import RecoveryDialog
 from gui.settings import SettingsHandler
 from gui.ui.settingsdialog_ui import Ui_settingsdialog
@@ -17,27 +17,17 @@ from gui.ui.settingsdialog_ui import Ui_settingsdialog
 
 class SettingsDialog(QDialog):
 
-    AUTOSAVE_SET = {
-        0: 5,
-        1: 15,
-        2: 30,
-        3: 60,
-        4: 180,
-    }
-
     CLEANBACKUP_SET = {
-        0: 7,
-        1: 30,
-        2: 180,
-        3: 9999,
+        0: 30,
+        1: 180,
+        2: 9999,
     }
 
     LOADPAID_SET = {
-        0: 1,
-        1: 3,
-        2: 6,
-        3: 12,
-        4: 999,
+        0: 3,
+        1: 6,
+        2: 12,
+        3: 999,
     }
 
     def __init__(self, settings_handler: SettingsHandler, reject_possible: bool = True, parent=None):
@@ -67,8 +57,6 @@ class SettingsDialog(QDialog):
         self.rbg_fontsize.addButton(self.ui.rb_fontsize_3, 2)
 
         # Заполнение комбобоксов
-        for autosave_option in self.AUTOSAVE_SET.items():
-            self.ui.cmb_autosave.setItemData(autosave_option[0], autosave_option[1], Qt.ItemDataRole.UserRole)
         for loadpaid_option in self.LOADPAID_SET.items():
             self.ui.cmb_loadpaid.setItemData(loadpaid_option[0], loadpaid_option[1], Qt.ItemDataRole.UserRole)
         for cleanbackup_option in self.CLEANBACKUP_SET.items():
@@ -158,15 +146,6 @@ class SettingsDialog(QDialog):
         self.ui.pb_foregroundsubsectionfooter.set_color(self.settings_handler.settings.value("Tableformat/foregroundsubsectionfooter", RowFormatting().footer_subsection_forecolor))
         self.ui.pb_backgroundsubsectionfooter.set_color(self.settings_handler.settings.value("Tableformat/backgroundsubsectionfooter", RowFormatting().footer_subsection_backcolor))
         # Хранение
-        self.ui.cmb_autosave.setCurrentIndex(1)
-        try:
-            probable_setting: int = int(self.settings_handler.settings.value("Autosave/interval"))
-            for autosave_option in self.AUTOSAVE_SET.items():
-                if probable_setting == autosave_option[1]:
-                    self.ui.cmb_autosave.itemData(self.ui.cmb_autosave.setCurrentIndex(autosave_option[0]))
-        except TypeError, ValueError:
-            pass
-        self.ui.cmb_autosave.currentIndexChanged.connect(lambda: setattr(self, "autosave_needed", True))  # Установка сигнала на изменение после выбора
         self.ui.cmb_backupautodelete.setCurrentIndex(0)
         try:
             for cleanbackup_option in self.CLEANBACKUP_SET.items():
@@ -218,7 +197,6 @@ class SettingsDialog(QDialog):
         self.settings_handler.settings.setValue("Tableformat/foregroundsubsectionfooter", self.ui.pb_foregroundsubsectionfooter.get_color())
         self.settings_handler.settings.setValue("Tableformat/backgroundsubsectionfooter", self.ui.pb_backgroundsubsectionfooter.get_color())
         # Хранение
-        self.settings_handler.settings.setValue("Autosave/interval", self.ui.cmb_autosave.currentData(Qt.ItemDataRole.UserRole))
         self.settings_handler.settings.setValue("Backup/cleanupperiod", self.ui.cmb_backupautodelete.currentData(Qt.ItemDataRole.UserRole))
         self.settings_handler.settings.setValue("Backup/path", self.ui.le_backuppath.text())
         self.settings_handler.settings.sync()

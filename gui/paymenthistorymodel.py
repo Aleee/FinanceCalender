@@ -1,91 +1,60 @@
 from dataclasses import fields
+from decimal import Decimal
+from enum import IntEnum
 from typing import Any, get_type_hints
 
 import lovely_logger as log
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, QDate
+from PySide6.QtSql import QSqlTableModel
 
+from base.date import str_date, date_displstr
 from base.formatting import dec_strcommaspace
-from base.payment import Payment, PaymentField
 
 
-class PaymentHistoryTableModel(QAbstractTableModel):
+class PaymentCol(IntEnum):
+    ID = 0
+    EVENT = 1
+    PAYMENT_DATE = 2
+    SUM = 3
+    CREATE_DATE = 4
+
+
+class PaymentHistoryTableModel(QSqlTableModel):
 
     HEADERS = {
-        PaymentField.ID: "",
-        PaymentField.EVENT: "",
-        PaymentField.PAYMENT_DATE: " Дата",
-        PaymentField.SUM: " Сумма",
-        PaymentField.CREATE_DATE: "",
+        PaymentCol.ID: "",
+        PaymentCol.EVENT: "",
+        PaymentCol.PAYMENT_DATE: " Дата",
+        PaymentCol.SUM: " Сумма",
+        PaymentCol.CREATE_DATE: "",
     }
 
-    internalValueRole: int = Qt.ItemDataRole.UserRole + 1
+    dbValueRole: int = Qt.ItemDataRole.UserRole + 1
+    qtValueRole: int = Qt.ItemDataRole.UserRole + 2
 
     def __init__(self, parent=None):
         super(PaymentHistoryTableModel, self).__init__(parent)
 
-        self.payment_list: list = []
-        self.paymemts_loaded: bool = False
-
-        self.column_count: int = len(fields(Payment))
-        self.type_hints: list = list(get_type_hints(Payment).values())
-        self.last_id: int | None = None
-
-    def load_payments(self, payments: list[Payment]) -> bool:
-        if not self.paymemts_loaded:
-            if not payments:
-                self.last_id = 0
-            else:
-                self.payment_list.extend(payments)
-                self.last_id = self.get_last_id()
-            self.paymemts_loaded = True
-            return True
-        else:
-            return False
-
-    def get_last_id(self) -> int:
-        return max(self.payment_list, key=lambda payment: payment.payment_id).payment_id
-
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        if parent.isValid():
-            return 0
-        return len(self.payment_list)
-
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        if parent.isValid():
-            return 0
-        return self.column_count
+        self.current_event_id: int = 0
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        if not index.isValid():
-            return None
-        try:
-            entry: Payment = self.payment_list[index.row()]
-        except IndexError:
-            return None
         if role == Qt.ItemDataRole.DisplayRole:
-            if index.column() == PaymentField.SUM:
-                return dec_strcommaspace(entry.payment_sum)
+            if index.column() == PaymentCol.SUM:
+                return dec_strcommaspace(index.data(self.qtValueRole))
+            elif index.column() == PaymentCol.PAYMENT_DATE:
+                return date_displstr(index.data(self.qtValueRole))
             else:
-                return index.data(self.internalValueRole)
-        elif role == self.internalValueRole:
-            return list(vars(entry).values())[index.column()]
-
-    def setData(self, index, value, /, role=...):
-        if not index.isValid():
-            return False
-        try:
-            entry: Payment = self.payment_list[index.row()]
-        except IndexError:
-            return False
-        if role == self.internalValueRole:
-            if not isinstance(value, self.type_hints[index.column()]):
-                return False
-            attr_name: str = fields(entry)[index.column()].name
-            setattr(entry, attr_name, value)
-            self.dataChanged.emit(index, index)
-            return True
-        else:
-            return False
+                return index.data(self.dbValueRole)
+        elif role == self.dbValueRole:
+            return super(PaymentHistoryTableModel, self).data(index)
+        elif role == self.qtValueRole:
+            if index.column() == PaymentCol.SUM:
+                return Decimal(index.data(self.dbValueRole))
+            elif index.column() == PaymentCol.PAYMENT_DATE:
+                return str_date(index.data(self.dbValueRole))
+            elif index.column() in (PaymentCol.EVENT, PaymentCol.ID):
+                return int(index.data(self.dbValueRole))
+        return super(PaymentHistoryTableModel, self).data(index, role)
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: Qt.ItemDataRole = Qt.ItemDataRole.DisplayRole) -> Any:
         if orientation == Qt.Orientation.Horizontal:
@@ -97,39 +66,39 @@ class PaymentHistoryTableModel(QAbstractTableModel):
                 return Qt.AlignmentFlag.AlignLeft
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
-    def insertRows(self, row, count, /, parent=...) -> bool:
-        if self.last_id is None:
-            return False
-        self.beginInsertRows(parent, row, row + count - 1)
-        for i in range(count):
-            default_row: Payment = Payment(self.last_id + 1, 0, QDate(), 0, QDate())
-            self.payment_list.append(default_row)
-        self.endInsertRows()
-        self.last_id += 1
-        return True
+    def update_filter(self, event_id: int | None = None):
+        if event_id is not None:
+            self.current_event_id = event_id
+        self.setFilter(f"eventid = {self.current_event_id}")
+        self.select()
 
-    def removeRows(self, row, count, /, parent=...) -> bool:
-        self.beginRemoveRows(QModelIndex(), row, row + count - 1)
-        for i in range(count):
-            self.payment_list.pop(row + i)
-        self.endRemoveRows()
-        return True
+    def reset_filter(self):
+        self.setFilter("")
 
     def append_row(self, data: list) -> bool:
-        if len(data) != len(fields(Payment)) - 1:
+        if len(data) != len(PaymentCol) - 1:
             log.x("Набор передаваемых в append_row данных должен охватывать все атрибуты класса-хранителя за исключением id")
             raise IndexError
-        position: int = self.rowCount(QModelIndex())
-        if self.insertRows(position, 1, QModelIndex()):
+
+        self.reset_filter()
+        position: int = self.rowCount()
+
+        if self.insertRow(position):
             for column, value in enumerate(data):
-                index: QModelIndex = self.index(position, column + 1, QModelIndex())
-                if not self.setData(index, value, self.internalValueRole):
+                index: QModelIndex = self.index(position, column + 1)
+                if not self.setData(index, value):
                     self.removeRows(self.rowCount(), 1)
                     log.c(f"Не удалось записать данные {value} в столбец {column + 1}")
+                    self.update_filter()
+                    return False
+            if not self.submitAll():
+                log.c(f"Не удалось записать изменения в таблицу payment: {self.lastError().text()}")
+            self.update_filter()
             return True
+        self.update_filter()
         return False
 
     def delete_rows_byeventid(self, eventid: int) -> None:
         for row in range(self.rowCount()):
-            if self.index(row, PaymentField.EVENT).data(self.internalValueRole) == eventid:
+            if self.index(row, PaymentCol.EVENT).data(self.qtValueRole) == eventid:
                 self.removeRow(row)

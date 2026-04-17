@@ -11,6 +11,7 @@ class PaymentHistoryTableView(QtWidgets.QTableView):
         self.setSortingEnabled(False)
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.setAutoScroll(True)
         self.setAcceptDrops(False)
         self.setMouseTracking(True)

@@ -106,11 +106,6 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.trw_event = EventWidget(self.centralwidget)
-        self.trw_event.setObjectName(u"trw_event")
-
-        self.gridLayout.addWidget(self.trw_event, 0, 1, 1, 1)
-
         self.wdg_eventfilter = QWidget(self.centralwidget)
         self.wdg_eventfilter.setObjectName(u"wdg_eventfilter")
         self.wdg_eventfilter.setMinimumSize(QSize(200, 0))
@@ -482,13 +477,18 @@ class Ui_MainWindow(object):
 
         self.gridLayout.addWidget(self.stw_eventinfo, 1, 1, 1, 1)
 
+        self.trw_event = EventWidget(self.centralwidget)
+        self.trw_event.setObjectName(u"trw_event")
+
+        self.gridLayout.addWidget(self.trw_event, 0, 1, 1, 1)
+
         MainWindow.setCentralWidget(self.centralwidget)
-        self.statusbar = QStatusBar(MainWindow)
-        self.statusbar.setObjectName(u"statusbar")
-        MainWindow.setStatusBar(self.statusbar)
         self.tlbr = QToolBar(MainWindow)
         self.tlbr.setObjectName(u"tlbr")
         MainWindow.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.tlbr)
+        self.statusBar = QStatusBar(MainWindow)
+        self.statusBar.setObjectName(u"statusBar")
+        MainWindow.setStatusBar(self.statusBar)
 
         self.tlbr.addAction(self.act_new)
         self.tlbr.addAction(self.act_copy)

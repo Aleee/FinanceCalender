@@ -7,17 +7,6 @@ from PySide6.QtCore import QDate
 from base.date import get_current_date, get_date_diff, days_to_weekend, days_to_month
 
 
-class PaymentType(IntEnum):
-    NORMAL = auto()
-    ADVANCE = auto()
-
-
-class RowType(IntEnum):
-    HEADER = auto()
-    EVENT = auto()
-    FOOTER = auto()
-    FINALFOOTER = auto()
-
 
 class EventField(IntEnum):
     RECEIVER = 0
@@ -104,22 +93,22 @@ class Event:
     nds: int                    # 18
 
 
-def term_filter_flags(remainamount: Decimal, duedate: QDate, are_today_payments_present: bool) -> TermRoleFlags:
-    current_date: QDate = get_current_date()
-    term_flags: TermRoleFlags = TermRoleFlags.NONE
-    # Проверка на оплаченность
-    if remainamount <= 0 and not are_today_payments_present:
-        term_flags |= TermRoleFlags.PAID
-    else:
-        term_flags |= TermRoleFlags.NOTPAID
-        # Проверка по дате
-        date_diff = get_date_diff(current_date, duedate)
-        if date_diff < 0:
-            term_flags |= TermRoleFlags.DUE
-        if date_diff == 0:
-            term_flags |= TermRoleFlags.TODAY
-        if -1 < date_diff <= days_to_weekend(current_date):
-            term_flags |= TermRoleFlags.WEEK
-        if -1 < date_diff <= days_to_month(current_date):
-            term_flags |= TermRoleFlags.MONTH
-    return term_flags
+# def term_filter_flags(remainamount: Decimal, duedate: QDate, are_today_payments_present: bool) -> TermRoleFlags:
+#     current_date: QDate = get_current_date()
+#     term_flags: TermRoleFlags = TermRoleFlags.NONE
+#     # Проверка на оплаченность
+#     if remainamount <= 0 and not are_today_payments_present:
+#         term_flags |= TermRoleFlags.PAID
+#     else:
+#         term_flags |= TermRoleFlags.NOTPAID
+#         # Проверка по дате
+#         date_diff = get_date_diff(current_date, duedate)
+#         if date_diff < 0:
+#             term_flags |= TermRoleFlags.DUE
+#         if date_diff == 0:
+#             term_flags |= TermRoleFlags.TODAY
+#         if -1 < date_diff <= days_to_weekend(current_date):
+#             term_flags |= TermRoleFlags.WEEK
+#         if -1 < date_diff <= days_to_month(current_date):
+#             term_flags |= TermRoleFlags.MONTH
+#     return term_flags

@@ -7,7 +7,7 @@ import lovely_logger as log
 from PySide6.QtCore import QModelIndex, Qt, QAbstractItemModel, Signal, QAbstractTableModel, QDate
 
 from base.date import date_displstr
-from base.event import Event, TermRoleFlags, PaymentType, EventCategory, EventField, RowType
+from base.event import Event, TermRoleFlags, EventCategory, EventField
 from base.formatting import float_strpercentage, dec_strcommaspace
 from gui.filterwidget import TermCategory
 
@@ -21,9 +21,9 @@ class HeaderFooterField(IntEnum):
 
 
 class HeaderFooterSubtype(IntEnum):
-    TOPLEVELNOEVENTS = auto()
+    ORDINARY = auto()
     TOPLEVELWITHEVENTS = auto()
-    NEXTLEVEL = auto()
+    TOPLEVELNOEVENTS = auto()
 
 
 # Атрибуты name, type и category должны иметь те же индексы, что и в классах Event и HeaderFooterField
@@ -171,11 +171,6 @@ class EventTableModel(QAbstractTableModel):
         EventCategory.TOP_INVESTMENT: 20,
     }
 
-    PAYMENTTYPE_NAMES = {
-        0: "",
-        PaymentType.NORMAL: "По факту",
-        PaymentType.ADVANCE: "Предоплата",
-    }
 
     internalValueRole: int = Qt.ItemDataRole.UserRole + 1
     customSpanRole: int = Qt.ItemDataRole.UserRole + 2   # True - объединить все столбцы с первым
@@ -261,7 +256,7 @@ class EventTableModel(QAbstractTableModel):
         elif column == EventField.DUEDATE:
             return date_displstr(event.duedate)
         elif column == EventField.PAYMENTTYPE:
-            return self.PAYMENTTYPE_NAMES[event.paymenttype]
+            return ""
         elif column == EventField.CREATEDATE:
             return date_displstr(event.createdate)
         elif column == EventField.DESCR:
@@ -453,7 +448,7 @@ class EventTableModel(QAbstractTableModel):
             elif cat_id % 100 == 0:
                 subtype = HeaderFooterSubtype.TOPLEVELWITHEVENTS
             else:
-                subtype = HeaderFooterSubtype.NEXTLEVEL
+                subtype = HeaderFooterSubtype.ORDINARY
             header = EventHeader(name, RowType.HEADER, subtype, cat_id, _id)
             self.event_list.append(header)
             footer = EventFooter(name, RowType.FOOTER, subtype, cat_id, _id)

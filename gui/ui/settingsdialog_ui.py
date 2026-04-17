@@ -99,7 +99,6 @@ class Ui_settingsdialog(object):
         self.cmb_loadpaid.addItem("")
         self.cmb_loadpaid.addItem("")
         self.cmb_loadpaid.addItem("")
-        self.cmb_loadpaid.addItem("")
         self.cmb_loadpaid.setObjectName(u"cmb_loadpaid")
 
         self.gridLayout_13.addWidget(self.cmb_loadpaid, 0, 1, 1, 1)
@@ -440,36 +439,25 @@ class Ui_settingsdialog(object):
         self.page.setObjectName(u"page")
         self.gridLayout_15 = QGridLayout(self.page)
         self.gridLayout_15.setObjectName(u"gridLayout_15")
-        self.groupBox_11 = QGroupBox(self.page)
-        self.groupBox_11.setObjectName(u"groupBox_11")
-        self.gridLayout_16 = QGridLayout(self.groupBox_11)
-        self.gridLayout_16.setObjectName(u"gridLayout_16")
-        self.cmb_autosave = QComboBox(self.groupBox_11)
-        self.cmb_autosave.addItem("")
-        self.cmb_autosave.addItem("")
-        self.cmb_autosave.addItem("")
-        self.cmb_autosave.addItem("")
-        self.cmb_autosave.addItem("")
-        self.cmb_autosave.setObjectName(u"cmb_autosave")
-        self.cmb_autosave.setMinimumSize(QSize(120, 0))
-
-        self.gridLayout_16.addWidget(self.cmb_autosave, 0, 1, 1, 1)
-
-        self.label_16 = QLabel(self.groupBox_11)
-        self.label_16.setObjectName(u"label_16")
-
-        self.gridLayout_16.addWidget(self.label_16, 0, 0, 1, 1)
-
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout_16.addItem(self.horizontalSpacer_3, 0, 2, 1, 1)
-
-
-        self.gridLayout_15.addWidget(self.groupBox_11, 0, 0, 1, 1)
-
         self.verticalSpacer_4 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout_15.addItem(self.verticalSpacer_4, 3, 0, 1, 1)
+        self.gridLayout_15.addItem(self.verticalSpacer_4, 2, 0, 1, 1)
+
+        self.groupBox_13 = QGroupBox(self.page)
+        self.groupBox_13.setObjectName(u"groupBox_13")
+        self.horizontalLayout_4 = QHBoxLayout(self.groupBox_13)
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
+        self.pb_restorefrombackup = QPushButton(self.groupBox_13)
+        self.pb_restorefrombackup.setObjectName(u"pb_restorefrombackup")
+
+        self.horizontalLayout_4.addWidget(self.pb_restorefrombackup)
+
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_4.addItem(self.horizontalSpacer_4)
+
+
+        self.gridLayout_15.addWidget(self.groupBox_13, 1, 0, 1, 1)
 
         self.groupBox_12 = QGroupBox(self.page)
         self.groupBox_12.setObjectName(u"groupBox_12")
@@ -495,7 +483,6 @@ class Ui_settingsdialog(object):
         self.cmb_backupautodelete.addItem("")
         self.cmb_backupautodelete.addItem("")
         self.cmb_backupautodelete.addItem("")
-        self.cmb_backupautodelete.addItem("")
         self.cmb_backupautodelete.setObjectName(u"cmb_backupautodelete")
         self.cmb_backupautodelete.setMinimumSize(QSize(90, 0))
         self.cmb_backupautodelete.setMaximumSize(QSize(120, 16777215))
@@ -511,6 +498,7 @@ class Ui_settingsdialog(object):
 
         self.le_backuppath = QLineEdit(self.groupBox_12)
         self.le_backuppath.setObjectName(u"le_backuppath")
+        self.le_backuppath.setReadOnly(True)
 
         self.gridLayout_17.addWidget(self.le_backuppath, 1, 0, 1, 2)
 
@@ -520,23 +508,7 @@ class Ui_settingsdialog(object):
         self.gridLayout_17.addWidget(self.pb_backuppath, 1, 2, 1, 1)
 
 
-        self.gridLayout_15.addWidget(self.groupBox_12, 1, 0, 1, 1)
-
-        self.groupBox_13 = QGroupBox(self.page)
-        self.groupBox_13.setObjectName(u"groupBox_13")
-        self.horizontalLayout_4 = QHBoxLayout(self.groupBox_13)
-        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.pb_restorefrombackup = QPushButton(self.groupBox_13)
-        self.pb_restorefrombackup.setObjectName(u"pb_restorefrombackup")
-
-        self.horizontalLayout_4.addWidget(self.pb_restorefrombackup)
-
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_4.addItem(self.horizontalSpacer_4)
-
-
-        self.gridLayout_15.addWidget(self.groupBox_13, 2, 0, 1, 1)
+        self.gridLayout_15.addWidget(self.groupBox_12, 0, 0, 1, 1)
 
         self.stw.addWidget(self.page)
 
@@ -573,7 +545,7 @@ class Ui_settingsdialog(object):
 
         self.retranslateUi(settingsdialog)
 
-        self.stw.setCurrentIndex(1)
+        self.stw.setCurrentIndex(2)
         self.lw_menu.setCurrentRow(-1)
 
 
@@ -589,11 +561,10 @@ class Ui_settingsdialog(object):
         self.rb_fontsize_2.setText(QCoreApplication.translate("settingsdialog", u"\u0411\u043e\u043b\u044c\u0448\u043e\u0439", None))
         self.rb_fontsize_3.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0433\u0440\u043e\u043c\u043d\u044b\u0439", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("settingsdialog", u"\u041e\u043f\u043b\u0430\u0447\u0435\u043d\u043d\u044b\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0438", None))
-        self.cmb_loadpaid.setItemText(0, QCoreApplication.translate("settingsdialog", u"\u043e\u0434\u0438\u043d \u043c\u0435\u0441\u044f\u0446", None))
-        self.cmb_loadpaid.setItemText(1, QCoreApplication.translate("settingsdialog", u"\u0442\u0440\u0438 \u043c\u0435\u0441\u044f\u0446\u0430", None))
-        self.cmb_loadpaid.setItemText(2, QCoreApplication.translate("settingsdialog", u"\u043f\u043e\u043b\u0433\u043e\u0434\u0430", None))
-        self.cmb_loadpaid.setItemText(3, QCoreApplication.translate("settingsdialog", u"\u043e\u0434\u0438\u043d \u0433\u043e\u0434", None))
-        self.cmb_loadpaid.setItemText(4, QCoreApplication.translate("settingsdialog", u"\u0432\u0441\u0435 \u0432\u0440\u0435\u043c\u044f", None))
+        self.cmb_loadpaid.setItemText(0, QCoreApplication.translate("settingsdialog", u"\u0442\u0440\u0438 \u043c\u0435\u0441\u044f\u0446\u0430", None))
+        self.cmb_loadpaid.setItemText(1, QCoreApplication.translate("settingsdialog", u"\u043f\u043e\u043b\u0433\u043e\u0434\u0430", None))
+        self.cmb_loadpaid.setItemText(2, QCoreApplication.translate("settingsdialog", u"\u043e\u0434\u0438\u043d \u0433\u043e\u0434", None))
+        self.cmb_loadpaid.setItemText(3, QCoreApplication.translate("settingsdialog", u"\u0432\u0441\u0435 \u0432\u0440\u0435\u043c\u044f", None))
 
         self.label_2.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0442\u043e\u0431\u0440\u0430\u0436\u0430\u0442\u044c \u043e\u043f\u043b\u0430\u0447\u0435\u043d\u043d\u044b\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0438 \u0437\u0430  ", None))
 #if QT_CONFIG(tooltip)
@@ -651,25 +622,16 @@ class Ui_settingsdialog(object):
         self.pb_exportpath.setText(QCoreApplication.translate("settingsdialog", u"\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c", None))
         self.chb_frozenheader.setText(QCoreApplication.translate("settingsdialog", u"\u0417\u0430\u043a\u0440\u0435\u043f\u043b\u044f\u0442\u044c \u0437\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u0447\u043d\u0443\u044e \u0447\u0430\u0441\u0442\u044c \u0432 XLSX-\u0444\u0430\u0439\u043b\u0435", None))
         self.label_15.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u0430\u043f\u043a\u0430 \u0434\u043b\u044f \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0430 \u0444\u0430\u0439\u043b\u043e\u0432:", None))
-        self.groupBox_11.setTitle(QCoreApplication.translate("settingsdialog", u"\u0410\u0432\u0442\u043e\u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435", None))
-        self.cmb_autosave.setItemText(0, QCoreApplication.translate("settingsdialog", u"5 \u043c\u0438\u043d\u0443\u0442", None))
-        self.cmb_autosave.setItemText(1, QCoreApplication.translate("settingsdialog", u"15 \u043c\u0438\u043d\u0443\u0442", None))
-        self.cmb_autosave.setItemText(2, QCoreApplication.translate("settingsdialog", u"30 \u043c\u0438\u043d\u0443\u0442", None))
-        self.cmb_autosave.setItemText(3, QCoreApplication.translate("settingsdialog", u"1 \u0447\u0430\u0441", None))
-        self.cmb_autosave.setItemText(4, QCoreApplication.translate("settingsdialog", u"3 \u0447\u0430\u0441\u0430", None))
-
-        self.label_16.setText(QCoreApplication.translate("settingsdialog", u"\u0418\u043d\u0442\u0435\u0440\u0432\u0430\u043b \u0430\u0432\u0442\u043e\u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f: ", None))
+        self.groupBox_13.setTitle(QCoreApplication.translate("settingsdialog", u"\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435", None))
+        self.pb_restorefrombackup.setText(QCoreApplication.translate("settingsdialog", u"  \u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0438\u0437 \u0440\u0435\u0437\u0435\u0440\u0432\u043d\u043e\u0439 \u043a\u043e\u043f\u0438\u0438  ", None))
         self.groupBox_12.setTitle(QCoreApplication.translate("settingsdialog", u"\u0420\u0435\u0437\u0435\u0440\u0432\u043d\u043e\u0435 \u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435", None))
         self.label_17.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u0430\u043f\u043a\u0430 \u0434\u043b\u044f \u0440\u0435\u0437\u0435\u0440\u0432\u043d\u043e\u0433\u043e \u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f:", None))
         self.label_18.setText(QCoreApplication.translate("settingsdialog", u"\u0410\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u043e\u0435 \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u0435 \u0440\u0435\u0437\u0435\u0440\u0432\u043d\u044b\u0445 \u043a\u043e\u043f\u0438\u0439:", None))
-        self.cmb_backupautodelete.setItemText(0, QCoreApplication.translate("settingsdialog", u"1 \u043d\u0435\u0434\u0435\u043b\u044f", None))
-        self.cmb_backupautodelete.setItemText(1, QCoreApplication.translate("settingsdialog", u"1 \u043c\u0435\u0441\u044f\u0446", None))
-        self.cmb_backupautodelete.setItemText(2, QCoreApplication.translate("settingsdialog", u"6 \u043c\u0435\u0441\u044f\u0446\u0435\u0432", None))
-        self.cmb_backupautodelete.setItemText(3, QCoreApplication.translate("settingsdialog", u"\u043d\u0438\u043a\u043e\u0433\u0434\u0430", None))
+        self.cmb_backupautodelete.setItemText(0, QCoreApplication.translate("settingsdialog", u"1 \u043c\u0435\u0441\u044f\u0446", None))
+        self.cmb_backupautodelete.setItemText(1, QCoreApplication.translate("settingsdialog", u"6 \u043c\u0435\u0441\u044f\u0446\u0435\u0432", None))
+        self.cmb_backupautodelete.setItemText(2, QCoreApplication.translate("settingsdialog", u"\u043d\u0438\u043a\u043e\u0433\u0434\u0430", None))
 
         self.pb_backuppath.setText(QCoreApplication.translate("settingsdialog", u"\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c", None))
-        self.groupBox_13.setTitle(QCoreApplication.translate("settingsdialog", u"\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435", None))
-        self.pb_restorefrombackup.setText(QCoreApplication.translate("settingsdialog", u"  \u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0438\u0437 \u0440\u0435\u0437\u0435\u0440\u0432\u043d\u043e\u0439 \u043a\u043e\u043f\u0438\u0438  ", None))
 
         __sortingEnabled = self.lw_menu.isSortingEnabled()
         self.lw_menu.setSortingEnabled(False)

@@ -1,20 +1,22 @@
 from decimal import Decimal
+import lovely_logger as log
 
 from PySide6.QtCore import QModelIndex, Qt, QDate
 from PySide6.QtWidgets import QDialog, QButtonGroup, QCompleter
 
-from base.event import EventField, PaymentType, RowType, term_filter_flags, TermRoleFlags, EventFinanceSubcategory, EventCategory
+from base.date import date_str
+from gui.eventsqlmodel import PaymentType, RowType, LiabilitySqlTableModel, Col, FilterFlags
 from gui.common import model_atlevel, map_to_source
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
-from gui.eventmodel import EventTableModel
 from gui.ui.eventdialog_ui import Ui_EventDialog
+from base.liability import LiabilityCategory, LiabilityFinanceSubcategory, CATEGORY_NAMES, NDS_VALUE
 
 
 class EventDialog(QDialog):
 
     NDS_COMBOBOX = [("нет", 0), ("10%", 10), ("20%", 20), ("25%", 25)]
-    SUBCATEGORY_COMBOBOX = [("", 0), ("Погашение кредита", int(EventFinanceSubcategory.LOAN)), ("Погашение лизинга", int(EventFinanceSubcategory.LEASING)),
-                            ("Погашение процентов", int(EventFinanceSubcategory.INTEREST)), ("Погашение займов учредителям", int(EventFinanceSubcategory.FOUNDERLOAN))]
+    SUBCATEGORY_COMBOBOX = [("", 0), ("Погашение кредита", int(LiabilityFinanceSubcategory.LOAN)), ("Погашение лизинга", int(LiabilityFinanceSubcategory.LEASING)),
+                            ("Погашение процентов", int(LiabilityFinanceSubcategory.INTEREST)), ("Погашение займов учредителям", int(LiabilityFinanceSubcategory.FOUNDERLOAN))]
 
     DESCR_COMPLETER_LIST = ["Акт сдачи-приемки оказанных услуг №", "ТТН №", "ТН №", "Договор №", "Приложение №", "Счет на оплату №",
                             "Договор аренды №", "Счет №", "Акт выполненных работ №", "Счет на оплату №", "Акт сдачи-приемки оказанных услуг №",
@@ -45,7 +47,7 @@ class EventDialog(QDialog):
         self.set_completers()
 
         # Заполнение комбобоксов
-        for cat_id, cat_name in EventTableModel.CATEGORY_NAMES.items():
+        for cat_id, cat_name in CATEGORY_NAMES.items():
             if cat_id % 1000 != 0:
                 self.ui.cmb_category.addItem(cat_name, int(cat_id))
         for row in self.NDS_COMBOBOX:
@@ -54,39 +56,39 @@ class EventDialog(QDialog):
             self.ui.cmb_subcategory.addItem(row[0], row[1])
 
         self.ui.cmb_category.currentIndexChanged.connect(lambda row_num: self.ui.wdg_subcategory.setVisible(
-            self.ui.cmb_category.currentData() == EventCategory.TOP_FINANCES))
+            self.ui.cmb_category.currentData() == LiabilityCategory.TOP_FINANCES))
 
         if self.edit_mode:
             self.setWindowTitle("Редактирование платежа")
             self.ui.pb_accept.setText("Применить")
             # Сохранение значений, которые не будут напрямую редактироваться
-            self.non_editable_values["id"] = self.index.siblingAtColumn(EventField.ID).data(EventTableModel.internalValueRole)
-            self.non_editable_values["paidamount"] = (self.index.siblingAtColumn(EventField.TOTALAMOUNT).data(EventTableModel.internalValueRole)
-                                                      - self.index.siblingAtColumn(EventField.REMAINAMOUNT).data(EventTableModel.internalValueRole))
-            self.non_editable_values["createdate"] = self.index.siblingAtColumn(EventField.CREATEDATE).data(EventTableModel.internalValueRole)
-            self.non_editable_values["todayshare"] = self.index.siblingAtColumn(EventField.TODAYSHARE).data(EventTableModel.internalValueRole)
-            self.non_editable_values["lastpaymentdate"] = self.index.siblingAtColumn(EventField.LASTPAYMENTDATE).data(EventTableModel.internalValueRole)
+            self.non_editable_values["id"] = self.index.siblingAtColumn(Col.ID).data(LiabilitySqlTableModel.qtValueRole)
+            self.non_editable_values["paidamount"] = (self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilitySqlTableModel.qtValueRole)
+                                                      - self.index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilitySqlTableModel.qtValueRole))
+            self.non_editable_values["createdate"] = self.index.siblingAtColumn(Col.CREATEDATE).data(LiabilitySqlTableModel.qtValueRole)
+            self.non_editable_values["todayshare"] = self.index.siblingAtColumn(Col.TODAYSHARE).data(LiabilitySqlTableModel.qtValueRole)
+            self.non_editable_values["lastpaymentdate"] = self.index.siblingAtColumn(Col.LASTPAYMENTDATE).data(LiabilitySqlTableModel.qtValueRole)
 
         if self.edit_mode or self.copy_mode:
             # Заполнить имеющимися значениями
-            self.ui.le_receiver.setText(self.index.siblingAtColumn(EventField.RECEIVER).data(EventTableModel.internalValueRole))
-            self.ui.le_name.setText(self.index.siblingAtColumn(EventField.NAME).data(EventTableModel.internalValueRole))
-            self.ui.dsb_totalamount.setValue(self.index.siblingAtColumn(EventField.TOTALAMOUNT).data(EventTableModel.internalValueRole))
-            self.ui.de_duedate.setDate(self.index.siblingAtColumn(EventField.DUEDATE).data(EventTableModel.internalValueRole))
-            cmb_index: int = self.ui.cmb_category.findData(self.index.siblingAtColumn(EventField.CATEGORY).data(EventTableModel.internalValueRole))
+            self.ui.le_receiver.setText(self.index.siblingAtColumn(Col.RECEIVER).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.le_name.setText(self.index.siblingAtColumn(Col.NAME).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.dsb_totalamount.setValue(self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.de_duedate.setDate(self.index.siblingAtColumn(Col.DUEDATE).data(LiabilitySqlTableModel.qtValueRole))
+            cmb_index: int = self.ui.cmb_category.findData(self.index.siblingAtColumn(Col.CATEGORY).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.cmb_category.setCurrentIndex(cmb_index)
-            cmb_index: int = self.ui.cmb_subcategory.findData(self.index.siblingAtColumn(EventField.SUBCATEGORY).data(EventTableModel.internalValueRole))
+            cmb_index: int = self.ui.cmb_subcategory.findData(self.index.siblingAtColumn(Col.SUBCATEGORY).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.cmb_subcategory.setCurrentIndex(cmb_index)
-            if self.index.siblingAtColumn(EventField.PAYMENTTYPE).data(EventTableModel.internalValueRole):
-                self.button_group.button(self.index.siblingAtColumn(EventField.PAYMENTTYPE).data(EventTableModel.internalValueRole)).setChecked(True)
+            if self.index.siblingAtColumn(Col.PAYMENTTYPE).data(LiabilitySqlTableModel.qtValueRole):
+                self.button_group.button(self.index.siblingAtColumn(Col.PAYMENTTYPE).data(LiabilitySqlTableModel.qtValueRole)).setChecked(True)
             else:
                 self.button_group.button(PaymentType.NORMAL).setChecked(True)
-            cmb_index: int = self.ui.cmb_nds.findData(self.index.siblingAtColumn(EventField.NDS).data(EventTableModel.internalValueRole))
+            cmb_index: int = self.ui.cmb_nds.findData(self.index.siblingAtColumn(Col.NDS).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.cmb_nds.setCurrentIndex(cmb_index)
-            self.ui.le_responsible.setText(self.index.siblingAtColumn(EventField.RESPONSIBLE).data(EventTableModel.internalValueRole))
-            self.ui.te_descr.setPlainText(self.index.siblingAtColumn(EventField.DESCR).data(EventTableModel.internalValueRole))
-            self.ui.te_notes.setPlainText(self.index.siblingAtColumn(EventField.NOTES).data(EventTableModel.internalValueRole))
-            self.ui.wdg_subcategory.setVisible(self.ui.cmb_category.currentData() == EventCategory.TOP_FINANCES)
+            self.ui.le_responsible.setText(self.index.siblingAtColumn(Col.RESPONSIBLE).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.te_descr.setPlainText(self.index.siblingAtColumn(Col.DESCR).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.te_notes.setPlainText(self.index.siblingAtColumn(Col.NOTES).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.wdg_subcategory.setVisible(self.ui.cmb_category.currentData() == LiabilityCategory.TOP_FINANCES)
             self.ui.dsb_totalamount.setFocus()
         else:
             self.ui.de_duedate.setDate(QDate.currentDate())
@@ -94,18 +96,17 @@ class EventDialog(QDialog):
             self.ui.wdg_subcategory.setVisible(False)
             self.ui.le_receiver.setFocus()
 
-
         # Сигнал: изменение НДС при изменении категории
         self.ui.cmb_category.currentIndexChanged.connect(lambda row_num: self.change_nds(row_num))
 
     def set_completers(self):
-        origin_model: EventTableModel = model_atlevel(-2, self.model)
+        origin_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
         name_compl_list, receiver_compl_list, responsible_compl_list = [], [], []
         for row in range(origin_model.rowCount()):
-            if origin_model.index(row, EventField.TYPE).data(EventTableModel.internalValueRole) == RowType.EVENT:
-                name_compl_list.append(str(origin_model.index(row, EventField.NAME).data(EventTableModel.internalValueRole)))
-                receiver_compl_list.append(str(origin_model.index(row, EventField.RECEIVER).data(EventTableModel.internalValueRole)))
-                responsible_compl_list.append(str(origin_model.index(row, EventField.RESPONSIBLE).data(EventTableModel.internalValueRole)))
+            if origin_model.index(row, Col.TYPE).data(LiabilitySqlTableModel.qtValueRole) == RowType.LIABILITY:
+                name_compl_list.append(str(origin_model.index(row, Col.NAME).data(LiabilitySqlTableModel.qtValueRole)))
+                receiver_compl_list.append(str(origin_model.index(row, Col.RECEIVER).data(LiabilitySqlTableModel.qtValueRole)))
+                responsible_compl_list.append(str(origin_model.index(row, Col.RESPONSIBLE).data(LiabilitySqlTableModel.qtValueRole)))
         name_compl = QCompleter(list(set(name_compl_list)))
         receiver_compl = QCompleter(list(set(receiver_compl_list)))
         responsible_compl = QCompleter(list(set(responsible_compl_list)))
@@ -118,7 +119,7 @@ class EventDialog(QDialog):
         self.ui.te_descr.completions.setStringList(self.DESCR_COMPLETER_LIST)
 
     def change_nds(self, row: int):
-        cmb_index: int = self.ui.cmb_nds.findData(model_atlevel(-2, self.model).NDS_VALUE[self.ui.cmb_category.currentData()])
+        cmb_index: int = self.ui.cmb_nds.findData(NDS_VALUE[self.ui.cmb_category.currentData()])
         self.ui.cmb_nds.setCurrentIndex(cmb_index)
 
     def check_integrity(self) -> bool:
@@ -140,7 +141,7 @@ class EventDialog(QDialog):
 
         text = ""
         if (self.ui.de_duedate.date() < QDate.currentDate() and self.index.isValid() and
-                TermRoleFlags.DUE not in self.index.siblingAtColumn(EventField.TERMFLAGS).data(EventTableModel.internalValueRole)):
+                FilterFlags.DUE not in self.index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)):
             text += "Дата платежа меньше текущей даты. "
         if self.ui.le_responsible.text().strip() == "":
             text += "Ответственное лицо не указано. "
@@ -154,56 +155,79 @@ class EventDialog(QDialog):
         return True
 
     def accept(self, /):
-        if self.check_integrity():
-            data: list = list()
-            data.append(self.ui.le_receiver.text())
-            data.append(RowType.EVENT)
-            # ID
-            if self.edit_mode:
-                data.append(self.non_editable_values["id"])
-            else:
-                data.append("<PLACEHOLDER>")
-            data.append(self.ui.cmb_category.currentData())
-            data.append(self.ui.cmb_subcategory.currentData() if self.ui.cmb_category.currentData() == EventCategory.TOP_FINANCES else 0)
-            data.append(self.ui.le_name.text())
-            total_amount = Decimal(str(self.ui.dsb_totalamount.value()))
-            # Остаток задолженности
-            if not self.edit_mode:
-                remain_amount: Decimal = total_amount
-            else:
-                remain_amount: Decimal = total_amount - self.non_editable_values["paidamount"]
-            data.append(remain_amount)
-            data.append(total_amount)
-            data.append(float(total_amount - remain_amount) / self.ui.dsb_totalamount.value())
-            data.append(self.ui.de_duedate.date())
-            data.append(self.button_group.checkedId())
-            # Дата создания
-            if not self.edit_mode:
-                data.append(QDate.currentDate())
-            else:
-                data.append(self.non_editable_values["createdate"])
-            data.append(self.ui.te_descr.toPlainText())
-            data.append(self.ui.le_responsible.text())
-            # Сегодняшние оплаты
-            if not self.edit_mode:
-                data.append(Decimal(0))
-                today_payments: bool = False
-            else:
-                data.append(self.non_editable_values["todayshare"])
-                today_payments: bool = (self.non_editable_values["todayshare"] != 0)
-            data.append(term_filter_flags(remain_amount, self.ui.de_duedate.date(), today_payments))
-            data.append(self.ui.te_notes.toPlainText())
-            if self.edit_mode:
-                data.append(self.non_editable_values["lastpaymentdate"])
-            else:
-                data.append(QDate())
-            data.append(self.ui.cmb_nds.currentData())
+        if not self.check_integrity():
+            return
+        data: list = list()
+        # receiver
+        data.append(self.ui.le_receiver.text())
+        # ID
+        if self.edit_mode:
+            data.append(self.non_editable_values["id"])
+        else:
+            # Будет пропущено моделью
+            data.append(0)
+        # type
+        data.append(int(RowType.LIABILITY))
+        # category
+        data.append(self.ui.cmb_category.currentData())
+        # subcategory
+        data.append(self.ui.cmb_subcategory.currentData() if self.ui.cmb_category.currentData() == LiabilityCategory.TOP_FINANCES else 0)
+        # name
+        data.append(self.ui.le_name.text())
+        # remainamount
+        total_amount = Decimal(str(self.ui.dsb_totalamount.value()))
+        if not self.edit_mode:
+            remain_amount: Decimal = total_amount
+        else:
+            remain_amount: Decimal = total_amount - self.non_editable_values["paidamount"]
+        data.append(str(remain_amount))
+        # totalamount
+        data.append(str(total_amount))
+        # nds
+        data.append(self.ui.cmb_nds.currentData())
+        # duedate
+        data.append(date_str(self.ui.de_duedate.date()))
+        # createdate
+        if not self.edit_mode:
+            data.append(date_str(QDate.currentDate()))
+        else:
+            data.append(self.non_editable_values["createdate"])
+        # paymenttype
+        data.append(self.button_group.checkedId())
+        # descr
+        data.append(self.ui.te_descr.toPlainText())
+        # responsible
+        data.append(self.ui.le_responsible.text())
+        # notes
+        data.append(self.ui.te_notes.toPlainText())
+        # todayshare
+        if not self.edit_mode:
+            data.append("0.0")
+            today_payments: bool = False
+        else:
+            data.append(str(self.non_editable_values["todayshare"]))
+            today_payments: bool = (self.non_editable_values["todayshare"] != 0)
+        # lastpaymentdate
+        if self.edit_mode:
+            data.append(self.non_editable_values["lastpaymentdate"])
+        else:
+            data.append("")
+        # filterflags
+        original_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
+        filter_flags: FilterFlags = original_model.calculate_filterflags(remain_amount, self.ui.de_duedate.date(), today_payments, original_model.current_date)
+        data.append(int(filter_flags))
+        # receivernocase
+        data.append(str.lower(self.ui.le_receiver.text()))
+        # responsiblenocase
+        data.append(str.lower(self.ui.le_responsible.text()))
 
-            original_model: EventTableModel = model_atlevel(-2, self.model)
-
-            if not self.edit_mode:
-                original_model.append_row(data)
-            else:
-                original_model.edit_row(map_to_source(-2, self.index), data)
-
+        if not self.edit_mode:
+            if not original_model.insert_row(data):
+                log.c(f"Не удалось вставить новую строку в таблицу event со следующими данными: {data}")
+                return
             QDialog.accept(self)
+        else:
+            original_model.edit_row(map_to_source(-2, self.index).row(), data)
+            QDialog.accept(self)
+
+

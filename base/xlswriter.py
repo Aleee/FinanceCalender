@@ -16,10 +16,10 @@ from xlsxwriter.worksheet import Worksheet
 
 from base.casting import str_bool
 from base.date import date_purestr, date_displstr
-from base.event import EventField, RowType, TermRoleFlags, Event
+from base.event import EventField, TermRoleFlags, Event
 from gui.common import model_atlevel
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
-from gui.eventproxymodel import EventListFinalFilterModel
+from gui.eventproxymodel import LiabilityTotalsProxyModel
 from gui.eventmodel import EventTableModel, HeaderFooterField, HeaderFooterSubtype, RowFormatting
 from gui.settings import SettingsHandler
 from gui.commonwidgets.itemdelegate import EventItemDelegate
@@ -76,8 +76,8 @@ class XlsWriter:
     BORDER_COLOR: str = "#D0D0D0"
     HEADER_ROWS_NUMBER: int = 4
 
-    def __init__(self, model: EventListFinalFilterModel, view: QTableView, settings_handler: SettingsHandler):
-        self.model: EventListFinalFilterModel = model
+    def __init__(self, model: LiabilityTotalsProxyModel, view: QTableView, settings_handler: SettingsHandler):
+        self.model: LiabilityTotalsProxyModel = model
         self.view: QTableView = view
         self.settings_handler: SettingsHandler = settings_handler
         self.last_path: str = ""
@@ -168,13 +168,13 @@ class XlsWriter:
                     row_format: Format = f_event_normal
             elif row_type == RowType.HEADER:
                 row_subtype: HeaderFooterSubtype = self.model.index(row, HeaderFooterField.SUBTYPE, QModelIndex()).data(EventTableModel.internalValueRole)
-                if row_subtype == HeaderFooterSubtype.NEXTLEVEL:
+                if row_subtype == HeaderFooterSubtype.ORDINARY:
                     row_format: Format = f_header_sub
                 else:
                     row_format: Format = f_header_top
             elif row_type == RowType.FOOTER:
                 row_subtype: HeaderFooterSubtype = self.model.index(row, HeaderFooterField.SUBTYPE, QModelIndex()).data(EventTableModel.internalValueRole)
-                if row_subtype == HeaderFooterSubtype.NEXTLEVEL:
+                if row_subtype == HeaderFooterSubtype.ORDINARY:
                     row_format: Format = f_footer_sub
                 else:
                     row_format: Format = f_footer_top

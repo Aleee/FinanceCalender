@@ -51,7 +51,7 @@
    <item row="0" column="1">
     <widget class="QStackedWidget" name="stw">
      <property name="currentIndex">
-      <number>1</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="pg_common">
       <layout class="QGridLayout" name="gridLayout_11">
@@ -116,11 +116,6 @@
           </property>
           <item row="0" column="1">
            <widget class="QComboBox" name="cmb_loadpaid">
-            <item>
-             <property name="text">
-              <string>один месяц</string>
-             </property>
-            </item>
             <item>
              <property name="text">
               <string>три месяца</string>
@@ -693,56 +688,34 @@
      </widget>
      <widget class="QWidget" name="page">
       <layout class="QGridLayout" name="gridLayout_15">
-       <item row="0" column="0">
-        <widget class="QGroupBox" name="groupBox_11">
-         <property name="title">
-          <string>Автосохранение</string>
+       <item row="2" column="0">
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
          </property>
-         <layout class="QGridLayout" name="gridLayout_16">
-          <item row="0" column="1">
-           <widget class="QComboBox" name="cmb_autosave">
-            <property name="minimumSize">
-             <size>
-              <width>120</width>
-              <height>0</height>
-             </size>
-            </property>
-            <item>
-             <property name="text">
-              <string>5 минут</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>15 минут</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>30 минут</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>1 час</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>3 часа</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_16">
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="1" column="0">
+        <widget class="QGroupBox" name="groupBox_13">
+         <property name="title">
+          <string>Восстановление</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <widget class="QPushButton" name="pb_restorefrombackup">
             <property name="text">
-             <string>Интервал автосохранения: </string>
+             <string>  Восстановление из резервной копии  </string>
             </property>
            </widget>
           </item>
-          <item row="0" column="2">
-           <spacer name="horizontalSpacer_3">
+          <item>
+           <spacer name="horizontalSpacer_4">
             <property name="orientation">
              <enum>Qt::Orientation::Horizontal</enum>
             </property>
@@ -757,20 +730,7 @@
          </layout>
         </widget>
        </item>
-       <item row="3" column="0">
-        <spacer name="verticalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Orientation::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="1" column="0">
+       <item row="0" column="0">
         <widget class="QGroupBox" name="groupBox_12">
          <property name="title">
           <string>Резервное копирование</string>
@@ -824,11 +784,6 @@
               </property>
               <item>
                <property name="text">
-                <string>1 неделя</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
                 <string>1 месяц</string>
                </property>
               </item>
@@ -860,7 +815,11 @@
            </layout>
           </item>
           <item row="1" column="0" colspan="2">
-           <widget class="QLineEdit" name="le_backuppath"/>
+           <widget class="QLineEdit" name="le_backuppath">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
           <item row="1" column="2">
            <widget class="QPushButton" name="pb_backuppath">
@@ -868,35 +827,6 @@
              <string>Изменить</string>
             </property>
            </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QGroupBox" name="groupBox_13">
-         <property name="title">
-          <string>Восстановление</string>
-         </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_4">
-          <item>
-           <widget class="QPushButton" name="pb_restorefrombackup">
-            <property name="text">
-             <string>  Восстановление из резервной копии  </string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer_4">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
           </item>
          </layout>
         </widget>
