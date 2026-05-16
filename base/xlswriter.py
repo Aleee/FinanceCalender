@@ -2,9 +2,13 @@ import os
 import random
 import string
 import platform
+import posixpath
 from decimal import Decimal
 from enum import IntEnum, auto
 from pathlib import Path
+
+from gui.eventmodel import HeaderFooterField
+from gui.eventsqlmodel import RowType, Col, FilterFlags, RowFormatting, HeaderFooterSubtype
 
 if platform.system() == "Windows":
     import pywintypes
@@ -16,22 +20,20 @@ from xlsxwriter.worksheet import Worksheet
 
 from base.casting import str_bool
 from base.date import date_purestr, date_displstr
-from base.event import EventField, TermRoleFlags, Event
 from gui.common import model_atlevel
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.eventproxymodel import LiabilityTotalsProxyModel
-from gui.eventmodel import EventTableModel, HeaderFooterField, HeaderFooterSubtype, RowFormatting
+from gui.eventsqlmodel import LiabilitySqlTableModel
 from gui.settings import SettingsHandler
 from gui.commonwidgets.itemdelegate import EventItemDelegate
-from typing import get_type_hints
 from xlsxwriter import Workbook
 from xlsxwriter.exceptions import FileCreateError
 from xlsxwriter.format import Format
 
 
 def xlsx_to_pdf_win32(xlsx_path, pdf_path):
+    excel = win32com.client.Dispatch("Excel.Application")
     try:
-        excel = win32com.client.Dispatch("Excel.Application")
         excel.Visible = False
         wb = excel.Workbooks.Open(os.path.abspath(xlsx_path))
         wb.ActiveSheet.ExportAsFixedFormat(0, os.path.abspath(pdf_path))
@@ -42,8 +44,10 @@ def xlsx_to_pdf_win32(xlsx_path, pdf_path):
         msg_box.exec()
         return False
     finally:
-        if wb:
+        try:
             wb.Close()
+        except NameError:
+            pass
         excel.Quit()
         del wb
         del excel
@@ -51,26 +55,34 @@ def xlsx_to_pdf_win32(xlsx_path, pdf_path):
 
 class ExportFormat(IntEnum):
     XLSX = auto()
+
     PDF = auto()
 
 
 class XlsWriter:
     DEFAULT_XLSCOLUMN_WIDTH = {
-        EventField.RECEIVER: 28,
-        EventField.TYPE: 0,
-        EventField.ID: 0,
-        EventField.CATEGORY: 0,
-        EventField.NAME: 65,
-        EventField.REMAINAMOUNT: 17,
-        EventField.TOTALAMOUNT: 17,
-        EventField.PERCENTAGE: 0,
-        EventField.DUEDATE: 18,
-        EventField.PAYMENTTYPE: 15,
-        EventField.CREATEDATE: 0,
-        EventField.DESCR: 51,
-        EventField.RESPONSIBLE: 21,
-        EventField.TODAYSHARE: 17,
-        EventField.TERMFLAGS: 0,
+        Col.RECEIVER: 28,
+        Col.ID: 0,
+        Col.TYPE: 0,
+        Col.CATEGORY: 0,
+        Col.SUBCATEGORY: 0,
+        Col.NAME: 65,
+        Col.REMAINAMOUNT: 17,
+        Col.TOTALAMOUNT: 17,
+        Col.NDS: 0,
+        Col.DUEDATE: 18,
+        Col.CREATEDATE: 0,
+        Col.PAYMENTTYPE: 15,
+        Col.DESCR: 51,
+        Col.RESPONSIBLE: 21,
+        Col.NOTES: 0,
+        Col.TODAYSHARE: 17,
+        Col.LASTPAYMENTDATE: 0,
+        Col.FILTERFLAGS: 0,
+        Col.FEATURED: 0,
+        Col.HIDDEN: 0,
+        Col.RECEIVERNOCASE: 0,
+        Col.RESPONSIBLENOCASE: 0,
     }
 
     BORDER_COLOR: str = "#D0D0D0"
@@ -83,8 +95,7 @@ class XlsWriter:
         self.last_path: str = ""
 
         # Индексы столбцов с финансовыми данными
-        type_hints: list = list(get_type_hints(Event).values())
-        self.decimalcolumns_numbers = [index for index, datatype in enumerate(type_hints) if datatype == Decimal]
+        self.decimalcolumns_numbers = LiabilitySqlTableModel.DECIMAL_COLUMNS
 
     def write(self, export_format: ExportFormat, columns_to_export: list[bool]) -> bool:
 
@@ -95,10 +106,10 @@ class XlsWriter:
 
         row_formatting: RowFormatting = model_atlevel(-2, self.model).row_formatting
 
-        export_dir: str = self.settings_handler.settings.value("Export/path", os.getcwd())
-        xls_file_path: str = os.path.join(export_dir, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.xlsx")
-        temp_file_path: str = os.path.join(os.getcwd(), ''.join(random.choices(string.ascii_uppercase + string.digits, k=14)) + ".pdf")
-        pdf_file_path: str = os.path.join(export_dir, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.pdf")
+        export_dir: str = str(self.settings_handler.settings.value("Export/path", os.getcwd()))
+        xls_file_path: str = posixpath.join(export_dir, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.xlsx")
+        temp_file_path: str = posixpath.join(os.getcwd(), ''.join(random.choices(string.ascii_uppercase + string.digits, k=14)) + ".pdf")
+        pdf_file_path: str = posixpath.join(export_dir, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.pdf")
 
         if export_format == ExportFormat.XLSX and Path(xls_file_path).exists():
             xls_file_path = xls_file_path[:-5] + "_" + QTime().currentTime().toString("hhmmss") + ".xlsx"
@@ -150,30 +161,30 @@ class XlsWriter:
         worksheet.merge_range(1, 0, 1, len(columns_to_export) - 1, f"по состоянию на {date_displstr(QDate().currentDate())}", f_fileheader2)
         # Заголовочная строка
         for col in range(len(columns_to_export)):
-            worksheet.write(self.HEADER_ROWS_NUMBER - 1, col, EventTableModel.HEADERS[col])
+            worksheet.write(self.HEADER_ROWS_NUMBER - 1, col, LiabilitySqlTableModel.COLUMN_DATA[col][0])
         ##########################
 
         ### ОСНОВНАЯ ЧАСТЬ ###
         for row in range(self.model.rowCount()):
 
             # Определяем формат для строки
-            row_type: RowType = self.model.index(row, EventField.TYPE, QModelIndex()).data(EventTableModel.internalValueRole)
-            if row_type == RowType.EVENT:
-                term_flags: TermRoleFlags = self.model.index(row, EventField.TERMFLAGS, QModelIndex()).data(EventTableModel.internalValueRole)
-                if TermRoleFlags.DUE in term_flags:
+            row_type: RowType = self.model.index(row, Col.TYPE, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
+            if row_type == RowType.LIABILITY:
+                term_flags: FilterFlags = self.model.index(row, Col.FILTERFLAGS, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
+                if FilterFlags.DUE in term_flags:
                     row_format: Format = f_event_due
-                elif TermRoleFlags.TODAY in term_flags:
+                elif FilterFlags.TODAY in term_flags:
                     row_format: Format = f_event_today
                 else:
                     row_format: Format = f_event_normal
             elif row_type == RowType.HEADER:
-                row_subtype: HeaderFooterSubtype = self.model.index(row, HeaderFooterField.SUBTYPE, QModelIndex()).data(EventTableModel.internalValueRole)
+                row_subtype: HeaderFooterSubtype = self.model.index(row, Col.SUBCATEGORY, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
                 if row_subtype == HeaderFooterSubtype.ORDINARY:
                     row_format: Format = f_header_sub
                 else:
                     row_format: Format = f_header_top
             elif row_type == RowType.FOOTER:
-                row_subtype: HeaderFooterSubtype = self.model.index(row, HeaderFooterField.SUBTYPE, QModelIndex()).data(EventTableModel.internalValueRole)
+                row_subtype: HeaderFooterSubtype = self.model.index(row, Col.SUBCATEGORY, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
                 if row_subtype == HeaderFooterSubtype.ORDINARY:
                     row_format: Format = f_footer_sub
                 else:
@@ -195,7 +206,7 @@ class XlsWriter:
                         if row_type in (RowType.FOOTER, RowType.FINALFOOTER):
                             value = self.model.index(row, col, QModelIndex()).data(self.model.decimalValueRole)
                         else:
-                            value = self.model.index(row, col, QModelIndex()).data(EventTableModel.internalValueRole)
+                            value = self.model.index(row, col, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
                         if value == 0 and self.decimalcolumns_numbers.index(col) == len(self.decimalcolumns_numbers) - 1:
                             value = ""
                         else:

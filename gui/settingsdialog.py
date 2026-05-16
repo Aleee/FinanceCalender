@@ -17,6 +17,13 @@ from gui.ui.settingsdialog_ui import Ui_settingsdialog
 
 class SettingsDialog(QDialog):
 
+    MENU_PAGES = {
+        0: 1,
+        1: 2,
+        2: 3,
+        3: 0,
+    }
+
     CLEANBACKUP_SET = {
         0: 30,
         1: 180,
@@ -37,7 +44,6 @@ class SettingsDialog(QDialog):
 
         self.settings_handler: SettingsHandler = settings_handler
         self.settings_handler.save_settings()
-        self.autosave_needed: bool = False
 
         self.ui.lw_menu.setIconSize(QSize(30, 30))
         self.ui.pb_cancel.setEnabled(reject_possible)
@@ -66,7 +72,6 @@ class SettingsDialog(QDialog):
         self.ui.pb_ok.clicked.connect(self.accept)
         self.ui.pb_cancel.clicked.connect(self.reject)
         self.ui.lw_menu.currentItemChanged.connect(self.change_stw_page)
-        self.ui.pb_exportpath.clicked.connect(lambda: self.change_path(self.ui.le_exportpath))
         self.ui.pb_backuppath.clicked.connect(lambda: self.change_path(self.ui.le_backuppath))
         self.ui.pb_restorefrombackup.clicked.connect(self.restore_backup)
 
@@ -87,7 +92,7 @@ class SettingsDialog(QDialog):
             msg_box.exec()
             return
         self.save_settings_values()
-        self.settings_handler.apply_settings(self.autosave_needed)
+        self.settings_handler.apply_settings()
         QDialog.accept(self)
 
     def change_path(self, le_widget: QLineEdit) -> None:
@@ -125,7 +130,6 @@ class SettingsDialog(QDialog):
         self.ui.chb_datainfo_responsible.setChecked(bool(int(self.settings_handler.settings.value("Infopanel/responsible", 1))))
         ## Настройки экспорта
         self.ui.chb_frozenheader.setChecked(bool(int(self.settings_handler.settings.value("Export/frozenheader", 1))))
-        self.ui.le_exportpath.setText(self.settings_handler.settings.value("Export/path", os.getcwd()))
         ## Форматирование строк
         self.ui.chb_verticalgrid.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/verticalgrid"), RowFormatting().vertical_grid))
         self.ui.chb_zebrastyle.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/zebrastyle"), RowFormatting().zebra_style))
@@ -158,7 +162,7 @@ class SettingsDialog(QDialog):
     def save_settings_values(self) -> None:
         # Отображение
         ## Отображение оплаченных
-        self.settings_handler.settings.setValue("Common/paidloadperiod", self.ui.cmb_loadpaid.currentData())
+        self.settings_handler.settings.setValue("Common/paidloadperiod", int(self.ui.cmb_loadpaid.currentData()))
         ## Размер шрифта
         self.settings_handler.settings.setValue("Appearance/fontsize", self.rbg_fontsize.checkedId())
         # Таблица
@@ -176,7 +180,6 @@ class SettingsDialog(QDialog):
         self.settings_handler.settings.setValue("Infopanel/responsible", int(self.ui.chb_datainfo_responsible.isChecked()))
         ## Настройки экспорта
         self.settings_handler.settings.setValue("Export/frozenheader", int(self.ui.chb_frozenheader.isChecked()))
-        self.settings_handler.settings.setValue("Export/path", self.ui.le_exportpath.text())
         ## Форматирование строк
         self.settings_handler.settings.setValue("Tableformat/verticalgrid", int(self.ui.chb_verticalgrid.isChecked()))
         self.settings_handler.settings.setValue("Tableformat/zebrastyle", int(self.ui.chb_zebrastyle.isChecked()))
@@ -202,7 +205,7 @@ class SettingsDialog(QDialog):
         self.settings_handler.settings.sync()
 
     def change_stw_page(self, current_item: QListWidgetItem, previous_item: QListWidgetItem) -> None:
-        self.ui.stw.setCurrentIndex(self.ui.lw_menu.row(current_item))
+        self.ui.stw.setCurrentIndex(self.MENU_PAGES[self.ui.lw_menu.row(current_item)])
 
     def restore_backup(self) -> None:
         dlg = RecoveryDialog(self.settings_handler, self.parent().db_handler,

@@ -1,8 +1,8 @@
-from decimal import Decimal
 import lovely_logger as log
 
 from PySide6.QtCore import QModelIndex, Qt, QDate
 from PySide6.QtWidgets import QDialog, QButtonGroup, QCompleter
+from decimal import Decimal
 
 from base.date import date_str
 from gui.eventsqlmodel import PaymentType, RowType, LiabilitySqlTableModel, Col, FilterFlags
@@ -68,6 +68,7 @@ class EventDialog(QDialog):
             self.non_editable_values["createdate"] = self.index.siblingAtColumn(Col.CREATEDATE).data(LiabilitySqlTableModel.qtValueRole)
             self.non_editable_values["todayshare"] = self.index.siblingAtColumn(Col.TODAYSHARE).data(LiabilitySqlTableModel.qtValueRole)
             self.non_editable_values["lastpaymentdate"] = self.index.siblingAtColumn(Col.LASTPAYMENTDATE).data(LiabilitySqlTableModel.qtValueRole)
+            self.non_editable_values["featured"] = self.index.siblingAtColumn(Col.FEATURED).data(LiabilitySqlTableModel.qtValueRole)
 
         if self.edit_mode or self.copy_mode:
             # Заполнить имеющимися значениями
@@ -86,6 +87,7 @@ class EventDialog(QDialog):
             cmb_index: int = self.ui.cmb_nds.findData(self.index.siblingAtColumn(Col.NDS).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.cmb_nds.setCurrentIndex(cmb_index)
             self.ui.le_responsible.setText(self.index.siblingAtColumn(Col.RESPONSIBLE).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.chb_hidden.setChecked(bool(self.index.siblingAtColumn(Col.HIDDEN).data(LiabilitySqlTableModel.qtValueRole)))
             self.ui.te_descr.setPlainText(self.index.siblingAtColumn(Col.DESCR).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.te_notes.setPlainText(self.index.siblingAtColumn(Col.NOTES).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.wdg_subcategory.setVisible(self.ui.cmb_category.currentData() == LiabilityCategory.TOP_FINANCES)
@@ -216,6 +218,13 @@ class EventDialog(QDialog):
         original_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
         filter_flags: FilterFlags = original_model.calculate_filterflags(remain_amount, self.ui.de_duedate.date(), today_payments, original_model.current_date)
         data.append(int(filter_flags))
+        # featured
+        if not self.edit_mode:
+            data.append(0)
+        else:
+            data.append(self.non_editable_values["featured"])
+        # hidden
+        data.append(int(self.ui.chb_hidden.isChecked()))
         # receivernocase
         data.append(str.lower(self.ui.le_receiver.text()))
         # responsiblenocase
@@ -229,5 +238,3 @@ class EventDialog(QDialog):
         else:
             original_model.edit_row(map_to_source(-2, self.index).row(), data)
             QDialog.accept(self)
-
-

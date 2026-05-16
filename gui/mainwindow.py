@@ -1,25 +1,21 @@
-import os
-import shutil
-import sqlite3
-import traceback
-
 import lovely_logger as log
+
 from decimal import Decimal
 from enum import IntEnum, auto
-from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QTime, QDateTime, QTimer, QCoreApplication
-from PySide6.QtSql import QSqlDatabase, QSqlTableModel
-from PySide6.QtWidgets import QMainWindow, QDialog, QVBoxLayout, QApplication, QLabel, QSizePolicy, QWidget
+from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime
+from PySide6.QtSql import QSqlTableModel
+from PySide6.QtWidgets import QMainWindow, QDialog, QLabel, QWidget
 
+from base.backup import clean_backup_folder, save_backup
 from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace, str_rubstr
 from base.payment import PaymentField
 from base.xlswriter import XlsWriter
 from gui.common import map_to_source, model_atlevel
-from gui.commonwidgets.common import is_selection_filteredout
+from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparator
 from gui.commonwidgets.eventfilter import RightClickFilter
 from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
@@ -69,7 +65,7 @@ class MainWindow(QMainWindow):
         self.saved_before_exit: bool = False
         self.nosave_exit: bool = False
 
-        self.plot_available: bool = False
+        # self.plot_available: bool = False
 
         # Загрузка данных из БД
         ## Проверка на наличие файла
@@ -114,10 +110,8 @@ class MainWindow(QMainWindow):
 
         self.ui.tv_payment.setModel(self.payment_proxy_model)
 
-        # # Инициализация экспортера
-        # self.xls_writer: XlsWriter = XlsWriter(self.event_finalfilter_model, self.ui.tv_payment, self.settings_handler)
-        # # Сохранение текста заметок
-        # self.ui.te_notes.textChanged.connect(self.save_notes)
+        # Инициализация экспортера
+        self.xls_writer: XlsWriter = XlsWriter(self.proxy2_model, self.ui.tv_payment, self.settings_handler)
 
         # # График оплат
         # self.payment_plot: PaymentHistoryGraph = PaymentHistoryGraph()
@@ -158,9 +152,17 @@ class MainWindow(QMainWindow):
         self.ui.le_receiverfilter.textChanged.connect(self.update_filters_and_select)
         self.ui.le_responsiblefilter.textChanged.connect(self.update_filters_and_select)
         self.ui.chb_paytoday.checkStateChanged.connect(self.update_filters_and_select)
+
+        # Действия при переключении избранного
+        self.ui.act_featured.triggered.connect(self.update_filters_and_select)
+        self.ui.act_featured.triggered.connect(lambda: self.actions_on_selection_visibility_changed(True) if not self.current_data(Col.FEATURED) and self.ui.act_featured.isChecked() else None)
+        self.ui.trw_event.filter_conditions_changed.connect(self.update_filters_and_select)
+        self.ui.trw_event.filter_conditions_changed.connect(lambda: self.actions_on_selection_visibility_changed(True) if self.ui.act_featured.isChecked() else None)
+
         self.ui.lw_term.currentRowChanged.connect(lambda row: self.proxy1_model.set_filter(Filter.TERM, list(TermCategory)[row]))
         self.ui.lw_category.currentRowChanged.connect(lambda row: self.proxy1_model.set_filter(Filter.CATEGORY, row))
         self.ui.chb_paytoday.checkStateChanged.connect(lambda state: self.proxy1_model.set_filter(Filter.PAYTODAY, state))
+
         ## Действия после перезагрузки модели
         # Сохранение выделения
         self.base_model.beforeSelect.connect(self.ui.trw_event.save_selection)
@@ -171,18 +173,17 @@ class MainWindow(QMainWindow):
         self.base_model.filterwidget_labels_changed.connect(lambda term_labeldata, category_labeldata: self.ui.lw_term.update_labels(term_labeldata))
         self.base_model.filterwidget_labels_changed.connect(lambda term_labeldata, category_labeldata: self.ui.lw_category.update_labels(category_labeldata))
 
-        # ## Обновление отображения при фильтрации/сортировке/изменении
-        # self.event_proxy_model.layoutChanged.connect(self.ui.trw_event.regain_state_after_model_changes)
+        # Обновление отображения при фильтрации/сортировке/изменении
         self.proxy1_model.layoutChanged.connect(self.check_event_selection_visibility)
         # События при смене выбранного ивента
         self.ui.trw_event.selectionModel().currentChanged.connect(self.on_currentevent_change)
-        # Новая выборка из базы должна запускать те же проверки (не уверен)
-        # self.base_model.afterSelect.connect(self.on_currentevent_change)
         # Сигналы таблицы платежей
         self.ui.tv_payment.selectionModel().selectionChanged.connect(self.check_payment_selection_visibility)
-        # # Cигналы информационной панели
+        # Cигналы информационной панели
         self.ui.pb_addpayment.clicked.connect(self.make_new_payment)
         self.ui.pb_deletepayment.clicked.connect(self.delete_payment)
+        self.ui.tb_savenote.clicked.connect(self.save_note)
+        self.ui.te_notes.textChanged.connect(lambda: self.ui.tb_savenote.setEnabled(True))
         # Сигналы тулбара
         self.ui.act_new.triggered.connect(lambda: self.open_event_dialog())
         self.ui.act_copy.triggered.connect(lambda: self.open_event_dialog(copy=True))
@@ -193,15 +194,22 @@ class MainWindow(QMainWindow):
         # self.rmb_finplan_filter.rightmousebutton_clicked.connect(lambda: self.open_finplan_dialog(ask_year=True))
         # self.ui.tlbr.widgetForAction(self.ui.act_finplan).installEventFilter(self.rmb_finplan_filter)
         # self.ui.act_fulfillment.triggered.connect(self.open_fulfillment_dialog)
-        # self.ui.act_export.triggered.connect(self.open_export_dialog)
+        self.ui.act_export.triggered.connect(self.open_export_dialog)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog(True))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.HEADER, checked))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.ui.trw_event.span_columns() if checked else None)
         self.ui.act_togglefooters.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.FOOTER, checked))
 
         # Строка состояния
-        self.le_sbar_backup = QLabel("")
-        self.ui.statusBar.addWidget(self.le_sbar_backup)
+        self.la_sbar_backup = QLabel("")
+        self.separator1 = StatusBarSeparator(self)
+        self.separator2 = StatusBarSeparator(self)
+        self.spacer = QWidget()
+        self.spacer.setFixedWidth(10)
+        self.ui.statusBar.addPermanentWidget(self.separator1)
+        self.ui.statusBar.addPermanentWidget(self.la_sbar_backup)
+        self.ui.statusBar.addPermanentWidget(self.separator2)
+        self.ui.statusBar.addPermanentWidget(self.spacer)
 
         # Косметика
         self.ui.tv_payment.set_columns_visibility()
@@ -209,31 +217,41 @@ class MainWindow(QMainWindow):
         # Постоянный вертикальный header
         self.ui.tv_payment.setVerticalHeader(PersistentHeader(Qt.Orientation.Vertical, self.ui.tv_payment))
 
-        # # Очистка папки с резервными копиями
-        # self.clean_backup_folder()
-        # # Резервное копирование
-        # self.make_backup()
+        # Резервное копирование
+        self.make_backup()
 
         # Начальные действия
         self.settings_handler.apply_settings()
+        self.ui.stw_eventinfo.setCurrentIndex(1)
 
         # # Завершение работы
         # app.aboutToQuit.connect(self.on_quit_actions)
+
+    def make_backup(self):
+        # Очистка папки с резервными копиями
+        result: bool = clean_backup_folder(self.settings_handler)
+        if not result:
+            error_msg = ErrorInfoMessageBox("Не удалось очистить папку с резервными копиями (см. подробности в логе)")
+            error_msg.exec()
+        result: QDateTime = save_backup(self.settings_handler, self.db_handler)
+        if result.isValid():
+            self.la_sbar_backup.setText(f"Резервная копия: {date_displstr(result)}")
+        else:
+            self.la_sbar_backup.setText("Резервная копия: ОШИБКА СОЗДАНИЯ")
+
 
     def update_filters_and_select(self):
         self.base_model.set_filters(self.ui.lw_term.current_term(),
                                     self.ui.lw_category.current_category(),
                                     self.ui.le_receiverfilter.text(),
                                     self.ui.le_responsiblefilter.text(),
-                                    self.ui.chb_paytoday.isChecked())
-
-    # def allow_proxymodels_sortfliter(self, allow: bool) -> None:
-    #     self.event_proxy_model.enable_sortfilter(allow)
+                                    self.ui.chb_paytoday.isChecked(),
+                                    int(self.settings_handler.settings.value("Common/paidloadperiod")),
+                                    self.ui.act_featured.isChecked())
 
     def get_current_event_index(self, source_model_index: bool = False) -> QModelIndex:
         if source_model_index:
             return map_to_source(-2, self.ui.trw_event.selectionModel().currentIndex())
-            # return self.event_proxy_model.mapToSource(self.event_finalfilter_model.mapToSource(self.ui.trw_event.selectionModel().currentIndex()))
         else:
             return self.ui.trw_event.selectionModel().currentIndex()
         
@@ -245,6 +263,9 @@ class MainWindow(QMainWindow):
 
     def check_event_selection_visibility(self) -> None:
         filtered_out = not bool(self.ui.trw_event.currentIndex().isValid())
+        self.actions_on_selection_visibility_changed(filtered_out)
+
+    def actions_on_selection_visibility_changed(self, filtered_out: bool) -> None:
         self.ui.act_copy.setDisabled(filtered_out)
         self.ui.act_edit.setDisabled(filtered_out)
         self.ui.act_delete.setDisabled(filtered_out)
@@ -257,7 +278,7 @@ class MainWindow(QMainWindow):
 
     def on_currentevent_change(self) -> None:
         row_type: RowType = self.current_data(Col.TYPE)
-        # Активировать/деактивировать кнопку удаления платежа
+        # Активировать/деактивировать кнопку удаления платежа и
         self.check_payment_selection_visibility()
         # Отобразить только оплаты, относящиеся к текущему платежу
         self.payment_model.update_filter(self.current_data(Col.ID, LiabilitySqlTableModel.qtValueRole))
@@ -266,46 +287,7 @@ class MainWindow(QMainWindow):
             for act in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete):
                 act.setEnabled(False)
         self.update_eventinfo()
-
-    # def make_backup(self) -> bool:
-    #     backup_path: str = self.settings_handler.settings.value("Backup/path")
-    #     if not backup_path or not Path(backup_path).is_dir():
-    #         log.w(f"Путь для резервного копирования не указан или неверен: {backup_path}")
-    #         self.update_toolbar_info(backup_time=QTime(), backup_status=BackupAutosaveStatus.ERROR, initial=True)
-    #         return False
-    #     backup_filepath: Path = Path(backup_path).joinpath("backup_" + QDateTime().currentDateTime().toString("yyyyMMdd-hhmmss") + ".db")
-    #     try:
-    #         shutil.copy(os.path.abspath(self.db_handler.DEFAULT_DB_RELPATH), backup_filepath)
-    #         self.update_toolbar_info(backup_time=QTime().currentTime(), backup_status=BackupAutosaveStatus.SUCCESS, initial=True)
-    #         return True
-    #     except FileNotFoundError:
-    #         log.w(f"Файл для копирования {os.path.abspath(self.db_handler.DEFAULT_DB_RELPATH)} не найден")
-    #     except Exception as e:
-    #         log.x(f"При попытке создать резервную копию произошла ошибка: {e}")
-    #     self.update_toolbar_info(backup_time=QTime(), backup_status=BackupAutosaveStatus.ERROR, initial=True)
-    #     return False
-
-    # def clean_backup_folder(self) -> bool:
-    #     backup_foldername: str = self.settings_handler.settings.value("Backup/path")
-    #     if not backup_foldername or not Path(backup_foldername).is_dir():
-    #         return False
-    #     try:
-    #         cleanup_period: int = int(self.settings_handler.settings.value("Backup/cleanupperiod"))
-    #     except ValueError, TypeError:
-    #         return False
-    #     minumum_date = QDate().currentDate().addDays(-cleanup_period)
-    #     filenames: list[str] = [item.name for item in Path(backup_foldername).iterdir() if item.is_file()]
-    #     for fname in filenames:
-    #         try:
-    #             date_substring: str = fname[7:15]
-    #         except IndexError:
-    #             continue
-    #         filedate: QDate = QDate.fromString(date_substring, "yyyyMMdd")
-    #         if not filedate.isValid():
-    #             continue
-    #         if filedate < minumum_date:
-    #             Path(os.path.join(backup_foldername, fname)).unlink(missing_ok=True)
-    #     return True
+        self.ui.tb_savenote.setEnabled(False)
 
     # def update_plot(self) -> None:
     #     self.plot_available: bool = True
@@ -359,7 +341,10 @@ class MainWindow(QMainWindow):
         if row_type == RowType.LIABILITY:
             self.ui.la_remainsum.setText(str_rubstr(current_index.siblingAtColumn(Col.REMAINAMOUNT).data()))
             self.ui.la_totalsum.setText(str_rubstr(current_index.siblingAtColumn(Col.TOTALAMOUNT).data()))
-            self.ui.la_percentage.setText("<<<>>>>")
+            percentage: str = ((current_index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilitySqlTableModel.qtValueRole) -
+                               current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilitySqlTableModel.qtValueRole)) /
+                               current_index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.la_percentage.setText(f"{percentage:.1%}")
             self.ui.la_createdate.setText(str(current_index.siblingAtColumn(Col.CREATEDATE).data()))
             self.ui.la_paymenttype.setText(str(current_index.siblingAtColumn(Col.PAYMENTTYPE).data()).lower())
             self.ui.la_responsible.setText(str(current_index.siblingAtColumn(Col.RESPONSIBLE).data()))
@@ -379,17 +364,15 @@ class MainWindow(QMainWindow):
     #         current_event_id = self.event_finalfilter_model.data(current_index.siblingAtColumn(Col.ID), EventTableModel.internalValueRole)
     #     self.payment_proxy_model.reset_filter(current_event_id)
 
+    def set_data_to_current_event(self, column, value) -> bool:
+        curr_index_source: QModelIndex = self.get_current_event_index(source_model_index=True)
+        if not curr_index_source.isValid():
+            return False
+        return self.base_model.setData(curr_index_source.siblingAtColumn(column), value)
 
-    # def set_data_to_current_event(self, column, value, emit_datachanaged: bool = True) -> bool:
-    #     curr_index: QModelIndex = self.get_current_event_index()
-    #     curr_proxy_index: QModelIndex = self.event_finalfilter_model.mapToSource(curr_index)
-    #     curr_source_index: QModelIndex = self.event_proxy_model.mapToSource(curr_proxy_index)
-    #     if not curr_source_index.isValid():
-    #         return False
-    #     return self.event_model.setData(curr_source_index.siblingAtColumn(column), value, EventTableModel.internalValueRole, emit_datachanaged)
-
-    # def save_notes(self) -> None:
-    #     self.set_data_to_current_event(Col.NOTES, self.ui.te_notes.toPlainText(), False)
+    def save_note(self) -> bool:
+        self.ui.tb_savenote.setEnabled(False)
+        return self.set_data_to_current_event(Col.NOTES, self.ui.te_notes.toPlainText())
 
     def make_new_payment(self) -> bool:
         date: QDate = self.ui.de_paymentdate.date()
@@ -446,6 +429,7 @@ class MainWindow(QMainWindow):
         settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, reject_possible, self)
         settings_dialog.exec()
         self.on_currentevent_change()
+        self.update_filters_and_select()
 
     def open_event_dialog(self, edit: bool = False, copy: bool = False):
         curr_index: QModelIndex = self.get_current_event_index()
@@ -466,15 +450,11 @@ class MainWindow(QMainWindow):
         else:
             return False
 
-    # def open_export_dialog(self) -> bool:
-    #     if self.event_finalfilter_model.rowCount() == 0:
-    #         return False
-    #     if self.event_proxy_model.filters_active():
-    #         msg_box = YesNoMessagebox("Предупреждение: на текущий момент применены один или несколько фильтров. Уверены, что хотите продолжить?")
-    #         if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:
-    #             return False
-    #     dlg: ExportDialog = ExportDialog(self.xls_writer, self.ui.trw_event.get_columnvisibility_list(), self)
-    #     return dlg.exec() == QDialog.DialogCode.Accepted
+    def open_export_dialog(self) -> bool:
+        if self.proxy2_model.rowCount() == 0:
+            return False
+        dlg: ExportDialog = ExportDialog(self.xls_writer, self.ui.trw_event.get_columnvisibility_list(), self)
+        return dlg.exec() == QDialog.DialogCode.Accepted
 
     # def open_finplan_dialog(self, ask_year: bool = False):
     #     current_year: int = QDate().currentDate().year()
@@ -489,6 +469,9 @@ class MainWindow(QMainWindow):
     #     dlg.exec()
 
     def delete_event(self) -> bool:
+        print("current:", self.ui.trw_event.currentIndex().row())
+        print("selected:", [i.row() for i in self.ui.trw_event.selectedIndexes()])
+
         curr_index: QModelIndex = self.get_current_event_index()
         if not curr_index.isValid():
             return False
@@ -508,22 +491,6 @@ class MainWindow(QMainWindow):
             return True
         return False
 
-    # def closeEvent(self, event, /):
-    #     self.settings_handler.save_settings()
-    #     if self.nosave_exit:
-    #         event.accept()
-    #         return
-    #     if self.db_handler.save_eventspayments_to_db(self.event_model, self.payment_model):
-    #         self.saved_before_exit = True
-    #         event.accept()
-    #         return
-    #     else:
-    #         msg_box = YesNoMessagebox("Перед выходом не удалось сохранить изменения в базу данных (подробности см. в логе). Уверены, что хотите выйти?")
-    #         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
-    #             event.accept()
-    #             return
-    #     event.ignore()
-
-    # def on_quit_actions(self):
-    #     if not self.saved_before_exit and not self.nosave_exit:
-    #         self.db_handler.save_eventspayments_to_db(self.event_model, self.payment_model)
+    def closeEvent(self, event, /):
+        self.settings_handler.save_settings()
+        event.accept()

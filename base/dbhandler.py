@@ -17,7 +17,7 @@ from gui.settings import SettingsHandler
 class DBHandler:
 
     DEFAULT_DB_RELPATH = "db/db.db"
-    EVENT_TABLE_COLUMNUM = 20
+    EVENT_TABLE_COLUMNUM = 22
     PAYMENT_TABLE_COLUMNUM = 5
 
     def __init__(self, settings_handler):

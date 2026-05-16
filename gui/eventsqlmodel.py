@@ -1,6 +1,4 @@
-import inspect
-import sqlite3
-import traceback
+import decimal
 from dataclasses import dataclass, astuple
 from decimal import Decimal
 from enum import IntEnum, auto, IntFlag
@@ -69,8 +67,10 @@ class Col(IntEnum):
     TODAYSHARE = 15
     LASTPAYMENTDATE = 16
     FILTERFLAGS = 17
-    RECEIVERNOCASE = 18
-    RESPONSIBLENOCASE = 19
+    FEATURED = 18
+    HIDDEN = 19
+    RECEIVERNOCASE = 20
+    RESPONSIBLENOCASE = 21
 
 
 class RowType(IntEnum):
@@ -117,9 +117,15 @@ class LiabilitySqlTableModel(QSqlTableModel):
         Col.TODAYSHARE: ("Оплата сегодня", True),
         Col.LASTPAYMENTDATE: ("", False),
         Col.FILTERFLAGS: ("", False),
+        Col.FEATURED: ("", True),
+        Col.HIDDEN: ("", True),
         Col.RECEIVERNOCASE: ("", False),
         Col.RESPONSIBLENOCASE: ("", False),
     }
+
+    DECIMAL_COLUMNS = [
+        Col.REMAINAMOUNT, Col.TOTALAMOUNT, Col.TODAYSHARE
+    ]
 
     PAYMENTTYPE_NAMES = {
         PaymentType.NORMAL: "По факту",
@@ -156,8 +162,11 @@ class LiabilitySqlTableModel(QSqlTableModel):
         elif role == self.qtValueRole:
             try:
                 if idx.column() in (Col.REMAINAMOUNT, Col.TOTALAMOUNT, Col.TODAYSHARE):
-                    return Decimal(idx.data(self.dbValueRole))
-                elif idx.column() in (Col.ID, Col.TYPE, Col.CATEGORY, Col. SUBCATEGORY, Col.PAYMENTTYPE, Col.NDS):
+                    try:
+                        return Decimal(idx.data(self.dbValueRole))
+                    except decimal.InvalidOperation:
+                        return Decimal(0)
+                elif idx.column() in (Col.ID, Col.TYPE, Col.CATEGORY, Col. SUBCATEGORY, Col.PAYMENTTYPE, Col.NDS, Col.FEATURED):
                     return int(idx.data(self.dbValueRole))
                 elif idx.column() in (Col.DUEDATE, Col.CREATEDATE):
                     return str_date(idx.data(self.dbValueRole))
@@ -250,10 +259,10 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.submitAll()
         return result
 
-    def set_filters(self, term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool) -> None:
+    def set_filters(self, term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
         filt: str = f"(((filterflags = {int(FilterFlags.NONE)}) OR ("
         if term == TermCategory.PAID:
-            filt += f"filterflags & {int(FilterFlags.PAID)} AND "
+            filt += f"filterflags & {int(FilterFlags.PAID)} AND lastpaymentdate > '{date_str(self.current_date.addMonths(-paid_months_toshow))}' AND "
         else:
             filt += f"filterflags & {int(FilterFlags.NOTPAID)} AND "
             if term == TermCategory.DUE:
@@ -273,18 +282,20 @@ class LiabilitySqlTableModel(QSqlTableModel):
             filt += f"responsiblenocase LIKE '%{responsible.lower()}%' AND "
         if paid_today:
             filt += f"todayshare <> '0.0' AND "
+        if featured:
+            filt += f"featured = 1 AND "
         filt = filt[:-5] + ")"
 
-        self.send_filterwidget_labeldata(term, category, receiver, responsible, paid_today)
+        self.send_filterwidget_labeldata(term, category, receiver, responsible, paid_today, paid_months_toshow, featured)
         self.next_select_norecalc = True
         self.setFilter(filt)
 
-    def send_filterwidget_labeldata(self, term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool):
+    def send_filterwidget_labeldata(self, term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
         term_labels_dict = {}
         for term_category in TermCategory:
             filt = "WHERE "
             if term_category == TermCategory.PAID:
-                filt += f"filterflags & {int(FilterFlags.PAID)} AND "
+                filt += f"filterflags & {int(FilterFlags.PAID)} AND lastpaymentdate > '{date_str(self.current_date.addMonths(-paid_months_toshow))}' AND "
             else:
                 filt += f"filterflags & {int(FilterFlags.NOTPAID)} AND "
                 if term_category == TermCategory.DUE:
@@ -303,6 +314,8 @@ class LiabilitySqlTableModel(QSqlTableModel):
                 filt += f"responsiblenocase LIKE '%{responsible.lower()}%' AND "
             if paid_today:
                 filt += f"todayshare <> '0.0' AND "
+            if featured:
+                filt += f"featured = 1 AND "
             filt = filt[:-5]
             query = QSqlQuery(f"SELECT COUNT(id) from event {filt}")
             query.next()
@@ -331,6 +344,8 @@ class LiabilitySqlTableModel(QSqlTableModel):
                 filt += f"responsiblenocase LIKE '%{responsible.lower()}%' AND "
             if paid_today:
                 filt += f"todayshare <> '0.0' AND "
+            if featured:
+                filt += f"featured = 1 AND "
             filt = filt[:-5]
             query = QSqlQuery(f"SELECT COUNT(id) from event {filt}")
             query.next()

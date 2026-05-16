@@ -1,5 +1,13 @@
 from PySide6.QtCore import QSortFilterProxyModel, QModelIndex
-from PySide6.QtWidgets import QTreeView, QTableView
+from PySide6.QtWidgets import QTreeView, QTableView, QFrame
+
+
+class StatusBarSeparator(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFrameShape(QFrame.Shape.VLine)  # вертикальная линия
+        self.setFrameShadow(QFrame.Shadow.Sunken)  # стиль тени
+        self.setLineWidth(1)
 
 
 def is_selection_filteredout(proxy_model: QSortFilterProxyModel, widget: QTreeView | QTableView, two_proxies: bool = False, current_instead: bool = False) -> bool:

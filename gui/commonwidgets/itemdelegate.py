@@ -64,13 +64,21 @@ class EventItemDelegate(QStyledItemDelegate):
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
         self.initStyleOption(option, index)
         row_formatting: RowFormatting = model_atlevel(-2, index).row_formatting
+        vertical_grid_color = self.draw_background(painter, option, index, row_formatting)
+        self.draw_content(painter, option, index)
+        self.draw_borders(painter, option, index, row_formatting, vertical_grid_color)
+
+    def draw_content(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
+        option.widget.style().drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter)
+
+    def draw_background(self, painter, option, index, row_formatting: RowFormatting):
 
         row_type: RowType = index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole)
+        vertical_grid_color: QColor = self.VERTICAL_GRID_COLOR
         if row_type == RowType.LIABILITY:
             filter_flags: FilterFlags = index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)
             due_backcolor_setting: QColor = QColor(row_formatting.due_backcolor)
             today_backcolor_setting: QColor = QColor(row_formatting.today_backcolor)
-            vertical_grid_color: QColor = self.VERTICAL_GRID_COLOR
             if (due_backcolor_setting != QtGui.QColorConstants.White and FilterFlags.DUE in filter_flags
                     and model_atlevel(-1, index).term_filter != TermCategory.DUE and not model_atlevel(-1, index).paytoday_filter):
                 option.backgroundBrush = QBrush(QColor(row_formatting.due_backcolor))
@@ -103,8 +111,9 @@ class EventItemDelegate(QStyledItemDelegate):
         elif row_type == RowType.FINALFOOTER:
             option.backgroundBrush = QBrush(self.FINALFOOTER_BACK_COLOR)
 
-        option.widget.style().drawControl(QStyle.ControlElement.CE_ItemViewItem, option, painter)
+        return vertical_grid_color
 
+    def draw_borders(self, painter, option, index, row_formatting, vertical_grid_color):
         # Отрисовка границ ПОСЛЕ отрисовки стандартного делегата
         painter.save()
         painter.setClipRect(option.rect)

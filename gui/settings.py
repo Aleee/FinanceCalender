@@ -23,7 +23,7 @@ class SettingsHandler:
         self.mw = main_window
         self.app: QCoreApplication = QApplication.instance()
 
-    def apply_settings(self, autosave_needed: bool = False) -> None:
+    def apply_settings(self) -> None:
         # Отключение фильтра на время применения настроек
         self.mw.ui.trw_event.model().sourceModel().enable_sortfilter(False)
 
@@ -153,8 +153,9 @@ class SettingsHandler:
         # Установка ширины некоторых виджетов вручную
         forced_size = {
             self.mw.ui.wdg_eventfilter: (200, 245, 270),
-            self.mw.ui.wdg_eventinfo: (300, 360, 410),
-            self.mw.ui.tv_payment: (190, 210, 230),}
+            self.mw.ui.wdg_eventinfo: (350, 410, 470),
+            self.mw.ui.tv_payment: (190, 210, 230),
+        }
         for option in forced_size.items():
             widget, width = option[0], option[1][setting_value]
             widget.setFixedWidth(width)

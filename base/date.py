@@ -37,7 +37,12 @@ def date_purestr(date) -> str:
 
 
 def date_displstr(date) -> str:
-    return date.toString("dd.MM.yyyy")
+    if isinstance(date, QDate):
+        return date.toString("dd.MM.yyyy")
+    elif isinstance(date, QDateTime):
+        return date.toString("dd.MM.yyyy HH:mm")
+    else:
+        return ""
 
 
 def first_date_of_month(date) -> QDate:

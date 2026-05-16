@@ -15,11 +15,11 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QComboBox, QDateEdit,
-    QDialog, QDoubleSpinBox, QFrame, QGridLayout,
-    QHBoxLayout, QLabel, QLayout, QLineEdit,
-    QPlainTextEdit, QPushButton, QRadioButton, QSizePolicy,
-    QSpacerItem, QWidget)
+from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBox,
+    QDateEdit, QDialog, QDoubleSpinBox, QFrame,
+    QGridLayout, QHBoxLayout, QLabel, QLayout,
+    QLineEdit, QPlainTextEdit, QPushButton, QRadioButton,
+    QSizePolicy, QSpacerItem, QWidget)
 
 from gui.commonwidgets.completingtextedit import CompletingPlainTextEdit
 
@@ -84,7 +84,7 @@ class Ui_EventDialog(object):
         self.gridLayout.addLayout(self.horizontalLayout_2, 0, 1, 1, 1)
 
         self.horizontalLayout_7 = QHBoxLayout()
-        self.horizontalLayout_7.setSpacing(8)
+        self.horizontalLayout_7.setSpacing(4)
         self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
         self.label_7 = QLabel(EventDialog)
         self.label_7.setObjectName(u"label_7")
@@ -96,6 +96,27 @@ class Ui_EventDialog(object):
         self.le_responsible.setMinimumSize(QSize(200, 0))
 
         self.horizontalLayout_7.addWidget(self.le_responsible)
+
+        self.horizontalSpacer_12 = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_7.addItem(self.horizontalSpacer_12)
+
+        self.line_3 = QFrame(EventDialog)
+        self.line_3.setObjectName(u"line_3")
+        self.line_3.setFrameShape(QFrame.Shape.VLine)
+        self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.horizontalLayout_7.addWidget(self.line_3)
+
+        self.label_12 = QLabel(EventDialog)
+        self.label_12.setObjectName(u"label_12")
+
+        self.horizontalLayout_7.addWidget(self.label_12)
+
+        self.chb_hidden = QCheckBox(EventDialog)
+        self.chb_hidden.setObjectName(u"chb_hidden")
+
+        self.horizontalLayout_7.addWidget(self.chb_hidden)
 
         self.horizontalSpacer_9 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -301,7 +322,9 @@ class Ui_EventDialog(object):
         EventDialog.setWindowTitle(QCoreApplication.translate("EventDialog", u"\u041d\u043e\u0432\u044b\u0439 \u043f\u043b\u0430\u0442\u0435\u0436", None))
         self.label.setText(QCoreApplication.translate("EventDialog", u"\u041f\u043e\u043b\u0443\u0447\u0430\u0442\u0435\u043b\u044c:", None))
         self.label_2.setText(QCoreApplication.translate("EventDialog", u"\u041d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u0435:", None))
-        self.label_7.setText(QCoreApplication.translate("EventDialog", u"\u041e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439:", None))
+        self.label_7.setText(QCoreApplication.translate("EventDialog", u"\u041e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439: ", None))
+        self.label_12.setText("")
+        self.chb_hidden.setText(QCoreApplication.translate("EventDialog", u"\u0421\u043a\u0440\u044b\u0442\u044b\u0439 \u043f\u043b\u0430\u0442\u0435\u0436", None))
         self.label_9.setText(QCoreApplication.translate("EventDialog", u"\u0417\u0430\u043c\u0435\u0442\u043a\u0438:", None))
         self.label_11.setText(QCoreApplication.translate("EventDialog", u"\u041f\u043e\u0434\u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f: ", None))
         self.label_5.setText(QCoreApplication.translate("EventDialog", u"\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f: ", None))

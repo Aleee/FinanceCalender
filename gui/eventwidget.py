@@ -1,6 +1,6 @@
 import lovely_logger as log
 from PySide6.QtWidgets import QTreeView, QAbstractItemView
-from PySide6.QtCore import Qt, QModelIndex, QItemSelectionModel
+from PySide6.QtCore import Qt, QModelIndex, QItemSelectionModel, QTimer, Signal
 
 from gui.common import model_atlevel
 from gui.commonwidgets.eventfilter import TooltipFilter
@@ -9,9 +9,12 @@ from gui.eventproxymodel import LiabilitySortFilterProxyModel
 from gui.commonwidgets.itemdelegate import EventItemDelegate
 from gui.eventsqlmodel import Col, RowType
 from gui.eventsqlmodel import LiabilitySqlTableModel
+from gui.booldelegate import BoolDelegate
 
 
 class EventWidget(QTreeView):
+
+    filter_conditions_changed = Signal()
 
     DEFAULT_COLUMN_WIDTH = {
         Col.RECEIVER: 140,
@@ -32,6 +35,8 @@ class EventWidget(QTreeView):
         Col.TODAYSHARE: 135,
         Col.LASTPAYMENTDATE: 0,
         Col.FILTERFLAGS: 0,
+        Col.FEATURED: 40,
+        Col.HIDDEN: 40,
         Col.RECEIVERNOCASE: 0,
         Col.RESPONSIBLENOCASE: 0,
     }
@@ -62,6 +67,14 @@ class EventWidget(QTreeView):
         self.installEventFilter(self.tooltip_eventfilter)
 
         self.setItemDelegate(EventItemDelegate())
+
+        star_delegate = BoolDelegate("★", "☆", "#ffcc00", "#857f67")
+        self.setItemDelegateForColumn(Col.FEATURED, star_delegate)
+        star_delegate.state_changed.connect(lambda: self.filter_conditions_changed.emit())
+
+        hidden_delegate = BoolDelegate("🔒", "⚪")
+        self.setItemDelegateForColumn(Col.HIDDEN, hidden_delegate)
+        hidden_delegate.state_changed.connect(lambda: self.filter_conditions_changed.emit())
 
 
     def hide_columns(self, to_hide: list | None = None) -> None:
@@ -103,10 +116,17 @@ class EventWidget(QTreeView):
     def restore_selection(self):
         if self.selected_row_id is None:
             return
-        for row in range(self.model().rowCount()):
-            liability_index = self.model().index(row, Col.ID)
+        source_model = model_atlevel(-2, self.model())
+        for row in range(source_model.rowCount()):
+            liability_index = source_model.index(row, Col.ID)
             liability_id = liability_index.data(LiabilitySqlTableModel.dbValueRole)
             if liability_id == self.selected_row_id:
-                self.selectionModel().select(liability_index, QItemSelectionModel.SelectionFlag.ClearAndSelect|QItemSelectionModel.SelectionFlag.Rows)
-                self.setCurrentIndex(liability_index)
+                QTimer.singleShot(0, lambda: QTimer.singleShot(0, lambda: self._apply_selection(liability_index, source_model)))
                 break
+
+    def _apply_selection(self, idx, source_model):
+        proxy_index = self.model().mapFromSource(model_atlevel(-1, self.model()).mapFromSource(idx))
+        sm = self.selectionModel()
+        self.setCurrentIndex(proxy_index)
+        sm.select(proxy_index, QItemSelectionModel.SelectionFlag.Rows | QItemSelectionModel.SelectionFlag.ClearAndSelect)
+        self.scrollTo(proxy_index)

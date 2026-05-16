@@ -26,7 +26,7 @@ class ExportSuccessDialog(QDialog):
         self.accept()
 
     def open_dir(self):
-        os.startfile(self.path[:self.path.rindex("\\")+1])
+        os.startfile(self.path[:self.path.rindex("/")+1])
         self.accept()
 
 
