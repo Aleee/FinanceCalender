@@ -1,43 +1,19 @@
-import os
-
 from PySide6.QtWidgets import QDialog, QButtonGroup
 
 from base.event import EventField
-from base.xlswriter import XlsWriter, ExportFormat
+from base.xlswriter import LiabilityXlsWriter, ExportFormat, HiddenDisplayMode
+from gui.exportsuccessdialog import ExportSuccessDialog
 from gui.ui.exportdialog_ui import Ui_ExportDialog
-from gui.ui.exportsuccessdialog_ui import Ui_ExportSuccessDialog
-
-
-class ExportSuccessDialog(QDialog):
-    def __init__(self, path: str, parent=None):
-        super(ExportSuccessDialog, self).__init__(parent)
-        self.ui = Ui_ExportSuccessDialog()
-        self.ui.setupUi(self)
-
-        self.path: str = path
-
-        self.ui.le_path.setText(self.path)
-        self.ui.pb_openfile.clicked.connect(self.open_file)
-        self.ui.pb_opendir.clicked.connect(self.open_dir)
-        self.ui.pb_continue.clicked.connect(lambda: self.accept())
-
-    def open_file(self):
-        os.startfile(self.path)
-        self.accept()
-
-    def open_dir(self):
-        os.startfile(self.path[:self.path.rindex("/")+1])
-        self.accept()
 
 
 class ExportDialog(QDialog):
 
-    def __init__(self, xls_writer: XlsWriter, column_visibility: list[bool], parent=None):
+    def __init__(self, xls_writer: LiabilityXlsWriter, column_visibility: list[bool], parent=None):
         super(ExportDialog, self).__init__(parent)
         self.ui = Ui_ExportDialog()
         self.ui.setupUi(self)
 
-        self.xls_writer: XlsWriter = xls_writer
+        self.xls_writer: LiabilityXlsWriter = xls_writer
         self.column_visibility: list[bool] = column_visibility
 
         self.rbg_exporttype: QButtonGroup = QButtonGroup(self)
@@ -80,6 +56,9 @@ class ExportDialog(QDialog):
         self.rbg_todayshare.addButton(self.ui.rb_todayshare_off, 0)
         self.rbg_todayshare.button(int(self.column_visibility[EventField.TODAYSHARE])).setChecked(True)
 
+        self.ui.chb_includehidden.toggled.connect(lambda checked: self.ui.chb_includehiddensums.setEnabled(checked))
+        self.ui.chb_includehidden.toggled.connect(lambda checked: self.ui.chb_includehiddensums.setChecked(False) if not checked else None)
+
         self.ui.pb_export.clicked.connect(self.export)
         self.ui.pb_cancel.clicked.connect(self.reject)
 
@@ -99,7 +78,14 @@ class ExportDialog(QDialog):
     def export(self) -> None:
         fileformat: ExportFormat = ExportFormat(self.rbg_exporttype.checkedId())
         columns: list[bool] = self.columns_to_export()
-        if self.xls_writer.write(fileformat, columns):
+        if self.ui.chb_includehidden.isChecked():
+            if self.ui.chb_includehiddensums.isChecked():
+                hidden_display_mode = HiddenDisplayMode.SUMONLY
+            else:
+                hidden_display_mode = HiddenDisplayMode.FULL
+        else:
+            hidden_display_mode = HiddenDisplayMode.NONE
+        if self.xls_writer.write(fileformat, columns, hidden_display_mode):
             self.accept()
             dlg = ExportSuccessDialog(self.xls_writer.last_path)
             dlg.exec()

@@ -814,6 +814,8 @@
    <addaction name="act_toggleheaders"/>
    <addaction name="act_togglefooters"/>
    <addaction name="separator"/>
+   <addaction name="act_fees"/>
+   <addaction name="separator"/>
    <addaction name="act_finplan"/>
    <addaction name="act_fulfillment"/>
    <addaction name="separator"/>
@@ -975,6 +977,21 @@
    </property>
    <property name="toolTip">
     <string>На контроле</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="act_fees">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/icon-toolbar/designer/icons/fees.svg</normaloff>:/icon-toolbar/designer/icons/fees.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Загрузить выписку</string>
+   </property>
+   <property name="toolTip">
+    <string>Загрузить выписку</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

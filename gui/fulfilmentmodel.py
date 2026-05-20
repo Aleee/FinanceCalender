@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from decimal import Decimal, ROUND_HALF_UP
+from tarfile import fully_trusted_filter
 
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QModelIndex
@@ -11,7 +12,7 @@ from base.formatting import dec_strcommaspace, int_strspace, float_strpercentage
 
 
 @dataclass
-class Palette:
+class TablePalette:
     base: QColor = field(default_factory=lambda: QColor("white"))
     base1: QColor = field(default_factory=lambda: QColor("#ffdfdf"))
     base2: QColor = field(default_factory=lambda: QColor("#ffd5d5"))
@@ -59,8 +60,11 @@ class TreeItem:
             return self.parentItem.childItems.index(self)
         return 0
 
+    def get_categorie(self) -> int:
+        return self.categorie
 
-class FulfillmentModel(QtCore.QAbstractItemModel):
+
+class FulfilmentModel(QtCore.QAbstractItemModel):
 
     CATEGORY_MAP = {
         EventCategory.SALARIES: 31101,
@@ -126,14 +130,19 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
     }
 
     spanRole = Qt.ItemDataRole.UserRole + 1
+    internalValueRole = Qt.ItemDataRole.UserRole + 2
+
+    NORMAL_CUTPOINT: float = 1.1
+    HIGH_CUTPOINT: float = 1.3
+    VERYHIGH_CUTPOINT: float = 1.5
 
     def __init__(self, parent=None):
-        super(FulfillmentModel, self).__init__(parent)
+        super(FulfilmentModel, self).__init__(parent)
         self.rootItem = None
         self.fulfillment_mode: bool = True
         self.categories = list(self.FULFILLMENT_STRUCTURE.keys())
         self.payments_categories = list(key for key in self.FULFILLMENT_STRUCTURE.keys() if key // 10000 == 3)
-        self.plt = Palette()
+        self.plt = TablePalette()
 
     def setup_model(self, is_fulfillment: bool, payments: list, inflow_values: list, plan_values: dict):
         if is_fulfillment:
@@ -156,8 +165,8 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
                     else:
                         fulfillment = -1
                 else:
-                    deviation = ""
-                    fulfillment = ""
+                    deviation = None
+                    fulfillment = None
                 self.rootItem.appendChild(TreeItem((data[1], data[2], plan_value, factuals[categorie], deviation, fulfillment), self.rootItem, categorie))
             # Заполнение платежей
             for payment in payments:
@@ -229,6 +238,14 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
 
         return factuals_dict
 
+    def categorie_level(self, categorie: int) -> int:
+        subcategories_present = bool(self.FULFILLMENT_STRUCTURE[categorie][0])
+        if categorie % 10000 == 0:
+            return 2
+        elif (categorie % 100 == 0 and subcategories_present) or categorie == self.CATEGORY_MAP[EventCategory.TOP_INVESTMENT]:
+            return 1
+        else:
+            return 0
 
     def columnCount(self, parent):
         if parent.isValid():
@@ -240,7 +257,12 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
         if not index.isValid():
             return None
         item = index.internalPointer()
-        if role == Qt.ItemDataRole.DisplayRole:
+        if role == self.internalValueRole:
+            if index.column() in (2, 3, 4, 5):
+                return item.data(index.column())
+            else:
+                return self.data(index, Qt.ItemDataRole.DisplayRole)
+        elif role == Qt.ItemDataRole.DisplayRole:
             if index.column() in (2, 3, 4):
                 if item.data(index.column()) is None:
                     return ""
@@ -252,10 +274,10 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
                     else:
                         return dec_strcommaspace(item.data(index.column()))
             elif index.column() == 5:
-                if not item.data(index.column()):
+                if item.data(index.column()) is None:
                     return ""
                 elif item.data(index.column()) == -1:
-                    return "--"
+                    return "—"
                 else:
                     return float_strpercentage(item.data(index.column()))
             return item.data(index.column())
@@ -272,8 +294,7 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
             if index.parent() == QModelIndex():
                 font = QFont()
                 categorie: int = index.internalPointer().categorie
-                subcategories_present = bool(self.FULFILLMENT_STRUCTURE[categorie][0])
-                font.setBold(categorie % 10000 == 0 or categorie == self.CATEGORY_MAP[EventCategory.TOP_INVESTMENT] or (categorie % 100 == 0 and subcategories_present))
+                font.setBold(self.categorie_level(categorie) in (1, 2))
                 return font
             else:
                 font = QFont()
@@ -282,36 +303,39 @@ class FulfillmentModel(QtCore.QAbstractItemModel):
         elif role == Qt.ItemDataRole.BackgroundRole:
             if index.parent() == QModelIndex():
                 categorie: int = index.internalPointer().categorie
-                subcategories_present = bool(self.FULFILLMENT_STRUCTURE[categorie][0])
-                if categorie % 10000 == 0:
-                    if not self.fulfillment_mode or index.internalPointer().itemData[5] <= 1.05:
+                if self.fulfillment_mode:
+                    fulfilment_value: float | None = index.internalPointer().itemData[5]
+                else:
+                    fulfilment_value: float | None = None
+                if self.categorie_level(categorie) == 2:
+                    if not self.fulfillment_mode or fulfilment_value is None or fulfilment_value <= self.NORMAL_CUTPOINT:
                         return self.plt.high
-                    elif index.internalPointer().itemData[5] < 1.2:
+                    elif fulfilment_value < self.HIGH_CUTPOINT:
                         return self.plt.high1
-                    elif index.internalPointer().itemData[5] < 1.4:
+                    elif fulfilment_value < self.VERYHIGH_CUTPOINT:
                         return self.plt.high2
                     else:
                         return self.plt.high3
-                elif (categorie % 100 == 0 and subcategories_present) or categorie == self.CATEGORY_MAP[EventCategory.TOP_INVESTMENT]:
-                    if not self.fulfillment_mode or index.internalPointer().itemData[5] <= 1.05:
+                elif self.categorie_level(categorie) == 1:
+                    if not self.fulfillment_mode or fulfilment_value is None or fulfilment_value <= self.NORMAL_CUTPOINT:
                         return self.plt.mid
-                    elif index.internalPointer().itemData[5] < 1.2:
+                    elif fulfilment_value < self.HIGH_CUTPOINT:
                         return self.plt.mid1
-                    elif index.internalPointer().itemData[5] < 1.4:
+                    elif fulfilment_value < self.VERYHIGH_CUTPOINT:
                         return self.plt.mid2
                     else:
                         return self.plt.mid3
                 else:
-                    if not self.fulfillment_mode or index.internalPointer().itemData[5] <= 1.05:
+                    if not self.fulfillment_mode or fulfilment_value is None or fulfilment_value <= self.NORMAL_CUTPOINT:
                         return self.plt.base
-                    elif index.internalPointer().itemData[5] < 1.2:
+                    elif fulfilment_value < self.HIGH_CUTPOINT:
                         return self.plt.base1
-                    elif index.internalPointer().itemData[5] < 1.4:
+                    elif fulfilment_value < self.VERYHIGH_CUTPOINT:
                         return self.plt.base2
                     else:
                         return self.plt.base3
-
-
+            else:
+                return None
         else:
             return None
 

@@ -132,7 +132,7 @@ class EventDialog(QDialog):
             text = "Получатель платежа должен быть указан"
         elif self.ui.dsb_totalamount.value() == 0.0:
             text = "Сумма платежа не может быть равна нулю"
-        if self.non_editable_values["paidamount"] > Decimal(self.ui.dsb_totalamount.value()):
+        if self.non_editable_values["paidamount"] > Decimal(str(self.ui.dsb_totalamount.value())):
             text = "Новая общая сумма платежа превышает сумму уже сделанных по нему оплат"
         if self.ui.cmb_subcategory.isVisible() and self.ui.cmb_subcategory.currentData() == 0:
             text = "Подкатегория платежа не выбрана"
@@ -143,7 +143,7 @@ class EventDialog(QDialog):
 
         text = ""
         if (self.ui.de_duedate.date() < QDate.currentDate() and self.index.isValid() and
-                FilterFlags.DUE not in self.index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)):
+                FilterFlags.PAID not in self.index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)):
             text += "Дата платежа меньше текущей даты. "
         if self.ui.le_responsible.text().strip() == "":
             text += "Ответственное лицо не указано. "
@@ -231,7 +231,7 @@ class EventDialog(QDialog):
         data.append(str.lower(self.ui.le_responsible.text()))
 
         if not self.edit_mode:
-            if not original_model.insert_row(data):
+            if original_model.insert_row(data) is None:
                 log.c(f"Не удалось вставить новую строку в таблицу event со следующими данными: {data}")
                 return
             QDialog.accept(self)

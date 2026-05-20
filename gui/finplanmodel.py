@@ -2,6 +2,7 @@ from typing import Any
 
 from PySide6.QtCore import QAbstractTableModel, Qt, QModelIndex
 from PySide6.QtGui import QFont, QColor
+from PySide6.QtWidgets import QLineEdit
 
 from base.formatting import int_strspace
 
@@ -49,7 +50,8 @@ class FinPlanTableModel(QAbstractTableModel):
 
     HORIZONTAL_HEADER_LABELS = ["", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
 
-    EditableRole = Qt.ItemDataRole.UserRole + 1
+    EditableRole: int = Qt.ItemDataRole.UserRole + 1
+    internalValueRole: int = Qt.ItemDataRole.UserRole + 2
 
     def __init__(self, parent=None):
         super(FinPlanTableModel, self).__init__(parent)
@@ -64,6 +66,9 @@ class FinPlanTableModel(QAbstractTableModel):
                 for key, value in self.values.items():
                     if key in svalue[0]:
                         for month in range(len(value)):
+                            value_to_add = value[month]
+                            if value_to_add is None:
+                                continue
                             running_totals[month] += value[month]
                 self.values[skey] = running_totals
 
@@ -85,7 +90,16 @@ class FinPlanTableModel(QAbstractTableModel):
                 return self.FINPLAN_STRUCTURE[self.categories[index.row()]][2]
             else:
                 value = self.values[self.categories[index.row()]][index.column() - 1]
-                return value if value else ""
+                return f"{value:,}".replace(",", " ") if value is not None else ""
+        elif role == self.internalValueRole:
+            if index.column() == 0:
+                return self.FINPLAN_STRUCTURE[self.categories[index.row()]][2]
+            else:
+                value = self.values[self.categories[index.row()]][index.column() - 1]
+                return value if value is not None else ""
+        elif role == Qt.ItemDataRole.EditRole:
+            value = self.values[self.categories[index.row()]][index.column() - 1]
+            return value if value is not None else ""
         elif role == Qt.ItemDataRole.TextAlignmentRole:
             if index.column() == 0:
                 return Qt.AlignmentFlag.AlignLeft
@@ -116,14 +130,18 @@ class FinPlanTableModel(QAbstractTableModel):
 
     def setData(self, index, value, /, role=...):
         if role == Qt.ItemDataRole.EditRole:
-            try:
-                int_value: int = int(value)
-                self.values[self.categories[index.row()]][index.column() - 1] = int_value
-                self.calculate_add_totals()
-                self.dataChanged.emit(index, index)
-                return True
-            except ValueError:
-                return False
+            if value == "" or value is None:
+                self.values[self.categories[index.row()]][index.column() - 1] = None
+            else:
+                try:
+                    int_value: int = int(value)
+                    self.values[self.categories[index.row()]][index.column() - 1] = int_value
+                except ValueError:
+                    return False
+            self.calculate_add_totals()
+
+            self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount() - 1, self.columnCount() - 1))
+            return True
         return False
 
     def flags(self, index):

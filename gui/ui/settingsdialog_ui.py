@@ -15,11 +15,11 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog,
-    QGridLayout, QGroupBox, QHBoxLayout, QLabel,
-    QLineEdit, QListWidget, QListWidgetItem, QPushButton,
-    QRadioButton, QSizePolicy, QSpacerItem, QStackedWidget,
-    QWidget)
+from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBox,
+    QDialog, QGridLayout, QGroupBox, QHBoxLayout,
+    QLabel, QLineEdit, QListWidget, QListWidgetItem,
+    QPushButton, QRadioButton, QSizePolicy, QSpacerItem,
+    QSpinBox, QStackedWidget, QWidget)
 
 from gui.commonwidgets.colorpushbutton import ColorPushButton
 import resources_rc
@@ -57,9 +57,80 @@ class Ui_settingsdialog(object):
         self.pg_common.setObjectName(u"pg_common")
         self.gridLayout_11 = QGridLayout(self.pg_common)
         self.gridLayout_11.setObjectName(u"gridLayout_11")
+        self.groupBox_9 = QGroupBox(self.pg_common)
+        self.groupBox_9.setObjectName(u"groupBox_9")
+        self.gridLayout_13 = QGridLayout(self.groupBox_9)
+        self.gridLayout_13.setObjectName(u"gridLayout_13")
+        self.le_csv_columns = QLineEdit(self.groupBox_9)
+        self.le_csv_columns.setObjectName(u"le_csv_columns")
+
+        self.gridLayout_13.addWidget(self.le_csv_columns, 4, 0, 1, 3)
+
+        self.spb_csv_rowfirsttransaction = QSpinBox(self.groupBox_9)
+        self.spb_csv_rowfirsttransaction.setObjectName(u"spb_csv_rowfirsttransaction")
+        self.spb_csv_rowfirsttransaction.setMinimumSize(QSize(30, 0))
+        self.spb_csv_rowfirsttransaction.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spb_csv_rowfirsttransaction.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+
+        self.gridLayout_13.addWidget(self.spb_csv_rowfirsttransaction, 1, 1, 1, 1)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_13.addItem(self.horizontalSpacer_2, 1, 2, 1, 1)
+
+        self.le_csv_unp = QLineEdit(self.groupBox_9)
+        self.le_csv_unp.setObjectName(u"le_csv_unp")
+
+        self.gridLayout_13.addWidget(self.le_csv_unp, 6, 0, 1, 3)
+
+        self.label_16 = QLabel(self.groupBox_9)
+        self.label_16.setObjectName(u"label_16")
+
+        self.gridLayout_13.addWidget(self.label_16, 2, 0, 1, 1)
+
+        self.spb_csv_codetransaction = QSpinBox(self.groupBox_9)
+        self.spb_csv_codetransaction.setObjectName(u"spb_csv_codetransaction")
+        self.spb_csv_codetransaction.setMinimumSize(QSize(30, 0))
+        self.spb_csv_codetransaction.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spb_csv_codetransaction.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.spb_csv_codetransaction.setMinimum(1)
+
+        self.gridLayout_13.addWidget(self.spb_csv_codetransaction, 2, 1, 1, 1)
+
+        self.label_19 = QLabel(self.groupBox_9)
+        self.label_19.setObjectName(u"label_19")
+
+        self.gridLayout_13.addWidget(self.label_19, 3, 0, 1, 3)
+
+        self.label_2 = QLabel(self.groupBox_9)
+        self.label_2.setObjectName(u"label_2")
+
+        self.gridLayout_13.addWidget(self.label_2, 0, 0, 1, 1)
+
+        self.label_15 = QLabel(self.groupBox_9)
+        self.label_15.setObjectName(u"label_15")
+
+        self.gridLayout_13.addWidget(self.label_15, 1, 0, 1, 1)
+
+        self.spb_csv_rowperiod = QSpinBox(self.groupBox_9)
+        self.spb_csv_rowperiod.setObjectName(u"spb_csv_rowperiod")
+        self.spb_csv_rowperiod.setMinimumSize(QSize(30, 0))
+        self.spb_csv_rowperiod.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spb_csv_rowperiod.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+
+        self.gridLayout_13.addWidget(self.spb_csv_rowperiod, 0, 1, 1, 1)
+
+        self.label_20 = QLabel(self.groupBox_9)
+        self.label_20.setObjectName(u"label_20")
+
+        self.gridLayout_13.addWidget(self.label_20, 5, 0, 1, 1)
+
+
+        self.gridLayout_11.addWidget(self.groupBox_9, 0, 0, 1, 1)
+
         self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout_11.addItem(self.verticalSpacer_3, 0, 0, 1, 1)
+        self.gridLayout_11.addItem(self.verticalSpacer_3, 3, 0, 1, 1)
 
         self.stw.addWidget(self.pg_common)
         self.pg_appear = QWidget()
@@ -310,11 +381,11 @@ class Ui_settingsdialog(object):
 
         self.gridLayout_5.addWidget(self.chb_dataintable_totalamount, 0, 0, 1, 1)
 
-        self.chb_dataintable_paymenttype = QCheckBox(self.groupBox_2)
-        self.chb_dataintable_paymenttype.setObjectName(u"chb_dataintable_paymenttype")
-        self.chb_dataintable_paymenttype.setChecked(True)
+        self.chb_dataintable_descr = QCheckBox(self.groupBox_2)
+        self.chb_dataintable_descr.setObjectName(u"chb_dataintable_descr")
+        self.chb_dataintable_descr.setChecked(True)
 
-        self.gridLayout_5.addWidget(self.chb_dataintable_paymenttype, 0, 1, 1, 1)
+        self.gridLayout_5.addWidget(self.chb_dataintable_descr, 2, 0, 1, 1)
 
         self.chb_dataintable_responsible = QCheckBox(self.groupBox_2)
         self.chb_dataintable_responsible.setObjectName(u"chb_dataintable_responsible")
@@ -322,11 +393,16 @@ class Ui_settingsdialog(object):
 
         self.gridLayout_5.addWidget(self.chb_dataintable_responsible, 2, 1, 1, 1)
 
-        self.chb_dataintable_descr = QCheckBox(self.groupBox_2)
-        self.chb_dataintable_descr.setObjectName(u"chb_dataintable_descr")
-        self.chb_dataintable_descr.setChecked(True)
+        self.chb_dataintable_paymenttype = QCheckBox(self.groupBox_2)
+        self.chb_dataintable_paymenttype.setObjectName(u"chb_dataintable_paymenttype")
+        self.chb_dataintable_paymenttype.setChecked(True)
 
-        self.gridLayout_5.addWidget(self.chb_dataintable_descr, 2, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.chb_dataintable_paymenttype, 3, 0, 1, 1)
+
+        self.chb_dataintable_createdate = QCheckBox(self.groupBox_2)
+        self.chb_dataintable_createdate.setObjectName(u"chb_dataintable_createdate")
+
+        self.gridLayout_5.addWidget(self.chb_dataintable_createdate, 0, 1, 1, 1)
 
 
         self.gridLayout_4.addWidget(self.groupBox_2, 0, 0, 1, 1)
@@ -526,7 +602,7 @@ class Ui_settingsdialog(object):
 
         self.retranslateUi(settingsdialog)
 
-        self.stw.setCurrentIndex(1)
+        self.stw.setCurrentIndex(0)
         self.lw_menu.setCurrentRow(-1)
 
 
@@ -537,6 +613,13 @@ class Ui_settingsdialog(object):
         settingsdialog.setWindowTitle(QCoreApplication.translate("settingsdialog", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438", None))
         self.pb_ok.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u041a", None))
         self.pb_cancel.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
+        self.groupBox_9.setTitle(QCoreApplication.translate("settingsdialog", u"CSV-\u043f\u0430\u0440\u0441\u0435\u0440", None))
+        self.le_csv_columns.setInputMask(QCoreApplication.translate("settingsdialog", u"9,9,9,9,9,9", None))
+        self.label_16.setText(QCoreApplication.translate("settingsdialog", u"\u041a\u043e\u0434 \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u0439 (\u043f\u043e\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u0435):", None))
+        self.label_19.setText(QCoreApplication.translate("settingsdialog", u"\u041d\u043e\u043c\u0435\u0440\u0430 \u0441\u0442\u043e\u043b\u0431\u0446\u043e\u0432 (\u0434\u0430\u0442\u0430, \u043a\u043e\u0434, \u0423\u041d\u041f, \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435, \u0441\u0443\u043c\u043c\u0430, \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435):", None))
+        self.label_2.setText(QCoreApplication.translate("settingsdialog", u"\u041d\u043e\u043c\u0435\u0440 \u0441\u0442\u0440\u043e\u043a\u0438 \u0441 \u0443\u043a\u0430\u0437\u0430\u043d\u0438\u0435\u043c \u043f\u0435\u0440\u0438\u043e\u0434\u0430:", None))
+        self.label_15.setText(QCoreApplication.translate("settingsdialog", u"\u041d\u043e\u043c\u0435\u0440 \u0441\u0442\u0440\u043e\u043a\u0438 \u0441 \u043f\u0435\u0440\u0432\u043e\u0439 \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0435\u0439:", None))
+        self.label_20.setText(QCoreApplication.translate("settingsdialog", u"\u0418\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0435 \u0423\u041d\u041f:", None))
         self.groupBox.setTitle(QCoreApplication.translate("settingsdialog", u"\u0420\u0430\u0437\u043c\u0435\u0440 \u0448\u0440\u0438\u0444\u0442\u0430", None))
         self.rb_fontsize_1.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0431\u044b\u0447\u043d\u044b\u0439", None))
         self.rb_fontsize_2.setText(QCoreApplication.translate("settingsdialog", u"\u0411\u043e\u043b\u044c\u0448\u043e\u0439", None))
@@ -578,9 +661,10 @@ class Ui_settingsdialog(object):
         self.chb_verticalgrid.setText(QCoreApplication.translate("settingsdialog", u"\u0412\u0435\u0440\u0442\u0438\u043a\u0430\u043b\u044c\u043d\u044b\u0435 \u0433\u0440\u0430\u043d\u0438\u0446\u044b", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("settingsdialog", u"\u0414\u0430\u043d\u043d\u044b\u0435 \u0432 \u043e\u0441\u043d\u043e\u0432\u043d\u043e\u0439 \u0442\u0430\u0431\u043b\u0438\u0446\u0435", None))
         self.chb_dataintable_totalamount.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0431\u0449\u0430\u044f \u0441\u0443\u043c\u043c\u0430 \u043f\u043b\u0430\u0442\u0435\u0436\u0430", None))
-        self.chb_dataintable_paymenttype.setText(QCoreApplication.translate("settingsdialog", u"\u0412\u0438\u0434 \u043f\u043b\u0430\u0442\u0435\u0436\u0430", None))
-        self.chb_dataintable_responsible.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0435 \u043b\u0438\u0446\u043e", None))
         self.chb_dataintable_descr.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0441\u043d\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0430", None))
+        self.chb_dataintable_responsible.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0435 \u043b\u0438\u0446\u043e", None))
+        self.chb_dataintable_paymenttype.setText(QCoreApplication.translate("settingsdialog", u"\u0412\u0438\u0434 \u043f\u043b\u0430\u0442\u0435\u0436\u0430", None))
+        self.chb_dataintable_createdate.setText(QCoreApplication.translate("settingsdialog", u"\u0414\u0430\u0442\u0430 \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u044f", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("settingsdialog", u"\u0414\u0430\u043d\u043d\u044b\u0435 \u0432 \u0438\u043d\u0444\u043e\u0440\u043c\u0430\u0446\u0438\u043e\u043d\u043d\u043e\u0439 \u043f\u0430\u043d\u0435\u043b\u0438", None))
         self.chb_datainfo_totalamount.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0431\u0449\u0430\u044f \u0441\u0443\u043c\u043c\u0430 \u043f\u043b\u0430\u0442\u0435\u0436\u0430", None))
         self.chb_datainfo_paymenttype.setText(QCoreApplication.translate("settingsdialog", u"\u0412\u0438\u0434 \u043f\u043b\u0430\u0442\u0435\u0436\u0430", None))

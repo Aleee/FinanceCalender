@@ -17,7 +17,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QGridLayout,
     QHBoxLayout, QHeaderView, QPushButton, QSizePolicy,
-    QSpacerItem, QTableView, QWidget)
+    QSpacerItem, QWidget)
+
+from gui.finplanwidget import FinPlanTableView
 
 class Ui_FinPlanDialog(object):
     def setupUi(self, FinPlanDialog):
@@ -54,7 +56,7 @@ class Ui_FinPlanDialog(object):
 
         self.gridLayout.addLayout(self.horizontalLayout, 3, 0, 1, 2)
 
-        self.tv_finplan = QTableView(FinPlanDialog)
+        self.tv_finplan = FinPlanTableView(FinPlanDialog)
         self.tv_finplan.setObjectName(u"tv_finplan")
 
         self.gridLayout.addWidget(self.tv_finplan, 0, 0, 1, 2)

@@ -145,6 +145,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.current_date: QDate = QDate().currentDate()
         self.paid_minimum_date: QDate = QDate()
         self.next_select_norecalc: bool = False
+        self.filter_to_restore: str = ""
         # temp
         self.row_formatting = RowFormatting()
 
@@ -231,28 +232,28 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.afterSelect.emit()
         return result
 
-    def insert_row(self, data: list) -> bool:
+    def insert_row(self, data: list) -> int | None:
         new_row_position: int = self.rowCount()
         self.insertRow(new_row_position)
         if len(data) != self.columnCount():
             raise IndexError("В новую строку передано неверное количество данных")
         return self.insert_data_in_row(new_row_position, data)
 
-    def edit_row(self, row: int, data: list) -> bool:
+    def edit_row(self, row: int, data: list) -> int | None:
         return self.insert_data_in_row(row, data)
 
-    def insert_data_in_row(self, row: int, data: list) -> bool:
+    def insert_data_in_row(self, row: int, data: list) -> int | None:
         for column, value in enumerate(data):
             if column == Col.ID:
                 continue
             if not self.setData(self.index(row, column), value):
-                return False
-        return True
+                return None
+        return row
 
     # Функция возвращает ID удаленной строки (0 в случае неудачи)
     def delete_row(self, row: int) -> int:
         deleted_id: int = self.index(row, Col.ID).data(self.qtValueRole)
-        return deleted_id if self.removeRow(row)else 0
+        return deleted_id if self.removeRow(row) else 0
 
     def removeRow(self, row, parent=QModelIndex()):
         result = super(LiabilitySqlTableModel, self).removeRow(row, parent)
@@ -289,6 +290,16 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.send_filterwidget_labeldata(term, category, receiver, responsible, paid_today, paid_months_toshow, featured)
         self.next_select_norecalc = True
         self.setFilter(filt)
+
+    def modify_filter(self, new_clause: str):
+        self.next_select_norecalc = True
+        self.filter_to_restore = self.filter()
+        self.setFilter(self.filter() + " " + new_clause)
+
+    def restore_modified_filter(self):
+        self.next_select_norecalc = True
+        self.setFilter(self.filter_to_restore)
+        self.filter_to_restore = ""
 
     def send_filterwidget_labeldata(self, term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
         term_labels_dict = {}

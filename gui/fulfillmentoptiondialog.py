@@ -6,6 +6,7 @@ from base.date import first_date_of_month, last_date_of_month
 from base.dbhandler import DBHandler
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.fulfillmentdialog import FulfillmentDialog
+from gui.settings import SettingsHandler
 from gui.ui.fulfillmentoptiondialog_ui import Ui_FulfillmentOptionDialog
 
 
@@ -14,12 +15,13 @@ class FulfillmentOptionDialog(QDialog):
     MONTHS = ("Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь")
     QUARTALS = [(1, 2, 3), (4, 5, 6), (7, 8, 9), (10, 11, 12)]
 
-    def __init__(self, db_handler: DBHandler, parent=None):
+    def __init__(self, db_handler: DBHandler, settings_handler: SettingsHandler, parent=None):
         super(FulfillmentOptionDialog, self).__init__(parent)
         self.ui = Ui_FulfillmentOptionDialog()
         self.ui.setupUi(self)
 
         self.db_handler = db_handler
+        self.sh = settings_handler
 
         self.rb_group: QButtonGroup = QButtonGroup(self)
         self.rb_group.addButton(self.ui.rb_onemonth, 1)
@@ -81,12 +83,12 @@ class FulfillmentOptionDialog(QDialog):
             if self.ui.rb_planfulfillment.isChecked():
                 self.ui.stackedWidget.setCurrentIndex(1)
             else:
-                dlg: FulfillmentDialog = FulfillmentDialog(False, self.db_handler, begin_date, end_date, self.get_inflow_data(), self.load_plan(begin_date, end_date), self)
+                dlg: FulfillmentDialog = FulfillmentDialog(False, self.db_handler, self.sh, begin_date, end_date, self.get_inflow_data(), self.load_plan(begin_date, end_date), self)
                 dlg.exec()
                 self.accept()
         else:
             self.save_inflow(begin_date, end_date)
-            dlg: FulfillmentDialog = FulfillmentDialog(True, self.db_handler, begin_date, end_date, self.get_inflow_data(), self.load_plan(begin_date, end_date), self)
+            dlg: FulfillmentDialog = FulfillmentDialog(True, self.db_handler, self.sh, begin_date, end_date, self.get_inflow_data(), self.load_plan(begin_date, end_date), self)
             dlg.exec()
             self.accept()
 

@@ -1,5 +1,3 @@
-import lovely_logger as log
-
 from decimal import Decimal
 from enum import IntEnum, auto
 from typing import Any
@@ -13,8 +11,8 @@ from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace, str_rubstr
 from base.payment import PaymentField
-from base.xlswriter import XlsWriter
-from gui.common import map_to_source, model_atlevel
+from base.xlswriter import LiabilityXlsWriter
+from gui.common import map_to_source
 from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparator
 from gui.commonwidgets.eventfilter import RightClickFilter
 from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
@@ -22,10 +20,9 @@ from gui.commonwidgets.persistentheader import PersistentHeader
 from gui.eventdialog import EventDialog
 from gui.eventproxymodel import LiabilitySortFilterProxyModel, Filter, LiabilityTotalsProxyModel
 from gui.eventsqlmodel import LiabilitySqlTableModel, RowType, Col
+from gui.feedialog import FeeDialog
 from gui.finplandialog import FinPlanDialog
-from gui.fulfillmentdialog import FulfillmentDialog
 from gui.fulfillmentoptiondialog import FulfillmentOptionDialog
-from gui.plot import PaymentHistoryGraph
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
 from gui.recoverydialog import RecoveryDialog
@@ -65,11 +62,12 @@ class MainWindow(QMainWindow):
         self.saved_before_exit: bool = False
         self.nosave_exit: bool = False
 
+        # deprecated
         # self.plot_available: bool = False
 
         # Загрузка данных из БД
         ## Проверка на наличие файла
-        if not self.db_handler.check_if_db_files_exists():
+        if not self.db_handler.check_db_files_exists():
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,
                                          text="К сожалению, найти файл базы данных в стандартном расположении не удалось. "
                                               "Выберите файл для восстановления",
@@ -111,9 +109,9 @@ class MainWindow(QMainWindow):
         self.ui.tv_payment.setModel(self.payment_proxy_model)
 
         # Инициализация экспортера
-        self.xls_writer: XlsWriter = XlsWriter(self.proxy2_model, self.ui.tv_payment, self.settings_handler)
+        self.xls_writer: LiabilityXlsWriter = LiabilityXlsWriter(self.proxy2_model, self.ui.tv_payment, self.settings_handler)
 
-        # # График оплат
+        # # График оплат (deprecated)
         # self.payment_plot: PaymentHistoryGraph = PaymentHistoryGraph()
         # self.ui.wdg_graph.setLayout(QVBoxLayout())
         # self.ui.wdg_graph.layout().addWidget(self.payment_plot.canvas)
@@ -189,11 +187,12 @@ class MainWindow(QMainWindow):
         self.ui.act_copy.triggered.connect(lambda: self.open_event_dialog(copy=True))
         self.ui.act_edit.triggered.connect(lambda: self.open_event_dialog(edit=True))
         self.ui.act_delete.triggered.connect(self.delete_event)
-        # self.ui.act_finplan.triggered.connect(self.open_finplan_dialog)
-        # self.rmb_finplan_filter = RightClickFilter(self)
-        # self.rmb_finplan_filter.rightmousebutton_clicked.connect(lambda: self.open_finplan_dialog(ask_year=True))
-        # self.ui.tlbr.widgetForAction(self.ui.act_finplan).installEventFilter(self.rmb_finplan_filter)
-        # self.ui.act_fulfillment.triggered.connect(self.open_fulfillment_dialog)
+        self.ui.act_finplan.triggered.connect(self.open_finplan_dialog)
+        self.rmb_finplan_filter = RightClickFilter(self)
+        self.rmb_finplan_filter.rightmousebutton_clicked.connect(lambda: self.open_finplan_dialog(ask_year=True))
+        self.ui.tlbr.widgetForAction(self.ui.act_finplan).installEventFilter(self.rmb_finplan_filter)
+        self.ui.act_fulfillment.triggered.connect(self.open_fulfillment_dialog)
+        self.ui.act_fees.triggered.connect(self.open_fees_dialog)
         self.ui.act_export.triggered.connect(self.open_export_dialog)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog(True))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.HEADER, checked))
@@ -223,9 +222,6 @@ class MainWindow(QMainWindow):
         # Начальные действия
         self.settings_handler.apply_settings()
         self.ui.stw_eventinfo.setCurrentIndex(1)
-
-        # # Завершение работы
-        # app.aboutToQuit.connect(self.on_quit_actions)
 
     def make_backup(self):
         # Очистка папки с резервными копиями
@@ -288,6 +284,8 @@ class MainWindow(QMainWindow):
                 act.setEnabled(False)
         self.update_eventinfo()
         self.ui.tb_savenote.setEnabled(False)
+
+    # deprecated
 
     # def update_plot(self) -> None:
     #     self.plot_available: bool = True
@@ -358,12 +356,6 @@ class MainWindow(QMainWindow):
             # self.update_plot()
         return True
 
-    # def reset_paymentproxymodel_filter(self, current_index: QModelIndex) -> None:
-    #     current_event_id: int = 0
-    #     if self.event_finalfilter_model.data(current_index.siblingAtColumn(Col.TYPE), EventTableModel.internalValueRole) == RowType.EVENT:
-    #         current_event_id = self.event_finalfilter_model.data(current_index.siblingAtColumn(Col.ID), EventTableModel.internalValueRole)
-    #     self.payment_proxy_model.reset_filter(current_event_id)
-
     def set_data_to_current_event(self, column, value) -> bool:
         curr_index_source: QModelIndex = self.get_current_event_index(source_model_index=True)
         if not curr_index_source.isValid():
@@ -426,9 +418,14 @@ class MainWindow(QMainWindow):
             return False
 
     def open_settings_dialog(self, reject_possible: bool = True):
-        settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, reject_possible, self)
+        settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, self.db_handler, reject_possible, self)
         settings_dialog.exec()
         self.on_currentevent_change()
+        self.update_filters_and_select()
+
+    def open_fees_dialog(self):
+        fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.base_model, self.payment_model, self)
+        fees_dialog.exec()
         self.update_filters_and_select()
 
     def open_event_dialog(self, edit: bool = False, copy: bool = False):
@@ -456,22 +453,19 @@ class MainWindow(QMainWindow):
         dlg: ExportDialog = ExportDialog(self.xls_writer, self.ui.trw_event.get_columnvisibility_list(), self)
         return dlg.exec() == QDialog.DialogCode.Accepted
 
-    # def open_finplan_dialog(self, ask_year: bool = False):
-    #     current_year: int = QDate().currentDate().year()
-    #     if ask_year:
-    #         tdlg: YearInputDialog = YearInputDialog(current_year, self)
-    #         tdlg.exec()
-    #     dlg: FinPlanDialog = FinPlanDialog(self.db_handler, tdlg.ui.spinBox.value() if ask_year else current_year, self)
-    #     dlg.exec()
+    def open_finplan_dialog(self, ask_year: bool = False):
+        current_year: int = QDate().currentDate().year()
+        if ask_year:
+            tdlg: YearInputDialog = YearInputDialog(current_year, self)
+            tdlg.exec()
+        dlg: FinPlanDialog = FinPlanDialog(self.db_handler, self.settings_handler, tdlg.ui.spinBox.value() if ask_year else current_year, self)
+        dlg.exec()
 
-    # def open_fulfillment_dialog(self):
-    #     dlg: FulfillmentOptionDialog = FulfillmentOptionDialog(self.db_handler, self)
-    #     dlg.exec()
+    def open_fulfillment_dialog(self):
+        dlg: FulfillmentOptionDialog = FulfillmentOptionDialog(self.db_handler, self.settings_handler, self)
+        dlg.exec()
 
     def delete_event(self) -> bool:
-        print("current:", self.ui.trw_event.currentIndex().row())
-        print("selected:", [i.row() for i in self.ui.trw_event.selectedIndexes()])
-
         curr_index: QModelIndex = self.get_current_event_index()
         if not curr_index.isValid():
             return False

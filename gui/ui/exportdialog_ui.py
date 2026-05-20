@@ -15,20 +15,60 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QGridLayout,
-    QHBoxLayout, QLabel, QLayout, QPushButton,
-    QRadioButton, QSizePolicy, QSpacerItem, QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QDialog, QFrame,
+    QGridLayout, QHBoxLayout, QLabel, QLayout,
+    QPushButton, QRadioButton, QSizePolicy, QSpacerItem,
+    QWidget)
 
 class Ui_ExportDialog(object):
     def setupUi(self, ExportDialog):
         if not ExportDialog.objectName():
             ExportDialog.setObjectName(u"ExportDialog")
-        ExportDialog.resize(213, 328)
+        ExportDialog.resize(245, 390)
         self.gridLayout_2 = QGridLayout(ExportDialog)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.verticalSpacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        self.line_2 = QFrame(ExportDialog)
+        self.line_2.setObjectName(u"line_2")
+        self.line_2.setFrameShape(QFrame.Shape.HLine)
+        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.gridLayout_2.addItem(self.verticalSpacer, 4, 1, 1, 1)
+        self.gridLayout_2.addWidget(self.line_2, 2, 0, 1, 4)
+
+        self.line = QFrame(ExportDialog)
+        self.line.setObjectName(u"line")
+        self.line.setFrameShape(QFrame.Shape.HLine)
+        self.line.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_2.addWidget(self.line, 6, 0, 1, 4)
+
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.label_12 = QLabel(ExportDialog)
+        self.label_12.setObjectName(u"label_12")
+
+        self.horizontalLayout_2.addWidget(self.label_12)
+
+        self.rb_xlsx = QRadioButton(ExportDialog)
+        self.rb_xlsx.setObjectName(u"rb_xlsx")
+        self.rb_xlsx.setChecked(True)
+
+        self.horizontalLayout_2.addWidget(self.rb_xlsx)
+
+        self.horizontalSpacer_2 = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_2.addItem(self.horizontalSpacer_2)
+
+        self.rb_pdf = QRadioButton(ExportDialog)
+        self.rb_pdf.setObjectName(u"rb_pdf")
+
+        self.horizontalLayout_2.addWidget(self.rb_pdf)
+
+        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_2.addItem(self.horizontalSpacer_5)
+
+
+        self.gridLayout_2.addLayout(self.horizontalLayout_2, 0, 1, 1, 3)
 
         self.gridLayout = QGridLayout()
         self.gridLayout.setObjectName(u"gridLayout")
@@ -188,12 +228,16 @@ class Ui_ExportDialog(object):
 
         self.gridLayout_2.addLayout(self.gridLayout, 3, 1, 1, 2)
 
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.line_3 = QFrame(ExportDialog)
+        self.line_3.setObjectName(u"line_3")
+        self.line_3.setFrameShape(QFrame.Shape.HLine)
+        self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.gridLayout_2.addItem(self.horizontalSpacer_4, 3, 3, 1, 1)
+        self.gridLayout_2.addWidget(self.line_3, 8, 0, 1, 4)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(-1, 6, -1, -1)
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
@@ -209,50 +253,36 @@ class Ui_ExportDialog(object):
         self.horizontalLayout.addWidget(self.pb_cancel)
 
 
-        self.gridLayout_2.addLayout(self.horizontalLayout, 7, 0, 1, 4)
+        self.gridLayout_2.addLayout(self.horizontalLayout, 9, 0, 1, 4)
 
-        self.line = QFrame(ExportDialog)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShape(QFrame.Shape.HLine)
-        self.line.setFrameShadow(QFrame.Shadow.Sunken)
+        self.verticalSpacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        self.gridLayout_2.addWidget(self.line, 5, 0, 1, 4)
+        self.gridLayout_2.addItem(self.verticalSpacer, 4, 1, 1, 1)
 
-        self.line_2 = QFrame(ExportDialog)
-        self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShape(QFrame.Shape.HLine)
-        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
+        self.gridLayout_3 = QGridLayout()
+        self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.gridLayout_3.setVerticalSpacing(0)
+        self.chb_includehiddensums = QCheckBox(ExportDialog)
+        self.chb_includehiddensums.setObjectName(u"chb_includehiddensums")
+        self.chb_includehiddensums.setEnabled(False)
 
-        self.gridLayout_2.addWidget(self.line_2, 2, 0, 1, 4)
+        self.gridLayout_3.addWidget(self.chb_includehiddensums, 1, 1, 1, 1)
 
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.label_12 = QLabel(ExportDialog)
-        self.label_12.setObjectName(u"label_12")
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_2.addWidget(self.label_12)
+        self.gridLayout_3.addItem(self.horizontalSpacer_3, 0, 3, 1, 1)
 
-        self.rb_xlsx = QRadioButton(ExportDialog)
-        self.rb_xlsx.setObjectName(u"rb_xlsx")
-        self.rb_xlsx.setChecked(True)
+        self.horizontalSpacer_4 = QSpacerItem(15, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_2.addWidget(self.rb_xlsx)
+        self.gridLayout_3.addItem(self.horizontalSpacer_4, 1, 0, 1, 1)
 
-        self.horizontalSpacer_2 = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.chb_includehidden = QCheckBox(ExportDialog)
+        self.chb_includehidden.setObjectName(u"chb_includehidden")
 
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_2)
-
-        self.rb_pdf = QRadioButton(ExportDialog)
-        self.rb_pdf.setObjectName(u"rb_pdf")
-
-        self.horizontalLayout_2.addWidget(self.rb_pdf)
-
-        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_5)
+        self.gridLayout_3.addWidget(self.chb_includehidden, 0, 0, 1, 2)
 
 
-        self.gridLayout_2.addLayout(self.horizontalLayout_2, 0, 1, 1, 3)
+        self.gridLayout_2.addLayout(self.gridLayout_3, 7, 1, 1, 3)
 
 
         self.retranslateUi(ExportDialog)
@@ -262,6 +292,9 @@ class Ui_ExportDialog(object):
 
     def retranslateUi(self, ExportDialog):
         ExportDialog.setWindowTitle(QCoreApplication.translate("ExportDialog", u"\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0432 \u0444\u0430\u0439\u043b", None))
+        self.label_12.setText(QCoreApplication.translate("ExportDialog", u"\u0424\u043e\u0440\u043c\u0430\u0442:  ", None))
+        self.rb_xlsx.setText(QCoreApplication.translate("ExportDialog", u"XLSX", None))
+        self.rb_pdf.setText(QCoreApplication.translate("ExportDialog", u"PDF", None))
         self.label_4.setText(QCoreApplication.translate("ExportDialog", u"\u041e\u0431\u0449\u0430\u044f \u0441\u0443\u043c\u043c\u0430", None))
         self.label_9.setText(QCoreApplication.translate("ExportDialog", u"\u041e\u043f\u043b\u0430\u0442\u0430 \u0441\u0435\u0433\u043e\u0434\u043d\u044f", None))
         self.label_3.setText(QCoreApplication.translate("ExportDialog", u"\u0417\u0430\u0434\u043e\u043b\u0436\u0435\u043d\u043d\u043e\u0441\u0442\u044c", None))
@@ -293,8 +326,7 @@ class Ui_ExportDialog(object):
         self.label_11.setText(QCoreApplication.translate("ExportDialog", u"\u043d\u0435\u0442", None))
         self.pb_export.setText(QCoreApplication.translate("ExportDialog", u"\u042d\u043a\u0441\u043f\u043e\u0440\u0442", None))
         self.pb_cancel.setText(QCoreApplication.translate("ExportDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
-        self.label_12.setText(QCoreApplication.translate("ExportDialog", u"\u0424\u043e\u0440\u043c\u0430\u0442:  ", None))
-        self.rb_xlsx.setText(QCoreApplication.translate("ExportDialog", u"XLSX", None))
-        self.rb_pdf.setText(QCoreApplication.translate("ExportDialog", u"PDF", None))
+        self.chb_includehiddensums.setText(QCoreApplication.translate("ExportDialog", u"\u0422\u043e\u043b\u044c\u043a\u043e \u0441\u0443\u043c\u043c\u044b", None))
+        self.chb_includehidden.setText(QCoreApplication.translate("ExportDialog", u"\u0412\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0441\u043a\u0440\u044b\u0442\u044b\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0438", None))
     # retranslateUi
 

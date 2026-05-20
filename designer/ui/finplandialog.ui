@@ -59,10 +59,17 @@
     </layout>
    </item>
    <item row="0" column="0" colspan="2">
-    <widget class="QTableView" name="tv_finplan"/>
+    <widget class="FinPlanTableView" name="tv_finplan"/>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>FinPlanTableView</class>
+   <extends>QTableView</extends>
+   <header>gui/finplanwidget.h</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>tv_finplan</tabstop>
   <tabstop>pb_save</tabstop>

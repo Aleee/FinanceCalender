@@ -2,7 +2,7 @@ from PySide6.QtCore import QModelIndex
 from PySide6.QtWidgets import QTreeView, QAbstractItemView, QStyledItemDelegate
 
 from gui.commonwidgets.itemdelegate import FulfillmentItemDelegate
-from gui.fulfillmentmodel import FulfillmentModel
+from gui.fulfilmentmodel import FulfilmentModel
 
 
 class FulfillmentWidget(QTreeView):
@@ -25,7 +25,7 @@ class FulfillmentWidget(QTreeView):
     def setup_rows(self):
         self.expandAll()
 
-        model: FulfillmentModel = self.model()
+        model: FulfilmentModel = self.model()
         for category in model.rootItem.childItems:
             parent_index: QModelIndex = model.index(category.row(), 0, QModelIndex())
             for entry in category.childItems:

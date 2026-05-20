@@ -4,7 +4,6 @@ import lovely_logger as log
 
 from PySide6.QtWidgets import QApplication
 
-from gui.loadingdialog import LoadingDialog
 from gui.mainwindow import MainWindow
 
 
@@ -28,7 +27,7 @@ class App(QApplication):
 def main():
     pr = cProfile.Profile()
     # pr.enable()
-    log.init("log.log")
+    log.init("log.log", level=log.DEBUG)
     application: App = App(pr)
     sys.exit(application.exec())
 

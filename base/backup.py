@@ -1,10 +1,13 @@
 import os
+import posixpath
 import shutil
 from pathlib import Path
 import lovely_logger as log
 from PySide6.QtCore import QDateTime, QDate
+from PySide6.QtSql import QSqlDatabase
 
 from base.dbhandler import DBHandler
+from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.settings import SettingsHandler
 
 
@@ -47,3 +50,32 @@ def clean_backup_folder(sh: SettingsHandler) -> bool:
         if filedate < minumum_date:
             Path(os.path.join(backup_foldername, fname)).unlink(missing_ok=True)
     return True
+
+
+def restore_backup(dbh: DBHandler, db_file_path: str) -> bool:
+    if not dbh.check_db_file_integrity(db_file_path):
+        ErrorInfoMessageBox("Выбранный файл не подходит для восстановления (подробности см. в логе)").exec()
+        return False
+    temp_file_created: bool = False
+    database = QSqlDatabase.database()
+    database.close()
+    del database
+    default_db_path = Path(os.path.abspath(dbh.DEFAULT_DB_RELPATH))
+    temp_db_path = Path(posixpath.join(str(default_db_path.parent), "db_temp.db"))
+    try:
+        temp_db_path.unlink(missing_ok=True)
+        default_db_path.rename(temp_db_path)
+        temp_file_created = True
+        shutil.copy(Path(db_file_path), default_db_path)
+        temp_db_path.unlink(missing_ok=True)
+        dbh.open_db_connection()
+        return True
+    except FileNotFoundError:
+        log.w(f"Файл {db_file_path} не найден")
+    except Exception as e:
+        log.x(f"При замене файла БД произошла ошибка: {e}")
+    if temp_file_created:
+        temp_db_path.rename(default_db_path)
+        temp_db_path.unlink(missing_ok=True)
+    dbh.open_db_connection()
+    return False

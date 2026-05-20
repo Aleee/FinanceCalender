@@ -7,7 +7,7 @@ from gui.eventsqlmodel import FilterFlags, Col, RowType, RowFormatting, Liabilit
 
 from gui.common import model_atlevel
 from gui.filterwidget import TermCategory
-from gui.fulfillmentmodel import FulfillmentModel
+from gui.fulfilmentmodel import FulfilmentModel
 
 
 class EventItemDelegate(QStyledItemDelegate):
@@ -155,8 +155,8 @@ class FulfillmentItemDelegate(QStyledItemDelegate):
         painter.setClipRect(option.rect)
         pen: QPen = QPen(QColor("#b0b5e8"), 1)
         painter.setPen(pen)
-        if (index.siblingAtColumn(0).data(FulfillmentModel.spanRole) and not index.sibling(index.row() + 1, 0).data(FulfillmentModel.spanRole)
-                or not index.siblingAtColumn(0).data(FulfillmentModel.spanRole)):
+        if (index.siblingAtColumn(0).data(FulfilmentModel.spanRole) and not index.sibling(index.row() + 1, 0).data(FulfilmentModel.spanRole)
+                or not index.siblingAtColumn(0).data(FulfilmentModel.spanRole)):
             painter.drawLine(option.rect.bottomLeft(), option.rect.bottomRight())
         painter.drawLine(option.rect.topRight(), option.rect.bottomRight())
         painter.restore()

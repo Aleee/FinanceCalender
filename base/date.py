@@ -32,8 +32,8 @@ def date_str(date) -> str:
     return date.toString("yyyy-MM-dd")
 
 
-def date_purestr(date) -> str:
-    return date.toString("ddMMyyyy")
+def date_purestr(date, short: bool = False) -> str:
+    return date.toString("ddMMyy") if short else date.toString("ddMMyyyy")
 
 
 def date_displstr(date) -> str:

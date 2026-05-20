@@ -65,6 +65,7 @@ class SettingsHandler:
             ("Columns/paymenttype", Col.PAYMENTTYPE),
             ("Columns/descr", Col.DESCR),
             ("Columns/responsible", Col.RESPONSIBLE),
+            ("Columns/createdate", Col.CREATEDATE),
         ):
             try:
                 if not bool(int(self.settings.value(column_state_settings[0]))):

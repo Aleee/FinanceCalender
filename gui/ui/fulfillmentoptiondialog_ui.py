@@ -213,6 +213,7 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.rb_ndsfreepayments = QRadioButton(self.page)
         self.rb_ndsfreepayments.setObjectName(u"rb_ndsfreepayments")
+        self.rb_ndsfreepayments.setEnabled(True)
 
         self.gridLayout_2.addWidget(self.rb_ndsfreepayments, 1, 0, 1, 1)
 
@@ -221,29 +222,20 @@ class Ui_FulfillmentOptionDialog(object):
         self.page_2.setObjectName(u"page_2")
         self.gridLayout_3 = QGridLayout(self.page_2)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.label_10 = QLabel(self.page_2)
-        self.label_10.setObjectName(u"label_10")
+        self.gridLayout_3.setVerticalSpacing(4)
+        self.line_7 = QFrame(self.page_2)
+        self.line_7.setObjectName(u"line_7")
+        self.line_7.setFrameShape(QFrame.Shape.HLine)
+        self.line_7.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.gridLayout_3.addWidget(self.label_10, 1, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.line_7, 11, 0, 1, 2)
 
-        self.label_7 = QLabel(self.page_2)
-        self.label_7.setObjectName(u"label_7")
+        self.line_5 = QFrame(self.page_2)
+        self.line_5.setObjectName(u"line_5")
+        self.line_5.setFrameShape(QFrame.Shape.HLine)
+        self.line_5.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.gridLayout_3.addWidget(self.label_7, 5, 0, 1, 1)
-
-        self.spb_21000 = AutoSelectSpinbox(self.page_2)
-        self.spb_21000.setObjectName(u"spb_21000")
-        self.spb_21000.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
-        self.spb_21000.setProperty(u"showGroupSeparator", True)
-        self.spb_21000.setMinimum(-999999999)
-        self.spb_21000.setMaximum(999999999)
-
-        self.gridLayout_3.addWidget(self.spb_21000, 4, 1, 1, 1)
-
-        self.label_5 = QLabel(self.page_2)
-        self.label_5.setObjectName(u"label_5")
-
-        self.gridLayout_3.addWidget(self.label_5, 3, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.line_5, 7, 0, 1, 2)
 
         self.spb_10000 = AutoSelectSpinbox(self.page_2)
         self.spb_10000.setObjectName(u"spb_10000")
@@ -252,44 +244,12 @@ class Ui_FulfillmentOptionDialog(object):
         self.spb_10000.setMinimum(-999999999)
         self.spb_10000.setMaximum(999999999)
 
-        self.gridLayout_3.addWidget(self.spb_10000, 3, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.spb_10000, 4, 1, 1, 1)
 
-        self.label_8 = QLabel(self.page_2)
-        self.label_8.setObjectName(u"label_8")
+        self.label_5 = QLabel(self.page_2)
+        self.label_5.setObjectName(u"label_5")
 
-        self.gridLayout_3.addWidget(self.label_8, 6, 0, 1, 1)
-
-        self.label_6 = QLabel(self.page_2)
-        self.label_6.setObjectName(u"label_6")
-
-        self.gridLayout_3.addWidget(self.label_6, 4, 0, 1, 1)
-
-        self.spb_22000 = AutoSelectSpinbox(self.page_2)
-        self.spb_22000.setObjectName(u"spb_22000")
-        self.spb_22000.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
-        self.spb_22000.setProperty(u"showGroupSeparator", True)
-        self.spb_22000.setMinimum(-999999999)
-        self.spb_22000.setMaximum(999999999)
-
-        self.gridLayout_3.addWidget(self.spb_22000, 5, 1, 1, 1)
-
-        self.spb_23200 = AutoSelectSpinbox(self.page_2)
-        self.spb_23200.setObjectName(u"spb_23200")
-        self.spb_23200.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
-        self.spb_23200.setProperty(u"showGroupSeparator", True)
-        self.spb_23200.setMinimum(-999999999)
-        self.spb_23200.setMaximum(999999999)
-
-        self.gridLayout_3.addWidget(self.spb_23200, 7, 1, 1, 1)
-
-        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout_3.addItem(self.verticalSpacer_3, 8, 0, 1, 1)
-
-        self.label_9 = QLabel(self.page_2)
-        self.label_9.setObjectName(u"label_9")
-
-        self.gridLayout_3.addWidget(self.label_9, 7, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.label_5, 4, 0, 1, 1)
 
         self.spb_23100 = AutoSelectSpinbox(self.page_2)
         self.spb_23100.setObjectName(u"spb_23100")
@@ -298,14 +258,89 @@ class Ui_FulfillmentOptionDialog(object):
         self.spb_23100.setMinimum(-999999999)
         self.spb_23100.setMaximum(999999999)
 
-        self.gridLayout_3.addWidget(self.spb_23100, 6, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.spb_23100, 10, 1, 1, 1)
+
+        self.label_8 = QLabel(self.page_2)
+        self.label_8.setObjectName(u"label_8")
+
+        self.gridLayout_3.addWidget(self.label_8, 10, 0, 1, 1)
+
+        self.spb_21000 = AutoSelectSpinbox(self.page_2)
+        self.spb_21000.setObjectName(u"spb_21000")
+        self.spb_21000.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.spb_21000.setProperty(u"showGroupSeparator", True)
+        self.spb_21000.setMinimum(-999999999)
+        self.spb_21000.setMaximum(999999999)
+
+        self.gridLayout_3.addWidget(self.spb_21000, 6, 1, 1, 1)
+
+        self.label_6 = QLabel(self.page_2)
+        self.label_6.setObjectName(u"label_6")
+
+        self.gridLayout_3.addWidget(self.label_6, 6, 0, 1, 1)
+
+        self.spb_23200 = AutoSelectSpinbox(self.page_2)
+        self.spb_23200.setObjectName(u"spb_23200")
+        self.spb_23200.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.spb_23200.setProperty(u"showGroupSeparator", True)
+        self.spb_23200.setMinimum(-999999999)
+        self.spb_23200.setMaximum(999999999)
+
+        self.gridLayout_3.addWidget(self.spb_23200, 12, 1, 1, 1)
+
+        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_3.addItem(self.verticalSpacer_3, 13, 0, 1, 1)
+
+        self.label_9 = QLabel(self.page_2)
+        self.label_9.setObjectName(u"label_9")
+
+        self.gridLayout_3.addWidget(self.label_9, 12, 0, 1, 1)
+
+        self.label_10 = QLabel(self.page_2)
+        self.label_10.setObjectName(u"label_10")
+
+        self.gridLayout_3.addWidget(self.label_10, 1, 0, 1, 1)
 
         self.line_2 = QFrame(self.page_2)
         self.line_2.setObjectName(u"line_2")
+        self.line_2.setMidLineWidth(2)
         self.line_2.setFrameShape(QFrame.Shape.HLine)
         self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_3.addWidget(self.line_2, 2, 0, 1, 2)
+
+        self.line_6 = QFrame(self.page_2)
+        self.line_6.setObjectName(u"line_6")
+        self.line_6.setFrameShape(QFrame.Shape.HLine)
+        self.line_6.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_3.addWidget(self.line_6, 9, 0, 1, 2)
+
+        self.label_7 = QLabel(self.page_2)
+        self.label_7.setObjectName(u"label_7")
+
+        self.gridLayout_3.addWidget(self.label_7, 8, 0, 1, 1)
+
+        self.spb_22000 = AutoSelectSpinbox(self.page_2)
+        self.spb_22000.setObjectName(u"spb_22000")
+        self.spb_22000.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.spb_22000.setProperty(u"showGroupSeparator", True)
+        self.spb_22000.setMinimum(-999999999)
+        self.spb_22000.setMaximum(999999999)
+
+        self.gridLayout_3.addWidget(self.spb_22000, 8, 1, 1, 1)
+
+        self.line_4 = QFrame(self.page_2)
+        self.line_4.setObjectName(u"line_4")
+        self.line_4.setFrameShape(QFrame.Shape.HLine)
+        self.line_4.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_3.addWidget(self.line_4, 5, 0, 1, 2)
+
+        self.verticalSpacer_4 = QSpacerItem(20, 7, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+
+        self.gridLayout_3.addItem(self.verticalSpacer_4, 3, 0, 1, 1)
 
         self.stackedWidget.addWidget(self.page_2)
 
@@ -343,13 +378,13 @@ class Ui_FulfillmentOptionDialog(object):
         self.rb_planfulfillment.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0418\u0441\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0444\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u043e\u0433\u043e \u043f\u043b\u0430\u043d\u0430", None))
         self.rb_onemonth.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0417\u0430 \u043c\u0435\u0441\u044f\u0446:", None))
         self.rb_severalmonths.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0417\u0430 \u043c\u0435\u0441\u044f\u0446\u044b:", None))
-        self.rb_ndsfreepayments.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0420\u0430\u0441\u0445\u043e\u0434\u043e\u0432\u0430\u043d\u0438\u0435 \u0434\u0435\u043d\u0435\u0436\u043d\u044b\u0445 \u0441\u0440\u0435\u0434\u0441\u0442\u0432", None))
-        self.label_10.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0421\u0432\u0435\u0434\u0435\u043d\u0438\u044f \u043e \u043f\u043e\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u044f\u0445:", None))
-        self.label_7.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"2.2. \u041f\u0440\u043e\u0447\u0438\u0435 \u0434\u043e\u0445\u043e\u0434\u044b:", None))
+        self.rb_ndsfreepayments.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u041f\u0435\u0440\u0435\u0447\u0435\u043d\u044c \u0437\u0430\u0442\u0440\u0430\u0442", None))
         self.label_5.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"1. \u041e\u0441\u0442\u0430\u0442\u043e\u043a \u0441\u0440\u0435\u0434\u0441\u0442\u0432 \u043d\u0430 \u043d\u0430\u0447\u0430\u043b\u043e \u043f\u0435\u0440\u0438\u043e\u0434\u0430:  ", None))
         self.label_8.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"2.3.1. \u041e\u0432\u0435\u0440\u0434\u0440\u0430\u0444\u0442:", None))
         self.label_6.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"2.1. \u0412\u044b\u0440\u0443\u0447\u043a\u0430 \u043e\u0442 \u0440\u0435\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u0438 \u0443\u0441\u043b\u0443\u0433: ", None))
         self.label_9.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"2.3.2. \u041a\u0440\u0435\u0434\u0438\u0442:", None))
+        self.label_10.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0421\u0432\u0435\u0434\u0435\u043d\u0438\u044f \u043e \u043f\u043e\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u044f\u0445:", None))
+        self.label_7.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"2.2. \u041f\u0440\u043e\u0447\u0438\u0435 \u0434\u043e\u0445\u043e\u0434\u044b:", None))
         self.pb_cancel.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
     # retranslateUi
 
