@@ -67,6 +67,7 @@ NDS_VALUE = {
     LiabilityCategory.TOP_INVESTMENT: 20,
 }
 
+
 class LiabilityFinanceSubcategory(IntEnum):
     LOAN = 1
     LEASING = 2

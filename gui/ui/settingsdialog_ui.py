@@ -17,9 +17,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBox,
     QDialog, QGridLayout, QGroupBox, QHBoxLayout,
-    QLabel, QLineEdit, QListWidget, QListWidgetItem,
-    QPushButton, QRadioButton, QSizePolicy, QSpacerItem,
-    QSpinBox, QStackedWidget, QWidget)
+    QLabel, QLineEdit, QListView, QListWidget,
+    QListWidgetItem, QPushButton, QRadioButton, QSizePolicy,
+    QSpacerItem, QSpinBox, QStackedWidget, QWidget)
 
 from gui.commonwidgets.colorpushbutton import ColorPushButton
 import resources_rc
@@ -494,13 +494,100 @@ class Ui_settingsdialog(object):
         self.stw.addWidget(self.pg_storage)
         self.page = QWidget()
         self.page.setObjectName(u"page")
-        self.gridLayout_15 = QGridLayout(self.page)
+        self.gridLayout_18 = QGridLayout(self.page)
+        self.gridLayout_18.setObjectName(u"gridLayout_18")
+        self.horizontalLayout_5 = QHBoxLayout()
+        self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
+
+        self.gridLayout_18.addLayout(self.horizontalLayout_5, 4, 0, 1, 2)
+
+        self.lv_personal = QListView(self.page)
+        self.lv_personal.setObjectName(u"lv_personal")
+
+        self.gridLayout_18.addWidget(self.lv_personal, 1, 0, 1, 2)
+
+        self.verticalSpacer_5 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+
+        self.gridLayout_18.addItem(self.verticalSpacer_5, 5, 0, 1, 1)
+
+        self.pb_pers_current = QPushButton(self.page)
+        self.pb_pers_current.setObjectName(u"pb_pers_current")
+        self.pb_pers_current.setCheckable(True)
+        self.pb_pers_current.setChecked(True)
+        self.pb_pers_current.setAutoExclusive(True)
+
+        self.gridLayout_18.addWidget(self.pb_pers_current, 0, 0, 1, 1)
+
+        self.pb_pers_hist = QPushButton(self.page)
+        self.pb_pers_hist.setObjectName(u"pb_pers_hist")
+        self.pb_pers_hist.setCheckable(True)
+        self.pb_pers_hist.setAutoExclusive(True)
+
+        self.gridLayout_18.addWidget(self.pb_pers_hist, 0, 1, 1, 1)
+
+        self.gridLayout_19 = QGridLayout()
+        self.gridLayout_19.setObjectName(u"gridLayout_19")
+        self.pb_pers_rename = QPushButton(self.page)
+        self.pb_pers_rename.setObjectName(u"pb_pers_rename")
+        self.pb_pers_rename.setEnabled(False)
+
+        self.gridLayout_19.addWidget(self.pb_pers_rename, 6, 0, 1, 1)
+
+        self.label_21 = QLabel(self.page)
+        self.label_21.setObjectName(u"label_21")
+
+        self.gridLayout_19.addWidget(self.label_21, 0, 0, 1, 1)
+
+        self.pb_pers_changetype = QPushButton(self.page)
+        self.pb_pers_changetype.setObjectName(u"pb_pers_changetype")
+        self.pb_pers_changetype.setEnabled(False)
+
+        self.gridLayout_19.addWidget(self.pb_pers_changetype, 5, 0, 1, 1)
+
+        self.verticalSpacer_6 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_19.addItem(self.verticalSpacer_6, 4, 0, 1, 1)
+
+        self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_19.addItem(self.horizontalSpacer_7, 5, 1, 1, 1)
+
+        self.cmb_pers_dept = QComboBox(self.page)
+        self.cmb_pers_dept.setObjectName(u"cmb_pers_dept")
+        self.cmb_pers_dept.setEnabled(False)
+        self.cmb_pers_dept.setMinimumSize(QSize(200, 0))
+
+        self.gridLayout_19.addWidget(self.cmb_pers_dept, 1, 0, 1, 2)
+
+        self.label_22 = QLabel(self.page)
+        self.label_22.setObjectName(u"label_22")
+
+        self.gridLayout_19.addWidget(self.label_22, 2, 0, 1, 2)
+
+        self.pb_pers_add = QPushButton(self.page)
+        self.pb_pers_add.setObjectName(u"pb_pers_add")
+
+        self.gridLayout_19.addWidget(self.pb_pers_add, 7, 0, 1, 1)
+
+        self.cmb_pers_default = QComboBox(self.page)
+        self.cmb_pers_default.setObjectName(u"cmb_pers_default")
+        self.cmb_pers_default.setEnabled(False)
+
+        self.gridLayout_19.addWidget(self.cmb_pers_default, 3, 0, 1, 2)
+
+
+        self.gridLayout_18.addLayout(self.gridLayout_19, 1, 2, 1, 1)
+
+        self.stw.addWidget(self.page)
+        self.pg_other = QWidget()
+        self.pg_other.setObjectName(u"pg_other")
+        self.gridLayout_15 = QGridLayout(self.pg_other)
         self.gridLayout_15.setObjectName(u"gridLayout_15")
         self.verticalSpacer_4 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_15.addItem(self.verticalSpacer_4, 2, 0, 1, 1)
 
-        self.groupBox_13 = QGroupBox(self.page)
+        self.groupBox_13 = QGroupBox(self.pg_other)
         self.groupBox_13.setObjectName(u"groupBox_13")
         self.horizontalLayout_4 = QHBoxLayout(self.groupBox_13)
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
@@ -516,7 +603,7 @@ class Ui_settingsdialog(object):
 
         self.gridLayout_15.addWidget(self.groupBox_13, 1, 0, 1, 1)
 
-        self.groupBox_12 = QGroupBox(self.page)
+        self.groupBox_12 = QGroupBox(self.pg_other)
         self.groupBox_12.setObjectName(u"groupBox_12")
         self.gridLayout_17 = QGridLayout(self.groupBox_12)
         self.gridLayout_17.setObjectName(u"gridLayout_17")
@@ -567,7 +654,7 @@ class Ui_settingsdialog(object):
 
         self.gridLayout_15.addWidget(self.groupBox_12, 0, 0, 1, 1)
 
-        self.stw.addWidget(self.page)
+        self.stw.addWidget(self.pg_other)
 
         self.gridLayout.addWidget(self.stw, 0, 1, 1, 1)
 
@@ -588,10 +675,15 @@ class Ui_settingsdialog(object):
         __qlistwidgetitem2.setTextAlignment(Qt.AlignCenter);
         __qlistwidgetitem2.setIcon(icon2);
         icon3 = QIcon()
-        icon3.addFile(u":/icon-settings/designer/icons/generalsettings.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon3.addFile(u":/icon-settings/designer/icons/set_pers.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         __qlistwidgetitem3 = QListWidgetItem(self.lw_menu)
         __qlistwidgetitem3.setTextAlignment(Qt.AlignCenter);
         __qlistwidgetitem3.setIcon(icon3);
+        icon4 = QIcon()
+        icon4.addFile(u":/icon-settings/designer/icons/generalsettings.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        __qlistwidgetitem4 = QListWidgetItem(self.lw_menu)
+        __qlistwidgetitem4.setTextAlignment(Qt.AlignCenter);
+        __qlistwidgetitem4.setIcon(icon4);
         self.lw_menu.setObjectName(u"lw_menu")
         self.lw_menu.setMinimumSize(QSize(170, 0))
         self.lw_menu.setMaximumSize(QSize(170, 16777215))
@@ -602,7 +694,7 @@ class Ui_settingsdialog(object):
 
         self.retranslateUi(settingsdialog)
 
-        self.stw.setCurrentIndex(0)
+        self.stw.setCurrentIndex(3)
         self.lw_menu.setCurrentRow(-1)
 
 
@@ -685,6 +777,13 @@ class Ui_settingsdialog(object):
         self.la_paidloadtooltip_2.setText(QCoreApplication.translate("settingsdialog", u"  ?  ", None))
         self.groupBox_10.setTitle(QCoreApplication.translate("settingsdialog", u"\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0442\u0430\u0431\u043b\u0438\u0446\u044b", None))
         self.chb_frozenheader.setText(QCoreApplication.translate("settingsdialog", u"\u0417\u0430\u043a\u0440\u0435\u043f\u043b\u044f\u0442\u044c \u0437\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u0447\u043d\u0443\u044e \u0447\u0430\u0441\u0442\u044c \u0432 XLSX-\u0444\u0430\u0439\u043b\u0435", None))
+        self.pb_pers_current.setText(QCoreApplication.translate("settingsdialog", u"\u0422\u0435\u043a\u0443\u0449\u0438\u0435", None))
+        self.pb_pers_hist.setText(QCoreApplication.translate("settingsdialog", u"\u0410\u0440\u0445\u0438\u0432", None))
+        self.pb_pers_rename.setText(QCoreApplication.translate("settingsdialog", u" \u041f\u0435\u0440\u0435\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u0442\u044c ", None))
+        self.label_21.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u043e\u0434\u0440\u0430\u0437\u0434\u0435\u043b\u0435\u043d\u0438\u0435: ", None))
+        self.pb_pers_changetype.setText(QCoreApplication.translate("settingsdialog", u"\u0412 \u0430\u0440\u0445\u0438\u0432", None))
+        self.label_22.setText(QCoreApplication.translate("settingsdialog", u"\u0417\u0430\u0442\u0440\u0430\u0442\u044b \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e:", None))
+        self.pb_pers_add.setText(QCoreApplication.translate("settingsdialog", u"\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c", None))
         self.groupBox_13.setTitle(QCoreApplication.translate("settingsdialog", u"\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435", None))
         self.pb_restorefrombackup.setText(QCoreApplication.translate("settingsdialog", u"  \u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0438\u0437 \u0440\u0435\u0437\u0435\u0440\u0432\u043d\u043e\u0439 \u043a\u043e\u043f\u0438\u0438  ", None))
         self.groupBox_12.setTitle(QCoreApplication.translate("settingsdialog", u"\u0420\u0435\u0437\u0435\u0440\u0432\u043d\u043e\u0435 \u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435", None))
@@ -705,7 +804,9 @@ class Ui_settingsdialog(object):
         ___qlistwidgetitem2 = self.lw_menu.item(2)
         ___qlistwidgetitem2.setText(QCoreApplication.translate("settingsdialog", u"\u0425\u0440\u0430\u043d\u0435\u043d\u0438\u0435", None));
         ___qlistwidgetitem3 = self.lw_menu.item(3)
-        ___qlistwidgetitem3.setText(QCoreApplication.translate("settingsdialog", u"\u0414\u0440\u0443\u0433\u043e\u0435", None));
+        ___qlistwidgetitem3.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u0435\u0440\u0441\u043e\u043d\u0430\u043b", None));
+        ___qlistwidgetitem4 = self.lw_menu.item(4)
+        ___qlistwidgetitem4.setText(QCoreApplication.translate("settingsdialog", u"\u0414\u0440\u0443\u0433\u043e\u0435", None));
         self.lw_menu.setSortingEnabled(__sortingEnabled)
 
     # retranslateUi

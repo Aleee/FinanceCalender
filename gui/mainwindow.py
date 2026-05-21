@@ -244,6 +244,7 @@ class MainWindow(QMainWindow):
                                     self.ui.chb_paytoday.isChecked(),
                                     int(self.settings_handler.settings.value("Common/paidloadperiod")),
                                     self.ui.act_featured.isChecked())
+        self.proxy2_model.recalculate_totals()
 
     def get_current_event_index(self, source_model_index: bool = False) -> QModelIndex:
         if source_model_index:

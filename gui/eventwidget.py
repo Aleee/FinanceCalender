@@ -4,7 +4,6 @@ from PySide6.QtCore import Qt, QModelIndex, QItemSelectionModel, QTimer, Signal
 
 from gui.common import model_atlevel
 from gui.commonwidgets.eventfilter import TooltipFilter
-from gui.eventmodel import EventTableModel
 from gui.eventproxymodel import LiabilitySortFilterProxyModel
 from gui.commonwidgets.itemdelegate import EventItemDelegate
 from gui.eventsqlmodel import Col, RowType

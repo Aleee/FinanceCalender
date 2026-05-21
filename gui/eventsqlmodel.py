@@ -261,11 +261,11 @@ class LiabilitySqlTableModel(QSqlTableModel):
         return result
 
     def set_filters(self, term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
-        filt: str = f"(((filterflags = {int(FilterFlags.NONE)}) OR ("
+        filt: str = "(("
         if term == TermCategory.PAID:
-            filt += f"filterflags & {int(FilterFlags.PAID)} AND lastpaymentdate > '{date_str(self.current_date.addMonths(-paid_months_toshow))}' AND "
+            filt += f"(filterflags & {int(FilterFlags.PAID)} AND lastpaymentdate > '{date_str(self.current_date.addMonths(-paid_months_toshow))}') AND "
         else:
-            filt += f"filterflags & {int(FilterFlags.NOTPAID)} AND "
+            filt += f"((filterflags & {int(FilterFlags.NOTPAID)}) OR (filterflags & {int(FilterFlags.PAID)} AND todayshare <> '0.0')) AND "
             if term == TermCategory.DUE:
                 filt += f"filterflags & {int(FilterFlags.DUE)} AND "
             elif term == TermCategory.TODAY:
@@ -274,7 +274,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
                 filt += f"filterflags & {int(FilterFlags.WEEK)} AND "
             elif term == TermCategory.MONTH:
                 filt += f"filterflags & {int(FilterFlags.MONTH)} AND "
-        filt = filt[:-5] + ")) AND "
+        filt = filt[:-5] + ") AND "
         if category % 1000 != 0:
             filt += f"category = {category} AND "
         if receiver:
@@ -285,7 +285,8 @@ class LiabilitySqlTableModel(QSqlTableModel):
             filt += f"todayshare <> '0.0' AND "
         if featured:
             filt += f"featured = 1 AND "
-        filt = filt[:-5] + ")"
+        filt = filt[:-5]
+        filt += f" OR filterflags = {int(FilterFlags.NONE)})"
 
         self.send_filterwidget_labeldata(term, category, receiver, responsible, paid_today, paid_months_toshow, featured)
         self.next_select_norecalc = True
@@ -304,11 +305,11 @@ class LiabilitySqlTableModel(QSqlTableModel):
     def send_filterwidget_labeldata(self, term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
         term_labels_dict = {}
         for term_category in TermCategory:
-            filt = "WHERE "
+            filt = "WHERE (("
             if term_category == TermCategory.PAID:
-                filt += f"filterflags & {int(FilterFlags.PAID)} AND lastpaymentdate > '{date_str(self.current_date.addMonths(-paid_months_toshow))}' AND "
+                filt += f"(filterflags & {int(FilterFlags.PAID)} AND lastpaymentdate > '{date_str(self.current_date.addMonths(-paid_months_toshow))}') AND "
             else:
-                filt += f"filterflags & {int(FilterFlags.NOTPAID)} AND "
+                filt += f"((filterflags & {int(FilterFlags.NOTPAID)}) OR (filterflags & {int(FilterFlags.PAID)} AND todayshare <> '0.0')) AND "
                 if term_category == TermCategory.DUE:
                     filt += f"filterflags & {int(FilterFlags.DUE)} AND "
                 elif term_category == TermCategory.TODAY:
@@ -317,6 +318,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
                     filt += f"filterflags & {int(FilterFlags.WEEK)} AND "
                 elif term_category == TermCategory.MONTH:
                     filt += f"filterflags & {int(FilterFlags.MONTH)} AND "
+            filt = filt[:-5] + ") AND "
             if category % 1000 != 0:
                 filt += f"category = {category} AND "
             if receiver:
@@ -327,18 +329,18 @@ class LiabilitySqlTableModel(QSqlTableModel):
                 filt += f"todayshare <> '0.0' AND "
             if featured:
                 filt += f"featured = 1 AND "
-            filt = filt[:-5]
+            filt = filt[:-5] + ")"
             query = QSqlQuery(f"SELECT COUNT(id) from event {filt}")
             query.next()
             term_labels_dict[term_category] = query.value(0)
 
         category_labels_dict = {}
         for category in list(CATEGORY_NAMES.keys()):
-            filt = "WHERE "
+            filt = "WHERE (("
             if term == TermCategory.PAID:
-                filt += f"filterflags & {int(FilterFlags.PAID)} AND "
+                filt += f"(filterflags & {int(FilterFlags.PAID)} AND lastpaymentdate > '{date_str(self.current_date.addMonths(-paid_months_toshow))}') AND "
             else:
-                filt += f"filterflags & {int(FilterFlags.NOTPAID)} AND "
+                filt += f"((filterflags & {int(FilterFlags.NOTPAID)}) OR (filterflags & {int(FilterFlags.PAID)} AND todayshare <> '0.0')) AND "
                 if term == TermCategory.DUE:
                     filt += f"filterflags & {int(FilterFlags.DUE)} AND "
                 elif term == TermCategory.TODAY:
@@ -347,6 +349,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
                     filt += f"filterflags & {int(FilterFlags.WEEK)} AND "
                 elif term == TermCategory.MONTH:
                     filt += f"filterflags & {int(FilterFlags.MONTH)} AND "
+            filt = filt[:-5] + ") AND "
             if category % 1000 != 0:
                 filt += f"category = {category} AND "
             if receiver:
@@ -357,7 +360,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
                 filt += f"todayshare <> '0.0' AND "
             if featured:
                 filt += f"featured = 1 AND "
-            filt = filt[:-5]
+            filt = filt[:-5] + ")"
             query = QSqlQuery(f"SELECT COUNT(id) from event {filt}")
             query.next()
             category_labels_dict[category] = query.value(0)
@@ -366,18 +369,17 @@ class LiabilitySqlTableModel(QSqlTableModel):
     def calculate_manual_data(self):
         query = QSqlQuery("UPDATE event SET remainamount = event.totalamount, todayshare = '0.0', lastpaymentdate = ''")
         query = QSqlQuery()
-        query.prepare("UPDATE event "
-                      "SET remainamount = remain_amount, todayshare = today_share, lastpaymentdate = lastpayment_date "
-                      "FROM ("
-                      "SELECT event.id AS event_id, "
-                      "CAST(event.totalamount AS REAL) - SUM(CAST(payment.sum AS REAL)) AS remain_amount, "
-                      "SUM(CASE WHEN payment.paymentdate = ? THEN CAST(payment.sum AS REAL) ELSE 0.0 END) AS today_share, "
-                      "MAX(payment.paymentdate) AS lastpayment_date "
-                      "FROM payment "
-                      "INNER JOIN event ON event.id = payment.eventid "
-                      "GROUP BY event.id) "
-                      "WHERE id = event_id")
-        query.addBindValue(f"'{date_str(self.current_date)}'")
+        query.prepare(f"UPDATE event "
+                      f"SET remainamount = remain_amount, todayshare = today_share, lastpaymentdate = lastpayment_date "
+                      f"FROM ("
+                      f"SELECT event.id AS event_id, "
+                      f"CAST(event.totalamount AS REAL) - SUM(CAST(payment.sum AS REAL)) AS remain_amount, "
+                      f"SUM(CASE WHEN payment.paymentdate = '{date_str(self.current_date)}' THEN CAST(payment.sum AS REAL) ELSE 0.0 END) AS today_share, "
+                      f"MAX(payment.paymentdate) AS lastpayment_date "
+                      f"FROM payment "
+                      f"INNER JOIN event ON event.id = payment.eventid "
+                      f"GROUP BY event.id) "
+                      f"WHERE id = event_id")
         query.exec()
 
     def insert_filterflags(self):

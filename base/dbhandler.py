@@ -27,6 +27,8 @@ class DBHandler:
         self.settings_handler = settings_handler
         self.db: QSqlDatabase = QSqlDatabase.addDatabase("QSQLITE")
 
+        self.personal_data_max_id: int = 0
+
     def check_db_files_exists(self) -> bool:
         db_path: str = os.path.abspath(self.DEFAULT_DB_RELPATH)
         if not Path(db_path).is_file():
@@ -197,7 +199,7 @@ class DBHandler:
         if not query.exec():
             log.w(f"Ошибка SQL при попытке загрузить платежи для таблицы исполнения плана: {query.lastError().text()}")
             return None
-        values = []
+        values: list = []
         while query.next():
             values.append([query.value(0), query.value(1), query.value(2), query.value(3), query.value(4), query.value(5), query.value(6)])
         return values
@@ -209,7 +211,7 @@ class DBHandler:
         if not query.exec():
             log.w(f"Ошибка SQL при попытке получить данные из таблицы finplan: {query.lastError().text()}")
             return None
-        values = {}
+        values: dict = {}
         while query.next():
             category = int(query.value(0))
             plan_values = [None if query.value(n) == '' else query.value(n) for n in range(start_month, end_month + 1)]
@@ -227,3 +229,37 @@ class DBHandler:
             return Decimal(query.value(0))
         else:
             return Decimal("NaN")
+
+    def load_personal_data(self) -> tuple | None:
+        if not self.is_db_connected():
+            return None
+        query = QSqlQuery("SELECT id, name, department, defaultexpenses, archived FROM personal")
+        if not query.exec():
+            log.w(f"Ошибка SQL при попытке получить данные о персонале из таблицы personal: {query.lastError().text()}")
+            return None
+        values: list = []
+        while query.next():
+            values.append([query.value(0), query.value(1), query.value(2), query.value(3), query.value(4)])
+            self.personal_data_max_id = int(query.value(0)) if int(query.value(0)) > self.personal_data_max_id else self.personal_data_max_id
+        return values, self.personal_data_max_id
+
+    def save_personal_data(self, data: list) -> bool:
+        if not self.is_db_connected():
+            return False
+        query: QSqlQuery = QSqlQuery()
+        for entry in data:
+            if entry[0] <= self.personal_data_max_id:
+                query.prepare("UPDATE personal SET name = ?, department = ?, defaultexpenses = ?, archived = ? WHERE id = ?")
+                for val in [entry[1], entry[2], entry[3], entry[4], entry[0]]:
+                    query.addBindValue(val)
+                if not query.exec():
+                    log.w(f"Ошибка SQL при попытке обновления имеющихся записей в таблице personal: {query.lastError().text()}")
+                    return False
+            else:
+                query.prepare("INSERT INTO personal(id, name, department, defaultexpenses, archived) VALUES (?,?,?,?,?)")
+                for val in [entry[0], entry[1], entry[2], entry[3], entry[4]]:
+                    query.addBindValue(val)
+                if not query.exec():
+                    log.w(f"Ошибка SQL при попытке создания новых записей в таблице personal: {query.lastError().text()}")
+                    return False
+        return True

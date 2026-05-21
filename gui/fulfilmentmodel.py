@@ -7,8 +7,8 @@ from PySide6.QtCore import Qt, QModelIndex
 from PySide6.QtGui import QFont, QColor
 
 from base.date import str_date, date_displstr
-from base.event import EventCategory, EventFinanceSubcategory
 from base.formatting import dec_strcommaspace, int_strspace, float_strpercentage
+from base.liability import LiabilityCategory, LiabilityFinanceSubcategory
 
 
 @dataclass
@@ -67,27 +67,27 @@ class TreeItem:
 class FulfilmentModel(QtCore.QAbstractItemModel):
 
     CATEGORY_MAP = {
-        EventCategory.SALARIES: 31101,
-        EventCategory.TAXES: 31201,
-        EventCategory.CONSUMABLES: 31102,
-        EventCategory.ENERGY: 31202,
-        EventCategory.MARKETING: 31203,
-        EventCategory.OFFICERENT: 31204,
-        EventCategory.ROOMRENT: 31205,
-        EventCategory.EQUIPMENT: 31206,
-        EventCategory.CURRENT: 31207,
-        EventCategory.BUILDINGMAINT: 31208,
-        EventCategory.BANKING: 31209,
-        EventCategory.TELECOM: 31210,
-        EventCategory.TRAINING: 31212,
-        EventCategory.THIRDPARTYSERVICES: 31103,
-        EventCategory.COMMISSION: 31211,
-        EventCategory.MEDEQREPAIR: 31213,
-        EventCategory.TOP_FINANCES * 10 + EventFinanceSubcategory.LOAN: 32101,
-        EventCategory.TOP_FINANCES * 10 + EventFinanceSubcategory.LEASING: 32102,
-        EventCategory.TOP_FINANCES * 10 + EventFinanceSubcategory.INTEREST: 32200,
-        EventCategory.TOP_FINANCES * 10 + EventFinanceSubcategory.FOUNDERLOAN: 32300,
-        EventCategory.TOP_INVESTMENT: 33000,
+        LiabilityCategory.SALARIES: 31101,
+        LiabilityCategory.TAXES: 31201,
+        LiabilityCategory.CONSUMABLES: 31102,
+        LiabilityCategory.ENERGY: 31202,
+        LiabilityCategory.MARKETING: 31203,
+        LiabilityCategory.OFFICERENT: 31204,
+        LiabilityCategory.ROOMRENT: 31205,
+        LiabilityCategory.EQUIPMENT: 31206,
+        LiabilityCategory.CURRENT: 31207,
+        LiabilityCategory.BUILDINGMAINT: 31208,
+        LiabilityCategory.BANKING: 31209,
+        LiabilityCategory.TELECOM: 31210,
+        LiabilityCategory.TRAINING: 31212,
+        LiabilityCategory.THIRDPARTYSERVICES: 31103,
+        LiabilityCategory.COMMISSION: 31211,
+        LiabilityCategory.MEDEQREPAIR: 31213,
+        LiabilityCategory.TOP_FINANCES * 10 + LiabilityFinanceSubcategory.LOAN: 32101,
+        LiabilityCategory.TOP_FINANCES * 10 + LiabilityFinanceSubcategory.LEASING: 32102,
+        LiabilityCategory.TOP_FINANCES * 10 + LiabilityFinanceSubcategory.INTEREST: 32200,
+        LiabilityCategory.TOP_FINANCES * 10 + LiabilityFinanceSubcategory.FOUNDERLOAN: 32300,
+        LiabilityCategory.TOP_INVESTMENT: 33000,
     }
 
     FULFILLMENT_STRUCTURE = {
@@ -173,7 +173,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
                 category, amount, textamount, date, receiver, name, subcategory = (int(payment[0]), Decimal(payment[1]), dec_strcommaspace(Decimal(payment[1])),
                                                                                    date_displstr(str_date(payment[2])), str(payment[3]), str(payment[4]), int(payment[5]))
                 text = f"{textamount} р.\t{date}\t{receiver}  ({name})"
-                mapped_category: int = self.CATEGORY_MAP[category] if category != EventCategory.TOP_FINANCES else self.CATEGORY_MAP[category*10+subcategory]
+                mapped_category: int = self.CATEGORY_MAP[category] if category != LiabilityCategory.TOP_FINANCES else self.CATEGORY_MAP[category*10+subcategory]
                 self.rootItem.child(self.categories.index(mapped_category)).appendChild(TreeItem((text,), self.rootItem.child(self.categories.index(mapped_category))))
         else:
             factuals, ndsfree = self.calculate_ndsfree(payments)
@@ -185,7 +185,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
                 category, amount, textamount, date, receiver, name, subcategory, nds = (int(payment[0]), Decimal(str(payment[1])),
                                                                                         dec_strcommaspace(Decimal(str(payment[1]))), date_displstr(str_date(payment[2])),
                                                                                         str(payment[3]), str(payment[4]), int(payment[5]), int(payment[6]))
-                mapped_category: int = self.CATEGORY_MAP[category] if category != EventCategory.TOP_FINANCES else self.CATEGORY_MAP[category * 10 + subcategory]
+                mapped_category: int = self.CATEGORY_MAP[category] if category != LiabilityCategory.TOP_FINANCES else self.CATEGORY_MAP[category * 10 + subcategory]
                 if mapped_category // 10000 != 3:
                     continue
                 ndsfree = self.nds_free_value(amount, nds)
@@ -198,7 +198,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
         ndsfree_dict = dict.fromkeys(self.FULFILLMENT_STRUCTURE, 0)
         for payment in payments:
             category, subcategory, amount, nds = int(payment[0]), int(payment[5]), Decimal(payment[1]), int(payment[6])
-            mapped_category: int = self.CATEGORY_MAP[category] if category != EventCategory.TOP_FINANCES else self.CATEGORY_MAP[category * 10 + subcategory]
+            mapped_category: int = self.CATEGORY_MAP[category] if category != LiabilityCategory.TOP_FINANCES else self.CATEGORY_MAP[category * 10 + subcategory]
             factuals_dict[mapped_category] += amount
             ndsfree_amount = self.nds_free_value(amount, nds)
             ndsfree_dict[mapped_category] += ndsfree_amount
@@ -225,7 +225,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
         factuals_dict[10000], factuals_dict[21000], factuals_dict[22000], factuals_dict[23100], factuals_dict[23200] = inflow_values
         for payment in payments:
             category, subcategory, amount = int(payment[0]), int(payment[5]), round(Decimal(payment[1]))
-            mapped_category: int = self.CATEGORY_MAP[category] if category != EventCategory.TOP_FINANCES else self.CATEGORY_MAP[category * 10 + subcategory]
+            mapped_category: int = self.CATEGORY_MAP[category] if category != LiabilityCategory.TOP_FINANCES else self.CATEGORY_MAP[category * 10 + subcategory]
             factuals_dict[mapped_category] += amount
 
         for skey, svalue in reversed(list(self.FULFILLMENT_STRUCTURE.items())):
@@ -242,7 +242,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
         subcategories_present = bool(self.FULFILLMENT_STRUCTURE[categorie][0])
         if categorie % 10000 == 0:
             return 2
-        elif (categorie % 100 == 0 and subcategories_present) or categorie == self.CATEGORY_MAP[EventCategory.TOP_INVESTMENT]:
+        elif (categorie % 100 == 0 and subcategories_present) or categorie == self.CATEGORY_MAP[LiabilityCategory.TOP_INVESTMENT]:
             return 1
         else:
             return 0

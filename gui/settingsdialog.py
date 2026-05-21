@@ -1,18 +1,21 @@
 import os.path
 import sys
 from pathlib import Path
+from typing import Optional
 
 from PySide6 import QtGui, QtCore
 from PySide6.QtGui import QPalette, QRegularExpressionValidator
-from PySide6.QtWidgets import QDialog, QListWidgetItem, QLineEdit, QFileDialog, QButtonGroup
-from PySide6.QtCore import Qt, QSize, QRegularExpression
+from PySide6.QtWidgets import QDialog, QListWidgetItem, QLineEdit, QFileDialog, QButtonGroup, QWidget, QInputDialog
+from PySide6.QtCore import Qt, QSize, QRegularExpression, QModelIndex
+from scipy.fft import ifft
 
 from base.backup import restore_backup
 from base.casting import str_bool
 from base.dbhandler import DBHandler
+from base.department import Department
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.eventsqlmodel import RowFormatting
-from gui.recoverydialog import RecoveryDialog
+from gui.personaltablemodel import PersonalTableModel, PersonalSortFilterModel, PersonalCol
 from gui.settings import SettingsHandler
 from gui.ui.settingsdialog_ui import Ui_settingsdialog
 
@@ -28,8 +31,9 @@ class SettingsDialog(QDialog):
     MENU_PAGES = {
         0: 1,
         1: 2,
-        2: 3,
-        3: 0,
+        2: 4,
+        3: 3,
+        4: 0,
     }
 
     CLEANBACKUP_SET = {
@@ -53,6 +57,9 @@ class SettingsDialog(QDialog):
         self.settings_handler: SettingsHandler = settings_handler
         self.settings_handler.save_settings()
         self.db_handler = db_handler
+
+        self.personal_model: Optional[PersonalTableModel] = None
+        self.personal_proxy_model: Optional[PersonalSortFilterModel] = None
 
         self.ui.lw_menu.setIconSize(QSize(30, 30))
         self.ui.pb_cancel.setEnabled(reject_possible)
@@ -89,6 +96,9 @@ class SettingsDialog(QDialog):
         self.ui.pb_backuppath.clicked.connect(lambda: self.change_path(self.ui.le_backuppath))
         self.ui.pb_restorefrombackup.clicked.connect(self.request_restore_backup)
 
+        # Меню персонала
+        self.prepare_personalpage()
+
         # Выбор первого пункта меню и косметика выбора
         palette: QPalette = self.ui.lw_menu.palette()
         palette.setColor(QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.Highlight,
@@ -100,6 +110,86 @@ class SettingsDialog(QDialog):
 
         self.load_settings_values()
 
+    def prepare_personalpage(self):
+        # Настройка и привязка моделей
+        self.personal_model = PersonalTableModel(self.db_handler, self)
+        self.personal_model.setup_model()
+        self.personal_proxy_model = PersonalSortFilterModel()
+        self.personal_proxy_model.setSourceModel(self.personal_model )
+
+        self.ui.lv_personal.setModel(self.personal_proxy_model)
+        self.ui.lv_personal.setModelColumn(PersonalCol.NAME)
+        # Настройка комбобоксов
+        for dept in Department:
+            self.ui.cmb_pers_dept.addItem(dept.name, dept.value)
+            self.ui.cmb_pers_default.addItem(dept.name, dept.value)
+        # Сигналы
+        for wdg in (self.ui.pb_pers_current, self.ui.pb_pers_hist):
+            wdg.clicked.connect(lambda: self.personal_proxy_model.show_actuals(self.ui.pb_pers_current.isChecked()))
+            wdg.clicked.connect(lambda: self.ui.pb_pers_add.setEnabled(self.ui.pb_pers_current.isChecked()))
+            wdg.clicked.connect(lambda: self.ui.pb_pers_changetype.setText("В архив" if self.ui.pb_pers_current.isChecked() else "Вернуть"))
+        self.ui.cmb_pers_dept.activated.connect(lambda: self.personal_proxy_model.setData(
+            self.ui.lv_personal.currentIndex().siblingAtColumn(PersonalCol.DEPT),
+            self.ui.cmb_pers_dept.currentData()) if self.ui.lv_personal.currentIndex().isValid() else None)
+        self.ui.cmb_pers_default.activated.connect(lambda: self.personal_proxy_model.setData(
+            self.ui.lv_personal.currentIndex().siblingAtColumn(PersonalCol.DEFAULTEXP),
+            self.ui.cmb_pers_default.currentData()) if self.ui.lv_personal.currentIndex().isValid() else None)
+
+        self.ui.pb_pers_add.clicked.connect(self.add_personal)
+        self.ui.pb_pers_rename.clicked.connect(self.rename_personal)
+        self.ui.pb_pers_changetype.clicked.connect(self.change_personaltype)
+
+        self.ui.lv_personal.selectionModel().currentChanged.connect(self.on_personallist_current_change)
+        self.personal_proxy_model.layoutChanged.connect(lambda: self.on_personallist_current_change(QModelIndex(), QModelIndex()))
+        # Выбор первой строки
+        if self.ui.lv_personal.model().rowCount() > 0:
+            self.ui.lv_personal.setCurrentIndex(self.ui.lv_personal.model().index(0, PersonalCol.NAME, QModelIndex()))
+
+    def on_personallist_current_change(self, current: QModelIndex, prevoius: QModelIndex):
+        current_index: QModelIndex = self.ui.lv_personal.currentIndex()
+        selection_active: bool = current_index.isValid()
+        self.ui.pb_pers_rename.setEnabled(selection_active)
+        self.ui.pb_pers_changetype.setEnabled(selection_active)
+        self.ui.cmb_pers_dept.setEnabled(selection_active)
+        self.ui.cmb_pers_default.setEnabled(selection_active)
+        if selection_active:
+            dept: int = current_index.siblingAtColumn(PersonalCol.DEPT).data(PersonalTableModel.internalValueRole)
+            defaultexp: int = current_index.siblingAtColumn(PersonalCol.DEFAULTEXP).data(PersonalTableModel.internalValueRole)
+            self.ui.cmb_pers_dept.setCurrentIndex(self.ui.cmb_pers_dept.findData(dept))
+            self.ui.cmb_pers_default.setCurrentIndex(self.ui.cmb_pers_default.findData(defaultexp))
+
+    def add_personal(self):
+        text, ok = QInputDialog.getText(self, "Введите имя работника","Имя работника:")
+        if not ok or self.personal_model.last_id == 0 or not text:
+            return
+        row: int = len(self.personal_model.tdata)
+        self.personal_model.beginInsertRows(QModelIndex(), row, row)
+        new_id = self.personal_model.last_id + 1
+        new_row: list = [self.personal_model.last_id + 1, text, 1, 1, 0]
+        self.personal_model.tdata.append(new_row)
+        self.personal_model.endInsertRows()
+        self.personal_model.last_id = new_id
+        source_index: QModelIndex = self.personal_model.index(row, PersonalCol.NAME)
+        proxy_index: QModelIndex = self.personal_proxy_model.mapFromSource(source_index)
+        self.ui.lv_personal.setCurrentIndex(proxy_index)
+
+    def rename_personal(self):
+        current_index: QModelIndex = self.ui.lv_personal.currentIndex()
+        if not current_index.isValid():
+            return
+        text, ok = QInputDialog.getText(self, "Сменить имя работника", "Новое имя работника:", text=f"{current_index.data()}")
+        if not ok or not text:
+            return
+        self.personal_proxy_model.setData(current_index, text)
+
+    def change_personaltype(self):
+        current_index: QModelIndex = self.ui.lv_personal.currentIndex()
+        if not current_index.isValid():
+            return
+        self.personal_proxy_model.setData(current_index.siblingAtColumn(PersonalCol.ARCHIVED),
+                                          0 if current_index.siblingAtColumn(PersonalCol.ARCHIVED).data(PersonalTableModel.internalValueRole) else 1)
+
+
     def accept(self):
         if not self.ui.le_backuppath.text() or not Path(self.ui.le_backuppath.text()).is_dir():
             ErrorInfoMessageBox("Папка для резервного копирования не указана или указана неверно").exec()
@@ -110,6 +200,7 @@ class SettingsDialog(QDialog):
 
         self.save_settings_values()
         self.settings_handler.apply_settings()
+        self.db_handler.save_personal_data(self.personal_model.tdata)
         QDialog.accept(self)
 
     def change_path(self, le_widget: QLineEdit) -> None:
