@@ -91,11 +91,11 @@ class Ui_EventDialog(object):
 
         self.horizontalLayout_7.addWidget(self.label_7)
 
-        self.le_responsible = QLineEdit(EventDialog)
-        self.le_responsible.setObjectName(u"le_responsible")
-        self.le_responsible.setMinimumSize(QSize(200, 0))
+        self.cmb_responsible = QComboBox(EventDialog)
+        self.cmb_responsible.setObjectName(u"cmb_responsible")
+        self.cmb_responsible.setMinimumSize(QSize(200, 0))
 
-        self.horizontalLayout_7.addWidget(self.le_responsible)
+        self.horizontalLayout_7.addWidget(self.cmb_responsible)
 
         self.horizontalSpacer_12 = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
@@ -308,8 +308,7 @@ class Ui_EventDialog(object):
         QWidget.setTabOrder(self.de_duedate, self.cmb_category)
         QWidget.setTabOrder(self.cmb_category, self.rb_typenormal)
         QWidget.setTabOrder(self.rb_typenormal, self.rb_typeadvance)
-        QWidget.setTabOrder(self.rb_typeadvance, self.le_responsible)
-        QWidget.setTabOrder(self.le_responsible, self.te_descr)
+        QWidget.setTabOrder(self.rb_typeadvance, self.te_descr)
         QWidget.setTabOrder(self.te_descr, self.pb_cancel)
         QWidget.setTabOrder(self.pb_cancel, self.pb_accept)
 

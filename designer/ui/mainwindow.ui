@@ -81,21 +81,6 @@
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
-           <item row="10" column="0" colspan="2">
-            <widget class="SwitchPushButton" name="spb_responsible">
-             <property name="font">
-              <font>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">border-width: 0px; text-align: left;</string>
-             </property>
-             <property name="text">
-              <string>🡆 🡇 ОТВЕТСТВЕННЫЙ</string>
-             </property>
-            </widget>
-           </item>
            <item row="12" column="0" colspan="2">
             <widget class="QCheckBox" name="chb_paytoday">
              <property name="font">
@@ -105,6 +90,25 @@
              </property>
              <property name="text">
               <string>НАЗНАЧЕНЫ К ОПЛАТЕ</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="0" colspan="2">
+            <widget class="CategoryFilterListWidget" name="lw_category">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="frameShape">
+              <enum>QFrame::Shape::NoFrame</enum>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>17</width>
+               <height>17</height>
+              </size>
              </property>
             </widget>
            </item>
@@ -124,39 +128,8 @@
              </property>
             </spacer>
            </item>
-           <item row="3" column="0" colspan="2">
-            <widget class="SwitchPushButton" name="spb_term">
-             <property name="font">
-              <font>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">border-width: 0px; text-align: left;</string>
-             </property>
-             <property name="text">
-              <string>🡆 🡇 СРОК ПОГАШЕНИЯ</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0" colspan="2">
-            <widget class="TermFilterListWidget" name="lw_term">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="frameShape">
-              <enum>QFrame::Shape::NoFrame</enum>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>17</width>
-               <height>17</height>
-              </size>
-             </property>
-            </widget>
+           <item row="11" column="0" colspan="2">
+            <widget class="QComboBox" name="cmb_responsiblefilter"/>
            </item>
            <item row="5" column="0" colspan="2">
             <widget class="SwitchPushButton" name="spb_category">
@@ -173,28 +146,23 @@
              </property>
             </widget>
            </item>
-           <item row="11" column="0" colspan="2">
-            <widget class="QLineEdit" name="le_responsiblefilter">
-             <property name="styleSheet">
-              <string notr="true">border: 1px solid #cbcbcb</string>
+           <item row="10" column="0" colspan="2">
+            <widget class="SwitchPushButton" name="spb_responsible">
+             <property name="font">
+              <font>
+               <bold>true</bold>
+              </font>
              </property>
-             <property name="clearButtonEnabled">
-              <bool>true</bool>
+             <property name="styleSheet">
+              <string notr="true">border-width: 0px; text-align: left;</string>
+             </property>
+             <property name="text">
+              <string>🡆 🡇 ОТВЕТСТВЕННЫЙ</string>
              </property>
             </widget>
            </item>
-           <item row="9" column="0" colspan="2">
-            <widget class="QLineEdit" name="le_receiverfilter">
-             <property name="styleSheet">
-              <string notr="true">border: 1px solid #cbcbcb</string>
-             </property>
-             <property name="clearButtonEnabled">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="0" colspan="2">
-            <widget class="CategoryFilterListWidget" name="lw_category">
+           <item row="4" column="0" colspan="2">
+            <widget class="TermFilterListWidget" name="lw_term">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                <horstretch>0</horstretch>
@@ -224,6 +192,31 @@
              </property>
              <property name="text">
               <string>🡆 🡇 ПОЛУЧАТЕЛЬ</string>
+             </property>
+            </widget>
+           </item>
+           <item row="9" column="0" colspan="2">
+            <widget class="QLineEdit" name="le_receiverfilter">
+             <property name="styleSheet">
+              <string notr="true">border: 1px solid #cbcbcb</string>
+             </property>
+             <property name="clearButtonEnabled">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0" colspan="2">
+            <widget class="SwitchPushButton" name="spb_term">
+             <property name="font">
+              <font>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">border-width: 0px; text-align: left;</string>
+             </property>
+             <property name="text">
+              <string>🡆 🡇 СРОК ПОГАШЕНИЯ</string>
              </property>
             </widget>
            </item>

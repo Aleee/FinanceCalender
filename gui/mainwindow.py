@@ -3,8 +3,9 @@ from enum import IntEnum, auto
 from typing import Any
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime
+from PySide6.QtGui import QStandardItemModel, QStandardItem
 from PySide6.QtSql import QSqlTableModel
-from PySide6.QtWidgets import QMainWindow, QDialog, QLabel, QWidget
+from PySide6.QtWidgets import QMainWindow, QDialog, QLabel, QWidget, QListView, QToolButton, QDateEdit
 
 from base.backup import clean_backup_folder, save_backup
 from base.date import date_displstr, date_str
@@ -106,7 +107,13 @@ class MainWindow(QMainWindow):
         self.payment_proxy_model = PaymentHistoryProxyModel()
         self.payment_proxy_model.setSourceModel(self.payment_model)
 
+        self.responsible_partial_model: QStandardItemModel | None = None
+        self.responsible_full_model: QStandardItemModel | None = None
+
         self.ui.tv_payment.setModel(self.payment_proxy_model)
+
+        # Список персонала
+        self.personal_list: dict = {}
 
         # Инициализация экспортера
         self.xls_writer: LiabilityXlsWriter = LiabilityXlsWriter(self.proxy2_model, self.ui.tv_payment, self.settings_handler)
@@ -122,7 +129,7 @@ class MainWindow(QMainWindow):
         self.ui.spb_term.switch_status_changed.connect(lambda sw_status: self.ui.lw_term.setVisible(sw_status))
         self.ui.spb_category.switch_status_changed.connect(lambda sw_status: self.ui.lw_category.setVisible(sw_status))
         self.ui.spb_receiver.switch_status_changed.connect(lambda sw_status: self.ui.le_receiverfilter.setVisible(sw_status))
-        self.ui.spb_responsible.switch_status_changed.connect(lambda sw_status: self.ui.le_responsiblefilter.setVisible(sw_status))
+        self.ui.spb_responsible.switch_status_changed.connect(lambda sw_status: self.ui.cmb_responsiblefilter.setVisible(sw_status))
 
         # Подписи заголовков фильтров
         self.ui.spb_term.set_button_label("🡆 СРОК ПОГАШЕНИЯ", "🡇 СРОК ПОГАШЕНИЯ")
@@ -142,13 +149,13 @@ class MainWindow(QMainWindow):
                                                                sw_status, bool(self.ui.le_receiverfilter.text())))
         self.ui.spb_responsible.switch_status_changed.connect(lambda sw_status:
                                                               self.ui.spb_responsible.change_style_on_hiding_activefilter(
-                                                                  sw_status, bool(self.ui.le_responsiblefilter.text())))
+                                                                  sw_status, self.ui.cmb_responsiblefilter.currentData(Qt.ItemDataRole.UserRole) != 0))
 
         # Новые сигналы фильтров
         self.ui.lw_term.currentRowChanged.connect(self.update_filters_and_select)
         self.ui.lw_category.currentRowChanged.connect(self.update_filters_and_select)
         self.ui.le_receiverfilter.textChanged.connect(self.update_filters_and_select)
-        self.ui.le_responsiblefilter.textChanged.connect(self.update_filters_and_select)
+        self.ui.cmb_responsiblefilter.currentIndexChanged.connect(self.update_filters_and_select)
         self.ui.chb_paytoday.checkStateChanged.connect(self.update_filters_and_select)
 
         # Действия при переключении избранного
@@ -213,8 +220,17 @@ class MainWindow(QMainWindow):
         # Косметика
         self.ui.tv_payment.set_columns_visibility()
         self.ui.tlbr.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
+        self.ui.cmb_responsiblefilter.setView(QListView())  # переключение на натив (белая заливка на hover - баг?)
         # Постоянный вертикальный header
         self.ui.tv_payment.setVerticalHeader(PersistentHeader(Qt.Orientation.Vertical, self.ui.tv_payment))
+        # Кнопка очистки комбобокса поиска по ответственному
+        self.ui.cmb_responsiblefilter.setEditable(True)
+        self.ui.cmb_responsiblefilter.lineEdit().setReadOnly(True)
+        self.ui.cmb_responsiblefilter.lineEdit().setClearButtonEnabled(True)
+        clear_button = self.ui.cmb_responsiblefilter.lineEdit().findChild(QToolButton)
+        if clear_button:
+            clear_button.setEnabled(True)
+        self.ui.cmb_responsiblefilter.lineEdit().textChanged.connect(lambda text: self.ui.cmb_responsiblefilter.setCurrentIndex(0) if text == "" else None)
 
         # Резервное копирование
         self.make_backup()
@@ -222,6 +238,14 @@ class MainWindow(QMainWindow):
         # Начальные действия
         self.settings_handler.apply_settings()
         self.ui.stw_eventinfo.setCurrentIndex(1)
+
+        # ВРЕМЕННОЕ
+        self.date_edit = QDateEdit()
+        self.date_edit.setDate(QDate.currentDate())  # Устанавливаем текущую дату
+        self.date_edit.setCalendarPopup(True)  # Включаем выпадающий календарь
+
+        # 3. Вставляем виджет даты в тулбар
+        self.ui.tlbr.addWidget(self.date_edit)
 
     def make_backup(self):
         # Очистка папки с резервными копиями
@@ -240,7 +264,7 @@ class MainWindow(QMainWindow):
         self.base_model.set_filters(self.ui.lw_term.current_term(),
                                     self.ui.lw_category.current_category(),
                                     self.ui.le_receiverfilter.text(),
-                                    self.ui.le_responsiblefilter.text(),
+                                    self.ui.cmb_responsiblefilter.currentData(),
                                     self.ui.chb_paytoday.isChecked(),
                                     int(self.settings_handler.settings.value("Common/paidloadperiod")),
                                     self.ui.act_featured.isChecked())
@@ -437,7 +461,19 @@ class MainWindow(QMainWindow):
             selection_not_visible: bool = is_selection_filteredout(self.proxy2_model, self.ui.trw_event, two_proxies=True, current_instead=True)
             if selection_not_visible:
                 return False
-        event_dialog: EventDialog = EventDialog(final_proxy_model=self.proxy2_model, edit_mode=edit, copy_mode=copy, current_index=curr_index, parent=self)
+
+        responsible_model: QStandardItemModel = self.responsible_full_model
+        if edit or copy:
+            responsible_id = self.current_data(Col.RESPONSIBLE, LiabilitySqlTableModel.qtValueRole)
+            matches = self.responsible_partial_model.match(self.responsible_partial_model.index(0, 0), Qt.ItemDataRole.UserRole,
+                                                           responsible_id, hits=1, flags=Qt.MatchFlag.MatchExactly)
+            if matches:
+                responsible_model = self.responsible_partial_model
+        if not responsible_model:
+            return False
+
+        event_dialog: EventDialog = EventDialog(final_proxy_model=self.proxy2_model, responsible_model=responsible_model, edit_mode=edit,
+                                                copy_mode=copy, current_index=curr_index, parent=self)
         if event_dialog.exec():
             if not edit:
                 self.ui.trw_event.selectionModel().clear()
@@ -485,6 +521,46 @@ class MainWindow(QMainWindow):
             self.update_filters_and_select()
             return True
         return False
+
+    def update_responsible_models(self, update_widgets: bool) -> bool:
+        personal_dict = self.db_handler.load_personal_data(as_dict=True)
+        if personal_dict and self.base_model:
+            self.base_model.personal_dict = personal_dict[0]
+
+            self.responsible_partial_model: QStandardItemModel = QStandardItemModel()
+            self.responsible_full_model: QStandardItemModel = QStandardItemModel()
+
+            default_item: QStandardItem = QStandardItem("")
+            default_item.setData(0, Qt.ItemDataRole.UserRole)
+            self.responsible_partial_model.appendRow(default_item)
+            self.responsible_full_model.appendRow(default_item)
+
+            for key, tuple_val in self.base_model.personal_dict.items():
+                item_full: QStandardItem = QStandardItem(tuple_val[0])
+                item_partial: QStandardItem = QStandardItem(tuple_val[0])
+
+                archived: bool = False
+                try:
+                    if int(tuple_val[2]) == 1:
+                        archived = True
+                except (ValueError, IndexError, TypeError):
+                    continue
+                try:
+                    item_full.setData(int(key), Qt.ItemDataRole.UserRole)
+                    item_partial.setData(int(key), Qt.ItemDataRole.UserRole)
+                except (ValueError, IndexError, TypeError):
+                    continue
+                self.responsible_full_model.appendRow(item_full)
+                if not archived:
+                    self.responsible_partial_model.appendRow(item_partial)
+
+            self.responsible_full_model.sort(1, Qt.SortOrder.AscendingOrder)
+            self.responsible_partial_model.sort(1, Qt.SortOrder.AscendingOrder)
+
+        if update_widgets:
+            self.ui.cmb_responsiblefilter.setModel(self.responsible_partial_model)
+
+        return bool(personal_dict)
 
     def closeEvent(self, event, /):
         self.settings_handler.save_settings()

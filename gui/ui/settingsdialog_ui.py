@@ -531,7 +531,7 @@ class Ui_settingsdialog(object):
         self.pb_pers_rename.setObjectName(u"pb_pers_rename")
         self.pb_pers_rename.setEnabled(False)
 
-        self.gridLayout_19.addWidget(self.pb_pers_rename, 6, 0, 1, 1)
+        self.gridLayout_19.addWidget(self.pb_pers_rename, 4, 0, 1, 1)
 
         self.label_21 = QLabel(self.page)
         self.label_21.setObjectName(u"label_21")
@@ -542,15 +542,15 @@ class Ui_settingsdialog(object):
         self.pb_pers_changetype.setObjectName(u"pb_pers_changetype")
         self.pb_pers_changetype.setEnabled(False)
 
-        self.gridLayout_19.addWidget(self.pb_pers_changetype, 5, 0, 1, 1)
+        self.gridLayout_19.addWidget(self.pb_pers_changetype, 3, 0, 1, 1)
 
         self.verticalSpacer_6 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout_19.addItem(self.verticalSpacer_6, 4, 0, 1, 1)
+        self.gridLayout_19.addItem(self.verticalSpacer_6, 2, 0, 1, 1)
 
         self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.gridLayout_19.addItem(self.horizontalSpacer_7, 5, 1, 1, 1)
+        self.gridLayout_19.addItem(self.horizontalSpacer_7, 3, 1, 1, 1)
 
         self.cmb_pers_dept = QComboBox(self.page)
         self.cmb_pers_dept.setObjectName(u"cmb_pers_dept")
@@ -559,21 +559,10 @@ class Ui_settingsdialog(object):
 
         self.gridLayout_19.addWidget(self.cmb_pers_dept, 1, 0, 1, 2)
 
-        self.label_22 = QLabel(self.page)
-        self.label_22.setObjectName(u"label_22")
-
-        self.gridLayout_19.addWidget(self.label_22, 2, 0, 1, 2)
-
         self.pb_pers_add = QPushButton(self.page)
         self.pb_pers_add.setObjectName(u"pb_pers_add")
 
-        self.gridLayout_19.addWidget(self.pb_pers_add, 7, 0, 1, 1)
-
-        self.cmb_pers_default = QComboBox(self.page)
-        self.cmb_pers_default.setObjectName(u"cmb_pers_default")
-        self.cmb_pers_default.setEnabled(False)
-
-        self.gridLayout_19.addWidget(self.cmb_pers_default, 3, 0, 1, 2)
+        self.gridLayout_19.addWidget(self.pb_pers_add, 5, 0, 1, 1)
 
 
         self.gridLayout_18.addLayout(self.gridLayout_19, 1, 2, 1, 1)
@@ -782,7 +771,6 @@ class Ui_settingsdialog(object):
         self.pb_pers_rename.setText(QCoreApplication.translate("settingsdialog", u" \u041f\u0435\u0440\u0435\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u0442\u044c ", None))
         self.label_21.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u043e\u0434\u0440\u0430\u0437\u0434\u0435\u043b\u0435\u043d\u0438\u0435: ", None))
         self.pb_pers_changetype.setText(QCoreApplication.translate("settingsdialog", u"\u0412 \u0430\u0440\u0445\u0438\u0432", None))
-        self.label_22.setText(QCoreApplication.translate("settingsdialog", u"\u0417\u0430\u0442\u0440\u0430\u0442\u044b \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e:", None))
         self.pb_pers_add.setText(QCoreApplication.translate("settingsdialog", u"\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c", None))
         self.groupBox_13.setTitle(QCoreApplication.translate("settingsdialog", u"\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435", None))
         self.pb_restorefrombackup.setText(QCoreApplication.translate("settingsdialog", u"  \u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0438\u0437 \u0440\u0435\u0437\u0435\u0440\u0432\u043d\u043e\u0439 \u043a\u043e\u043f\u0438\u0438  ", None))

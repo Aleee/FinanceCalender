@@ -16,12 +16,13 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QIcon, QImage, QKeySequence, QLinearGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
-from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QDateEdit,
-    QDoubleSpinBox, QFrame, QGridLayout, QHBoxLayout,
-    QHeaderView, QLabel, QLineEdit, QListWidgetItem,
-    QMainWindow, QPlainTextEdit, QPushButton, QScrollArea,
-    QSizePolicy, QSpacerItem, QStackedWidget, QStatusBar,
-    QToolBar, QToolButton, QTreeWidgetItem, QWidget)
+from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBox,
+    QDateEdit, QDoubleSpinBox, QFrame, QGridLayout,
+    QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+    QListWidgetItem, QMainWindow, QPlainTextEdit, QPushButton,
+    QScrollArea, QSizePolicy, QSpacerItem, QStackedWidget,
+    QStatusBar, QToolBar, QToolButton, QTreeWidgetItem,
+    QWidget)
 
 from gui.commonwidgets.autoresizetextedit import AutoResizingTextEdit
 from gui.commonwidgets.switchpushbutton import SwitchPushButton
@@ -140,43 +141,34 @@ class Ui_MainWindow(object):
         self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 200, 677))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.spb_responsible = SwitchPushButton(self.scrollAreaWidgetContents)
-        self.spb_responsible.setObjectName(u"spb_responsible")
-        font = QFont()
-        font.setBold(True)
-        self.spb_responsible.setFont(font)
-        self.spb_responsible.setStyleSheet(u"border-width: 0px; text-align: left;")
-
-        self.gridLayout_3.addWidget(self.spb_responsible, 10, 0, 1, 2)
-
         self.chb_paytoday = QCheckBox(self.scrollAreaWidgetContents)
         self.chb_paytoday.setObjectName(u"chb_paytoday")
+        font = QFont()
+        font.setBold(True)
         self.chb_paytoday.setFont(font)
 
         self.gridLayout_3.addWidget(self.chb_paytoday, 12, 0, 1, 2)
+
+        self.lw_category = CategoryFilterListWidget(self.scrollAreaWidgetContents)
+        self.lw_category.setObjectName(u"lw_category")
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lw_category.sizePolicy().hasHeightForWidth())
+        self.lw_category.setSizePolicy(sizePolicy)
+        self.lw_category.setFrameShape(QFrame.Shape.NoFrame)
+        self.lw_category.setIconSize(QSize(17, 17))
+
+        self.gridLayout_3.addWidget(self.lw_category, 7, 0, 1, 2)
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_3.addItem(self.verticalSpacer, 13, 0, 1, 2)
 
-        self.spb_term = SwitchPushButton(self.scrollAreaWidgetContents)
-        self.spb_term.setObjectName(u"spb_term")
-        self.spb_term.setFont(font)
-        self.spb_term.setStyleSheet(u"border-width: 0px; text-align: left;")
+        self.cmb_responsiblefilter = QComboBox(self.scrollAreaWidgetContents)
+        self.cmb_responsiblefilter.setObjectName(u"cmb_responsiblefilter")
 
-        self.gridLayout_3.addWidget(self.spb_term, 3, 0, 1, 2)
-
-        self.lw_term = TermFilterListWidget(self.scrollAreaWidgetContents)
-        self.lw_term.setObjectName(u"lw_term")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lw_term.sizePolicy().hasHeightForWidth())
-        self.lw_term.setSizePolicy(sizePolicy)
-        self.lw_term.setFrameShape(QFrame.Shape.NoFrame)
-        self.lw_term.setIconSize(QSize(17, 17))
-
-        self.gridLayout_3.addWidget(self.lw_term, 4, 0, 1, 2)
+        self.gridLayout_3.addWidget(self.cmb_responsiblefilter, 11, 0, 1, 2)
 
         self.spb_category = SwitchPushButton(self.scrollAreaWidgetContents)
         self.spb_category.setObjectName(u"spb_category")
@@ -185,12 +177,28 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addWidget(self.spb_category, 5, 0, 1, 2)
 
-        self.le_responsiblefilter = QLineEdit(self.scrollAreaWidgetContents)
-        self.le_responsiblefilter.setObjectName(u"le_responsiblefilter")
-        self.le_responsiblefilter.setStyleSheet(u"border: 1px solid #cbcbcb")
-        self.le_responsiblefilter.setClearButtonEnabled(True)
+        self.spb_responsible = SwitchPushButton(self.scrollAreaWidgetContents)
+        self.spb_responsible.setObjectName(u"spb_responsible")
+        self.spb_responsible.setFont(font)
+        self.spb_responsible.setStyleSheet(u"border-width: 0px; text-align: left;")
 
-        self.gridLayout_3.addWidget(self.le_responsiblefilter, 11, 0, 1, 2)
+        self.gridLayout_3.addWidget(self.spb_responsible, 10, 0, 1, 2)
+
+        self.lw_term = TermFilterListWidget(self.scrollAreaWidgetContents)
+        self.lw_term.setObjectName(u"lw_term")
+        sizePolicy.setHeightForWidth(self.lw_term.sizePolicy().hasHeightForWidth())
+        self.lw_term.setSizePolicy(sizePolicy)
+        self.lw_term.setFrameShape(QFrame.Shape.NoFrame)
+        self.lw_term.setIconSize(QSize(17, 17))
+
+        self.gridLayout_3.addWidget(self.lw_term, 4, 0, 1, 2)
+
+        self.spb_receiver = SwitchPushButton(self.scrollAreaWidgetContents)
+        self.spb_receiver.setObjectName(u"spb_receiver")
+        self.spb_receiver.setFont(font)
+        self.spb_receiver.setStyleSheet(u"border-width: 0px; text-align: left;")
+
+        self.gridLayout_3.addWidget(self.spb_receiver, 8, 0, 1, 2)
 
         self.le_receiverfilter = QLineEdit(self.scrollAreaWidgetContents)
         self.le_receiverfilter.setObjectName(u"le_receiverfilter")
@@ -199,21 +207,12 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addWidget(self.le_receiverfilter, 9, 0, 1, 2)
 
-        self.lw_category = CategoryFilterListWidget(self.scrollAreaWidgetContents)
-        self.lw_category.setObjectName(u"lw_category")
-        sizePolicy.setHeightForWidth(self.lw_category.sizePolicy().hasHeightForWidth())
-        self.lw_category.setSizePolicy(sizePolicy)
-        self.lw_category.setFrameShape(QFrame.Shape.NoFrame)
-        self.lw_category.setIconSize(QSize(17, 17))
+        self.spb_term = SwitchPushButton(self.scrollAreaWidgetContents)
+        self.spb_term.setObjectName(u"spb_term")
+        self.spb_term.setFont(font)
+        self.spb_term.setStyleSheet(u"border-width: 0px; text-align: left;")
 
-        self.gridLayout_3.addWidget(self.lw_category, 7, 0, 1, 2)
-
-        self.spb_receiver = SwitchPushButton(self.scrollAreaWidgetContents)
-        self.spb_receiver.setObjectName(u"spb_receiver")
-        self.spb_receiver.setFont(font)
-        self.spb_receiver.setStyleSheet(u"border-width: 0px; text-align: left;")
-
-        self.gridLayout_3.addWidget(self.spb_receiver, 8, 0, 1, 2)
+        self.gridLayout_3.addWidget(self.spb_term, 3, 0, 1, 2)
 
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
 
@@ -576,11 +575,11 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.act_fees.setToolTip(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0432\u044b\u043f\u0438\u0441\u043a\u0443", None))
 #endif // QT_CONFIG(tooltip)
-        self.spb_responsible.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041e\U00000422\U00000412\U00000415\U00000422\U00000421\U00000422\U00000412\U00000415\U0000041d\U0000041d\U0000042b\U00000419", None))
         self.chb_paytoday.setText(QCoreApplication.translate("MainWindow", u"\u041d\u0410\u0417\u041d\u0410\u0427\u0415\u041d\u042b \u041a \u041e\u041f\u041b\u0410\u0422\u0415", None))
-        self.spb_term.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U00000421\U00000420\U0000041e\U0000041a \U0000041f\U0000041e\U00000413\U00000410\U00000428\U00000415\U0000041d\U00000418\U0000042f", None))
         self.spb_category.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041a\U00000410\U00000422\U00000415\U00000413\U0000041e\U00000420\U00000418\U0000042f", None))
+        self.spb_responsible.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041e\U00000422\U00000412\U00000415\U00000422\U00000421\U00000422\U00000412\U00000415\U0000041d\U0000041d\U0000042b\U00000419", None))
         self.spb_receiver.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041f\U0000041e\U0000041b\U00000423\U00000427\U00000410\U00000422\U00000415\U0000041b\U0000042c", None))
+        self.spb_term.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U00000421\U00000420\U0000041e\U0000041a \U0000041f\U0000041e\U00000413\U00000410\U00000428\U00000415\U0000041d\U00000418\U0000042f", None))
         self.pb_deletepayment.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c", None))
         self.pb_addpayment.setText(QCoreApplication.translate("MainWindow", u"\u041e\u043f\u043b\u0430\u0442\u0438\u0442\u044c", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"\u0414\u0430\u0442\u0430 \u0438 \u0441\u0443\u043c\u043c\u0430", None))

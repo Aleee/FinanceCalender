@@ -1,6 +1,7 @@
 import lovely_logger as log
 
 from PySide6.QtCore import QModelIndex, Qt, QDate
+from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QDialog, QButtonGroup, QCompleter
 from decimal import Decimal
 
@@ -23,7 +24,7 @@ class EventDialog(QDialog):
                             "Акт оказания услуг №", "Акт №", "Акт сдачи-приемки выполненных работ №", "Счет-акт оказанных услуг", "Реестр №",
                             "Счет-фактура №", "Договор финансового лизинга №", "Договор лизинга №", "Кредитный договор №", "Договор поставки №"]
 
-    def __init__(self, final_proxy_model, edit_mode: bool = False, copy_mode: bool = False, current_index: QModelIndex | None = None, parent=None):
+    def __init__(self, final_proxy_model, responsible_model: QStandardItemModel, edit_mode: bool = False, copy_mode: bool = False, current_index: QModelIndex | None = None, parent=None):
         super(EventDialog, self).__init__(parent)
         self.ui = Ui_EventDialog()
         self.ui.setupUi(self)
@@ -32,6 +33,7 @@ class EventDialog(QDialog):
             self.reject()
 
         self.model = final_proxy_model
+        self.responsible_model: QStandardItemModel = responsible_model
         self.edit_mode: bool = edit_mode
         self.copy_mode: bool = copy_mode
         self.non_editable_values: dict = {"id": 0, "paidamount": Decimal(0), "createdate": QDate(), "todayshare": Decimal(0)}
@@ -54,6 +56,7 @@ class EventDialog(QDialog):
             self.ui.cmb_nds.addItem(row[0], row[1])
         for row in self.SUBCATEGORY_COMBOBOX:
             self.ui.cmb_subcategory.addItem(row[0], row[1])
+        self.ui.cmb_responsible.setModel(self.responsible_model)
 
         self.ui.cmb_category.currentIndexChanged.connect(lambda row_num: self.ui.wdg_subcategory.setVisible(
             self.ui.cmb_category.currentData() == LiabilityCategory.TOP_FINANCES))
@@ -86,7 +89,8 @@ class EventDialog(QDialog):
                 self.button_group.button(PaymentType.NORMAL).setChecked(True)
             cmb_index: int = self.ui.cmb_nds.findData(self.index.siblingAtColumn(Col.NDS).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.cmb_nds.setCurrentIndex(cmb_index)
-            self.ui.le_responsible.setText(self.index.siblingAtColumn(Col.RESPONSIBLE).data(LiabilitySqlTableModel.qtValueRole))
+            cmb_index: int = self.ui.cmb_responsible.findData(self.index.siblingAtColumn(Col.RESPONSIBLE).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.cmb_responsible.setCurrentIndex(cmb_index)
             self.ui.chb_hidden.setChecked(bool(self.index.siblingAtColumn(Col.HIDDEN).data(LiabilitySqlTableModel.qtValueRole)))
             self.ui.te_descr.setPlainText(self.index.siblingAtColumn(Col.DESCR).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.te_notes.setPlainText(self.index.siblingAtColumn(Col.NOTES).data(LiabilitySqlTableModel.qtValueRole))
@@ -102,22 +106,16 @@ class EventDialog(QDialog):
         self.ui.cmb_category.currentIndexChanged.connect(lambda row_num: self.change_nds(row_num))
 
     def set_completers(self):
+        # through SQL?
         origin_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
-        name_compl_list, receiver_compl_list, responsible_compl_list = [], [], []
+        receiver_compl_list = []
         for row in range(origin_model.rowCount()):
             if origin_model.index(row, Col.TYPE).data(LiabilitySqlTableModel.qtValueRole) == RowType.LIABILITY:
-                name_compl_list.append(str(origin_model.index(row, Col.NAME).data(LiabilitySqlTableModel.qtValueRole)))
                 receiver_compl_list.append(str(origin_model.index(row, Col.RECEIVER).data(LiabilitySqlTableModel.qtValueRole)))
-                responsible_compl_list.append(str(origin_model.index(row, Col.RESPONSIBLE).data(LiabilitySqlTableModel.qtValueRole)))
-        name_compl = QCompleter(list(set(name_compl_list)))
         receiver_compl = QCompleter(list(set(receiver_compl_list)))
-        responsible_compl = QCompleter(list(set(responsible_compl_list)))
-        for compl in (name_compl, receiver_compl, responsible_compl):
-            compl.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-            compl.setFilterMode(Qt.MatchFlag.MatchContains)
-        self.ui.le_name.setCompleter(name_compl)
+        receiver_compl.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        receiver_compl.setFilterMode(Qt.MatchFlag.MatchContains)
         self.ui.le_receiver.setCompleter(receiver_compl)
-        self.ui.le_responsible.setCompleter(responsible_compl)
         self.ui.te_descr.completions.setStringList(self.DESCR_COMPLETER_LIST)
 
     def change_nds(self, row: int):
@@ -136,6 +134,8 @@ class EventDialog(QDialog):
             text = "Новая общая сумма платежа превышает сумму уже сделанных по нему оплат"
         if self.ui.cmb_subcategory.isVisible() and self.ui.cmb_subcategory.currentData() == 0:
             text = "Подкатегория платежа не выбрана"
+        if self.ui.cmb_responsible.currentData() == 0:
+            text = "Ответственное лицо не назначено"
         if text:
             msg = ErrorInfoMessageBox(text, parent=self)
             msg.exec()
@@ -145,8 +145,6 @@ class EventDialog(QDialog):
         if (self.ui.de_duedate.date() < QDate.currentDate() and self.index.isValid() and
                 FilterFlags.PAID not in self.index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)):
             text += "Дата платежа меньше текущей даты. "
-        if self.ui.le_responsible.text().strip() == "":
-            text += "Ответственное лицо не указано. "
         if self.ui.te_descr.toPlainText().strip() == "":
             text += "Основание платежа не указано. "
         if text:
@@ -191,7 +189,9 @@ class EventDialog(QDialog):
         data.append(date_str(self.ui.de_duedate.date()))
         # createdate
         if not self.edit_mode:
-            data.append(date_str(QDate.currentDate()))
+            # ВРЕМЕННОЕ
+            # data.append(date_str(QDate.currentDate()))
+            data.append(self.parent().date_edit.date())
         else:
             data.append(self.non_editable_values["createdate"])
         # paymenttype
@@ -199,7 +199,7 @@ class EventDialog(QDialog):
         # descr
         data.append(self.ui.te_descr.toPlainText())
         # responsible
-        data.append(self.ui.le_responsible.text())
+        data.append(self.ui.cmb_responsible.currentData())
         # notes
         data.append(self.ui.te_notes.toPlainText())
         # todayshare
@@ -227,8 +227,6 @@ class EventDialog(QDialog):
         data.append(int(self.ui.chb_hidden.isChecked()))
         # receivernocase
         data.append(str.lower(self.ui.le_receiver.text()))
-        # responsiblenocase
-        data.append(str.lower(self.ui.le_responsible.text()))
 
         if not self.edit_mode:
             if original_model.insert_row(data) is None:

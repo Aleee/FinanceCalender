@@ -7,7 +7,6 @@ from PySide6 import QtGui, QtCore
 from PySide6.QtGui import QPalette, QRegularExpressionValidator
 from PySide6.QtWidgets import QDialog, QListWidgetItem, QLineEdit, QFileDialog, QButtonGroup, QWidget, QInputDialog
 from PySide6.QtCore import Qt, QSize, QRegularExpression, QModelIndex
-from scipy.fft import ifft
 
 from base.backup import restore_backup
 from base.casting import str_bool
@@ -115,14 +114,13 @@ class SettingsDialog(QDialog):
         self.personal_model = PersonalTableModel(self.db_handler, self)
         self.personal_model.setup_model()
         self.personal_proxy_model = PersonalSortFilterModel()
-        self.personal_proxy_model.setSourceModel(self.personal_model )
+        self.personal_proxy_model.setSourceModel(self.personal_model)
 
         self.ui.lv_personal.setModel(self.personal_proxy_model)
         self.ui.lv_personal.setModelColumn(PersonalCol.NAME)
         # Настройка комбобоксов
         for dept in Department:
             self.ui.cmb_pers_dept.addItem(dept.name, dept.value)
-            self.ui.cmb_pers_default.addItem(dept.name, dept.value)
         # Сигналы
         for wdg in (self.ui.pb_pers_current, self.ui.pb_pers_hist):
             wdg.clicked.connect(lambda: self.personal_proxy_model.show_actuals(self.ui.pb_pers_current.isChecked()))
@@ -131,9 +129,6 @@ class SettingsDialog(QDialog):
         self.ui.cmb_pers_dept.activated.connect(lambda: self.personal_proxy_model.setData(
             self.ui.lv_personal.currentIndex().siblingAtColumn(PersonalCol.DEPT),
             self.ui.cmb_pers_dept.currentData()) if self.ui.lv_personal.currentIndex().isValid() else None)
-        self.ui.cmb_pers_default.activated.connect(lambda: self.personal_proxy_model.setData(
-            self.ui.lv_personal.currentIndex().siblingAtColumn(PersonalCol.DEFAULTEXP),
-            self.ui.cmb_pers_default.currentData()) if self.ui.lv_personal.currentIndex().isValid() else None)
 
         self.ui.pb_pers_add.clicked.connect(self.add_personal)
         self.ui.pb_pers_rename.clicked.connect(self.rename_personal)
@@ -151,12 +146,9 @@ class SettingsDialog(QDialog):
         self.ui.pb_pers_rename.setEnabled(selection_active)
         self.ui.pb_pers_changetype.setEnabled(selection_active)
         self.ui.cmb_pers_dept.setEnabled(selection_active)
-        self.ui.cmb_pers_default.setEnabled(selection_active)
         if selection_active:
             dept: int = current_index.siblingAtColumn(PersonalCol.DEPT).data(PersonalTableModel.internalValueRole)
-            defaultexp: int = current_index.siblingAtColumn(PersonalCol.DEFAULTEXP).data(PersonalTableModel.internalValueRole)
             self.ui.cmb_pers_dept.setCurrentIndex(self.ui.cmb_pers_dept.findData(dept))
-            self.ui.cmb_pers_default.setCurrentIndex(self.ui.cmb_pers_default.findData(defaultexp))
 
     def add_personal(self):
         text, ok = QInputDialog.getText(self, "Введите имя работника","Имя работника:")
@@ -165,7 +157,7 @@ class SettingsDialog(QDialog):
         row: int = len(self.personal_model.tdata)
         self.personal_model.beginInsertRows(QModelIndex(), row, row)
         new_id = self.personal_model.last_id + 1
-        new_row: list = [self.personal_model.last_id + 1, text, 1, 1, 0]
+        new_row: list = [self.personal_model.last_id + 1, text, 1, 0]
         self.personal_model.tdata.append(new_row)
         self.personal_model.endInsertRows()
         self.personal_model.last_id = new_id

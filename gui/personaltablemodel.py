@@ -1,7 +1,7 @@
 from enum import IntEnum
 from typing import Any
 
-from PySide6.QtCore import QAbstractListModel, Qt, QAbstractTableModel, QModelIndex, QSortFilterProxyModel
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, QSortFilterProxyModel
 
 from base.dbhandler import DBHandler
 
@@ -10,13 +10,12 @@ class PersonalCol(IntEnum):
     ID = 0
     NAME = 1
     DEPT = 2
-    DEFAULTEXP = 3
-    ARCHIVED = 4
+    ARCHIVED = 3
 
 
 class PersonalTableModel(QAbstractTableModel):
 
-    COLUMN_COUNT: int = 5
+    COLUMN_COUNT: int = 4
     internalValueRole = Qt.ItemDataRole.UserRole + 1
 
     def __init__(self, dbh: DBHandler, parent=None):

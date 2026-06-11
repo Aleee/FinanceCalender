@@ -131,6 +131,9 @@ class SettingsHandler:
         except (ValueError, TypeError):
             self.mw.ui.act_togglefooters.setChecked(False)
 
+        ## Перезагрузить список персонала
+        self.mw.update_responsible_models(update_widgets=True)
+
         ## Включение фильтра после применения настроек
         self.mw.ui.trw_event.model().sourceModel().enable_sortfilter(True)
         ## Обновление статистики и сортировки

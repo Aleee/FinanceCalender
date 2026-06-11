@@ -20,7 +20,7 @@ class DBHandler:
 
     DB_VERSION: int = 1
     DEFAULT_DB_RELPATH: str = "db/db.db"
-    EVENT_TABLE_COLUMNUM: int = 22
+    EVENT_TABLE_COLUMNUM: int = 21
     PAYMENT_TABLE_COLUMNUM: int = 5
 
     def __init__(self, settings_handler):
@@ -230,16 +230,22 @@ class DBHandler:
         else:
             return Decimal("NaN")
 
-    def load_personal_data(self) -> tuple | None:
+    def load_personal_data(self, as_dict: bool = False) -> tuple | None:
         if not self.is_db_connected():
             return None
-        query = QSqlQuery("SELECT id, name, department, defaultexpenses, archived FROM personal")
+        query = QSqlQuery("SELECT id, name, department, archived FROM personal")
         if not query.exec():
             log.w(f"Ошибка SQL при попытке получить данные о персонале из таблицы personal: {query.lastError().text()}")
             return None
-        values: list = []
+        if as_dict:
+            values: dict = {}
+        else:
+            values: list = []
         while query.next():
-            values.append([query.value(0), query.value(1), query.value(2), query.value(3), query.value(4)])
+            if as_dict:
+                values[query.value(0)] = (query.value(1), query.value(2), query.value(3))
+            else:
+                values.append([query.value(0), query.value(1), query.value(2), query.value(3)])
             self.personal_data_max_id = int(query.value(0)) if int(query.value(0)) > self.personal_data_max_id else self.personal_data_max_id
         return values, self.personal_data_max_id
 
@@ -249,15 +255,15 @@ class DBHandler:
         query: QSqlQuery = QSqlQuery()
         for entry in data:
             if entry[0] <= self.personal_data_max_id:
-                query.prepare("UPDATE personal SET name = ?, department = ?, defaultexpenses = ?, archived = ? WHERE id = ?")
-                for val in [entry[1], entry[2], entry[3], entry[4], entry[0]]:
+                query.prepare("UPDATE personal SET name = ?, department = ?, archived = ? WHERE id = ?")
+                for val in [entry[1], entry[2], entry[3], entry[0]]:
                     query.addBindValue(val)
                 if not query.exec():
                     log.w(f"Ошибка SQL при попытке обновления имеющихся записей в таблице personal: {query.lastError().text()}")
                     return False
             else:
-                query.prepare("INSERT INTO personal(id, name, department, defaultexpenses, archived) VALUES (?,?,?,?,?)")
-                for val in [entry[0], entry[1], entry[2], entry[3], entry[4]]:
+                query.prepare("INSERT INTO personal(id, name, department, archived) VALUES (?,?,?,?)")
+                for val in [entry[0], entry[1], entry[2], entry[3]]:
                     query.addBindValue(val)
                 if not query.exec():
                     log.w(f"Ошибка SQL при попытке создания новых записей в таблице personal: {query.lastError().text()}")

@@ -70,7 +70,6 @@ class Col(IntEnum):
     FEATURED = 18
     HIDDEN = 19
     RECEIVERNOCASE = 20
-    RESPONSIBLENOCASE = 21
 
 
 class RowType(IntEnum):
@@ -120,7 +119,6 @@ class LiabilitySqlTableModel(QSqlTableModel):
         Col.FEATURED: ("", True),
         Col.HIDDEN: ("", True),
         Col.RECEIVERNOCASE: ("", False),
-        Col.RESPONSIBLENOCASE: ("", False),
     }
 
     DECIMAL_COLUMNS = [
@@ -146,6 +144,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.paid_minimum_date: QDate = QDate()
         self.next_select_norecalc: bool = False
         self.filter_to_restore: str = ""
+        self.personal_dict: dict = {}
         # temp
         self.row_formatting = RowFormatting()
 
@@ -167,7 +166,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
                         return Decimal(idx.data(self.dbValueRole))
                     except decimal.InvalidOperation:
                         return Decimal(0)
-                elif idx.column() in (Col.ID, Col.TYPE, Col.CATEGORY, Col. SUBCATEGORY, Col.PAYMENTTYPE, Col.NDS, Col.FEATURED):
+                elif idx.column() in (Col.ID, Col.TYPE, Col.CATEGORY, Col. SUBCATEGORY, Col.PAYMENTTYPE, Col.NDS, Col.FEATURED, Col.RESPONSIBLE):
                     return int(idx.data(self.dbValueRole))
                 elif idx.column() in (Col.DUEDATE, Col.CREATEDATE):
                     return str_date(idx.data(self.dbValueRole))
@@ -200,6 +199,11 @@ class LiabilitySqlTableModel(QSqlTableModel):
                     return dec_strcommaspace(idx.data(self.qtValueRole))
                 except KeyError:
                     return ""
+            elif idx.column() == Col.RESPONSIBLE:
+                try:
+                    return self.personal_dict[idx.data(self.qtValueRole)][0]
+                except KeyError:
+                    return "Н/Д"
 
         return super(LiabilitySqlTableModel, self).data(idx, role)
 
@@ -280,7 +284,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
         if receiver:
             filt += f"receivernocase LIKE '%{receiver.lower()}%' AND "
         if responsible:
-            filt += f"responsiblenocase LIKE '%{responsible.lower()}%' AND "
+            filt += f"responsible = {responsible} AND "
         if paid_today:
             filt += f"todayshare <> '0.0' AND "
         if featured:
@@ -324,7 +328,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
             if receiver:
                 filt += f"receivernocase LIKE '%{receiver.lower()}%' AND "
             if responsible:
-                filt += f"responsiblenocase LIKE '%{responsible.lower()}%' AND "
+                filt += f"responsible = {responsible} AND "
             if paid_today:
                 filt += f"todayshare <> '0.0' AND "
             if featured:
@@ -355,7 +359,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
             if receiver:
                 filt += f"receivernocase LIKE '%{receiver.lower()}%' AND "
             if responsible:
-                filt += f"responsiblenocase LIKE '%{responsible.lower()}%' AND "
+                filt += f"responsible = {responsible} AND "
             if paid_today:
                 filt += f"todayshare <> '0.0' AND "
             if featured:

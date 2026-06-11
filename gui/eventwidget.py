@@ -37,7 +37,6 @@ class EventWidget(QTreeView):
         Col.FEATURED: 40,
         Col.HIDDEN: 40,
         Col.RECEIVERNOCASE: 0,
-        Col.RESPONSIBLENOCASE: 0,
     }
 
 

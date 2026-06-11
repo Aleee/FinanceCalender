@@ -87,7 +87,6 @@ class LiabilityXlsWriter:
         Col.FEATURED: 0,
         Col.HIDDEN: 0,
         Col.RECEIVERNOCASE: 0,
-        Col.RESPONSIBLENOCASE: 0,
     }
 
     BORDER_COLOR: str = "#D0D0D0"
