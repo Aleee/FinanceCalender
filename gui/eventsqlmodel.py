@@ -4,12 +4,14 @@ from decimal import Decimal
 from enum import IntEnum, auto, IntFlag
 from typing import Any
 
-from PySide6.QtCore import Qt, QModelIndex, Signal, QDate
+from PySide6.QtCore import Qt, QModelIndex, Signal, QDate, QTimer
+from PySide6.QtGui import QColor
 from PySide6.QtSql import QSqlTableModel, QSqlDatabase, QSqlQuery
 
 from base.date import date_displstr, str_date, date_str, get_date_diff, days_to_weekend, days_to_month
 from base.formatting import dec_strcommaspace
 from base.liability import CATEGORY_NAMES
+from gui.commonwidgets.common import RowStyle
 from gui.filterwidget import TermCategory
 
 
@@ -151,6 +153,63 @@ class LiabilitySqlTableModel(QSqlTableModel):
         for key, val in self.COLUMN_DATA.items():
             self.setHeaderData(key, Qt.Orientation.Horizontal, val)
 
+        self.sort_cache = {}
+        self.sort_cache_version = 0
+        self.sort_cache_built_for_version = -1
+        self.count = 0
+
+    def invalidate_sort_cache(self):
+        self.sort_cache_version += 1
+
+    def ensure_sort_cache(self):
+        if self.sort_cache_built_for_version == self.sort_cache_version:
+            return
+        self.refresh_sort_cache()
+        self.sort_cache_built_for_version = self.sort_cache_version
+
+    def sort_key(self, id_value):
+        self.ensure_sort_cache()
+        return self.sort_cache[id_value]
+
+    def refresh_sort_cache(self):
+        self.count += 1
+        print(f"CALL #{self.count}")
+        for row in range(self.rowCount()):
+            self.sort_cache[self.index(row, Col.ID).data(self.qtValueRole)] = self.compute_sort_key(row)
+
+    def compute_sort_key(self, row: int):
+        idx = self.index(row, Col.TYPE)
+        if not idx.isValid():
+            return (99, 0, 0, 0, 0)
+        row_type: RowType = idx.data(self.qtValueRole)
+
+        # FINAL FOOTER — всегда в конец
+        if row_type == RowType.FINALFOOTER:
+            return (98, 0, 0, 0, 0)
+
+        category: int = self.index(row, Col.CATEGORY).data(self.qtValueRole)
+        subtype: HeaderFooterSubtype = self.index(row, Col.SUBCATEGORY).data(self.qtValueRole)
+        due_date: QDate = self.index(row, Col.DUEDATE).data(self.qtValueRole)
+
+        # 1) раздел
+        division = category // 1000
+        # 2) является ли футером раздела
+        division_footer = 1 if row_type == RowType.FOOTER and subtype == HeaderFooterSubtype.TOPLEVELNOEVENTS else 0
+        # 3) категория
+        category_group = category if category else 0
+        # 4) тип в категории
+        type_order = int(row_type)
+        # 5) дата
+        if due_date:
+            date_key = due_date.toJulianDay()
+        else:
+            date_key = 0
+
+        return (division,
+                division_footer,
+                category_group,
+                type_order,
+                date_key)
 
     def data(self, idx, /, role=...):
         if not idx.isValid():
@@ -233,7 +292,9 @@ class LiabilitySqlTableModel(QSqlTableModel):
             self.insert_filterflags()
         result = super(LiabilitySqlTableModel, self).select()
         self.next_select_norecalc = False
-        self.afterSelect.emit()
+        QTimer.singleShot(0, self.invalidate_sort_cache)
+        QTimer.singleShot(0, self.afterSelect.emit)
+        #self.afterSelect.emit()
         return result
 
     def insert_row(self, data: list) -> int | None:
@@ -305,6 +366,9 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.next_select_norecalc = True
         self.setFilter(self.filter_to_restore)
         self.filter_to_restore = ""
+
+    def update_labels(self, term, category, receiver, responsible, paid_today, paid_months_toshow, featured):
+        self.send_filterwidget_labeldata(term, category, receiver, responsible, paid_today, paid_months_toshow, featured)
 
     def send_filterwidget_labeldata(self, term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
         term_labels_dict = {}

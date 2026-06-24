@@ -188,6 +188,7 @@ class Ui_EventDialog(object):
 
         self.pb_cancel = QPushButton(EventDialog)
         self.pb_cancel.setObjectName(u"pb_cancel")
+        self.pb_cancel.setAutoDefault(False)
 
         self.horizontalLayout_3.addWidget(self.pb_cancel)
 

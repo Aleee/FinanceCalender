@@ -1,6 +1,7 @@
 from decimal import Decimal
 from enum import IntEnum, auto
 from typing import Any
+import time
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime
 from PySide6.QtGui import QStandardItemModel, QStandardItem
@@ -20,7 +21,7 @@ from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
 from gui.eventdialog import EventDialog
 from gui.eventproxymodel import LiabilitySortFilterProxyModel, Filter, LiabilityTotalsProxyModel
-from gui.eventsqlmodel import LiabilitySqlTableModel, RowType, Col
+from gui.eventsqlmodel import LiabilitySqlTableModel, RowType, Col, FilterFlags
 from gui.feedialog import FeeDialog
 from gui.finplandialog import FinPlanDialog
 from gui.fulfillmentoptiondialog import FulfillmentOptionDialog
@@ -91,9 +92,13 @@ class MainWindow(QMainWindow):
 
         self.proxy1_model = LiabilitySortFilterProxyModel()
         self.proxy1_model.setSourceModel(self.base_model)
+        self.proxy1_model.dataChanged.connect(self.base_model.invalidate_sort_cache)
+        self.base_model.beforeSelect.connect(lambda: self.proxy1_model.setDynamicSortFilter(False))
+        self.base_model.afterSelect.connect(lambda: self.proxy1_model.setDynamicSortFilter(True))
 
         self.proxy2_model = LiabilityTotalsProxyModel()
         self.proxy2_model.setSourceModel(self.proxy1_model)
+        self.proxy1_model.modelInvalidated.connect(self.proxy2_model.invalidate_style_cache)
 
         self.ui.trw_event.setModel(self.proxy2_model)
         self.ui.trw_event.hide_columns()
@@ -270,6 +275,15 @@ class MainWindow(QMainWindow):
                                     self.ui.act_featured.isChecked())
         self.proxy2_model.recalculate_totals()
 
+    def update_labels(self):
+        self.base_model.update_labels(self.ui.lw_term.current_term(),
+                                    self.ui.lw_category.current_category(),
+                                    self.ui.le_receiverfilter.text(),
+                                    self.ui.cmb_responsiblefilter.currentData(),
+                                    self.ui.chb_paytoday.isChecked(),
+                                    int(self.settings_handler.settings.value("Common/paidloadperiod")),
+                                    self.ui.act_featured.isChecked())
+
     def get_current_event_index(self, source_model_index: bool = False) -> QModelIndex:
         if source_model_index:
             return map_to_source(-2, self.ui.trw_event.selectionModel().currentIndex())
@@ -376,7 +390,9 @@ class MainWindow(QMainWindow):
             # Сумма платежа по умолчанию равна остатку
             self.ui.dsb_paymentsum.setValue(current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilitySqlTableModel.qtValueRole))
             # Обновить дату платежа по умолчанию
-            self.ui.de_paymentdate.setDate(QDate.currentDate())
+            # TEMP
+            self.ui.de_paymentdate.setDate(self.date_edit.date())
+            # self.ui.de_paymentdate.setDate(QDate.currentDate())
             # Обновить график
             # self.update_plot()
         return True
@@ -476,10 +492,21 @@ class MainWindow(QMainWindow):
                                                 copy_mode=copy, current_index=curr_index, parent=self)
         if event_dialog.exec():
             if not edit:
+                set_due_filter = False
+                if copy:
+                    if FilterFlags.PAID in curr_index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole):
+                        set_due_filter = True
+                self.base_model.submitAll()
                 self.ui.trw_event.selectionModel().clear()
+                if set_due_filter:
+                    self.ui.lw_term.setCurrentRow(0)
+                self.update_filters_and_select()
                 self.ui.trw_event.selectionModel().setCurrentIndex(self.proxy2_model.mapFromSource(self.proxy1_model.mapFromSource(
-                    self.base_model.index(self.base_model.rowCount() - 1, 0, QModelIndex()))), QItemSelectionModel.SelectionFlag.SelectCurrent)
-            self.proxy2_model.recalculate_totals()
+                    self.base_model.index(self.base_model.rowCount() - 1, 0, QModelIndex()))),
+                    QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
+            else:
+                self.proxy2_model.recalculate_totals()
+            self.proxy1_model.invalidate()
             return True
         else:
             return False
@@ -517,7 +544,6 @@ class MainWindow(QMainWindow):
             # Удаление строки не вызывает currentChanged
             self.on_currentevent_change()
             self.payment_model.delete_rows_byeventid(deleted_event_id)
-            self.proxy2_model.recalculate_totals()
             self.update_filters_and_select()
             return True
         return False

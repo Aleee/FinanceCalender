@@ -1,6 +1,7 @@
 import sys
 import cProfile
 import lovely_logger as log
+from PySide6.QtGui import QCloseEvent
 
 from PySide6.QtWidgets import QApplication
 
@@ -20,15 +21,19 @@ class App(QApplication):
         # self.window.allow_proxymodels_sortfliter(True)
         # if not self.window.settings_handler.settings.value("Autosave/interval"):
         #     self.window.open_settings_dialog(reject_possible=False)
-        # pr.disable()
-        # pr.dump_stats('profile_results.pstat')
 
+
+
+def close(pr):
+    pr.disable()
+    pr.dump_stats('profile_results.pstat')
 
 def main():
     pr = cProfile.Profile()
-    # pr.enable()
+    pr.enable()
     log.init("log.log", level=log.DEBUG)
     application: App = App(pr)
+    application.aboutToQuit.connect(lambda: close(pr))
     sys.exit(application.exec())
 
 

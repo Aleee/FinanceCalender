@@ -1,5 +1,17 @@
+from dataclasses import dataclass
+
 from PySide6.QtCore import QSortFilterProxyModel, QModelIndex
+from PySide6.QtGui import QColor, QBrush
 from PySide6.QtWidgets import QTreeView, QTableView, QFrame
+
+
+@dataclass(slots=True)
+class RowStyle:
+    text_color: QColor | None = None
+    highlighted_text_color: QColor | None = None
+    highlight_color: QColor | None = None
+    background_brush: QBrush | None = None
+    vertical_grid_color: QColor | None = None
 
 
 class StatusBarSeparator(QFrame):

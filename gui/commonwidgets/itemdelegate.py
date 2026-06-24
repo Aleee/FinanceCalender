@@ -1,8 +1,12 @@
+from dataclasses import dataclass
+
 from PySide6 import QtGui
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem, QStyle
 from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QPalette
 from PySide6.QtCore import QModelIndex
 
+from gui.commonwidgets.common import RowStyle
+from gui.eventproxymodel import LiabilityTotalsProxyModel
 from gui.eventsqlmodel import FilterFlags, Col, RowType, RowFormatting, LiabilitySqlTableModel, HeaderFooterSubtype
 
 from gui.common import model_atlevel
@@ -24,41 +28,66 @@ class EventItemDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index, /):
         super(EventItemDelegate, self).initStyleOption(option, index)
 
-        row_formatting: RowFormatting = model_atlevel(-2, index).row_formatting
-        if not row_formatting:
+        # row_formatting: RowFormatting = model_atlevel(-2, index).row_formatting
+        # if not row_formatting:
+        #     return
+        # if index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole) == RowType.LIABILITY:
+        #     option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Highlight, (QColor("#CDE8FF")))
+        #     filter_flags: FilterFlags = index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)
+        #     if FilterFlags.DUE in filter_flags and model_atlevel(-1, index).term_filter != TermCategory.DUE and not model_atlevel(-1, index).paytoday_filter:
+        #         option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
+        #                                 QColor(row_formatting.due_forecolor))
+        #         option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.HighlightedText,
+        #                                 QColor(row_formatting.due_forecolor))
+        #     elif FilterFlags.TODAY in filter_flags and model_atlevel(-1, index).term_filter != TermCategory.TODAY and not model_atlevel(-1, index).paytoday_filter:
+        #         option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
+        #                                 QColor(row_formatting.today_forecolor))
+        #         option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.HighlightedText,
+        #                                 QColor(row_formatting.today_forecolor))
+        #     else:
+        #         option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.HighlightedText, (QColor("black")))
+        # elif index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole) == RowType.HEADER:
+        #     subtype: HeaderFooterSubtype = index.siblingAtColumn(Col.SUBCATEGORY).data(LiabilitySqlTableModel.dbValueRole)
+        #     if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
+        #         option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
+        #                                 QColor(row_formatting.header_section_forecolor))
+        #     if subtype == HeaderFooterSubtype.ORDINARY:
+        #         option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
+        #                                 QColor(row_formatting.header_subsection_forecolor))
+        # elif index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole) == RowType.FOOTER:
+        #     row_formatting: RowFormatting = model_atlevel(-2, index).row_formatting
+        #     subtype: HeaderFooterSubtype = index.siblingAtColumn(Col.SUBCATEGORY).data(LiabilitySqlTableModel.dbValueRole)
+        #     if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
+        #         option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
+        #                                 QColor(row_formatting.footer_section_forecolor))
+        #     if subtype == HeaderFooterSubtype.ORDINARY:
+        #         option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
+        #                                 QColor(row_formatting.footer_subsection_forecolor))
+
+        style: RowStyle = index.data(LiabilityTotalsProxyModel.RowStyleRole)
+
+        if not style:
             return
-        if index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole) == RowType.LIABILITY:
-            option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Highlight, (QColor("#CDE8FF")))
-            filter_flags: FilterFlags = index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)
-            if FilterFlags.DUE in filter_flags and model_atlevel(-1, index).term_filter != TermCategory.DUE and not model_atlevel(-1, index).paytoday_filter:
-                option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
-                                        QColor(row_formatting.due_forecolor))
-                option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.HighlightedText,
-                                        QColor(row_formatting.due_forecolor))
-            elif FilterFlags.TODAY in filter_flags and model_atlevel(-1, index).term_filter != TermCategory.TODAY and not model_atlevel(-1, index).paytoday_filter:
-                option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
-                                        QColor(row_formatting.today_forecolor))
-                option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.HighlightedText,
-                                        QColor(row_formatting.today_forecolor))
-            else:
-                option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.HighlightedText, (QColor("black")))
-        elif index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole) == RowType.HEADER:
-            subtype: HeaderFooterSubtype = index.siblingAtColumn(Col.SUBCATEGORY).data(LiabilitySqlTableModel.dbValueRole)
-            if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
-                option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
-                                        QColor(row_formatting.header_section_forecolor))
-            if subtype == HeaderFooterSubtype.ORDINARY:
-                option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
-                                        QColor(row_formatting.header_subsection_forecolor))
-        elif index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole) == RowType.FOOTER:
-            row_formatting: RowFormatting = model_atlevel(-2, index).row_formatting
-            subtype: HeaderFooterSubtype = index.siblingAtColumn(Col.SUBCATEGORY).data(LiabilitySqlTableModel.dbValueRole)
-            if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
-                option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
-                                        QColor(row_formatting.footer_section_forecolor))
-            if subtype == HeaderFooterSubtype.ORDINARY:
-                option.palette.setColor(QPalette.ColorGroup.All, QPalette.ColorRole.Text,
-                                        QColor(row_formatting.footer_subsection_forecolor))
+        if style.highlight_color:
+            option.palette.setColor(
+                QPalette.ColorGroup.All,
+                QPalette.ColorRole.Highlight,
+                style.highlight_color
+            )
+        if style.text_color:
+            option.palette.setColor(
+                QPalette.ColorGroup.All,
+                QPalette.ColorRole.Text,
+                style.text_color
+            )
+        if style.highlighted_text_color:
+            option.palette.setColor(
+                QPalette.ColorGroup.All,
+                QPalette.ColorRole.HighlightedText,
+                style.highlighted_text_color
+            )
+        if style.background_brush:
+            option.backgroundBrush = style.background_brush
 
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
@@ -73,45 +102,52 @@ class EventItemDelegate(QStyledItemDelegate):
 
     def draw_background(self, painter, option, index, row_formatting: RowFormatting):
 
-        row_type: RowType = index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole)
-        vertical_grid_color: QColor = self.VERTICAL_GRID_COLOR
-        if row_type == RowType.LIABILITY:
-            filter_flags: FilterFlags = index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)
-            due_backcolor_setting: QColor = QColor(row_formatting.due_backcolor)
-            today_backcolor_setting: QColor = QColor(row_formatting.today_backcolor)
-            if (due_backcolor_setting != QtGui.QColorConstants.White and FilterFlags.DUE in filter_flags
-                    and model_atlevel(-1, index).term_filter != TermCategory.DUE and not model_atlevel(-1, index).paytoday_filter):
-                option.backgroundBrush = QBrush(QColor(row_formatting.due_backcolor))
-                vertical_grid_color = QColor(row_formatting.due_backcolor).darker(self.DARKER_RATIO)
-            elif (today_backcolor_setting != QtGui.QColorConstants.White and FilterFlags.TODAY in filter_flags
-                  and model_atlevel(-1, index).term_filter != TermCategory.TODAY and not model_atlevel(-1, index).paytoday_filter):
-                option.backgroundBrush = QBrush(QColor(row_formatting.today_backcolor))
-                vertical_grid_color: QColor = QColor(row_formatting.today_backcolor).darker(self.DARKER_RATIO)
-            else:
-                if row_formatting.zebra_style and index.row() % 2 == 0:
-                    option.backgroundBrush = QBrush(self.ALTERNATE_ROW_COLOR)
-                else:
-                    option.backgroundBrush = QBrush(QColor("#FFFFFF"))
+        style = index.data(LiabilityTotalsProxyModel.RowStyleRole)
 
-        elif row_type == RowType.HEADER:
-            subtype: HeaderFooterSubtype = index.siblingAtColumn(Col.SUBCATEGORY).data(LiabilitySqlTableModel.dbValueRole)
-            if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
-                option.backgroundBrush = QBrush(QColor(row_formatting.header_section_backcolor))
-            if subtype == HeaderFooterSubtype.ORDINARY:
-                option.backgroundBrush = QBrush(QColor(row_formatting.header_subsection_backcolor))
+        if style.background_brush:
+            option.backgroundBrush = style.background_brush
 
-        elif row_type == RowType.FOOTER:
-            row_formatting = model_atlevel(-2, index).row_formatting
-            subtype: HeaderFooterSubtype = index.siblingAtColumn(Col.SUBCATEGORY).data(LiabilitySqlTableModel.dbValueRole)
-            if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
-                option.backgroundBrush = QBrush(QColor(row_formatting.footer_section_backcolor))
-            if subtype == HeaderFooterSubtype.ORDINARY:
-                option.backgroundBrush = QBrush(QColor(row_formatting.footer_subsection_backcolor))
+        return style.vertical_grid_color
 
-        elif row_type == RowType.FINALFOOTER:
-            option.backgroundBrush = QBrush(self.FINALFOOTER_BACK_COLOR)
-
-        return vertical_grid_color
+        # row_type: RowType = index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole)
+        # vertical_grid_color: QColor = self.VERTICAL_GRID_COLOR
+        # if row_type == RowType.LIABILITY:
+        #     filter_flags: FilterFlags = index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)
+        #     due_backcolor_setting: QColor = QColor(row_formatting.due_backcolor)
+        #     today_backcolor_setting: QColor = QColor(row_formatting.today_backcolor)
+        #     if (due_backcolor_setting != QtGui.QColorConstants.White and FilterFlags.DUE in filter_flags
+        #             and model_atlevel(-1, index).term_filter != TermCategory.DUE and not model_atlevel(-1, index).paytoday_filter):
+        #         option.backgroundBrush = QBrush(QColor(row_formatting.due_backcolor))
+        #         vertical_grid_color = QColor(row_formatting.due_backcolor).darker(self.DARKER_RATIO)
+        #     elif (today_backcolor_setting != QtGui.QColorConstants.White and FilterFlags.TODAY in filter_flags
+        #           and model_atlevel(-1, index).term_filter != TermCategory.TODAY and not model_atlevel(-1, index).paytoday_filter):
+        #         option.backgroundBrush = QBrush(QColor(row_formatting.today_backcolor))
+        #         vertical_grid_color: QColor = QColor(row_formatting.today_backcolor).darker(self.DARKER_RATIO)
+        #     else:
+        #         if row_formatting.zebra_style and index.row() % 2 == 0:
+        #             option.backgroundBrush = QBrush(self.ALTERNATE_ROW_COLOR)
+        #         else:
+        #             option.backgroundBrush = QBrush(QColor("#FFFFFF"))
+        #
+        # elif row_type == RowType.HEADER:
+        #     subtype: HeaderFooterSubtype = index.siblingAtColumn(Col.SUBCATEGORY).data(LiabilitySqlTableModel.dbValueRole)
+        #     if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
+        #         option.backgroundBrush = QBrush(QColor(row_formatting.header_section_backcolor))
+        #     if subtype == HeaderFooterSubtype.ORDINARY:
+        #         option.backgroundBrush = QBrush(QColor(row_formatting.header_subsection_backcolor))
+        #
+        # elif row_type == RowType.FOOTER:
+        #     row_formatting = model_atlevel(-2, index).row_formatting
+        #     subtype: HeaderFooterSubtype = index.siblingAtColumn(Col.SUBCATEGORY).data(LiabilitySqlTableModel.dbValueRole)
+        #     if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
+        #         option.backgroundBrush = QBrush(QColor(row_formatting.footer_section_backcolor))
+        #     if subtype == HeaderFooterSubtype.ORDINARY:
+        #         option.backgroundBrush = QBrush(QColor(row_formatting.footer_subsection_backcolor))
+        #
+        # elif row_type == RowType.FINALFOOTER:
+        #     option.backgroundBrush = QBrush(self.FINALFOOTER_BACK_COLOR)
+        #
+        # return vertical_grid_color
 
     def draw_borders(self, painter, option, index, row_formatting, vertical_grid_color):
         # Отрисовка границ ПОСЛЕ отрисовки стандартного делегата

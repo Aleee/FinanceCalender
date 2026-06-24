@@ -142,9 +142,10 @@ class EventDialog(QDialog):
             return False
 
         text = ""
-        if (self.ui.de_duedate.date() < QDate.currentDate() and self.index.isValid() and
-                FilterFlags.PAID not in self.index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)):
-            text += "Дата платежа меньше текущей даты. "
+        # TEMP
+        # if (self.ui.de_duedate.date() < QDate.currentDate() and self.index.isValid() and
+        #         FilterFlags.PAID not in self.index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)):
+        #     text += "Дата платежа меньше текущей даты. "
         if self.ui.te_descr.toPlainText().strip() == "":
             text += "Основание платежа не указано. "
         if text:
