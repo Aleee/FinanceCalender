@@ -4,7 +4,8 @@ from PySide6.QtCore import Qt, Signal, QEvent
 from PySide6.QtGui import QColor
 
 from gui.commonwidgets.itemdelegate import EventItemDelegate
-from gui.eventsqlmodel import Col, RowType, LiabilitySqlTableModel
+from gui.eventsqlmodel import Col, LiabilitySqlTableModel
+from base.liability import RowType
 
 
 class BoolDelegate(EventItemDelegate):

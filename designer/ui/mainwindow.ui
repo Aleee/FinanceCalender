@@ -534,7 +534,7 @@
              <item>
               <widget class="QLabel" name="tla_createdate">
                <property name="text">
-                <string>Дата создания:</string>
+                <string>Дата возникновения:</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -811,9 +811,11 @@
    <addaction name="separator"/>
    <addaction name="act_finplan"/>
    <addaction name="act_fulfillment"/>
+   <addaction name="act_chart"/>
    <addaction name="separator"/>
    <addaction name="act_export"/>
    <addaction name="act_settings"/>
+   <addaction name="separator"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="act_settings">
@@ -985,6 +987,21 @@
    </property>
    <property name="toolTip">
     <string>Загрузить выписку</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="act_chart">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/icon-toolbar/designer/icons/chart.svg</normaloff>:/icon-toolbar/designer/icons/chart.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Графики</string>
+   </property>
+   <property name="toolTip">
+    <string>Графики</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

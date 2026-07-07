@@ -1,19 +1,23 @@
+from datetime import date
 from decimal import Decimal
 from enum import IntEnum, auto
 from typing import Any
 import time
 
-from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime
+from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
 from PySide6.QtGui import QStandardItemModel, QStandardItem
-from PySide6.QtSql import QSqlTableModel
+from PySide6.QtSql import QSqlTableModel, QSqlQuery
 from PySide6.QtWidgets import QMainWindow, QDialog, QLabel, QWidget, QListView, QToolButton, QDateEdit
 
 from base.backup import clean_backup_folder, save_backup
+from base.chart import DebtChartWidget
 from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
+from base.debtcalculator import DebtTimelineBuilder, DebtRepository
 from base.formatting import dec_strcommaspace, str_rubstr
 from base.payment import PaymentField
 from base.xlswriter import LiabilityXlsWriter
+from gui.chartchoicedialog import ChartChoiceDialog
 from gui.common import map_to_source
 from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparator
 from gui.commonwidgets.eventfilter import RightClickFilter
@@ -21,13 +25,15 @@ from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
 from gui.eventdialog import EventDialog
 from gui.eventproxymodel import LiabilitySortFilterProxyModel, Filter, LiabilityTotalsProxyModel
-from gui.eventsqlmodel import LiabilitySqlTableModel, RowType, Col, FilterFlags
+from gui.eventsqlmodel import LiabilitySqlTableModel, Col
+from base.liability import FilterFlags, RowType, PaymentType
 from gui.feedialog import FeeDialog
 from gui.finplandialog import FinPlanDialog
 from gui.fulfillmentoptiondialog import FulfillmentOptionDialog
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
 from gui.recoverydialog import RecoveryDialog
+from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
@@ -64,9 +70,6 @@ class MainWindow(QMainWindow):
         self.saved_before_exit: bool = False
         self.nosave_exit: bool = False
 
-        # deprecated
-        # self.plot_available: bool = False
-
         # Загрузка данных из БД
         ## Проверка на наличие файла
         if not self.db_handler.check_db_files_exists():
@@ -85,20 +88,16 @@ class MainWindow(QMainWindow):
 
         self.db_handler.open_db_connection()
 
-        self.base_model: LiabilitySqlTableModel = LiabilitySqlTableModel(self)
+        self.base_model: LiabilitySqlTableModel = LiabilitySqlTableModel(self.db_handler, self)
         self.base_model.setTable("event")
         self.base_model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
         self.base_model.select()
 
         self.proxy1_model = LiabilitySortFilterProxyModel()
         self.proxy1_model.setSourceModel(self.base_model)
-        self.proxy1_model.dataChanged.connect(self.base_model.invalidate_sort_cache)
-        self.base_model.beforeSelect.connect(lambda: self.proxy1_model.setDynamicSortFilter(False))
-        self.base_model.afterSelect.connect(lambda: self.proxy1_model.setDynamicSortFilter(True))
 
         self.proxy2_model = LiabilityTotalsProxyModel()
         self.proxy2_model.setSourceModel(self.proxy1_model)
-        self.proxy1_model.modelInvalidated.connect(self.proxy2_model.invalidate_style_cache)
 
         self.ui.trw_event.setModel(self.proxy2_model)
         self.ui.trw_event.hide_columns()
@@ -112,21 +111,14 @@ class MainWindow(QMainWindow):
         self.payment_proxy_model = PaymentHistoryProxyModel()
         self.payment_proxy_model.setSourceModel(self.payment_model)
 
-        self.responsible_partial_model: QStandardItemModel | None = None
-        self.responsible_full_model: QStandardItemModel | None = None
+        self.responsible_partial_model: ResponsibleModel | None = None
+        self.responsible_full_model: ResponsibleModel | None = None
+        self.responsible_partial_sorted_model: ResponsibleCategorySortModel | None = None
 
         self.ui.tv_payment.setModel(self.payment_proxy_model)
 
-        # Список персонала
-        self.personal_list: dict = {}
-
         # Инициализация экспортера
         self.xls_writer: LiabilityXlsWriter = LiabilityXlsWriter(self.proxy2_model, self.ui.tv_payment, self.settings_handler)
-
-        # # График оплат (deprecated)
-        # self.payment_plot: PaymentHistoryGraph = PaymentHistoryGraph()
-        # self.ui.wdg_graph.setLayout(QVBoxLayout())
-        # self.ui.wdg_graph.layout().addWidget(self.payment_plot.canvas)
 
         # Пересчет итоговых строк
         self.proxy1_model.layoutChanged.connect(self.proxy2_model.recalculate_totals)
@@ -204,12 +196,19 @@ class MainWindow(QMainWindow):
         self.rmb_finplan_filter.rightmousebutton_clicked.connect(lambda: self.open_finplan_dialog(ask_year=True))
         self.ui.tlbr.widgetForAction(self.ui.act_finplan).installEventFilter(self.rmb_finplan_filter)
         self.ui.act_fulfillment.triggered.connect(self.open_fulfillment_dialog)
+        self.ui.act_chart.triggered.connect(self.open_chart_dialog)
         self.ui.act_fees.triggered.connect(self.open_fees_dialog)
         self.ui.act_export.triggered.connect(self.open_export_dialog)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog(True))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.HEADER, checked))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.ui.trw_event.span_columns() if checked else None)
         self.ui.act_togglefooters.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.FOOTER, checked))
+
+        # Сигналы обновления кэша стилей
+        # self.proxy1_model.modelInvalidated.connect(self.proxy2_model.refresh_style_cache)
+        self.base_model.cacheUpdateNeeded.connect(self.proxy1_model.invalidate_style_cache)
+        # Сигналы обновления кэша сортировки
+        self.base_model.cacheUpdateNeeded.connect(self.base_model.invalidate_sort_cache)
 
         # Строка состояния
         self.la_sbar_backup = QLabel("")
@@ -244,13 +243,6 @@ class MainWindow(QMainWindow):
         self.settings_handler.apply_settings()
         self.ui.stw_eventinfo.setCurrentIndex(1)
 
-        # ВРЕМЕННОЕ
-        self.date_edit = QDateEdit()
-        self.date_edit.setDate(QDate.currentDate())  # Устанавливаем текущую дату
-        self.date_edit.setCalendarPopup(True)  # Включаем выпадающий календарь
-
-        # 3. Вставляем виджет даты в тулбар
-        self.ui.tlbr.addWidget(self.date_edit)
 
     def make_backup(self):
         # Очистка папки с резервными копиями
@@ -268,20 +260,20 @@ class MainWindow(QMainWindow):
     def update_filters_and_select(self):
         self.base_model.set_filters(self.ui.lw_term.current_term(),
                                     self.ui.lw_category.current_category(),
-                                    self.ui.le_receiverfilter.text(),
+                                    self.ui.le_receiverfilter.text().replace("'", "''"),
                                     self.ui.cmb_responsiblefilter.currentData(),
                                     self.ui.chb_paytoday.isChecked(),
-                                    int(self.settings_handler.settings.value("Common/paidloadperiod")),
+                                    int(self.settings_handler.settings.value("Common/paidloadperiod", 3)),
                                     self.ui.act_featured.isChecked())
         self.proxy2_model.recalculate_totals()
 
     def update_labels(self):
         self.base_model.update_labels(self.ui.lw_term.current_term(),
                                     self.ui.lw_category.current_category(),
-                                    self.ui.le_receiverfilter.text(),
+                                    self.ui.le_receiverfilter.text().replace("'", "''"),
                                     self.ui.cmb_responsiblefilter.currentData(),
                                     self.ui.chb_paytoday.isChecked(),
-                                    int(self.settings_handler.settings.value("Common/paidloadperiod")),
+                                    int(self.settings_handler.settings.value("Common/paidloadperiod", 3)),
                                     self.ui.act_featured.isChecked())
 
     def get_current_event_index(self, source_model_index: bool = False) -> QModelIndex:
@@ -308,11 +300,18 @@ class MainWindow(QMainWindow):
             self.ui.stw_eventinfo.setCurrentIndex(1)
 
     def check_payment_selection_visibility(self) -> None:
+        if self.current_data(Col.PAYMENTTYPE) == PaymentType.REFUND:
+            self.ui.pb_deletepayment.setDisabled(True)
+        else:
+            QTimer.singleShot(0, self.check_payment_selection_visibility_delayed)
+
+    def check_payment_selection_visibility_delayed(self):
         filtered_out = not bool(self.ui.tv_payment.currentIndex().isValid())
         self.ui.pb_deletepayment.setDisabled(filtered_out)
 
     def on_currentevent_change(self) -> None:
         row_type: RowType = self.current_data(Col.TYPE)
+        payment_type: PaymentType = self.current_data(Col.PAYMENTTYPE)
         # Активировать/деактивировать кнопку удаления платежа и
         self.check_payment_selection_visibility()
         # Отобразить только оплаты, относящиеся к текущему платежу
@@ -321,6 +320,12 @@ class MainWindow(QMainWindow):
         if row_type != RowType.LIABILITY:
             for act in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete):
                 act.setEnabled(False)
+        if payment_type == PaymentType.REFUND:
+            self.ui.act_edit.setEnabled(False)
+            self.ui.pb_addpayment.setEnabled(False)
+            self.ui.pb_deletepayment.setEnabled(False)
+        else:
+            self.ui.pb_addpayment.setEnabled(True)
         self.update_eventinfo()
         self.ui.tb_savenote.setEnabled(False)
 
@@ -382,7 +387,7 @@ class MainWindow(QMainWindow):
                                current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilitySqlTableModel.qtValueRole)) /
                                current_index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.la_percentage.setText(f"{percentage:.1%}")
-            self.ui.la_createdate.setText(str(current_index.siblingAtColumn(Col.CREATEDATE).data()))
+            self.ui.la_createdate.setText(str(current_index.siblingAtColumn(Col.INCURRENCEDATE).data()))
             self.ui.la_paymenttype.setText(str(current_index.siblingAtColumn(Col.PAYMENTTYPE).data()).lower())
             self.ui.la_responsible.setText(str(current_index.siblingAtColumn(Col.RESPONSIBLE).data()))
             self.ui.te_descr.setPlainText(str(current_index.siblingAtColumn(Col.DESCR).data()))
@@ -390,11 +395,7 @@ class MainWindow(QMainWindow):
             # Сумма платежа по умолчанию равна остатку
             self.ui.dsb_paymentsum.setValue(current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilitySqlTableModel.qtValueRole))
             # Обновить дату платежа по умолчанию
-            # TEMP
-            self.ui.de_paymentdate.setDate(self.date_edit.date())
-            # self.ui.de_paymentdate.setDate(QDate.currentDate())
-            # Обновить график
-            # self.update_plot()
+            self.ui.de_paymentdate.setDate(QDate.currentDate())
         return True
 
     def set_data_to_current_event(self, column, value) -> bool:
@@ -463,6 +464,7 @@ class MainWindow(QMainWindow):
         settings_dialog.exec()
         self.on_currentevent_change()
         self.update_filters_and_select()
+        self.base_model.cacheUpdateNeeded.emit()
 
     def open_fees_dialog(self):
         fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.base_model, self.payment_model, self)
@@ -471,6 +473,7 @@ class MainWindow(QMainWindow):
 
     def open_event_dialog(self, edit: bool = False, copy: bool = False):
         curr_index: QModelIndex = self.get_current_event_index()
+
         if edit or copy:
             if not curr_index.isValid():
                 return False
@@ -478,32 +481,50 @@ class MainWindow(QMainWindow):
             if selection_not_visible:
                 return False
 
-        responsible_model: QStandardItemModel = self.responsible_full_model
+            is_current_paid = True if FilterFlags.PAID in curr_index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole) else False
+
+        responsible_model: ResponsibleCategorySortModel = self.responsible_partial_sorted_model
         if edit or copy:
             responsible_id = self.current_data(Col.RESPONSIBLE, LiabilitySqlTableModel.qtValueRole)
             matches = self.responsible_partial_model.match(self.responsible_partial_model.index(0, 0), Qt.ItemDataRole.UserRole,
                                                            responsible_id, hits=1, flags=Qt.MatchFlag.MatchExactly)
-            if matches:
-                responsible_model = self.responsible_partial_model
+            if not matches:
+                responsible_model = self.responsible_full_sorted_model
         if not responsible_model:
             return False
 
-        event_dialog: EventDialog = EventDialog(final_proxy_model=self.proxy2_model, responsible_model=responsible_model, edit_mode=edit,
-                                                copy_mode=copy, current_index=curr_index, parent=self)
+        event_dialog: EventDialog = EventDialog(final_proxy_model=self.proxy2_model, responsible_model=responsible_model, payment_model= self.payment_model,
+                                                db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, parent=self)
         if event_dialog.exec():
             if not edit:
                 set_due_filter = False
                 if copy:
-                    if FilterFlags.PAID in curr_index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole):
+                    if is_current_paid:
                         set_due_filter = True
                 self.base_model.submitAll()
                 self.ui.trw_event.selectionModel().clear()
                 if set_due_filter:
+                    # автоматически запустит self.update_filters_and_select()
                     self.ui.lw_term.setCurrentRow(0)
-                self.update_filters_and_select()
-                self.ui.trw_event.selectionModel().setCurrentIndex(self.proxy2_model.mapFromSource(self.proxy1_model.mapFromSource(
-                    self.base_model.index(self.base_model.rowCount() - 1, 0, QModelIndex()))),
-                    QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
+                else:
+                    self.update_filters_and_select()
+                # ищем и выделяем новую строку
+                query = QSqlQuery()
+                query.exec("SELECT last_insert_rowid()")
+                if query.next():
+                    last_id = query.value(0)
+                else:
+                    last_id = 0
+
+                base_index_to_select = None
+                for row in range(self.base_model.rowCount() - 1, -1, -1):
+                    if self.base_model.record(row).value("id") == last_id:
+                        base_index_to_select = self.base_model.index(row, 0)
+                if base_index_to_select:
+                    index_to_select: QModelIndex = self.proxy2_model.mapFromSource(self.proxy1_model.mapFromSource(base_index_to_select))
+                    if index_to_select.isValid():
+                        self.ui.trw_event.skip_restore_selection = True
+                        self.ui.trw_event.selectionModel().setCurrentIndex(index_to_select, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
             else:
                 self.proxy2_model.recalculate_totals()
             self.proxy1_model.invalidate()
@@ -548,45 +569,47 @@ class MainWindow(QMainWindow):
             return True
         return False
 
+    def open_chart_dialog(self):
+        self.chart_choice_dialog = ChartChoiceDialog()
+        self.chart_choice_dialog.exec()
+
+        # repo = DebtRepository()
+        # builder = DebtTimelineBuilder(repo)
+        # builder.load()
+        # timeline = builder.build(
+        #     begin=date(2026, 5, 1),
+        #     end=date(2026, 6, 30),
+        #     categories={1103, 1104, 1105}
+        # )
+        #
+        # self.chart = DebtChartWidget()
+        # self.chart.setTimeline(timeline)
+        # self.chart.resize(900, 500)
+        # self.chart.show()
+
     def update_responsible_models(self, update_widgets: bool) -> bool:
-        personal_dict = self.db_handler.load_personal_data(as_dict=True)
-        if personal_dict and self.base_model:
-            self.base_model.personal_dict = personal_dict[0]
+        personal_data = self.db_handler.load_personal_data(as_dict=True)
+        if personal_data and self.base_model:
+            self.base_model.personal_dict = personal_data[0]
+            self.personal_frequency_bycategory_dict = personal_data[1]
 
-            self.responsible_partial_model: QStandardItemModel = QStandardItemModel()
-            self.responsible_full_model: QStandardItemModel = QStandardItemModel()
+            self.responsible_partial_model = ResponsibleModel(only_active_personal=True)
+            self.responsible_partial_model.setup_model(self.base_model.personal_dict)
+            self.responsible_full_model = ResponsibleModel(only_active_personal=False)
+            self.responsible_full_model.setup_model(self.base_model.personal_dict)
 
-            default_item: QStandardItem = QStandardItem("")
-            default_item.setData(0, Qt.ItemDataRole.UserRole)
-            self.responsible_partial_model.appendRow(default_item)
-            self.responsible_full_model.appendRow(default_item)
-
-            for key, tuple_val in self.base_model.personal_dict.items():
-                item_full: QStandardItem = QStandardItem(tuple_val[0])
-                item_partial: QStandardItem = QStandardItem(tuple_val[0])
-
-                archived: bool = False
-                try:
-                    if int(tuple_val[2]) == 1:
-                        archived = True
-                except (ValueError, IndexError, TypeError):
-                    continue
-                try:
-                    item_full.setData(int(key), Qt.ItemDataRole.UserRole)
-                    item_partial.setData(int(key), Qt.ItemDataRole.UserRole)
-                except (ValueError, IndexError, TypeError):
-                    continue
-                self.responsible_full_model.appendRow(item_full)
-                if not archived:
-                    self.responsible_partial_model.appendRow(item_partial)
-
-            self.responsible_full_model.sort(1, Qt.SortOrder.AscendingOrder)
-            self.responsible_partial_model.sort(1, Qt.SortOrder.AscendingOrder)
+            self.responsible_partial_sorted_model: ResponsibleCategorySortModel = ResponsibleCategorySortModel(self.personal_frequency_bycategory_dict)
+            self.responsible_partial_sorted_model.setSourceModel(self.responsible_partial_model)
+            self.responsible_full_sorted_model: ResponsibleCategorySortModel = ResponsibleCategorySortModel(self.personal_frequency_bycategory_dict)
+            self.responsible_full_sorted_model.setSourceModel(self.responsible_full_model)
+            self.responsible_full_sorted_model.sort(0, Qt.SortOrder.AscendingOrder)
+            self.responsible_partial_sorted_model.sort(0, Qt.SortOrder.AscendingOrder)
 
         if update_widgets:
-            self.ui.cmb_responsiblefilter.setModel(self.responsible_partial_model)
+            self.responsible_full_model.sort(0)
+            self.ui.cmb_responsiblefilter.setModel(self.responsible_full_model)
 
-        return bool(personal_dict)
+        return bool(personal_data)
 
     def closeEvent(self, event, /):
         self.settings_handler.save_settings()

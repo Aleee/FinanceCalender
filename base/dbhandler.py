@@ -1,6 +1,8 @@
 import os
 import shutil
+from collections import defaultdict
 from decimal import Decimal
+from idlelib import query
 from pathlib import Path
 from datetime import date
 
@@ -9,11 +11,10 @@ from PySide6.QtSql import QSqlDatabase, QSqlQuery
 import lovely_logger as log
 
 from base.casting import str_int
-from base.date import str_date, date_str, date_displstr
-from base.liability import LiabilityCategory
+from base.date import str_date, date_str, date_displstr, days_to_weekend, days_to_month
+from base.liability import LiabilityCategory, FilterFlags, RowType
 from base.payment import Payment
 from gui.finplanmodel import FinPlanTableModel
-from gui.settings import SettingsHandler
 
 
 class DBHandler:
@@ -97,8 +98,13 @@ class DBHandler:
 
     def switch_db_files(self, new_file_path: str = "", close_current_connection: bool = False) -> bool:
         if close_current_connection:
-            QSqlDatabase.database().close()
+            db = QSqlDatabase.database()
+            connection_name = db.connectionName()
+            db.close()
+            del db
+            QSqlDatabase.removeDatabase(connection_name)
         try:
+            Path(os.path.abspath(self.DEFAULT_DB_RELPATH)).parent.mkdir(parents=True, exist_ok=True)
             Path(os.path.abspath(self.DEFAULT_DB_RELPATH)).unlink(missing_ok=True)
             shutil.copy(new_file_path, os.path.abspath(self.DEFAULT_DB_RELPATH))
             return True
@@ -247,7 +253,20 @@ class DBHandler:
             else:
                 values.append([query.value(0), query.value(1), query.value(2), query.value(3)])
             self.personal_data_max_id = int(query.value(0)) if int(query.value(0)) > self.personal_data_max_id else self.personal_data_max_id
-        return values, self.personal_data_max_id
+
+        query = QSqlQuery("SELECT category, responsible, COUNT(*) AS cnt FROM event WHERE responsible IN (SELECT id FROM personal) "
+                          "GROUP BY category, responsible ORDER BY category, responsible")
+        if not query.exec():
+            log.w(f"Ошибка SQL при попытке получить данные о частоте встречаемости персонала из таблицы event: {query.lastError().text()}")
+            return None
+        freq_dict = defaultdict(dict)
+        while query.next():
+            category = int(query.value(0))
+            id = int(query.value(1))
+            count = query.value(2)
+            freq_dict[category][id] = count
+
+        return values, freq_dict, self.personal_data_max_id
 
     def save_personal_data(self, data: list) -> bool:
         if not self.is_db_connected():
@@ -268,4 +287,71 @@ class DBHandler:
                 if not query.exec():
                     log.w(f"Ошибка SQL при попытке создания новых записей в таблице personal: {query.lastError().text()}")
                     return False
+        return True
+
+    def load_column_values(self, column: str, as_set: bool = True) -> set | list | None:
+        if not self.is_db_connected():
+            return None
+        results: list = []
+        query: QSqlQuery = QSqlQuery(f"SELECT {column} FROM event WHERE type = 2")
+        while query.next():
+            results.append(query.value(0))
+        return results if not as_set else set(results)
+
+    def insert_filterflags(self):
+        if not self.is_db_connected():
+            return False
+        current_date = QDate.currentDate()
+        current_date_str = current_date.toString("yyyy-MM-dd")
+
+        date_diff_sql = f"(julianday(duedate) - julianday('{current_date_str}'))"
+        days_week = days_to_weekend(current_date)
+        days_month = days_to_month(current_date)
+        remain_num = "CAST(remainamount AS NUMERIC)"
+        today_num = "CAST(todayshare AS NUMERIC)"
+
+        sql_query = f"""
+            UPDATE event 
+            SET filterflags = CASE 
+                -- Если тип строки не LIABILITY, сбрасываем флаг в NONE
+                WHEN type != {RowType.LIABILITY.value} THEN {int(FilterFlags.NONE)}
+
+                -- Если оплачено (remainamount <= 0 И todayshare == 0)
+                WHEN {remain_num} <= 0 AND {today_num} = 0 THEN {int(FilterFlags.PAID)}
+
+                -- Если НЕ оплачено, собираем битовую маску из NOTPAID + условий по датам
+                ELSE {int(FilterFlags.NOTPAID)} 
+                    + CASE WHEN {date_diff_sql} < 0 THEN {int(FilterFlags.DUE)} ELSE 0 END
+                    + CASE WHEN {date_diff_sql} = 0 THEN {int(FilterFlags.TODAY)} ELSE 0 END
+                    + CASE WHEN {date_diff_sql} > -1 AND {date_diff_sql} <= {days_week} THEN {int(FilterFlags.WEEK)} ELSE 0 END
+                    + CASE WHEN {date_diff_sql} > -1 AND {date_diff_sql} <= {days_month} THEN {int(FilterFlags.MONTH)} ELSE 0 END
+            END
+            WHERE id IN (SELECT id FROM event) -- обновляет все записи, на которые не наложен filter()
+            """
+        query: QSqlQuery = QSqlQuery(sql_query)
+        if not query.exec():
+            return False
+        return True
+
+    def insert_manualcalculated_data(self):
+        if not self.is_db_connected():
+            return False
+        current_date = QDate.currentDate()
+        query = QSqlQuery()
+        if not query.exec("UPDATE event SET remainamount = event.totalamount, todayshare = '0.0', lastpaymentdate = ''"):
+            return False
+        query = QSqlQuery()
+        query.prepare(f"UPDATE event "
+                      f"SET remainamount = remain_amount, todayshare = today_share, lastpaymentdate = lastpayment_date "
+                      f"FROM ("
+                      f"SELECT event.id AS event_id, "
+                      f"ROUND(CAST(event.totalamount AS REAL) - COALESCE(SUM(CAST(payment.sum AS REAL)), 0.0), 2) AS remain_amount, "
+                      f"ROUND(SUM(CASE WHEN payment.paymentdate = '{date_str(current_date)}' THEN CAST(payment.sum AS REAL) ELSE 0.0 END), 2) AS today_share, "
+                      f"MAX(payment.paymentdate) AS lastpayment_date "
+                      f"FROM payment "
+                      f"LEFT JOIN event ON event.id = payment.eventid "
+                      f"GROUP BY event.id) "
+                      f"WHERE id = event_id")
+        if not query.exec():
+            return False
         return True

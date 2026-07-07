@@ -1,4 +1,5 @@
 import os.path
+import re
 import sys
 from pathlib import Path
 from typing import Optional
@@ -97,6 +98,9 @@ class SettingsDialog(QDialog):
 
         # Меню персонала
         self.prepare_personalpage()
+        # Также добавить персонал в CSV-подменю
+        self.ui.cmb_csv_responsible.setModel(self.personal_proxy_model)
+        self.ui.cmb_csv_responsible.setModelColumn(PersonalCol.NAME)
 
         # Выбор первого пункта меню и косметика выбора
         palette: QPalette = self.ui.lw_menu.palette()
@@ -190,6 +194,14 @@ class SettingsDialog(QDialog):
             ErrorInfoMessageBox("Поле с перечнем известных УНП заполнено неверно (разрешены только девятизначные УНП через запятую)").exec()
             return
 
+        # Проверка поля паттернов комиссий
+        raw_text = self.ui.te_csv_patterns.toPlainText().strip()
+        clean_text = raw_text.replace('\n', ' ')
+        pattern = r"^([^,]+(,\s*[^,]+)*)?$"
+        if not re.match(pattern, clean_text):
+            ErrorInfoMessageBox("Недопустимое значение дополнительных паттернов CSV-парсера (ожидаются наборы любых символов, разделенные запятами)").exec()
+            return
+
         self.save_settings_values()
         self.settings_handler.apply_settings()
         self.db_handler.save_personal_data(self.personal_model.tdata)
@@ -233,7 +245,6 @@ class SettingsDialog(QDialog):
         self.ui.chb_frozenheader.setChecked(bool(int(self.settings_handler.settings.value("Export/frozenheader", 1))))
         ## Форматирование строк
         self.ui.chb_verticalgrid.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/verticalgrid"), RowFormatting().vertical_grid))
-        self.ui.chb_zebrastyle.setChecked(str_bool(self.settings_handler.settings.value("Tableformat/zebrastyle"), RowFormatting().zebra_style))
         self.ui.pb_backgrounddue.set_color(self.settings_handler.settings.value("Tableformat/backgrounddue", RowFormatting().due_backcolor))
         self.ui.pb_backgroundtoday.set_color(self.settings_handler.settings.value("Tableformat/backgroundtoday", RowFormatting().today_backcolor))
         self.ui.pb_foregrounddue.set_color(self.settings_handler.settings.value("Tableformat/foregrounddue", RowFormatting().due_forecolor))
@@ -268,12 +279,16 @@ class SettingsDialog(QDialog):
             self.ui.spb_csv_rowfirsttransaction.setValue(int(self.settings_handler.settings.value("CSVparser/rowtransactionstart", DEF_ROW_TRANSACTIONSTART)))
         except ValueError, TypeError:
             self.ui.spb_csv_rowfirsttransaction.setValue(DEF_ROW_TRANSACTIONSTART)
-        try:
-            self.ui.spb_csv_codetransaction.setValue(int(self.settings_handler.settings.value("CSVparser/transactioncode", DEF_TRANSACTION_CODE)))
-        except ValueError, TypeError:
-            self.ui.spb_csv_codetransaction.setValue(DEF_TRANSACTION_CODE)
         self.ui.le_csv_columns.setText(self.settings_handler.settings.value("CSVparser/columnstoparse", DEF_COLUMNSTOPARSE))
         self.ui.le_csv_unp.setText(self.settings_handler.settings.value("CSVparser/knownunp", ""))
+        self.ui.te_csv_patterns.setPlainText(self.settings_handler.settings.value("CSVparser/patterns", ""))
+        try:
+            for row in range(self.ui.cmb_csv_responsible.model().rowCount()):
+                if self.settings_handler.settings.value("CSVparser/responsible", "0") == self.ui.cmb_csv_responsible.model().index(row, 0).data():
+                    self.ui.cmb_csv_responsible.setCurrentIndex(row)
+                    break
+        except ValueError, TypeError:
+            pass
 
     def save_settings_values(self) -> None:
         # Отображение
@@ -299,7 +314,6 @@ class SettingsDialog(QDialog):
         self.settings_handler.settings.setValue("Export/frozenheader", int(self.ui.chb_frozenheader.isChecked()))
         ## Форматирование строк
         self.settings_handler.settings.setValue("Tableformat/verticalgrid", int(self.ui.chb_verticalgrid.isChecked()))
-        self.settings_handler.settings.setValue("Tableformat/zebrastyle", int(self.ui.chb_zebrastyle.isChecked()))
         self.settings_handler.settings.setValue("Tableformat/backgrounddue", self.ui.pb_backgrounddue.get_color())
         self.settings_handler.settings.setValue("Tableformat/backgroundtoday", self.ui.pb_backgroundtoday.get_color())
         self.settings_handler.settings.setValue("Tableformat/foregrounddue", self.ui.pb_foregrounddue.get_color())
@@ -322,9 +336,10 @@ class SettingsDialog(QDialog):
         # CSV-парсер
         self.settings_handler.settings.setValue("CSVparser/rowperiod", self.ui.spb_csv_rowperiod.value())
         self.settings_handler.settings.setValue("CSVparser/rowtransactionstart", self.ui.spb_csv_rowfirsttransaction.value())
-        self.settings_handler.settings.setValue("CSVparser/transactioncode", self.ui.spb_csv_codetransaction.value())
         self.settings_handler.settings.setValue("CSVparser/columnstoparse", self.ui.le_csv_columns.text())
         self.settings_handler.settings.setValue("CSVparser/knownunp", self.ui.le_csv_unp.text())
+        self.settings_handler.settings.setValue("CSVparser/patterns", self.ui.te_csv_patterns.toPlainText())
+        self.settings_handler.settings.setValue("CSVparser/responsible", self.ui.cmb_csv_responsible.model().index(self.ui.cmb_csv_responsible.currentIndex(), 0).data())
 
         self.settings_handler.settings.sync()
 

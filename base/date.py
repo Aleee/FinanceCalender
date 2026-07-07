@@ -51,3 +51,5 @@ def first_date_of_month(date) -> QDate:
 
 def last_date_of_month(date) -> QDate:
     return QDate(date.year(), date.month(), date.daysInMonth())
+
+

@@ -4,16 +4,16 @@ from enum import IntEnum, auto
 from typing import Any
 
 from PySide6 import QtGui
-from PySide6.QtCore import QSortFilterProxyModel, QDate, Qt, QModelIndex, SIGNAL, Signal
+from PySide6.QtCore import QSortFilterProxyModel, QDate, Qt, QModelIndex, SIGNAL, Signal, QTimer
 from PySide6.QtGui import QFont, QColor, QBrush
+from PySide6.QtWidgets import QApplication
 
 from base.formatting import dec_strcommaspace
-from base.liability import CATEGORY_NAMES, LiabilityCategory
+from base.liability import CATEGORY_NAMES, LiabilityCategory, FilterFlags, RowType, HeaderFooterSubtype
 from gui.common import model_atlevel
 from gui.commonwidgets.common import RowStyle
-from gui.eventsqlmodel import Col, LiabilitySqlTableModel, FilterFlags, RowFormatting, HeaderFooterSubtype
+from gui.eventsqlmodel import Col, LiabilitySqlTableModel, RowFormatting
 from gui.filterwidget import TermCategory
-from gui.eventsqlmodel import RowType
 
 
 class Filter(IntEnum):
@@ -27,6 +27,12 @@ class Filter(IntEnum):
 class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
 
     modelInvalidated = Signal()
+    styleRole = Qt.ItemDataRole.UserRole + 20
+
+    VERTICAL_GRID_COLOR: QColor = QColor("#EEEEEE")
+    FINALFOOTER_BACK_COLOR: QColor = QColor("#D2DABE")
+    DARKER_RATIO: int = 110
+    BORDER_WIDTH: int = 1
 
     def __init__(self, parent=None):
         super(LiabilitySortFilterProxyModel, self).__init__(parent)
@@ -46,6 +52,80 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
         self.modelReset.connect(self.cache_data)
         self.dataChanged.connect(self.cache_data)
 
+        self.style_cache = {}
+
+    def invalidate_style_cache(self):
+        self.style_cache.clear()
+
+    def style_data(self, row):
+        entry_id = self.index(row, Col.ID).data(LiabilitySqlTableModel.qtValueRole)
+        key = self.style_cache.get(entry_id)
+        if key is None:
+            key = self.compute_style_for_source(self.mapToSource(self.index(row, Col.ID)), row)
+            self.style_cache[entry_id] = key
+        return self.style_cache[entry_id]
+
+    def compute_style_for_source(self, source_index, proxy_row) -> RowStyle:
+        base_model = self.sourceModel()
+
+        row_formatting = base_model.row_formatting
+        role = LiabilitySqlTableModel.qtValueRole
+        db_role = LiabilitySqlTableModel.dbValueRole
+
+        row_type: RowType = base_model.index(source_index.row(), Col.TYPE).data(db_role)
+        style = RowStyle(vertical_grid_color=self.VERTICAL_GRID_COLOR)
+
+        if row_type == RowType.LIABILITY:
+            style.highlight_color = QColor("#CDE8FF")
+            filter_flags: FilterFlags = base_model.index(source_index.row(), Col.FILTERFLAGS).data(role)
+            due_fore = QColor(row_formatting.due_forecolor)
+            today_fore = QColor(row_formatting.today_forecolor)
+            due_back = QColor(row_formatting.due_backcolor)
+            today_back = QColor(row_formatting.today_backcolor)
+            due_condition = (
+                    FilterFlags.DUE in filter_flags
+                    and self.term_filter != TermCategory.DUE
+                    and not self.paytoday_filter)
+            today_condition = (
+                    FilterFlags.TODAY in filter_flags
+                    and self.term_filter != TermCategory.TODAY
+                    and not self.paytoday_filter)
+            if due_condition:
+                style.text_color = due_fore
+                style.highlighted_text_color = due_fore
+                style.background_brush = QBrush(due_back)
+                style.vertical_grid_color = due_back.darker(self.DARKER_RATIO)
+            elif today_condition:
+                style.text_color = today_fore
+                style.highlighted_text_color = today_fore
+                style.background_brush = QBrush(today_back)
+                style.vertical_grid_color = today_back.darker(self.DARKER_RATIO)
+            else:
+                style.highlighted_text_color = QColor("black")
+                style.background_brush = QBrush(QColor("#FFFFFF"))
+
+        elif row_type == RowType.HEADER:
+            subtype: HeaderFooterSubtype = base_model.index(source_index.row(), Col.SUBCATEGORY).data(db_role)
+            if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
+                style.text_color = QColor(row_formatting.header_section_forecolor)
+                style.background_brush = QBrush(QColor(row_formatting.header_section_backcolor))
+            elif subtype == HeaderFooterSubtype.ORDINARY:
+                style.text_color = QColor(row_formatting.header_subsection_forecolor)
+                style.background_brush = QBrush(QColor(row_formatting.header_subsection_backcolor))
+
+        elif row_type == RowType.FOOTER:
+            subtype: HeaderFooterSubtype = (base_model.index(source_index.row(), Col.SUBCATEGORY).data(db_role))
+            if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
+                style.text_color = QColor(row_formatting.footer_section_forecolor)
+                style.background_brush = QBrush(QColor(row_formatting.footer_section_backcolor))
+            elif subtype == HeaderFooterSubtype.ORDINARY:
+                style.text_color = QColor(row_formatting.footer_subsection_forecolor)
+                style.background_brush = QBrush(QColor(row_formatting.footer_subsection_backcolor))
+
+        elif row_type == RowType.FINALFOOTER:
+            style.background_brush = QBrush(self.FINALFOOTER_BACK_COLOR)
+
+        return style
 
     def cache_data(self):
         self.cache = {}
@@ -116,6 +196,9 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
                 font.setBold(True)
                 return font
 
+        elif role == self.styleRole:
+            return self.style_data(index.row())
+
         return QSortFilterProxyModel.data(self, index, role)
 
     def filterAcceptsRow(self, source_row, source_parent):
@@ -148,60 +231,24 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
         return True
 
     def lessThan(self, source_left, source_right, /):
-        if not self.sortfilter_enabled:
-            return True
-        try:
-            return self.sourceModel().sort_key(source_left.siblingAtColumn(Col.ID).data(LiabilitySqlTableModel.qtValueRole)) < self.sourceModel().sort_key(source_right.siblingAtColumn(Col.ID).data(LiabilitySqlTableModel.qtValueRole))
-        except KeyError:
-            return True
-
-        # sm: LiabilitySqlTableModel = self.sourceModel()
-        #
-        # left_type: RowType = sm.index(source_left.row(), Col.TYPE, source_left.parent()).data(LiabilitySqlTableModel.qtValueRole)
-        # right_type: RowType = sm.index(source_right.row(), Col.TYPE, source_right.parent()).data(LiabilitySqlTableModel.qtValueRole)
-        #
-        # # Последний футер сразу внизу
-        # if left_type == RowType.FINALFOOTER or right_type == RowType.FINALFOOTER:
-        #     return right_type == RowType.FINALFOOTER
-        #
-        # left_category: int = sm.index(source_left.row(), Col.CATEGORY, source_left.parent()).data(LiabilitySqlTableModel.qtValueRole)
-        # right_category: int = sm.index(source_right.row(), Col.CATEGORY, source_right.parent()).data(LiabilitySqlTableModel.qtValueRole)
-        #
-        # if left_category != right_category:
-        #     # Уточнение расположения footerа раздела (имеет категорию X000 и тип 3)
-        #     # Если строки находятся в одном разделе
-        #     if left_category and right_category:
-        #         if left_category // 1000 == right_category // 1000:
-        #             left_subtype: HeaderFooterSubtype = sm.index(source_left.row(), Col.SUBCATEGORY, source_left.parent()).data(LiabilitySqlTableModel.qtValueRole)
-        #             right_subtype: HeaderFooterSubtype = sm.index(source_right.row(), Col.SUBCATEGORY, source_right.parent()).data(LiabilitySqlTableModel.qtValueRole)
-        #             if left_type == RowType.FOOTER and left_subtype == HeaderFooterSubtype.TOPLEVELNOEVENTS:
-        #                 return False
-        #             if right_type == RowType.FOOTER and right_subtype == HeaderFooterSubtype.TOPLEVELNOEVENTS:
-        #                 return True
-        #         return left_category < right_category
-        #     else:
-        #         return False
-        # else:
-        #     if left_type != right_type:
-        #         return right_type > left_type
-        #     else:
-        #         left_duedate: QDate = sm.index(source_left.row(), Col.DUEDATE,  source_left.parent()).data(LiabilitySqlTableModel.qtValueRole)
-        #         right_duedate: QDate = sm.index(source_right.row(), Col.DUEDATE, source_right.parent()).data(LiabilitySqlTableModel.qtValueRole)
-        #         return left_duedate < right_duedate
+        model = self.sourceModel()
+        left_key = model.data(source_left, model.sortRole)
+        right_key = model.data(source_right, model.sortRole)
+        return left_key < right_key
 
 
 class LiabilityTotalsProxyModel(QSortFilterProxyModel):
 
     TOTAL_CATEGORY = 9999
 
-    VERTICAL_GRID_COLOR: QColor = QColor("#EEEEEE")
-    ALTERNATE_ROW_COLOR: QColor = QColor("#f7f7f7")
-    FINALFOOTER_BACK_COLOR: QColor = QColor("#D2DABE")
-    DARKER_RATIO: int = 110
-    BORDER_WIDTH: int = 1
+    # VERTICAL_GRID_COLOR: QColor = QColor("#EEEEEE")
+    # ALTERNATE_ROW_COLOR: QColor = QColor("#f7f7f7")
+    # FINALFOOTER_BACK_COLOR: QColor = QColor("#D2DABE")
+    # DARKER_RATIO: int = 110
+    # BORDER_WIDTH: int = 1
 
     decimalValueRole: int = Qt.ItemDataRole.UserRole + 4
-    RowStyleRole: int = Qt.ItemDataRole.UserRole + 5
+    RowStyleRole: int = Qt.ItemDataRole.UserRole + 20
 
     def __init__(self, parent=None):
         super(LiabilityTotalsProxyModel, self).__init__(parent)
@@ -212,120 +259,110 @@ class LiabilityTotalsProxyModel(QSortFilterProxyModel):
         self.stored_remain = dict()
         self.stored_today = dict()
 
-        self.style_cache: dict = {}
-        self.cache_version = 0
-        self.cache_built_for_version = -1
+    #     self.style_cache: dict = {}
+    #
+    # def refresh_style_cache(self):
+    #     QTimer.singleShot(0, self.refresh_style_cache_delayed)
+    #     return
 
-        self.modelReset.connect(self.invalidate_style_cache)
-        self.dataChanged.connect(self.invalidate_style_cache)
+    # def refresh_style_cache_delayed(self):
+    #     self.proxy_model = model_atlevel(-1, self)
+    #     proxy_rows = self.rowCount()
+    #     self.style_cache = {}
+    #     # ids = {}
+    #     for proxy_row in range(proxy_rows):
+    #         proxy_index = self.index(proxy_row, 0)
+    #         source_index = self.proxy_model.mapToSource(self.mapToSource(proxy_index))
+    #         id_value = source_index.siblingAtColumn(Col.ID).data(LiabilitySqlTableModel.qtValueRole)
+    #         self.style_cache[id_value] = self.compute_style_for_source(source_index, proxy_row)
+    #     #     ids[id_value] = self.compute_style_for_source(source_index, proxy_row)
+    #     # print(ids)
 
-    def invalidate_style_cache(self):
-        self.cache_version += 1
+    # def row_style(self, id_value):
+    #     try:
+    #         return self.style_cache[id_value]
+    #     except KeyError:
+    #         return None
 
-    def ensure_style_cache(self):
-        if self.cache_built_for_version == self.cache_version:
-            return
-        self.refresh_style_cache()
-        self.cache_built_for_version = self.cache_version
-
-    def refresh_style_cache(self):
-        self.proxy_model = model_atlevel(-1, self)
-        proxy_rows = self.rowCount()
-        self.style_cache = {}
-
-        for proxy_row in range(proxy_rows):
-            proxy_index = self.index(proxy_row, 0)
-            source_index = self.proxy_model.mapToSource(self.mapToSource(proxy_index))
-            id_value = source_index.siblingAtColumn(Col.ID).data(LiabilitySqlTableModel.qtValueRole)
-            self.style_cache[id_value] = self.compute_style_for_source(source_index, proxy_row)
-
-    def row_style(self, id_value):
-        self.ensure_style_cache()
-        try:
-            return self.style_cache[id_value]
-        except KeyError:
-            return None
-
-    def compute_style_for_source(self, source_index, proxy_row) -> RowStyle:
-        proxy_model = model_atlevel(-1, self)
-        base_model = model_atlevel(-2, self)
-
-        row_formatting = base_model.row_formatting
-        role = LiabilitySqlTableModel.qtValueRole
-        db_role = LiabilitySqlTableModel.dbValueRole
-
-        row_type: RowType = base_model.index(source_index.row(), Col.TYPE).data(db_role)
-
-        style = RowStyle(vertical_grid_color=self.VERTICAL_GRID_COLOR)
-
-        if row_type == RowType.LIABILITY:
-
-            style.highlight_color = QColor("#CDE8FF")
-
-            filter_flags: FilterFlags = base_model.index(source_index.row(), Col.FILTERFLAGS).data(role)
-
-            due_fore = QColor(row_formatting.due_forecolor)
-            today_fore = QColor(row_formatting.today_forecolor)
-            due_back = QColor(row_formatting.due_backcolor)
-            today_back = QColor(row_formatting.today_backcolor)
-
-            due_condition = (
-                    FilterFlags.DUE in filter_flags
-                    and proxy_model.term_filter != TermCategory.DUE
-                    and not proxy_model.paytoday_filter)
-
-            today_condition = (
-                    FilterFlags.TODAY in filter_flags
-                    and proxy_model.term_filter != TermCategory.TODAY
-                    and not proxy_model.paytoday_filter)
-
-            if due_condition:
-                style.text_color = due_fore
-                style.highlighted_text_color = due_fore
-                style.background_brush = QBrush(due_back)
-                style.vertical_grid_color = due_back.darker(self.DARKER_RATIO)
-
-            elif today_condition:
-                style.text_color = today_fore
-                style.highlighted_text_color = today_fore
-                style.background_brush = QBrush(today_back)
-                style.vertical_grid_color = today_back.darker(self.DARKER_RATIO)
-
-            else:
-                style.highlighted_text_color = QColor("black")
-                if row_formatting.zebra_style and proxy_row % 2 == 0:
-                    style.background_brush = QBrush(self.ALTERNATE_ROW_COLOR)
-                else:
-                    style.background_brush = QBrush(QColor("#FFFFFF"))
-
-        elif row_type == RowType.HEADER:
-
-            subtype: HeaderFooterSubtype = base_model.index(source_index.row(), Col.SUBCATEGORY).data(db_role)
-
-            if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
-                style.text_color = QColor(row_formatting.header_section_forecolor)
-                style.background_brush = QBrush(QColor(row_formatting.header_section_backcolor))
-
-            elif subtype == HeaderFooterSubtype.ORDINARY:
-                style.text_color = QColor(row_formatting.header_subsection_forecolor)
-                style.background_brush = QBrush(QColor(row_formatting.header_subsection_backcolor))
-
-        elif row_type == RowType.FOOTER:
-
-            subtype: HeaderFooterSubtype = (base_model.index(source_index.row(), Col.SUBCATEGORY).data(db_role))
-            if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
-                style.text_color = QColor(row_formatting.footer_section_forecolor)
-                style.background_brush = QBrush(QColor(row_formatting.footer_section_backcolor))
-
-            elif subtype == HeaderFooterSubtype.ORDINARY:
-                style.text_color = QColor(row_formatting.footer_subsection_forecolor)
-                style.background_brush = QBrush(QColor(row_formatting.footer_subsection_backcolor))
-
-        elif row_type == RowType.FINALFOOTER:
-            style.background_brush = QBrush(self.FINALFOOTER_BACK_COLOR)
-
-        return style
-
+    # def compute_style_for_source(self, source_index, proxy_row) -> RowStyle:
+    #     proxy_model = model_atlevel(-1, self)
+    #     base_model = model_atlevel(-2, self)
+    #
+    #     row_formatting = base_model.row_formatting
+    #     role = LiabilitySqlTableModel.qtValueRole
+    #     db_role = LiabilitySqlTableModel.dbValueRole
+    #
+    #     row_type: RowType = base_model.index(source_index.row(), Col.TYPE).data(db_role)
+    #
+    #     style = RowStyle(vertical_grid_color=self.VERTICAL_GRID_COLOR)
+    #
+    #     if row_type == RowType.LIABILITY:
+    #
+    #         style.highlight_color = QColor("#CDE8FF")
+    #
+    #         filter_flags: FilterFlags = base_model.index(source_index.row(), Col.FILTERFLAGS).data(role)
+    #
+    #         due_fore = QColor(row_formatting.due_forecolor)
+    #         today_fore = QColor(row_formatting.today_forecolor)
+    #         due_back = QColor(row_formatting.due_backcolor)
+    #         today_back = QColor(row_formatting.today_backcolor)
+    #
+    #         due_condition = (
+    #                 FilterFlags.DUE in filter_flags
+    #                 and proxy_model.term_filter != TermCategory.DUE
+    #                 and not proxy_model.paytoday_filter)
+    #
+    #         today_condition = (
+    #                 FilterFlags.TODAY in filter_flags
+    #                 and proxy_model.term_filter != TermCategory.TODAY
+    #                 and not proxy_model.paytoday_filter)
+    #
+    #         if due_condition:
+    #             style.text_color = due_fore
+    #             style.highlighted_text_color = due_fore
+    #             style.background_brush = QBrush(due_back)
+    #             style.vertical_grid_color = due_back.darker(self.DARKER_RATIO)
+    #
+    #         elif today_condition:
+    #             style.text_color = today_fore
+    #             style.highlighted_text_color = today_fore
+    #             style.background_brush = QBrush(today_back)
+    #             style.vertical_grid_color = today_back.darker(self.DARKER_RATIO)
+    #
+    #         else:
+    #             style.highlighted_text_color = QColor("black")
+    #             if row_formatting.zebra_style and proxy_row % 2 == 0:
+    #                 style.background_brush = QBrush(self.ALTERNATE_ROW_COLOR)
+    #             else:
+    #                 style.background_brush = QBrush(QColor("#FFFFFF"))
+    #
+    #     elif row_type == RowType.HEADER:
+    #
+    #         subtype: HeaderFooterSubtype = base_model.index(source_index.row(), Col.SUBCATEGORY).data(db_role)
+    #
+    #         if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
+    #             style.text_color = QColor(row_formatting.header_section_forecolor)
+    #             style.background_brush = QBrush(QColor(row_formatting.header_section_backcolor))
+    #
+    #         elif subtype == HeaderFooterSubtype.ORDINARY:
+    #             style.text_color = QColor(row_formatting.header_subsection_forecolor)
+    #             style.background_brush = QBrush(QColor(row_formatting.header_subsection_backcolor))
+    #
+    #     elif row_type == RowType.FOOTER:
+    #
+    #         subtype: HeaderFooterSubtype = (base_model.index(source_index.row(), Col.SUBCATEGORY).data(db_role))
+    #         if subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):
+    #             style.text_color = QColor(row_formatting.footer_section_forecolor)
+    #             style.background_brush = QBrush(QColor(row_formatting.footer_section_backcolor))
+    #
+    #         elif subtype == HeaderFooterSubtype.ORDINARY:
+    #             style.text_color = QColor(row_formatting.footer_subsection_forecolor)
+    #             style.background_brush = QBrush(QColor(row_formatting.footer_subsection_backcolor))
+    #
+    #     elif row_type == RowType.FINALFOOTER:
+    #         style.background_brush = QBrush(self.FINALFOOTER_BACK_COLOR)
+    #
+    #     return style
 
     def recalculate_totals(self) -> None:
         for stored_dict in self.stored_total, self.stored_remain, self.stored_today:
@@ -411,8 +448,6 @@ class LiabilityTotalsProxyModel(QSortFilterProxyModel):
                     return self.stored_remain[self.TOTAL_CATEGORY]
                 if index.column() == Col.TODAYSHARE:
                     return self.stored_today[self.TOTAL_CATEGORY]
-        elif role == self.RowStyleRole:
-            return self.row_style(index.siblingAtColumn(Col.ID).data(LiabilitySqlTableModel.qtValueRole))
 
         return QSortFilterProxyModel.data(self, index, role)
 

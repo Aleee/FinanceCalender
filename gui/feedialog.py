@@ -10,17 +10,17 @@ from PySide6.QtWidgets import QDialog, QFileDialog
 from base.date import date_str
 from base.dbhandler import DBHandler
 from base.feesparser import read_transaction_csv
-from base.liability import LiabilityCategory
+from base.formatting import dec_strcommaspace, str_rubstr
+from base.liability import LiabilityCategory, FilterFlags, RowType
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
-from gui.eventsqlmodel import RowType, FilterFlags, LiabilitySqlTableModel, Col
+from gui.eventsqlmodel import LiabilitySqlTableModel, Col
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
 from gui.settings import SettingsHandler
 from gui.ui.feedialog_ui import Ui_feedialog
 
 
-FEE_RECEIVER: str = "\"Приорбанк\" ОАО"
-DEFAULT_RESPONSIBLE: str = "Маркушев А."
+FEE_RECEIVER: str = "Банки"
 
 
 class FeeDialog(QDialog):
@@ -38,6 +38,7 @@ class FeeDialog(QDialog):
         self.enddate: Optional[date] = None
         self.results: Optional[dict] = None
         self.unknown_unp: Optional[list] = None
+        self.notes_info: Optional[dict] = None
 
         self.ui.pb_opencsv.clicked.connect(self.open_csv)
         self.ui.pb_createfeeliabilities.clicked.connect(self.make_fee_payments)
@@ -61,6 +62,7 @@ class FeeDialog(QDialog):
             self.startdate = result[1][0]
             self.enddate = result[1][1]
             self.unknown_unp = result[2]
+            self.notes_info = result[3]
             self.show_report()
 
     def show_report(self) -> None:
@@ -117,8 +119,12 @@ class FeeDialog(QDialog):
             data.append(date_str(QDate.currentDate()))
             data.append(1)
             data.append(f"Автоматический учет комиссий за {fee_date.strftime("%d.%m.%Y")} (транзакций: {fee_values[0]})")
-            data.append(DEFAULT_RESPONSIBLE)
-            data.append("")
+            data.append(self.sh.settings.value("CSVparser/responsible", "0"))
+            note = ""
+            if self.notes_info is not None:
+                for entry in self.notes_info[fee_date]:
+                    note += f"{entry[0]}: {str_rubstr(dec_strcommaspace(entry[1]))}\n"
+            data.append(note)
             data.append(str(Decimal("0.0")))
             data.append(date_str(qt_fee_date))
             filter_flags: FilterFlags = self.base_model.calculate_filterflags(Decimal("0.0"), qt_fee_date, False, QDate.currentDate())
@@ -126,7 +132,6 @@ class FeeDialog(QDialog):
             data.append(0)
             data.append(0)
             data.append(str.lower(FEE_RECEIVER))
-            data.append(str.lower(DEFAULT_RESPONSIBLE))
             new_event_row = self.base_model.insert_row(data)
             if not new_event_row:
                 ErrorInfoMessageBox("При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)")

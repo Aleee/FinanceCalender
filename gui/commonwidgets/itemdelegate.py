@@ -7,7 +7,8 @@ from PySide6.QtCore import QModelIndex
 
 from gui.commonwidgets.common import RowStyle
 from gui.eventproxymodel import LiabilityTotalsProxyModel
-from gui.eventsqlmodel import FilterFlags, Col, RowType, RowFormatting, LiabilitySqlTableModel, HeaderFooterSubtype
+from gui.eventsqlmodel import Col, RowFormatting, LiabilitySqlTableModel
+from base.liability import FilterFlags, RowType, HeaderFooterSubtype
 
 from gui.common import model_atlevel
 from gui.filterwidget import TermCategory

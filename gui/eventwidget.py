@@ -6,7 +6,8 @@ from gui.common import model_atlevel
 from gui.commonwidgets.eventfilter import TooltipFilter
 from gui.eventproxymodel import LiabilitySortFilterProxyModel
 from gui.commonwidgets.itemdelegate import EventItemDelegate
-from gui.eventsqlmodel import Col, RowType
+from gui.eventsqlmodel import Col
+from base.liability import RowType
 from gui.eventsqlmodel import LiabilitySqlTableModel
 from gui.booldelegate import BoolDelegate
 
@@ -26,7 +27,7 @@ class EventWidget(QTreeView):
         Col.TOTALAMOUNT: 122,
         Col.NDS: 0,
         Col.DUEDATE: 125,
-        Col.CREATEDATE: 125,
+        Col.INCURRENCEDATE: 125,
         Col.PAYMENTTYPE: 100,
         Col.DESCR: 300,
         Col.RESPONSIBLE: 175,
@@ -44,6 +45,7 @@ class EventWidget(QTreeView):
         super().__init__(parent)
 
         self.selected_row_id: QModelIndex | None = None
+        self.skip_restore_selection: bool = False
 
         self.setUniformRowHeights(True)
         self.setRootIsDecorated(False)
@@ -112,6 +114,9 @@ class EventWidget(QTreeView):
             self.selected_row_id = self.model().data(self.model().index(selected[0].row(), Col.ID), LiabilitySqlTableModel.dbValueRole)
 
     def restore_selection(self):
+        if self.skip_restore_selection:
+            self.skip_restore_selection = False
+            return
         if self.selected_row_id is None:
             return
         source_model = model_atlevel(-2, self.model())
@@ -123,6 +128,8 @@ class EventWidget(QTreeView):
                 break
 
     def _apply_selection(self, idx, source_model):
+        if not idx.isValid():
+            return
         proxy_index = self.model().mapFromSource(model_atlevel(-1, self.model()).mapFromSource(idx))
         sm = self.selectionModel()
         self.setCurrentIndex(proxy_index)

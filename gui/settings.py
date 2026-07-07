@@ -65,7 +65,7 @@ class SettingsHandler:
             ("Columns/paymenttype", Col.PAYMENTTYPE),
             ("Columns/descr", Col.DESCR),
             ("Columns/responsible", Col.RESPONSIBLE),
-            ("Columns/createdate", Col.CREATEDATE),
+            ("Columns/createdate", Col.INCURRENCEDATE),
         ):
             try:
                 if not bool(int(self.settings.value(column_state_settings[0]))):
@@ -117,7 +117,6 @@ class SettingsHandler:
                 self.settings.value("Tableformat/backgroundsubsectionfooter"),
 
                 str_bool(self.settings.value("Tableformat/verticalgrid")),
-                str_bool(self.settings.value("Tableformat/zebrastyle")),
                 )):
             self.mw.base_model.set_row_formatting(RowFormatting())
 

@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, IntFlag, auto
 
 
 class LiabilityCategory(IntEnum):
@@ -73,3 +73,32 @@ class LiabilityFinanceSubcategory(IntEnum):
     LEASING = 2
     INTEREST = 3
     FOUNDERLOAN = 4
+
+
+class FilterFlags(IntFlag):
+    PAID = auto()
+    NOTPAID = auto()
+    DUE = auto()
+    TODAY = auto()
+    WEEK = auto()
+    MONTH = auto()
+    NONE = 0
+
+
+class RowType(IntEnum):
+    HEADER = auto()
+    LIABILITY = auto()
+    FOOTER = auto()
+    FINALFOOTER = auto()
+
+
+class HeaderFooterSubtype(IntEnum):
+    ORDINARY = auto()
+    TOPLEVELWITHEVENTS = auto()
+    TOPLEVELNOEVENTS = auto()
+
+
+class PaymentType(IntEnum):
+    NORMAL = auto()
+    ADVANCE = auto()
+    REFUND = auto()

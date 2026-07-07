@@ -23,7 +23,8 @@ from base.date import date_purestr, date_displstr
 from gui.common import model_atlevel
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.eventproxymodel import LiabilityTotalsProxyModel
-from gui.eventsqlmodel import LiabilitySqlTableModel, RowType, Col, FilterFlags, RowFormatting, HeaderFooterSubtype
+from gui.eventsqlmodel import LiabilitySqlTableModel, Col, RowFormatting
+from base.liability import FilterFlags, RowType, HeaderFooterSubtype
 from gui.settings import SettingsHandler
 from gui.commonwidgets.itemdelegate import EventItemDelegate
 from xlsxwriter import Workbook
@@ -76,7 +77,7 @@ class LiabilityXlsWriter:
         Col.TOTALAMOUNT: 17,
         Col.NDS: 0,
         Col.DUEDATE: 18,
-        Col.CREATEDATE: 0,
+        Col.INCURRENCEDATE: 0,
         Col.PAYMENTTYPE: 15,
         Col.DESCR: 51,
         Col.RESPONSIBLE: 21,

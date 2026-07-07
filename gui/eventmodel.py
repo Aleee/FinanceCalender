@@ -95,7 +95,7 @@ class EventTableModel(QAbstractTableModel):
         EventField.PERCENTAGE: "Погашено",
         EventField.DUEDATE: "Дата платежа",
         EventField.PAYMENTTYPE: "Вид платежа",
-        EventField.CREATEDATE: "Дата создания",
+        EventField.INCURRENCEDATE: "Дата создания",
         EventField.DESCR: "Основание платежа",
         EventField.RESPONSIBLE: "Ответственное лицо",
         EventField.TODAYSHARE: "Оплата сегодня",
@@ -117,7 +117,7 @@ class EventTableModel(QAbstractTableModel):
         EventField.PERCENTAGE: Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter,
         EventField.DUEDATE: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         EventField.PAYMENTTYPE: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-        EventField.CREATEDATE: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+        EventField.INCURRENCEDATE: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         EventField.DESCR: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         EventField.RESPONSIBLE: Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         EventField.TODAYSHARE: Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
@@ -257,7 +257,7 @@ class EventTableModel(QAbstractTableModel):
             return date_displstr(event.duedate)
         elif column == EventField.PAYMENTTYPE:
             return ""
-        elif column == EventField.CREATEDATE:
+        elif column == EventField.INCURRENCEDATE:
             return date_displstr(event.createdate)
         elif column == EventField.DESCR:
             return event.descr

@@ -102,3 +102,4 @@ class PaymentHistoryTableModel(QSqlTableModel):
         for row in range(self.rowCount()):
             if self.index(row, PaymentCol.EVENT).data(self.qtValueRole) == eventid:
                 self.removeRow(row)
+        self.submitAll()

@@ -29,7 +29,7 @@ class PersonalTableModel(QAbstractTableModel):
         if data_from_db is None:
             return
         self.tdata = data_from_db[0]
-        self.last_id = data_from_db[1]
+        self.last_id = data_from_db[2]
 
     def rowCount(self, parent=QModelIndex()):
         if parent.isValid():
