@@ -261,7 +261,6 @@ class LiabilityXlsWriter:
             file_path = QFileDialog.getSaveFileName(self.view, "Сохранить как PDF-файл", default_pdf_filename, "Документ PDF (*.pdf)")[0]
         else:
             file_path = ""
-        print(file_path)
         if not file_path:
             return False
         if export_format == ExportFormat.XLSX and not file_path.lower().endswith(".xlsx"):
@@ -272,20 +271,19 @@ class LiabilityXlsWriter:
         if Path(file_path).exists():
             if not YesNoMessagebox("Файл с таким именем уже существует. Уверены, что хотите его перезаписать?"):
                 return False
-        # try:
-        print(temp_xls_file_path, file_path)
-        if export_format == ExportFormat.XLSX:
-            shutil.copy2(temp_xls_file_path, file_path)
-            Path(temp_xls_file_path).unlink()
-        elif export_format == ExportFormat.PDF:
-            xlsx_to_pdf_win32(temp_xls_file_path, temp_pdf_file_path)
-            shutil.copy2(temp_pdf_file_path, file_path)
-            Path(temp_xls_file_path).unlink()
-            Path(temp_pdf_file_path).unlink()
-        # except Exception as e:
-        #     ErrorInfoMessageBox("Во время записи, переноса или удаления файлов произошла ошибка (см. подробности в логе)").exec()
-        #     log.c(f"Ошибка в процессе экспорта: {e}")
-        #     return False
+        try:
+            if export_format == ExportFormat.XLSX:
+                shutil.copy2(temp_xls_file_path, file_path)
+                Path(temp_xls_file_path).unlink()
+            elif export_format == ExportFormat.PDF:
+                xlsx_to_pdf_win32(temp_xls_file_path, temp_pdf_file_path)
+                shutil.copy2(temp_pdf_file_path, file_path)
+                Path(temp_xls_file_path).unlink()
+                Path(temp_pdf_file_path).unlink()
+        except Exception as e:
+            ErrorInfoMessageBox("Во время записи, переноса или удаления файлов произошла ошибка (см. подробности в логе)").exec()
+            log.c(f"Ошибка в процессе экспорта: {e}")
+            return False
         self.settings_handler.settings.setValue("Export/lastpath", str(Path(file_path).parent))
         self.last_path = file_path
         return True
