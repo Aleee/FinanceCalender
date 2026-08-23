@@ -111,15 +111,23 @@ class LiabilityXlsWriter:
 
         row_formatting: RowFormatting = model_atlevel(-2, self.model).row_formatting
 
-        last_path = self.settings_handler.settings.value("Export/lastpath")
-        if not last_path or not Path(last_path).is_dir():
-            default_xls_filename: str = rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.xlsx"
-            default_pdf_filename: str = rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.pdf"
+        last_path_str = self.settings_handler.settings.value("Export/lastpath")
+        current_date_str = date_purestr(QDate().currentDate())
+
+        if last_path_str and Path(last_path_str).is_dir():
+            base_dir = Path(last_path_str)
+            default_xls_filename = str(base_dir / f"ПлатежныйКалендарь_{current_date_str}.xlsx")
+            default_pdf_filename = str(base_dir / f"ПлатежныйКалендарь_{current_date_str}.pdf")
         else:
-            default_xls_filename: str = posixpath.join(last_path, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.xlsx")
-            default_pdf_filename: str = posixpath.join(last_path, rf"ПлатежныйКалендарь_{date_purestr(QDate().currentDate())}.pdf")
-        temp_xls_file_path: str = posixpath.join(os.getcwd(), "temp", ''.join(random.choices(string.ascii_uppercase + string.digits, k=14)) + ".xlsx")
-        temp_pdf_file_path: str = posixpath.join(os.getcwd(), "temp", ''.join(random.choices(string.ascii_uppercase + string.digits, k=14)) + ".pdf")
+            default_xls_filename = f"ПлатежныйКалендарь_{current_date_str}.xlsx"
+            default_pdf_filename = f"ПлатежныйКалендарь_{current_date_str}.pdf"
+
+        temp_dir = Path.cwd() / "temp"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+
+        random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=14))
+        temp_xls_file_path = str(temp_dir / f"{random_suffix}.xlsx")
+        temp_pdf_file_path = str(temp_dir / f"{random_suffix}.pdf")
 
         workbook: Workbook = Workbook(temp_xls_file_path)
 
@@ -253,6 +261,7 @@ class LiabilityXlsWriter:
             file_path = QFileDialog.getSaveFileName(self.view, "Сохранить как PDF-файл", default_pdf_filename, "Документ PDF (*.pdf)")[0]
         else:
             file_path = ""
+        print(file_path)
         if not file_path:
             return False
         if export_format == ExportFormat.XLSX and not file_path.lower().endswith(".xlsx"):
@@ -263,18 +272,20 @@ class LiabilityXlsWriter:
         if Path(file_path).exists():
             if not YesNoMessagebox("Файл с таким именем уже существует. Уверены, что хотите его перезаписать?"):
                 return False
-        try:
-            if export_format == ExportFormat.XLSX:
-                shutil.copy2(temp_xls_file_path, file_path)
-                Path(temp_xls_file_path).unlink()
-            elif export_format == ExportFormat.PDF:
-                xlsx_to_pdf_win32(temp_xls_file_path, temp_pdf_file_path)
-                shutil.copy2(temp_pdf_file_path, file_path)
-                Path(temp_xls_file_path).unlink()
-                Path(temp_pdf_file_path).unlink()
-        except Exception as e:
-            ErrorInfoMessageBox("Во время записи, переноса или удаления файлов произошла ошибка (см. подробности в логе)").exec()
-            log.c(f"Ошибка в процессе экспорта: {e}")
+        # try:
+        print(temp_xls_file_path, file_path)
+        if export_format == ExportFormat.XLSX:
+            shutil.copy2(temp_xls_file_path, file_path)
+            Path(temp_xls_file_path).unlink()
+        elif export_format == ExportFormat.PDF:
+            xlsx_to_pdf_win32(temp_xls_file_path, temp_pdf_file_path)
+            shutil.copy2(temp_pdf_file_path, file_path)
+            Path(temp_xls_file_path).unlink()
+            Path(temp_pdf_file_path).unlink()
+        # except Exception as e:
+        #     ErrorInfoMessageBox("Во время записи, переноса или удаления файлов произошла ошибка (см. подробности в логе)").exec()
+        #     log.c(f"Ошибка в процессе экспорта: {e}")
+        #     return False
         self.settings_handler.settings.setValue("Export/lastpath", str(Path(file_path).parent))
         self.last_path = file_path
         return True
