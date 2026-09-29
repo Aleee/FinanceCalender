@@ -20,6 +20,7 @@ class EventWidget(QTreeView):
         Col.RECEIVER: 140,
         Col.ID: 0,
         Col.TYPE: 0,
+        Col.CONTRACTID: 0,
         Col.CATEGORY: 0,
         Col.SUBCATEGORY: 0,
         Col.NAME: 400,

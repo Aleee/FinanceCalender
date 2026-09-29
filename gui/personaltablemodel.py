@@ -11,11 +11,12 @@ class PersonalCol(IntEnum):
     NAME = 1
     DEPT = 2
     ARCHIVED = 3
+    POSITION = 4
 
 
 class PersonalTableModel(QAbstractTableModel):
 
-    COLUMN_COUNT: int = 4
+    COLUMN_COUNT: int = 5
     internalValueRole = Qt.ItemDataRole.UserRole + 1
 
     def __init__(self, dbh: DBHandler, parent=None):

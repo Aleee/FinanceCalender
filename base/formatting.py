@@ -1,8 +1,9 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+from typing import Optional
 
 
-def dec_strcommaspace(dec: Decimal) -> str:
-    return f"{dec:,.2f}".replace(",", " ").replace(".", ",")
+def dec_strcommaspace(dec: Decimal, add_rub: bool = False) -> str:
+    return f"{dec:,.2f}".replace(",", " ").replace(".", ",") + (" руб." if add_rub else "")
 
 
 def str_strcommaspace(string: str) -> str:
@@ -23,3 +24,10 @@ def float_strpercentage(fl: float) -> str:
 
 def str_rubstr(string: str) -> str:
     return string + " руб."
+
+
+def str_decimal(raw: str) -> Optional[Decimal]:
+    try:
+        return Decimal(raw.replace(" ", "").replace(",", "."))
+    except (InvalidOperation, AttributeError):
+        return None

@@ -1,54 +1,73 @@
-from typing import Any
+from typing import NamedTuple, Optional
 
 from PySide6.QtCore import QAbstractTableModel, Qt, QModelIndex
 from PySide6.QtGui import QFont, QColor
-from PySide6.QtWidgets import QLineEdit
 
-from base.formatting import int_strspace
+
+class CategoryDef(NamedTuple):
+    children: tuple
+    row_label: str
+    title: str
+    bold: bool
+    counts_execution: bool
 
 
 class FinPlanTableModel(QAbstractTableModel):
 
+    MONTHS_COUNT = 12
+
     FINPLAN_STRUCTURE = {
-        # 0: список подкатегорий, 1: вертикальный хедер, 2: название, 3: жирный, 4: считается ли исполнение
-        10000: ([], "1.", "Остаток средств на начало периода", True, False),
-        20000: ([21000, 22000, 23000], "2.", "Поступление денежных средств", True, True),
-        21000: ([], "2.1.", "выручка от реализации услуг", False, True),
-        22000: ([], "2.2.", "прочие доходы", False, True),
-        23000: ([23100, 23200], "2.3.", "кредиты и займы", False, True),
-        23100: ([], "2.3.1.", "овердрафт", False, True),
-        23200: ([], "2.3.2.", "кредит", False, True),
-        30000: ([31000, 32000, 33000], "3.", "Расходование денежных средств", True, True),
-        31000: ([31100, 31200], "3.1.", "текущая деятельность", True, True),
-        31100: ([31101, 31102, 31103], "3.1.1.", "переменные затраты", True, True),
-        31101: ([], "3.1.1.1.", "заработная плата с налогами", False, True),
-        31102: ([], "3.1.1.2.", "материалы", False, True),
-        31103: ([], "3.1.1.3.", "услуги сторонних организаций", False, True),
-        31200: ([31201, 31202, 31203, 31204, 31205, 31206, 31207, 31208, 31209, 31210, 31211, 31212, 31213], "3.1.2.", "постоянные затраты", True, True),
-        31201: ([], "3.1.2.1", "налоги", False, True),
-        31202: ([], "3.1.2.2", "энергоносители", False, True),
-        31203: ([], "3.1.2.3", "маркетинг", False, True),
-        31204: ([], "3.1.2.4", "аренда офиса", False, True),
-        31205: ([], "3.1.2.5", "аренда помещений", False, True),
-        31206: ([], "3.1.2.6", "IT обслуживание", False, True),
-        31207: ([], "3.1.2.7", "обеспечение текущей деятельности", False, True),
-        31208: ([], "3.1.2.8", "обслуживание здания", False, True),
-        31209: ([], "3.1.2.9", "банковские расходы", False, True),
-        31210: ([], "3.1.2.10", "услуги связи", False, True),
-        31211: ([], "3.1.2.11", "комиссионное вознаграждение", False, True),
-        31212: ([], "3.1.2.12", "обучение персонала", False, True),
-        31213: ([], "3.1.2.13", "техническое обслуживание и страхование оборудования", False, True),
-        32000: ([32100, 32200, 32300], "3.2.", "финансовая деятельность", True, True),
-        32100: ([32101, 32102], "3.2.1.", "погашение кредитных обязательств", False, True),
-        32101: ([], "3.2.1.1", "погашение кредитов", False, True),
-        32102: ([], "3.2.1.2", "погашение лизинга", False, True),
-        32200: ([], "3.2.2", "погашение процентов по кредитам, займам", False, True),
-        32300: ([], "3.2.3", "погашение займов учредителям", False, True),
-        33000: ([], "3.3.", "инвестиционная деятельность", True, True),
-        40000: ([], "4.", "Остаток средств на конец периода", True, False),
+        10000: CategoryDef((), "1.", "Остаток средств на начало периода", True, False),
+        20000: CategoryDef((21000, 22000, 23000), "2.", "Поступление денежных средств", True, True),
+        21000: CategoryDef((), "2.1.", "выручка от реализации услуг", False, True),
+        22000: CategoryDef((), "2.2.", "прочие доходы", False, True),
+        23000: CategoryDef((23100, 23200), "2.3.", "кредиты и займы", False, True),
+        23100: CategoryDef((), "2.3.1.", "овердрафт", False, True),
+        23200: CategoryDef((), "2.3.2.", "кредит", False, True),
+        30000: CategoryDef((31000, 32000, 33000), "3.", "Расходование денежных средств", True, True),
+        31000: CategoryDef((31100, 31200), "3.1.", "текущая деятельность", True, True),
+        31100: CategoryDef((31101, 31102, 31103), "3.1.1.", "переменные затраты", True, True),
+        31101: CategoryDef((), "3.1.1.1.", "заработная плата с налогами", False, True),
+        31102: CategoryDef((), "3.1.1.2.", "материалы", False, True),
+        31103: CategoryDef((), "3.1.1.3.", "услуги сторонних организаций", False, True),
+        31200: CategoryDef(
+            (31201, 31202, 31203, 31204, 31205, 31206, 31207, 31208, 31209, 31210, 31211, 31212, 31213),
+            "3.1.2.", "постоянные затраты", True, True,
+        ),
+        31201: CategoryDef((), "3.1.2.1", "налоги", False, True),
+        31202: CategoryDef((), "3.1.2.2", "энергоносители", False, True),
+        31203: CategoryDef((), "3.1.2.3", "маркетинг", False, True),
+        31204: CategoryDef((), "3.1.2.4", "аренда офиса", False, True),
+        31205: CategoryDef((), "3.1.2.5", "аренда помещений", False, True),
+        31206: CategoryDef((), "3.1.2.6", "IT обслуживание", False, True),
+        31207: CategoryDef((), "3.1.2.7", "обеспечение текущей деятельности", False, True),
+        31208: CategoryDef((), "3.1.2.8", "обслуживание здания", False, True),
+        31209: CategoryDef((), "3.1.2.9", "банковские расходы", False, True),
+        31210: CategoryDef((), "3.1.2.10", "услуги связи", False, True),
+        31211: CategoryDef((), "3.1.2.11", "комиссионное вознаграждение", False, True),
+        31212: CategoryDef((), "3.1.2.12", "обучение персонала", False, True),
+        31213: CategoryDef((), "3.1.2.13", "техническое обслуживание и страхование оборудования", False, True),
+        32000: CategoryDef((32100, 32200, 32300), "3.2.", "финансовая деятельность", True, True),
+        32100: CategoryDef((32101, 32102), "3.2.1.", "погашение кредитных обязательств", False, True),
+        32101: CategoryDef((), "3.2.1.1", "погашение кредитов", False, True),
+        32102: CategoryDef((), "3.2.1.2", "погашение лизинга", False, True),
+        32200: CategoryDef((), "3.2.2", "погашение процентов по кредитам, займам", False, True),
+        32300: CategoryDef((), "3.2.3", "погашение займов учредителям", False, True),
+        33000: CategoryDef((), "3.3.", "инвестиционная деятельность", True, True),
+        40000: CategoryDef((), "4.", "Остаток средств на конец периода", True, False),
     }
 
-    HORIZONTAL_HEADER_LABELS = ["", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
+    HORIZONTAL_HEADER_LABELS = [
+        "", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+        "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+    ]
+
+    EDGE_CATEGORIES = frozenset({10000, 40000})
+
+    COLOR_EDGE_ROW = "#E2D5B8"
+    COLOR_TOP_LEVEL_ROW = "#9EC1A3"
+    COLOR_SECTION_ROW = "#EAF1E4"
+    COLOR_SUBSECTION_ROW = "#F5F8F2"
 
     EditableRole: int = Qt.ItemDataRole.UserRole + 1
     internalValueRole: int = Qt.ItemDataRole.UserRole + 2
@@ -56,99 +75,143 @@ class FinPlanTableModel(QAbstractTableModel):
     def __init__(self, parent=None):
         super(FinPlanTableModel, self).__init__(parent)
 
-        self.categories = list(self.FINPLAN_STRUCTURE.keys())
-        self.values: dict = {}
+        self.categories: list[int] = list(self.FINPLAN_STRUCTURE.keys())
+        self.values: dict[int, list[Optional[int]]] = {
+            category: [None] * self.MONTHS_COUNT for category in self.categories
+        }
 
-    def calculate_add_totals(self):
-        for skey, svalue in reversed(list(self.FINPLAN_STRUCTURE.items())):
-            if svalue[0]:
-                running_totals = [0] * 12
-                for key, value in self.values.items():
-                    if key in svalue[0]:
-                        for month in range(len(value)):
-                            value_to_add = value[month]
-                            if value_to_add is None:
-                                continue
-                            running_totals[month] += value[month]
-                self.values[skey] = running_totals
+    # -- внутренние помощники -------------------------------------------------
+
+    def _category_at_row(self, row: int) -> int:
+        return self.categories[row]
+
+    def _definition_at_row(self, row: int) -> CategoryDef:
+        return self.FINPLAN_STRUCTURE[self._category_at_row(row)]
+
+    def _row_background(self, category: int, definition: CategoryDef) -> Optional[QColor]:
+        if category in self.EDGE_CATEGORIES:
+            return QColor(self.COLOR_EDGE_ROW)
+        if category % 10000 == 0:
+            return QColor(self.COLOR_TOP_LEVEL_ROW)
+        if definition.children:
+            if category % 1000 == 0:
+                return QColor(self.COLOR_SECTION_ROW)
+            return QColor(self.COLOR_SUBSECTION_ROW)
+        return None
+
+    # -- расчёты ----------------------------------------------------------------
+
+    def calculate_add_totals(self) -> None:
+        for category, definition in reversed(list(self.FINPLAN_STRUCTURE.items())):
+            if not definition.children:
+                continue
+            totals = [0] * self.MONTHS_COUNT
+            for child in definition.children:
+                child_values = self.values.get(child)
+                if not child_values:
+                    continue
+                for month, amount in enumerate(child_values):
+                    if amount is not None:
+                        totals[month] += amount
+            self.values[category] = totals
+
+    # -- загрузка данных ----------------------------------------------------------
+
+    # def load_values(self, values: dict[int, list[Optional[int]]]) -> None:
+    #     self.beginResetModel()
+    #     for category in self.categories:
+    #         loaded = values.get(category)
+    #         if loaded is not None:
+    #             self.values[category] = list(loaded)
+    #     self.calculate_add_totals()
+    #     self.endResetModel()
+
+    # -- Qt model interface -------------------------------------------------------
 
     def rowCount(self, /, parent=QModelIndex()):
         if parent.isValid():
             return 0
-        return len(self.values)
+        return len(self.categories)
 
     def columnCount(self, /, parent=QModelIndex()):
         if parent.isValid():
             return 0
-        return 13
+        return self.MONTHS_COUNT + 1
 
-    def data(self, index, /, role=...) -> Any:
+    def data(self, index, /, role=...):
         if not index.isValid():
             return None
+
+        category = self._category_at_row(index.row())
+        definition = self._definition_at_row(index.row())
+        is_label_column = index.column() == 0
+
         if role == Qt.ItemDataRole.DisplayRole:
-            if index.column() == 0:
-                return self.FINPLAN_STRUCTURE[self.categories[index.row()]][2]
-            else:
-                value = self.values[self.categories[index.row()]][index.column() - 1]
-                return f"{value:,}".replace(",", " ") if value is not None else ""
+            if is_label_column:
+                return definition.title
+            value = self.values[category][index.column() - 1]
+            return f"{value:,}".replace(",", " ") if value is not None else ""
+
         elif role == self.internalValueRole:
-            if index.column() == 0:
-                return self.FINPLAN_STRUCTURE[self.categories[index.row()]][2]
-            else:
-                value = self.values[self.categories[index.row()]][index.column() - 1]
-                return value if value is not None else ""
-        elif role == Qt.ItemDataRole.EditRole:
-            value = self.values[self.categories[index.row()]][index.column() - 1]
+            if is_label_column:
+                return definition.title
+            value = self.values[category][index.column() - 1]
             return value if value is not None else ""
+
+        elif role == Qt.ItemDataRole.EditRole:
+            if is_label_column:
+                return None
+            value = self.values[category][index.column() - 1]
+            return value if value is not None else ""
+
         elif role == Qt.ItemDataRole.TextAlignmentRole:
-            if index.column() == 0:
-                return Qt.AlignmentFlag.AlignLeft
-            return Qt.AlignmentFlag.AlignRight
+            return Qt.AlignmentFlag.AlignLeft if is_label_column else Qt.AlignmentFlag.AlignRight
+
         elif role == Qt.ItemDataRole.FontRole:
-            font: QFont = QFont()
-            font.setBold(self.FINPLAN_STRUCTURE[self.categories[index.row()]][3])
+            font = QFont()
+            font.setBold(definition.bold)
             return font
+
         elif role == self.EditableRole:
-            return not bool(self.FINPLAN_STRUCTURE[self.categories[index.row()]][0])
+            if is_label_column:
+                return False
+            return not bool(definition.children)
+
         elif role == Qt.ItemDataRole.BackgroundRole:
-            if self.categories[index.row()] in (10000, 40000):
-                return QColor("#E2D5B8")
-            elif self.categories[index.row()] % 10000 == 0:
-                return QColor("#9EC1A3")
-            elif self.FINPLAN_STRUCTURE[self.categories[index.row()]][0]:
-                if self.categories[index.row()] % 1000 == 0:
-                    return QColor("#EAF1E4")
-                else:
-                    return QColor("#F5F8F2")
+            return self._row_background(category, definition)
+
+        return None
 
     def headerData(self, section, orientation, /, role=...):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
                 return self.HORIZONTAL_HEADER_LABELS[section]
             if orientation == Qt.Orientation.Vertical:
-                return self.FINPLAN_STRUCTURE[self.categories[section]][1]
+                return self.FINPLAN_STRUCTURE[self.categories[section]].row_label
+        return None
 
     def setData(self, index, value, /, role=...):
-        if role == Qt.ItemDataRole.EditRole:
-            if value == "" or value is None:
-                self.values[self.categories[index.row()]][index.column() - 1] = None
-            else:
-                try:
-                    int_value: int = int(value)
-                    self.values[self.categories[index.row()]][index.column() - 1] = int_value
-                except ValueError:
-                    return False
-            self.calculate_add_totals()
+        if role != Qt.ItemDataRole.EditRole:
+            return False
+        if index.column() == 0:
+            return False
 
-            self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount() - 1, self.columnCount() - 1))
-            return True
-        return False
+        category = self._category_at_row(index.row())
+
+        if value == "" or value is None:
+            self.values[category][index.column() - 1] = None
+        else:
+            try:
+                int_value = int(str(value).replace(" ", ""))
+            except ValueError:
+                return False
+            self.values[category][index.column() - 1] = int_value
+
+        self.calculate_add_totals()
+        self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount() - 1, self.columnCount() - 1))
+        return True
 
     def flags(self, index):
         if index.data(self.EditableRole):
             return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
-        else:
-            return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
-
-    def load_values(self):
-        pass
+        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled

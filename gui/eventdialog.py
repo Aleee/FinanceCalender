@@ -69,6 +69,10 @@ class EventDialog(QDialog):
         for row in self.SUBCATEGORY_COMBOBOX:
             self.ui.cmb_subcategory.addItem(row[0], row[1])
         self.ui.cmb_responsible.setModel(self.responsible_model)
+        self.positions: list = self.dbh.load_positions() or []  # [[id, department, name], ...]
+        self.ui.cmb_responsible_byposition.setVisible(bool(self.positions))
+        self.populate_position_combo()
+        self.ui.cmb_responsible_byposition.activated.connect(self.pick_responsible_by_position)
 
         self.ui.cmb_category.currentIndexChanged.connect(lambda row_num: self.ui.wdg_subcategory.setVisible(
             self.ui.cmb_category.currentData() == LiabilityCategory.TOP_FINANCES))
@@ -153,6 +157,33 @@ class EventDialog(QDialog):
         receiver_compl.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         receiver_compl.setFilterMode(Qt.MatchFlag.MatchContains)
         lineedit.setCompleter(receiver_compl)
+
+    def populate_position_combo(self) -> None:
+        self.ui.cmb_responsible_byposition.addItem("Выбрать по должности...", 0)
+        departments = dict(self.dbh.load_departments() or [])
+        for pos_id, dept_id, pos_name in self.positions:
+            dept_name = departments.get(dept_id, "")
+            label = f"{pos_name} ({dept_name})" if dept_name else pos_name
+            self.ui.cmb_responsible_byposition.addItem(label, pos_id)
+
+    def pick_responsible_by_position(self, row: int) -> None:
+        position_id = self.ui.cmb_responsible_byposition.currentData()
+        if not position_id:
+            return
+        person_id = self.dbh.resolve_position_to_personal(position_id)
+        if person_id is None:
+            ErrorInfoMessageBox("На эту должность сейчас никто не назначен. Выберите ответственного вручную.").exec()
+            self.ui.cmb_responsible_byposition.setCurrentIndex(0)
+            return
+        cmb_index = self.ui.cmb_responsible.findData(person_id)
+        if cmb_index == -1:
+            ErrorInfoMessageBox(
+                "Работник, занимающий эту должность, отсутствует в текущем списке ответственных.").exec()
+            self.ui.cmb_responsible_byposition.setCurrentIndex(0)
+            return
+        self.ui.cmb_responsible.setCurrentIndex(cmb_index)
+        self.responsible_was_manually_selected = True
+        self.ui.cmb_responsible_byposition.setCurrentIndex(0)
 
     def change_nds(self, row: int):
         cmb_index: int = self.ui.cmb_nds.findData(NDS_VALUE[self.ui.cmb_category.currentData()])

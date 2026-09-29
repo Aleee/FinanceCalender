@@ -51,7 +51,7 @@
    <item row="0" column="1">
     <widget class="QStackedWidget" name="stw">
      <property name="currentIndex">
-      <number>1</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="pg_common">
       <layout class="QGridLayout" name="gridLayout_11">
@@ -602,6 +602,348 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="page_2">
+      <layout class="QGridLayout" name="gridLayout_20">
+       <item row="5" column="0" colspan="2">
+        <layout class="QGridLayout" name="gridLayout_21">
+         <item row="0" column="3">
+          <widget class="QLabel" name="label_27">
+           <property name="text">
+            <string>Рабочие небанковские</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignBottom|Qt::AlignmentFlag::AlignHCenter</set>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="label_25">
+           <property name="text">
+            <string>Рабочие банковские</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignBottom|Qt::AlignmentFlag::AlignHCenter</set>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="label_26">
+           <property name="text">
+            <string>Праздничные</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignBottom|Qt::AlignmentFlag::AlignHCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QListWidget" name="lw_calender_worknonbankdays"/>
+         </item>
+         <item row="1" column="2">
+          <widget class="QListWidget" name="lw_calender_workbankdays"/>
+         </item>
+         <item row="1" column="1">
+          <widget class="QListWidget" name="lw_calender_weekdays"/>
+         </item>
+         <item row="2" column="1">
+          <layout class="QHBoxLayout" name="horizontalLayout_9">
+           <item>
+            <spacer name="horizontalSpacer_10">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pb_calender_remove_week">
+             <property name="maximumSize">
+              <size>
+               <width>30</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="icon">
+              <iconset resource="../../resources.qrc">
+               <normaloff>:/designer/icons/remove.svg</normaloff>:/designer/icons/remove.svg</iconset>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pb_calender_add_week">
+             <property name="maximumSize">
+              <size>
+               <width>30</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="icon">
+              <iconset resource="../../resources.qrc">
+               <normaloff>:/designer/icons/add.svg</normaloff>:/designer/icons/add.svg</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="2" column="2">
+          <layout class="QHBoxLayout" name="horizontalLayout_10">
+           <item>
+            <spacer name="horizontalSpacer_11">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pb_calender_remove_workbank">
+             <property name="maximumSize">
+              <size>
+               <width>30</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="icon">
+              <iconset resource="../../resources.qrc">
+               <normaloff>:/designer/icons/remove.svg</normaloff>:/designer/icons/remove.svg</iconset>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pb_calender_add_workbank">
+             <property name="maximumSize">
+              <size>
+               <width>30</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="icon">
+              <iconset resource="../../resources.qrc">
+               <normaloff>:/designer/icons/add.svg</normaloff>:/designer/icons/add.svg</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="2" column="3">
+          <layout class="QHBoxLayout" name="horizontalLayout_11">
+           <item>
+            <spacer name="horizontalSpacer_12">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pb_calender_remove_worknobank">
+             <property name="maximumSize">
+              <size>
+               <width>30</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="icon">
+              <iconset resource="../../resources.qrc">
+               <normaloff>:/designer/icons/remove.svg</normaloff>:/designer/icons/remove.svg</iconset>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pb_calender_add_worknobank">
+             <property name="maximumSize">
+              <size>
+               <width>30</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="icon">
+              <iconset resource="../../resources.qrc">
+               <normaloff>:/designer/icons/add.svg</normaloff>:/designer/icons/add.svg</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="3" column="0" colspan="2">
+        <widget class="Line" name="line">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
+          <widget class="QLabel" name="label_23">
+           <property name="text">
+            <string>Год:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_14">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Policy::Fixed</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>10</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QComboBox" name="cmb_calender_year">
+           <item>
+            <property name="text">
+             <string>2026</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>2027</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_13">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="2" column="0">
+        <spacer name="verticalSpacer_8">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Policy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="page_3">
+      <layout class="QGridLayout" name="gridLayout_22">
+       <item row="0" column="0">
+        <widget class="QGroupBox" name="groupBox_14">
+         <property name="title">
+          <string>Перечень должностей</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_23">
+          <item row="1" column="0" rowspan="3">
+           <widget class="QListWidget" name="lw_positions"/>
+          </item>
+          <item row="3" column="1">
+           <widget class="QPushButton" name="pb_position_add">
+            <property name="text">
+             <string>Добавить</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QPushButton" name="pb_position_remove">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Удалить</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QPushButton" name="pb_position_rename">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Переименовать</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QComboBox" name="cmb_positions_department"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <spacer name="verticalSpacer_9">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
      <widget class="QWidget" name="pg_storage">
       <layout class="QGridLayout" name="gridLayout_4">
        <item row="0" column="0">
@@ -863,16 +1205,6 @@
        </item>
        <item row="1" column="2">
         <layout class="QGridLayout" name="gridLayout_19">
-         <item row="4" column="0">
-          <widget class="QPushButton" name="pb_pers_rename">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="text">
-            <string> Переименовать </string>
-           </property>
-          </widget>
-         </item>
          <item row="0" column="0">
           <widget class="QLabel" name="label_21">
            <property name="text">
@@ -880,17 +1212,14 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="0">
-          <widget class="QPushButton" name="pb_pers_changetype">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
+         <item row="6" column="0">
+          <widget class="QPushButton" name="pb_pers_add">
            <property name="text">
-            <string>В архив</string>
+            <string>Добавить</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="0">
+         <item row="3" column="0">
           <spacer name="verticalSpacer_6">
            <property name="orientation">
             <enum>Qt::Orientation::Vertical</enum>
@@ -903,7 +1232,7 @@
            </property>
           </spacer>
          </item>
-         <item row="3" column="1">
+         <item row="4" column="1">
           <spacer name="horizontalSpacer_7">
            <property name="orientation">
             <enum>Qt::Orientation::Horizontal</enum>
@@ -915,6 +1244,16 @@
             </size>
            </property>
           </spacer>
+         </item>
+         <item row="5" column="0">
+          <widget class="QPushButton" name="pb_pers_rename">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string> Переименовать </string>
+           </property>
+          </widget>
          </item>
          <item row="1" column="0" colspan="2">
           <widget class="QComboBox" name="cmb_pers_dept">
@@ -929,10 +1268,20 @@
            </property>
           </widget>
          </item>
-         <item row="5" column="0">
-          <widget class="QPushButton" name="pb_pers_add">
+         <item row="4" column="0">
+          <widget class="QPushButton" name="pb_pers_changetype">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
            <property name="text">
-            <string>Добавить</string>
+            <string>В архив</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0" colspan="2">
+          <widget class="QComboBox" name="cmb_pers_position">
+           <property name="enabled">
+            <bool>false</bool>
            </property>
           </widget>
          </item>
@@ -1135,14 +1484,26 @@
      </item>
      <item>
       <property name="text">
-       <string>Хранение</string>
+       <string>Календарь</string>
       </property>
       <property name="textAlignment">
        <set>AlignCenter</set>
       </property>
       <property name="icon">
        <iconset resource="../../resources.qrc">
-        <normaloff>:/icon-settings/designer/icons/storage.svg</normaloff>:/icon-settings/designer/icons/storage.svg</iconset>
+        <normaloff>:/designer/icons/calendar.svg</normaloff>:/designer/icons/calendar.svg</iconset>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Парсер выписки</string>
+      </property>
+      <property name="textAlignment">
+       <set>AlignCenter</set>
+      </property>
+      <property name="icon">
+       <iconset resource="../../resources.qrc">
+        <normaloff>:/designer/icons/csvparser.svg</normaloff>:/designer/icons/csvparser.svg</iconset>
       </property>
      </item>
      <item>
@@ -1155,6 +1516,18 @@
       <property name="icon">
        <iconset resource="../../resources.qrc">
         <normaloff>:/icon-settings/designer/icons/set_pers.svg</normaloff>:/icon-settings/designer/icons/set_pers.svg</iconset>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Хранение</string>
+      </property>
+      <property name="textAlignment">
+       <set>AlignCenter</set>
+      </property>
+      <property name="icon">
+       <iconset resource="../../resources.qrc">
+        <normaloff>:/icon-settings/designer/icons/storage.svg</normaloff>:/icon-settings/designer/icons/storage.svg</iconset>
       </property>
      </item>
      <item>

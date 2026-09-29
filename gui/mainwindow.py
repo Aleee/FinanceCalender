@@ -3,6 +3,7 @@ from decimal import Decimal
 from enum import IntEnum, auto
 from typing import Any
 import time
+import lovely_logger as log
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
 from PySide6.QtGui import QStandardItemModel, QStandardItem
@@ -23,6 +24,7 @@ from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparato
 from gui.commonwidgets.eventfilter import RightClickFilter
 from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
+from gui.contractordialog import ContractorDialog
 from gui.eventdialog import EventDialog
 from gui.eventproxymodel import LiabilitySortFilterProxyModel, Filter, LiabilityTotalsProxyModel
 from gui.eventsqlmodel import LiabilitySqlTableModel, Col
@@ -30,6 +32,7 @@ from base.liability import FilterFlags, RowType, PaymentType
 from gui.feedialog import FeeDialog
 from gui.finplandialog import FinPlanDialog
 from gui.fulfillmentoptiondialog import FulfillmentOptionDialog
+from gui.matchingdialog import MatchingDialog
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
 from gui.recoverydialog import RecoveryDialog
@@ -198,7 +201,9 @@ class MainWindow(QMainWindow):
         self.ui.act_fulfillment.triggered.connect(self.open_fulfillment_dialog)
         self.ui.act_chart.triggered.connect(self.open_chart_dialog)
         self.ui.act_fees.triggered.connect(self.open_fees_dialog)
+        self.ui.act_matching.triggered.connect(self.open_matching_dialog)
         self.ui.act_export.triggered.connect(self.open_export_dialog)
+        self.ui.act_contracts.triggered.connect(self.open_contractor_dialog)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog(True))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.HEADER, checked))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.ui.trw_event.span_columns() if checked else None)
@@ -329,47 +334,6 @@ class MainWindow(QMainWindow):
         self.update_eventinfo()
         self.ui.tb_savenote.setEnabled(False)
 
-    # deprecated
-
-    # def update_plot(self) -> None:
-    #     self.plot_available: bool = True
-    #     if not self.get_current_event_index().isValid():
-    #         self.plot_available = False
-    #         self.update_plot_area()
-    #         return
-    #     payments_count: int = self.ui.tv_payment.model().rowCount()
-    #     is_paid: bool = TermRoleFlags.PAID in self.get_current_event_index().siblingAtColumn(Col.TERMFLAGS).data(EventTableModel.internalValueRole)
-    #     fully_paid_today: bool = (self.get_current_event_index().siblingAtColumn(Col.TOTALAMOUNT).data(EventTableModel.internalValueRole) ==
-    #                               self.get_current_event_index().siblingAtColumn(Col.TODAYSHARE).data(EventTableModel.internalValueRole))
-    #     if ((is_paid or fully_paid_today) and payments_count < 2) or (not is_paid and payments_count == 0):
-    #         self.plot_available = False
-    #         self.update_plot_area()
-    #         return
-    #     dates, amounts = [], []
-    #     first_date: QDate = self.get_current_event_index().siblingAtColumn(Col.CREATEDATE).data(EventTableModel.internalValueRole).toPython()
-    #     dates.append(first_date)
-    #     amount: Decimal = self.get_current_event_index().siblingAtColumn(Col.TOTALAMOUNT).data(EventTableModel.internalValueRole)
-    #     amounts.append(amount)
-    #     for row in range(self.ui.tv_payment.model().rowCount()):
-    #         date: QDate = self.ui.tv_payment.model().index(row, PaymentField.PAYMENT_DATE).data(PaymentHistoryTableModel.internalValueRole)
-    #         dates.append(date.toPython())
-    #         payment_sum: Decimal = self.ui.tv_payment.model().index(row, PaymentField.SUM).data(PaymentHistoryTableModel.internalValueRole)
-    #         amount -= payment_sum
-    #         amounts.append(amount)
-    #     self.payment_plot.update_plot(dates, amounts)
-    #     self.update_plot_area()
-
-    # def update_plot_area(self) -> None:
-    #     if not self.plot_available:
-    #         self.ui.wdg_graph.setVisible(False)
-    #     else:
-    #         occupied_width: int = self.ui.tv_payment.width() + self.ui.wdg_eventinfo.width() + self.ui.de_paymentdate.width() + 60
-    #         self.ui.wdg_graph.setVisible(self.ui.stw_eventinfo.width() - occupied_width > 400)
-
-    # def resizeEvent(self, event, /):
-    #     self.update_plot_area()
-    #     QMainWindow.resizeEvent(self, event)
-
     def update_eventinfo(self) -> bool:
         current_index: QModelIndex = self.get_current_event_index()
         if not current_index.isValid():
@@ -469,6 +433,11 @@ class MainWindow(QMainWindow):
     def open_fees_dialog(self):
         fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.base_model, self.payment_model, self)
         fees_dialog.exec()
+        self.update_filters_and_select()
+
+    def open_matching_dialog(self):
+        matching_dialog: MatchingDialog = MatchingDialog(self.settings_handler, self.db_handler, self)
+        matching_dialog.exec()
         self.update_filters_and_select()
 
     def open_event_dialog(self, edit: bool = False, copy: bool = False):
@@ -573,43 +542,38 @@ class MainWindow(QMainWindow):
         self.chart_choice_dialog = ChartChoiceDialog()
         self.chart_choice_dialog.exec()
 
-        # repo = DebtRepository()
-        # builder = DebtTimelineBuilder(repo)
-        # builder.load()
-        # timeline = builder.build(
-        #     begin=date(2026, 5, 1),
-        #     end=date(2026, 6, 30),
-        #     categories={1103, 1104, 1105}
-        # )
-        #
-        # self.chart = DebtChartWidget()
-        # self.chart.setTimeline(timeline)
-        # self.chart.resize(900, 500)
-        # self.chart.show()
+    def open_contractor_dialog(self):
+        self.contractor_dialog = ContractorDialog(self.db_handler, self)
+        self.contractor_dialog.exec()
 
     def update_responsible_models(self, update_widgets: bool) -> bool:
         personal_data = self.db_handler.load_personal_data(as_dict=True)
-        if personal_data and self.base_model:
-            self.base_model.personal_dict = personal_data[0]
-            self.personal_frequency_bycategory_dict = personal_data[1]
+        if not (personal_data and self.base_model):
+            log.w("Не удалось обновить модели ответственных: данные персонала недоступны")
+            return False
 
-            self.responsible_partial_model = ResponsibleModel(only_active_personal=True)
-            self.responsible_partial_model.setup_model(self.base_model.personal_dict)
-            self.responsible_full_model = ResponsibleModel(only_active_personal=False)
-            self.responsible_full_model.setup_model(self.base_model.personal_dict)
+        self.base_model.personal_dict = personal_data[0]
+        self.personal_frequency_bycategory_dict = personal_data[1]
 
-            self.responsible_partial_sorted_model: ResponsibleCategorySortModel = ResponsibleCategorySortModel(self.personal_frequency_bycategory_dict)
-            self.responsible_partial_sorted_model.setSourceModel(self.responsible_partial_model)
-            self.responsible_full_sorted_model: ResponsibleCategorySortModel = ResponsibleCategorySortModel(self.personal_frequency_bycategory_dict)
-            self.responsible_full_sorted_model.setSourceModel(self.responsible_full_model)
-            self.responsible_full_sorted_model.sort(0, Qt.SortOrder.AscendingOrder)
-            self.responsible_partial_sorted_model.sort(0, Qt.SortOrder.AscendingOrder)
+        self.responsible_partial_model = ResponsibleModel(only_active_personal=True)
+        self.responsible_partial_model.setup_model(self.base_model.personal_dict)
+        self.responsible_full_model = ResponsibleModel(only_active_personal=False)
+        self.responsible_full_model.setup_model(self.base_model.personal_dict)
+
+        self.responsible_partial_sorted_model: ResponsibleCategorySortModel = ResponsibleCategorySortModel(
+            self.personal_frequency_bycategory_dict)
+        self.responsible_partial_sorted_model.setSourceModel(self.responsible_partial_model)
+        self.responsible_full_sorted_model: ResponsibleCategorySortModel = ResponsibleCategorySortModel(
+            self.personal_frequency_bycategory_dict)
+        self.responsible_full_sorted_model.setSourceModel(self.responsible_full_model)
+        self.responsible_full_sorted_model.sort(0, Qt.SortOrder.AscendingOrder)
+        self.responsible_partial_sorted_model.sort(0, Qt.SortOrder.AscendingOrder)
 
         if update_widgets:
             self.responsible_full_model.sort(0)
             self.ui.cmb_responsiblefilter.setModel(self.responsible_full_model)
 
-        return bool(personal_data)
+        return True
 
     def closeEvent(self, event, /):
         self.settings_handler.save_settings()

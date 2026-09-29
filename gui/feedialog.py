@@ -1,26 +1,30 @@
-from datetime import datetime, date
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from typing import Optional
+
 import lovely_logger as log
 
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QDialog, QFileDialog
 
-from base.date import date_str
+from base.date import date_str, date_displstr
 from base.dbhandler import DBHandler
-from base.feesparser import read_transaction_csv
-from base.formatting import dec_strcommaspace, str_rubstr
+from base.feeparser import CSVParseError, DailyFees, StatementParseResult, read_transaction_csv
 from base.liability import LiabilityCategory, FilterFlags, RowType
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.eventsqlmodel import LiabilitySqlTableModel, Col
 from gui.paymenthistorymodel import PaymentHistoryTableModel
-from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
 from gui.settings import SettingsHandler
 from gui.ui.feedialog_ui import Ui_feedialog
 
 
 FEE_RECEIVER: str = "Банки"
+
+# Соответствие между категорией из парсера, категорией начисления в базе
+# и текстом описания платежа. Порядок задаёт порядок создания платежей на дату.
+BANKING_DESCRIPTION: str = "[A] Комиссия банка, удержанная из поступлений"
+COMMISSION_DESCRIPTION: str = "[A] Комиссионное вознаграждение банку"
 
 
 class FeeDialog(QDialog):
@@ -34,121 +38,184 @@ class FeeDialog(QDialog):
         self.base_model: LiabilitySqlTableModel = base_model
         self.payment_model: PaymentHistoryTableModel = payment_model
 
-        self.startdate: Optional[date] = None
-        self.enddate: Optional[date] = None
-        self.results: Optional[dict] = None
-        self.unknown_unp: Optional[list] = None
-        self.notes_info: Optional[dict] = None
+        self.parse_result: Optional[StatementParseResult] = None
 
         self.ui.pb_opencsv.clicked.connect(self.open_csv)
         self.ui.pb_createfeeliabilities.clicked.connect(self.make_fee_payments)
 
+    # ------------------------------------------------------------------ #
+    # Загрузка и отображение выписки
+    # ------------------------------------------------------------------ #
+
     def open_csv(self) -> None:
-        file_path: str = QFileDialog.getOpenFileName(parent=self, caption="Выберите выписку",
-                                                     dir=self.sh.settings.value("CSVparser/lastloadpath") if
-                                                     self.sh.settings.value("CSVparser/lastloadpath") and Path(self.sh.settings.value("CSVparser/lastloadpath")).is_dir()
-                                                     else "",
-                                                     filter="Файл выписки в формате CSV (*.csv)")[0]
+        last_path = self.sh.settings.value("CSVparser/lastloadpath")
+        file_path: str = QFileDialog.getOpenFileName(
+            parent=self,
+            caption="Выберите выписку",
+            dir=last_path if last_path and Path(last_path).is_dir() else "",
+            filter="Файл выписки в формате CSV (*.csv)",)[0]
         if not file_path:
             return
+
         self.sh.settings.setValue("CSVparser/lastloadpath", str(Path(file_path).parent))
         self.ui.te_info.clear()
         self.ui.pb_createfeeliabilities.setEnabled(False)
-        result = read_transaction_csv(file_path, self.sh)
-        if not result:
-            ErrorInfoMessageBox("Не удалось прочитать CSV-файл (см. подробности в логе)").exec()
-        else:
-            self.results = result[0]
-            self.startdate = result[1][0]
-            self.enddate = result[1][1]
-            self.unknown_unp = result[2]
-            self.notes_info = result[3]
-            self.show_report()
+
+        try:
+            self.parse_result = read_transaction_csv(file_path, self.sh)
+        except CSVParseError as exc:
+            self.parse_result = None
+            ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}").exec()
+            return
+
+        self.show_report()
 
     def show_report(self) -> None:
-        text = f"Загружена выписка с <b>{self.startdate.strftime("%d.%m.%Y")}</b> по <b>{self.enddate.strftime("%d.%m.%Y")}</b><br>"
-        if self.results:
-            text += f"Всего транзакций с уплаченной комиссией: <b>{sum(value[0] for value in self.results.values())}</b><br><i>в том числе:</i><br>"
-            for key, value in self.results.items():
-                text += f"- {key.strftime("%d.%m.%Y")}: транзакций - {value[0]}, сумма комиссий - {str(value[1])} руб.<br>"
-            text += f"Всего уплачено комиссий за период - <b>{sum(value[1] for value in self.results.values())} руб.</b><br>"
-            if self.unknown_unp:
-                text += (f"Внимание! Среди транзакций замечены записи с неизвестными УНП плательщика (всего {len(self.unknown_unp)}). Проверьте эти записи "
-                         f"на правильность включения в список уплаченных комиссий! При необходимости добавьте эти УНП в список доверенных в настройках.<br>")
-            for value in self.unknown_unp:
-                text += f"- <b>{value[0]}</b>: {value[2]} ({value[1].strftime("%d.%m.%Y")})<br>"
-            self.ui.pb_createfeeliabilities.setEnabled(True)
-        else:
-            text += "Транзакций с уплаченной комиссией не обнаружено."
-        self.ui.pb_createfeeliabilities.setEnabled(bool(self.results))
+        result = self.parse_result
+        period_from = result.period[0].strftime("%d.%m.%Y")
+        period_to = result.period[1].strftime("%d.%m.%Y")
+
+        text = f"Загружена выписка с <b>{period_from}</b> по <b>{period_to}</b><br>"
+        text += self._render_category_report("Комиссии банка, удержанные из поступлений", result.income_fees.daily,
+                                               result.income_fees.unknown_unp)
+        text += self._render_category_report("Комиссии, уплаченные/списанные отдельно", result.outgoing_fees.daily,
+                                               result.outgoing_fees.unknown_unp)
+
+        has_any_fees = bool(result.income_fees.daily or result.outgoing_fees.daily)
+        self.ui.pb_createfeeliabilities.setEnabled(has_any_fees)
         self.ui.te_info.setText(text)
 
+    @staticmethod
+    def _render_category_report(title: str, daily: dict[date, DailyFees], unknown_unp: list) -> str:
+        if not daily:
+            return f"<b>{title}:</b> транзакций не обнаружено.<br>"
+
+        total_count = sum(agg.count for agg in daily.values())
+        total_sum = sum(agg.total for agg in daily.values())
+
+        text = f"<b>{title}:</b> всего транзакций с комиссией — <b>{total_count}</b><br><i>в том числе:</i><br>"
+        for fee_date, agg in daily.items():
+            date_label = fee_date.strftime("%d.%m.%Y")
+            text += f"- {date_label}: транзакций - {agg.count}, сумма комиссий - {agg.total} руб.<br>"
+        text += f"Итого за период — <b>{total_sum} руб.</b><br>"
+
+        if unknown_unp:
+            text += (
+                f"Внимание! Среди транзакций замечены записи с неизвестными УНП плательщика "
+                f"(всего {len(unknown_unp)}). Проверьте эти записи на правильность включения "
+                f"в список уплаченных комиссий! При необходимости добавьте эти УНП в список доверенных "
+                f"в настройках.<br>"
+            )
+            for unp, unp_date, name in unknown_unp:
+                text += f"- <b>{unp}</b>: {name} ({unp_date.strftime('%d.%m.%Y')})<br>"
+
+        return text
+
+    # ------------------------------------------------------------------ #
+    # Создание платежей
+    # ------------------------------------------------------------------ #
+
     def make_fee_payments(self) -> bool:
-        already_paid: list = []
-        for fee_date in self.results.keys():
-            check_result = self.dbh.check_fees_paid_fordate(QDate(fee_date.year, fee_date.month, fee_date.day))
-            if check_result is None:
-                ErrorInfoMessageBox("Не удалось выполнить запрос к базе данных (см. подробности в логе)").exec()
-                return False
-            elif check_result.is_nan():
-                continue
-            else:
-                already_paid.append((fee_date, check_result))
+        if self.parse_result is None:
+            return False
 
-        if already_paid:
-            text = "В базе данных обнаружены уже имеющиеся записи об оплаченных комиссиях за следующие даты:\n"
-            for entry in already_paid:
-                text += f"- {entry[0].strftime("%d.%m.%Y")} на сумму {entry[1]} руб.\n"
-            text += "Возможны, будут созданы дублирующие записи. Уверены, что хотите продолжить?"
-            if YesNoMessagebox(text).exec() == YesNoMessagebox.NO_RETURN_VALUE:
-                return False
+        # (данные категории из парсера, категория начисления в базе, текст описания платежа)
+        categories = [
+            (self.parse_result.income_fees.daily, LiabilityCategory.BANKING, BANKING_DESCRIPTION),
+            (self.parse_result.outgoing_fees.daily, LiabilityCategory.COMMISSION, COMMISSION_DESCRIPTION),
+        ]
 
-        for fee_date, fee_values in self.results.items():
-            data: list = list()
-            qt_fee_date = QDate(fee_date.year, fee_date.month, fee_date.day)
-            data.append(FEE_RECEIVER)
-            data.append(0)
-            data.append(int(RowType.LIABILITY))
-            data.append(int(LiabilityCategory.COMMISSION))
-            data.append(0)
-            data.append(f"[A] Комиссионное вознаграждение банку")
-            data.append(str(Decimal("0.0")))
-            data.append(str(fee_values[1]))
-            data.append(0)
-            data.append(date_str(qt_fee_date))
-            data.append(date_str(QDate.currentDate()))
-            data.append(1)
-            data.append(f"Автоматический учет комиссий за {fee_date.strftime("%d.%m.%Y")} (транзакций: {fee_values[0]})")
-            data.append(self.sh.settings.value("CSVparser/responsible", "0"))
-            note = ""
-            if self.notes_info is not None:
-                for entry in self.notes_info[fee_date]:
-                    note += f"{entry[0]}: {str_rubstr(dec_strcommaspace(entry[1]))}\n"
-            data.append(note)
-            data.append(str(Decimal("0.0")))
-            data.append(date_str(qt_fee_date))
-            filter_flags: FilterFlags = self.base_model.calculate_filterflags(Decimal("0.0"), qt_fee_date, False, QDate.currentDate())
-            data.append(int(filter_flags))
-            data.append(0)
-            data.append(0)
-            data.append(str.lower(FEE_RECEIVER))
-            new_event_row = self.base_model.insert_row(data)
-            if not new_event_row:
-                ErrorInfoMessageBox("При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)")
-                log.c(f"Не удалось вставить новую строку в таблицу event со следующими данными: {data}")
-                return False
+        already_paid = self._check_already_paid(categories)
+        if already_paid is None:
+            return False  # ошибка запроса к БД, сообщение уже показано
+        if already_paid and not self._confirm_duplicate_payments(already_paid):
+            return False
 
-            self.base_model.submitAll()
-
-            data = list()
-            data.append(self.base_model.index(new_event_row, Col.ID).data(LiabilitySqlTableModel.qtValueRole))
-            data.append(date_str(qt_fee_date))
-            data.append(str(fee_values[1]))
-            data.append(date_str(QDate.currentDate()))
-            if not self.payment_model.append_row(data):
-                ErrorInfoMessageBox("При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)")
-                log.c(f"Не удалось вставить новую строку в таблицу payment со следующими данными: {data}")
-                return False
+        for daily, liability_category, description in categories:
+            for fee_date, agg in daily.items():
+                if not self._create_fee_liability(fee_date, agg, liability_category, description):
+                    return False
 
         ErrorInfoMessageBox("Операция завершена успешно", is_info=True).exec()
+        self.close()
+        return True
+
+    def _check_already_paid(self, categories: list) -> Optional[list]:
+        """Возвращает список (дата, категория, уже сохранённая сумма) или None при ошибке БД."""
+        already_paid: list = []
+        for daily, liability_category, _ in categories:
+            for fee_date in daily:
+                check_result = self.dbh.check_fees_paid_fordate(
+                    QDate(fee_date.year, fee_date.month, fee_date.day), int(liability_category)
+                )
+                if check_result is None:
+                    ErrorInfoMessageBox("Не удалось выполнить запрос к базе данных (см. подробности в логе)").exec()
+                    return None
+                if not check_result.is_nan():
+                    already_paid.append((fee_date, liability_category, check_result))
+        return already_paid
+
+    @staticmethod
+    def _confirm_duplicate_payments(already_paid: list) -> bool:
+        text = "В базе данных обнаружены уже имеющиеся записи об оплаченных комиссиях за следующие даты:\n"
+        for fee_date, liability_category, amount in already_paid:
+            date_label = fee_date.strftime("%d.%m.%Y")
+            text += f"- {date_label} ({liability_category.name}) на сумму {amount} руб.\n"
+        text += "Возможны, будут созданы дублирующие записи. Уверены, что хотите продолжить?"
+        return YesNoMessagebox(text).exec() != YesNoMessagebox.NO_RETURN_VALUE
+
+    def _create_fee_liability(
+        self, fee_date: date, agg: DailyFees, category: LiabilityCategory, description: str
+    ) -> bool:
+        qt_fee_date = QDate(fee_date.year, fee_date.month, fee_date.day)
+        fee_date_str = date_str(qt_fee_date)
+        today_str = date_str(QDate.currentDate())
+        comment = agg.as_comment()
+
+        filter_flags: FilterFlags = self.base_model.calculate_filterflags(
+            Decimal("0.0"), qt_fee_date, False, QDate.currentDate()
+        )
+
+        event_data: list = [
+            FEE_RECEIVER,
+            0,
+            int(RowType.LIABILITY),
+            int(category),
+            0,
+            description,
+            str(Decimal("0.0")),
+            str(agg.total),
+            0,
+            fee_date_str,
+            today_str,
+            1,
+            f"Выписка от {date_displstr(qt_fee_date)}",
+            self.sh.settings.value("CSVparser/responsible", "0"),
+            comment,
+            str(Decimal("0.0")),
+            fee_date_str,
+            int(filter_flags),
+            0,
+            0,
+            str.lower(FEE_RECEIVER),
+        ]
+
+        new_event_row = self.base_model.insert_row(event_data)
+        if not new_event_row:
+            ErrorInfoMessageBox("При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)").exec()
+            log.c(f"Не удалось вставить новую строку в таблицу event со следующими данными: {event_data}")
+            return False
+        self.base_model.submitAll()
+
+        payment_data: list = [
+            self.base_model.index(new_event_row, Col.ID).data(LiabilitySqlTableModel.qtValueRole),
+            fee_date_str,
+            str(agg.total),
+            today_str,
+        ]
+        if not self.payment_model.append_row(payment_data):
+            ErrorInfoMessageBox("При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)").exec()
+            log.c(f"Не удалось вставить новую строку в таблицу payment со следующими данными: {payment_data}")
+            return False
+
         return True

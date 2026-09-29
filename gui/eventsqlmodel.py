@@ -42,24 +42,25 @@ class Col(IntEnum):
     RECEIVER = 0
     ID = 1
     TYPE = 2
-    CATEGORY = 3
-    SUBCATEGORY = 4
-    NAME = 5
-    REMAINAMOUNT = 6
-    TOTALAMOUNT = 7
-    NDS = 8
-    DUEDATE = 9
-    INCURRENCEDATE = 10
-    PAYMENTTYPE = 11
-    DESCR = 12
-    RESPONSIBLE = 13
-    NOTES = 14
-    TODAYSHARE = 15
-    LASTPAYMENTDATE = 16
-    FILTERFLAGS = 17
-    FEATURED = 18
-    HIDDEN = 19
-    RECEIVERNOCASE = 20
+    CONTRACTID = 3
+    CATEGORY = 4
+    SUBCATEGORY = 5
+    NAME = 6
+    REMAINAMOUNT = 7
+    TOTALAMOUNT = 8
+    NDS = 9
+    DUEDATE = 10
+    INCURRENCEDATE = 11
+    PAYMENTTYPE = 12
+    DESCR = 13
+    RESPONSIBLE = 14
+    NOTES = 15
+    TODAYSHARE = 16
+    LASTPAYMENTDATE = 17
+    FILTERFLAGS = 18
+    FEATURED = 19
+    HIDDEN = 20
+    RECEIVERNOCASE = 21
 
 
 class LiabilitySqlTableModel(QSqlTableModel):
@@ -73,6 +74,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
         Col.RECEIVER: ("Получатель платежа", True),
         Col.ID: ("", False),
         Col.TYPE: ("", False),
+        Col.CONTRACTID: ("", False),
         Col.CATEGORY: ("Категория", False),
         Col.SUBCATEGORY: ("", False),
         Col.NAME: ("Наименование (предмет) платежа", True),
@@ -190,7 +192,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
                         return Decimal(idx.data(self.dbValueRole))
                     except decimal.InvalidOperation:
                         return Decimal(0)
-                elif idx.column() in (Col.ID, Col.TYPE, Col.CATEGORY, Col. SUBCATEGORY, Col.PAYMENTTYPE, Col.NDS, Col.FEATURED, Col.RESPONSIBLE):
+                elif idx.column() in (Col.ID, Col.TYPE, Col.CONTRACTID, Col.CATEGORY, Col. SUBCATEGORY, Col.PAYMENTTYPE, Col.NDS, Col.FEATURED, Col.RESPONSIBLE):
                     return int(idx.data(self.dbValueRole))
                 elif idx.column() in (Col.DUEDATE, Col.INCURRENCEDATE):
                     return str_date(idx.data(self.dbValueRole))

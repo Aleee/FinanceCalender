@@ -1,5 +1,9 @@
+from datetime import datetime, date
+from typing import Optional
+
 from PySide6.QtCore import QDate, QDateTime
 
+import lovely_logger as log
 
 def get_current_date():
     return QDate.currentDate()
@@ -24,12 +28,27 @@ def days_to_month(from_date) -> int:
     return get_date_diff(from_date, month_end)
 
 
-def str_date(string) -> QDate:
-    return QDate.fromString(string, "yyyy-MM-dd")
+def str_date(string, python_date: bool = False) -> Optional[QDate|date]:
+    try:
+        if python_date:
+            return datetime.strptime(string, "%Y-%m-%d").date()
+        else:
+            return QDate.fromString(string, "yyyy-MM-dd")
+    except ValueError:
+        log.e(f"Не удалось преобразовать строку ({string}) в дату (python_date = {int(python_date)})")
+        if python_date:
+            return date(2000, 1, 1)
+        else:
+            return QDate(2000, 1, 1)
 
-
-def date_str(date) -> str:
-    return date.toString("yyyy-MM-dd")
+def date_str(date_obj: Optional[QDate | date]) -> str:
+    try:
+        if isinstance(date_obj, QDate):
+            return date_obj.toString("yyyy-MM-dd")
+        elif isinstance(date_obj, date):
+            return date_obj.isoformat()
+    except ValueError:
+        return "<DATE CONVERSION ERROR>"
 
 
 def date_purestr(date, short: bool = False) -> str:
