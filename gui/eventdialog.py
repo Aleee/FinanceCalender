@@ -303,6 +303,7 @@ class EventDialog(QDialog):
         if self.edit_mode or self.copy_mode:
             # Заполнить имеющимися значениями
             self.ui.le_receiver.setText(self.index.siblingAtColumn(Col.RECEIVER).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.le_receiver.setCursorPosition(0)
             self.ui.te_name.setPlainText(self.index.siblingAtColumn(Col.NAME).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.dsb_totalamount.setValue(self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilitySqlTableModel.qtValueRole))
             self.ui.de_duedate.setDate(self.index.siblingAtColumn(Col.DUEDATE).data(LiabilitySqlTableModel.qtValueRole))
