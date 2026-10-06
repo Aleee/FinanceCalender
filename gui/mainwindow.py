@@ -299,6 +299,8 @@ class MainWindow(QMainWindow):
         menu_separator.setSeparator(True)
         self.ui.trw_event.addActions([self.ui.act_new, self.ui.act_copy, self.ui.act_copydoc, self.ui.act_edit, self.ui.act_delete,
                                       menu_separator, self.ui.act_gotocontract])
+        for action in self.ui.trw_event.actions():
+            action.setIconVisibleInMenu(True)
         self.ui.act_copydoc.setShortcut(QKeySequence("Ctrl+Shift+D"))
         self.ui.act_copydoc.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.ui.act_copydoc.setToolTip(f"{self.ui.act_copydoc.toolTip()} (Ctrl+Shift+D)")
