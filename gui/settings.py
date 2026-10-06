@@ -32,7 +32,7 @@ class SettingsHandler:
     def set_backup_path(self, path: str) -> None:
         self.settings.setValue("Backup/path", to_stored_path(path))
 
-    def apply_settings(self) -> None:
+    def apply_settings(self, apply_geometry: bool = False) -> None:
         # Отключение фильтра на время применения настроек
         self.mw.ui.trw_event.model().sourceModel().enable_sortfilter(False)
 
@@ -53,7 +53,9 @@ class SettingsHandler:
             width = columnwidth_listdata[col] if col < len(columnwidth_listdata) else default_width
             self.mw.ui.trw_event.setColumnWidth(col, width)
         ## Геометрия окна
-        if str_bool(self.settings.value("Mainwindow/fullscreen", "0")):
+        if not apply_geometry:
+            pass
+        elif str_bool(self.settings.value("Mainwindow/fullscreen", "0")):
             self.mw.showMaximized()
         else:
             self.mw.setGeometry(QRect(self.settings.value("Mainwindow/pos", QPoint(50, 50)),

@@ -93,7 +93,7 @@ class MainWindow(QMainWindow):
         self.make_backup()
 
         # Начальные действия
-        self.settings_handler.apply_settings()
+        self.settings_handler.apply_settings(apply_geometry=True)
         self.ui.stw_eventinfo.setCurrentIndex(1)
 
 
