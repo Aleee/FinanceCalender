@@ -25,7 +25,7 @@ class Ui_CopyDocDialog(object):
     def setupUi(self, CopyDocDialog):
         if not CopyDocDialog.objectName():
             CopyDocDialog.setObjectName(u"CopyDocDialog")
-        CopyDocDialog.resize(580, 280)
+        CopyDocDialog.resize(580, 433)
         self.verticalLayout = QVBoxLayout(CopyDocDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.formLayout = QFormLayout()
@@ -194,16 +194,16 @@ class Ui_CopyDocDialog(object):
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
 
-        self.pb_accept = QPushButton(CopyDocDialog)
-        self.pb_accept.setObjectName(u"pb_accept")
-
-        self.horizontalLayout.addWidget(self.pb_accept)
-
         self.pb_cancel = QPushButton(CopyDocDialog)
         self.pb_cancel.setObjectName(u"pb_cancel")
         self.pb_cancel.setAutoDefault(False)
 
         self.horizontalLayout.addWidget(self.pb_cancel)
+
+        self.pb_accept = QPushButton(CopyDocDialog)
+        self.pb_accept.setObjectName(u"pb_accept")
+
+        self.horizontalLayout.addWidget(self.pb_accept)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -222,8 +222,7 @@ class Ui_CopyDocDialog(object):
         QWidget.setTabOrder(self.spb_year, self.de_duedate)
         QWidget.setTabOrder(self.de_duedate, self.te_name)
         QWidget.setTabOrder(self.te_name, self.te_descr)
-        QWidget.setTabOrder(self.te_descr, self.pb_accept)
-        QWidget.setTabOrder(self.pb_accept, self.pb_cancel)
+        QWidget.setTabOrder(self.te_descr, self.pb_cancel)
 
         self.retranslateUi(CopyDocDialog)
 
@@ -250,7 +249,7 @@ class Ui_CopyDocDialog(object):
         self.label_8.setText(QCoreApplication.translate("CopyDocDialog", u"&\u041d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u0435:", None))
         self.label_6.setText(QCoreApplication.translate("CopyDocDialog", u"&\u041e\u0441\u043d\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0430:", None))
         self.label_7.setText(QCoreApplication.translate("CopyDocDialog", u"\u0423\u0441\u043b\u043e\u0432\u0438\u044f \u043e\u043f\u043b\u0430\u0442\u044b:", None))
-        self.pb_accept.setText(QCoreApplication.translate("CopyDocDialog", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c", None))
         self.pb_cancel.setText(QCoreApplication.translate("CopyDocDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
+        self.pb_accept.setText(QCoreApplication.translate("CopyDocDialog", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c", None))
     # retranslateUi
 

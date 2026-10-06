@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>580</width>
-    <height>280</height>
+    <height>433</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -326,22 +326,22 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="pb_accept">
-       <property name="text">
-        <string>Создать</string>
-       </property>
-       <property name="default">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="pb_cancel">
        <property name="text">
         <string>Отмена</string>
        </property>
        <property name="autoDefault">
         <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pb_accept">
+       <property name="text">
+        <string>Создать</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -357,7 +357,6 @@
   <tabstop>de_duedate</tabstop>
   <tabstop>te_name</tabstop>
   <tabstop>te_descr</tabstop>
-  <tabstop>pb_accept</tabstop>
   <tabstop>pb_cancel</tabstop>
  </tabstops>
  <resources/>
