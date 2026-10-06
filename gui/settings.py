@@ -1,3 +1,4 @@
+import sys
 from enum import IntEnum
 
 import lovely_logger as log
@@ -140,7 +141,10 @@ class SettingsHandler:
         for widget in exclusions:
             saved_stylesheets[widget] = widget.styleSheet()
 
-        self.app.setStyleSheet(f"QWidget {{ font-size: {font_sizes[setting_value]}pt;}}")
+        font_size: int = font_sizes[setting_value]
+        if sys.platform == "darwin":
+            font_size = round(font_size * 96 / 72)
+        self.app.setStyleSheet(f"QWidget {{ font-size: {font_size}pt;}}")
 
         # Установка ширины некоторых виджетов вручную
         forced_size = {
