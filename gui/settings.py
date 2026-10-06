@@ -53,13 +53,14 @@ class SettingsHandler:
             width = columnwidth_listdata[col] if col < len(columnwidth_listdata) else default_width
             self.mw.ui.trw_event.setColumnWidth(col, width)
         ## Геометрия окна
-        if not apply_geometry:
-            pass
-        elif str_bool(self.settings.value("Mainwindow/fullscreen", "0")):
-            self.mw.showMaximized()
-        else:
+        if apply_geometry:
             self.mw.setGeometry(QRect(self.settings.value("Mainwindow/pos", QPoint(50, 50)),
                                       self.settings.value("Mainwindow/size", QSize(1300, 750))))
+            window_state: int = str_int(self.settings.value("Mainwindow/fullscreen", 0))
+            if window_state == 2:
+                self.mw.showFullScreen()
+            elif window_state == 1:
+                self.mw.showMaximized()
         ## Положение разделителей
         for splitter, setting_key, default_sizes in (
                 (self.mw.ui.spl_main, "Mainwindow/splittermain", (200, 1100)),
@@ -197,4 +198,5 @@ class SettingsHandler:
             normal_geometry = self.mw.geometry()
         self.settings.setValue("Mainwindow/size", normal_geometry.size())
         self.settings.setValue("Mainwindow/pos", normal_geometry.topLeft())
-        self.settings.setValue("Mainwindow/fullscreen", int(self.mw.isMaximized()))
+        window_state: int = 2 if self.mw.isFullScreen() else int(self.mw.isMaximized())
+        self.settings.setValue("Mainwindow/fullscreen", window_state)
