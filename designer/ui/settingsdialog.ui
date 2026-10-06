@@ -33,16 +33,16 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="pb_ok">
+      <widget class="QPushButton" name="pb_cancel">
        <property name="text">
-        <string>ОК</string>
+        <string>Отмена</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pb_cancel">
+      <widget class="QPushButton" name="pb_ok">
        <property name="text">
-        <string>Отмена</string>
+        <string>ОК</string>
        </property>
       </widget>
      </item>

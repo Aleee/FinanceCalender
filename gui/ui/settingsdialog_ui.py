@@ -39,15 +39,15 @@ class Ui_settingsdialog(object):
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
 
-        self.pb_ok = QPushButton(settingsdialog)
-        self.pb_ok.setObjectName(u"pb_ok")
-
-        self.horizontalLayout.addWidget(self.pb_ok)
-
         self.pb_cancel = QPushButton(settingsdialog)
         self.pb_cancel.setObjectName(u"pb_cancel")
 
         self.horizontalLayout.addWidget(self.pb_cancel)
+
+        self.pb_ok = QPushButton(settingsdialog)
+        self.pb_ok.setObjectName(u"pb_ok")
+
+        self.horizontalLayout.addWidget(self.pb_ok)
 
 
         self.gridLayout.addLayout(self.horizontalLayout, 1, 1, 1, 1)
@@ -1057,8 +1057,8 @@ class Ui_settingsdialog(object):
 
     def retranslateUi(self, settingsdialog):
         settingsdialog.setWindowTitle(QCoreApplication.translate("settingsdialog", u"\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438", None))
-        self.pb_ok.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u041a", None))
         self.pb_cancel.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
+        self.pb_ok.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u041a", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("settingsdialog", u"\u041f\u0430\u0440\u0441\u0435\u0440 \u043a\u043e\u043c\u0438\u0441\u0441\u0438\u0439", None))
         self.label_16.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0437\u0430 \u043a\u043e\u043c\u0438\u0441\u0441\u0438\u0438:", None))
         self.label_20.setText(QCoreApplication.translate("settingsdialog", u"\u0418\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0435 \u0423\u041d\u041f:", None))
