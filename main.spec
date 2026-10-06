@@ -37,3 +37,13 @@ coll = COLLECT(
     upx=False,
     name='FinanceCalender',
 )
+app = BUNDLE(
+    coll,
+    name='Платежный календарь.app',
+    icon='designer/icons/app.png',
+    bundle_identifier=None,
+    info_plist={
+        'CFBundleName': 'Платежный календарь',
+        'CFBundleDisplayName': 'Платежный календарь',
+    },
+)
