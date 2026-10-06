@@ -9,7 +9,7 @@ import lovely_logger as log
 
 from base.casting import str_int
 from base.formatting import dec_strcommaspace, str_decimal
-from gui.settings import SettingsHandler
+from base.dbhandler import DBHandler
 
 # --- Роли столбцов, в порядке, в котором они перечислены в CSVparser/columnstoparse ---
 DATE_COLUMNINDEX: int = 0
@@ -108,22 +108,22 @@ def parse_date(raw: str, row_index: int) -> date:
         raise CSVParseError(f"Не удалось получить дату из строки {row_index}: {raw!r}")
 
 
-def read_transaction_csv(filename: str, sh: SettingsHandler) -> StatementParseResult:
+def read_transaction_csv(filename: str, dbh: DBHandler) -> StatementParseResult:
 
     columns_to_parse: list[int] = list(
-        map(int, sh.settings.value("CSVparser/columnstoparse").split(","))
+        map(int, dbh.get_setting("CSVparser/columnstoparse").split(","))
     )
     known_unp: list[str] = [
-        x for x in sh.settings.value("CSVparser/knownunp").split(",") if x
+        x for x in dbh.get_setting("CSVparser/knownunp").split(",") if x
     ]
     keyword_templates: set[str] = {
         sub.strip().lower()
-        for sub in sh.settings.value("CSVparser/patterns").split(",")
+        for sub in dbh.get_setting("CSVparser/patterns").split(",")
         if sub.strip()
     }
     # 1 и 9 - дефолты из gui/settingsdialog.py (DEF_ROW_PERIOD, DEF_ROW_TRANSACTIONSTART)
-    row_period: int = str_int(sh.settings.value("CSVparser/rowperiod"), 1) - 1
-    row_transactions_start: int = str_int(sh.settings.value("CSVparser/rowtransactionstart"), 9) - 1
+    row_period: int = str_int(dbh.get_setting("CSVparser/rowperiod"), 1) - 1
+    row_transactions_start: int = str_int(dbh.get_setting("CSVparser/rowtransactionstart"), 9) - 1
 
     period: Optional[tuple[date, date]] = None
     income_fees = FeeCategoryResult()

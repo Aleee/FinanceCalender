@@ -693,22 +693,22 @@ class SettingsDialog(QDialog):
         self.ui.le_backuppath.setText(self.settings_handler.backup_path())
         # CSV-парсер
         self.ui.spb_csv_rowperiod.setValue(
-            str_int(self.settings_handler.settings.value("CSVparser/rowperiod", DEF_ROW_PERIOD), DEF_ROW_PERIOD))
+            str_int(self.db_handler.get_setting("CSVparser/rowperiod", DEF_ROW_PERIOD), DEF_ROW_PERIOD))
         self.ui.spb_csv_rowfirsttransaction.setValue(
-            str_int(self.settings_handler.settings.value("CSVparser/rowtransactionstart", DEF_ROW_TRANSACTIONSTART), DEF_ROW_TRANSACTIONSTART))
-        self.ui.le_csv_columns.setText(self.settings_handler.settings.value("CSVparser/columnstoparse", DEF_COLUMNSTOPARSE))
-        self.ui.le_csv_unp.setText(self.settings_handler.settings.value("CSVparser/knownunp", ""))
-        self.ui.te_csv_patterns.setPlainText(self.settings_handler.settings.value("CSVparser/patterns", ""))
+            str_int(self.db_handler.get_setting("CSVparser/rowtransactionstart", DEF_ROW_TRANSACTIONSTART), DEF_ROW_TRANSACTIONSTART))
+        self.ui.le_csv_columns.setText(self.db_handler.get_setting("CSVparser/columnstoparse", DEF_COLUMNSTOPARSE))
+        self.ui.le_csv_unp.setText(self.db_handler.get_setting("CSVparser/knownunp"))
+        self.ui.te_csv_patterns.setPlainText(self.db_handler.get_setting("CSVparser/patterns"))
         for row in range(self.ui.cmb_csv_responsible.model().rowCount()):
-            if self.settings_handler.settings.value("CSVparser/responsible", "0") == self.ui.cmb_csv_responsible.model().index(row, 0).data():
+            if self.db_handler.get_setting("CSVparser/responsible", "0") == self.ui.cmb_csv_responsible.model().index(row, 0).data():
                 self.ui.cmb_csv_responsible.setCurrentIndex(row)
                 break
-        self.ui.te_csv_nomatchpatterns.setPlainText(self.settings_handler.settings.value("CSVparser/nomatchpatterns", ""))
+        self.ui.te_csv_nomatchpatterns.setPlainText(self.db_handler.get_setting("CSVparser/nomatchpatterns"))
         # Календарь
         self.calendar_data = {}
         for row in range(self.ui.cmb_calender_year.count()):
             year: int = self.ui.cmb_calender_year.itemData(row)
-            self.calendar_data[year] = load_calendar_exceptions(self.settings_handler.settings, year)
+            self.calendar_data[year] = load_calendar_exceptions(self.db_handler, year)
         self.refresh_calendar_lists()
 
     def save_settings_values(self) -> None:
@@ -748,16 +748,16 @@ class SettingsDialog(QDialog):
         self.settings_handler.settings.setValue("Backup/cleanupperiod", self.ui.cmb_backupautodelete.currentData(Qt.ItemDataRole.UserRole))
         self.settings_handler.set_backup_path(self.ui.le_backuppath.text())
         # CSV-парсер
-        self.settings_handler.settings.setValue("CSVparser/rowperiod", self.ui.spb_csv_rowperiod.value())
-        self.settings_handler.settings.setValue("CSVparser/rowtransactionstart", self.ui.spb_csv_rowfirsttransaction.value())
-        self.settings_handler.settings.setValue("CSVparser/columnstoparse", self.ui.le_csv_columns.text())
-        self.settings_handler.settings.setValue("CSVparser/knownunp", self.ui.le_csv_unp.text())
-        self.settings_handler.settings.setValue("CSVparser/patterns", self.ui.te_csv_patterns.toPlainText())
-        self.settings_handler.settings.setValue("CSVparser/responsible", self.ui.cmb_csv_responsible.model().index(self.ui.cmb_csv_responsible.currentIndex(), 0).data())
-        self.settings_handler.settings.setValue("CSVparser/nomatchpatterns", self.ui.te_csv_nomatchpatterns.toPlainText())
+        self.db_handler.set_setting("CSVparser/rowperiod", self.ui.spb_csv_rowperiod.value())
+        self.db_handler.set_setting("CSVparser/rowtransactionstart", self.ui.spb_csv_rowfirsttransaction.value())
+        self.db_handler.set_setting("CSVparser/columnstoparse", self.ui.le_csv_columns.text())
+        self.db_handler.set_setting("CSVparser/knownunp", self.ui.le_csv_unp.text())
+        self.db_handler.set_setting("CSVparser/patterns", self.ui.te_csv_patterns.toPlainText())
+        self.db_handler.set_setting("CSVparser/responsible", self.ui.cmb_csv_responsible.model().index(self.ui.cmb_csv_responsible.currentIndex(), 0).data())
+        self.db_handler.set_setting("CSVparser/nomatchpatterns", self.ui.te_csv_nomatchpatterns.toPlainText())
         # Календарь
         for year, year_data in self.calendar_data.items():
-            save_calendar_exceptions(self.settings_handler.settings, year, year_data)
+            save_calendar_exceptions(self.db_handler, year, year_data)
 
         self.settings_handler.settings.sync()
 

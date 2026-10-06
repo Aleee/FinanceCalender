@@ -549,7 +549,7 @@ class EventDialog(QDialog):
         result = None
         if self._doc_terms is not None:
             result = calculate_payment_date(
-                self.sh.settings,
+                self.dbh,
                 self._doc_terms,
                 self.ui.de_paymenttrigger.date(),
                 self.ui.spb_paymentperiodyear.value(),

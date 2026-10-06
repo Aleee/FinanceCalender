@@ -9,11 +9,11 @@ from difflib import SequenceMatcher
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from PySide6.QtCore import QDate, QSettings
+from PySide6.QtCore import QDate
 
 from base.contract import ContractDocumentData, PaymentDueType, DaysType, MonthType
 from base.paymentdate import calculate_payment_date
-from base.paths import db_path, settings_path
+from base.paths import db_path
 
 BIND_SCORE = 5
 BIND_MARGIN = 2
@@ -217,10 +217,19 @@ def score_candidate(settings, event, info, terms, doc_row, tier, contract_mentio
     return score, why
 
 
+class MetaSettings:
+    def __init__(self, con: sqlite3.Connection):
+        self.con = con
+
+    def get_setting(self, key: str, default: str = "") -> str:
+        row = self.con.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+        return row[0] if row and row[0] is not None else default
+
+
 def main(apply: bool) -> None:
     con = sqlite3.connect(f"file:{db_path()}?mode=ro", uri=True)
     con.row_factory = sqlite3.Row
-    settings = QSettings(settings_path(), QSettings.Format.IniFormat)
+    settings = MetaSettings(con)
 
     docs = con.execute("""
         SELECT d.id AS doc_id, d.document_type, d.document_name, d.description, c.id AS contract_id,

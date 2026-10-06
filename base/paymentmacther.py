@@ -40,22 +40,22 @@ class StatementPayments:
         self.by_date.setdefault(dt, []).append((amount, descr))
 
 
-def extract_statement_payments(filename: str, sh) -> StatementPayments:
+def extract_statement_payments(filename: str, dbh) -> StatementPayments:
 
     columns_to_parse: list[int] = list(
-        map(int, sh.settings.value("CSVparser/columnstoparse").split(","))
+        map(int, dbh.get_setting("CSVparser/columnstoparse").split(","))
     )
     # 1 и 9 - дефолты из gui/settingsdialog.py (DEF_ROW_PERIOD, DEF_ROW_TRANSACTIONSTART)
-    row_period: int = str_int(sh.settings.value("CSVparser/rowperiod"), 1) - 1
-    row_transactions_start: int = str_int(sh.settings.value("CSVparser/rowtransactionstart"), 9) - 1
+    row_period: int = str_int(dbh.get_setting("CSVparser/rowperiod"), 1) - 1
+    row_transactions_start: int = str_int(dbh.get_setting("CSVparser/rowtransactionstart"), 9) - 1
     keyword_templates: set[str] = {
         sub.strip().lower()
-        for sub in sh.settings.value("CSVparser/patterns").split(",")
+        for sub in dbh.get_setting("CSVparser/patterns").split(",")
         if sub.strip()
     }
     nomatch_templates: set[str] = {
         sub.strip().lower()
-        for sub in (sh.settings.value("CSVparser/nomatchpatterns") or "").split(",")
+        for sub in dbh.get_setting("CSVparser/nomatchpatterns").split(",")
         if sub.strip()
     }
 
@@ -325,8 +325,8 @@ class ReconciliationResult:
         return lines
 
 
-def reconcile_statement_with_calendar(csv_filename: str, dbh: DBHandler, sh) -> ReconciliationResult | None:
-    statement = extract_statement_payments(csv_filename, sh)
+def reconcile_statement_with_calendar(csv_filename: str, dbh: DBHandler) -> ReconciliationResult | None:
+    statement = extract_statement_payments(csv_filename, dbh)
     calendar_by_date = dbh.get_paymentsum_for_period(statement.period[0], statement.period[1])
     if calendar_by_date is None:
         return None

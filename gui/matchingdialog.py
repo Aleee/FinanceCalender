@@ -41,7 +41,7 @@ class MatchingDialog(QDialog):
         self.ui.te_info.clear()
 
         try:
-            self.match_result = reconcile_statement_with_calendar(file_path, self.dbh, self.sh)
+            self.match_result = reconcile_statement_with_calendar(file_path, self.dbh)
         except CSVParseError as exc:
             log.w(f"Не удалось прочитать CSV-файл выписки: {exc}")
             ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}").exec()

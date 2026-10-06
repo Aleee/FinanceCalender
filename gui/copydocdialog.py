@@ -148,7 +148,7 @@ class CopyDocDialog(QDialog):
     def recalc_due_date(self) -> None:
         result = None
         if self.terms is not None:
-            result = calculate_payment_date(self.sh.settings, self.terms, self.ui.de_incurrencedate.date(),
+            result = calculate_payment_date(self.dbh, self.terms, self.ui.de_incurrencedate.date(),
                                             self.ui.spb_year.value(), self.ui.cmb_month.currentData())
         self.calculated_due_date = result if result is not None and result.isValid() else None
         if self.due_date_manual and self.ui.de_duedate.date() == self.calculated_due_date:

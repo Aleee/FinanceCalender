@@ -65,7 +65,7 @@ class FeeDialog(QDialog):
         self.ui.pb_createfeeliabilities.setEnabled(False)
 
         try:
-            self.parse_result = read_transaction_csv(file_path, self.sh)
+            self.parse_result = read_transaction_csv(file_path, self.dbh)
         except (CSVParseError, OSError, UnicodeDecodeError) as exc:
             self.parse_result = None
             log.w(f"Не удалось прочитать CSV-файл с комиссиями: {exc}")
@@ -261,7 +261,7 @@ class FeeDialog(QDialog):
             today_str,
             1,
             f"Выписка от {date_displstr(qt_fee_date)}",
-            self.sh.settings.value("CSVparser/responsible", "0"),
+            self.dbh.get_setting("CSVparser/responsible", "0"),
             comment,
             str(Decimal("0.0")),
             fee_date_str,

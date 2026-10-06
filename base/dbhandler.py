@@ -16,6 +16,7 @@ from base.formatting import str_decimal
 from base.liability import LiabilityCategory, FilterFlags, RowType
 from base.paths import db_path
 from base.payment import Payment
+from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
@@ -108,6 +109,40 @@ class DBHandler:
         self.db.setDatabaseName(db_path())
         if not self.db.open():
             log.c(f"Не удалось открыть базу данных по указанному пути (неизвестная ошибка): {db_path()}")
+            return False
+        clear_calendar_cache()
+        return True
+
+    def get_setting(self, key: str, default: str | None = "") -> str | None:
+        if not self.is_db_connected():
+            return default
+        query = QSqlQuery()
+        query.prepare("SELECT value FROM meta WHERE key = ?")
+        query.addBindValue(key)
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке прочитать настройку {key} из таблицы meta: {query.lastError().text()}")
+            return default
+        if query.next() and not query.isNull(0):
+            return str(query.value(0))
+        return default
+
+    def set_setting(self, key: str, value: Any) -> bool:
+        if not self.is_db_connected():
+            return False
+        query = QSqlQuery()
+        query.prepare("UPDATE meta SET value = ? WHERE key = ?")
+        query.addBindValue(str(value))
+        query.addBindValue(key)
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке обновить настройку {key} в таблице meta: {query.lastError().text()}")
+            return False
+        if query.numRowsAffected() > 0:
+            return True
+        query.prepare("INSERT INTO meta (key, value) VALUES (?, ?)")
+        query.addBindValue(key)
+        query.addBindValue(str(value))
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке добавить настройку {key} в таблицу meta: {query.lastError().text()}")
             return False
         return True
 
