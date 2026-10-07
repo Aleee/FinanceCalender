@@ -55,12 +55,10 @@ class FeeKind(Enum):
     EMBEDDED = auto()
     INCOME = auto()
     OUTGOING = auto()
-    SUSPICIOUS_NO_KEYWORDS = auto()
     SUSPICIOUS_NOT_BANK_UNP = auto()
 
 
 SUSPICIOUS_REASONS: dict[FeeKind, str] = {
-    FeeKind.SUSPICIOUS_NO_KEYWORDS: "УНП банка, но нет ключевых слов",
     FeeKind.SUSPICIOUS_NOT_BANK_UNP: "Есть ключевые слова, но УНП не из списка банков",
 }
 
@@ -155,9 +153,7 @@ def classify_fee(
             return FeeKind.EMBEDDED
         if is_bank_unp and has_keywords:
             return FeeKind.INCOME
-        if is_bank_unp:
-            return FeeKind.SUSPICIOUS_NO_KEYWORDS
-        if has_keywords:
+        if has_keywords and not is_bank_unp:
             return FeeKind.SUSPICIOUS_NOT_BANK_UNP
     elif transaction_code == OUTGOING_FEE_CODE and is_bank_unp:
         return FeeKind.OUTGOING
