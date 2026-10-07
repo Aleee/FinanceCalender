@@ -3,14 +3,18 @@ import re
 APP_VERSION: str = "10.2026-04"
 DB_VERSION: int = 3
 
-_VERSION_RE = re.compile(r"^(\d{2})\.(\d{4})-(\d{2})$")
+_NEW_VERSION_RE = re.compile(r"^(\d{4})\.(\d{2})\.(\d{2})$")
+_OLD_VERSION_RE = re.compile(r"^(\d{2})\.(\d{4})-(\d{2})$")
 
 
 def parse_version(text: str) -> tuple[int, int, int]:
-    match = _VERSION_RE.match(text.strip())
-    if match is None:
-        raise ValueError(f"Неверный формат версии: {text!r} (ожидается MM.YYYY-NN)")
-    month, year, build = int(match.group(1)), int(match.group(2)), int(match.group(3))
+    text = text.strip()
+    if match := _NEW_VERSION_RE.match(text):
+        year, month, build = (int(g) for g in match.groups())
+    elif match := _OLD_VERSION_RE.match(text):
+        month, year, build = (int(g) for g in match.groups())
+    else:
+        raise ValueError(f"Неверный формат версии: {text!r} (ожидается YYYY.MM.NN)")
     if not 1 <= month <= 12:
         raise ValueError(f"Неверный месяц в версии: {text!r}")
     return year, month, build
