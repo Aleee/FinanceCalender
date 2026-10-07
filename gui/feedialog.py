@@ -22,9 +22,6 @@ from gui.ui.feedialog_ui import Ui_feedialog
 
 
 FEE_RECEIVER: str = "Банки"
-
-# Соответствие между категорией из парсера, категорией начисления в базе
-# и текстом описания платежа. Порядок задаёт порядок создания платежей на дату.
 BANKING_DESCRIPTION: str = "[A] Комиссия банка, удержанная из поступлений"
 COMMISSION_DESCRIPTION: str = "[A] Комиссионное вознаграждение банку"
 
@@ -84,8 +81,8 @@ class FeeDialog(QDialog):
         render_category = self._render_category_full if self.ui.chb_fullreport.isChecked() \
             else self._render_category_report
         text = f"<h3>Выписка за период {period_from} – {period_to}</h3>"
-        text += render_category("Комиссии банка, удержанные из поступлений", result.income_fees)
-        text += render_category("Комиссии, уплаченные/списанные отдельно", result.outgoing_fees)
+        text += render_category("Комиссии, относящиеся к банковским расходам", result.income_fees)
+        text += render_category("Комиссии, относящиеся к комиссионным расходам", result.outgoing_fees)
 
         has_any_fees = bool(result.income_fees.daily or result.outgoing_fees.daily)
         self.ui.pb_createfeeliabilities.setEnabled(has_any_fees)
@@ -94,7 +91,7 @@ class FeeDialog(QDialog):
     @staticmethod
     def _render_category_report(title: str, fees: FeeCategoryResult) -> str:
         if not fees.daily:
-            return (f"<h4>{title}</h4><p>Транзакций с комиссией не обнаружено.</p>"
+            return (f"<h4>{title}</h4><p>Транзакций с комиссиями не обнаружено.</p>"
                     + FeeDialog._render_suspicious(fees, full=False))
 
         total_count = sum(agg.count for agg in fees.daily.values())
@@ -134,7 +131,7 @@ class FeeDialog(QDialog):
     @staticmethod
     def _render_category_full(title: str, fees: FeeCategoryResult) -> str:
         if not fees.records:
-            return (f"<h4>{title}</h4><p>Транзакций с комиссией не обнаружено.</p>"
+            return (f"<h4>{title}</h4><p>Транзакций с комиссиями не обнаружено.</p>"
                     + FeeDialog._render_suspicious(fees, full=True))
 
         total_sum = sum(record.amount for record in fees.records)
@@ -241,7 +238,6 @@ class FeeDialog(QDialog):
         return True
 
     def _check_already_paid(self, categories: list) -> Optional[list]:
-        """Возвращает список (дата, категория, уже сохранённая сумма) или None при ошибке БД."""
         already_paid: list = []
         for daily, liability_category, _ in categories:
             for fee_date in daily:
