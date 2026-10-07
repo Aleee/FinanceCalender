@@ -232,7 +232,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
         factuals_dict[10000], factuals_dict[21000], factuals_dict[22000], factuals_dict[23100], factuals_dict[23200] = inflow_values
         for payment in payments:
             category, subcategory = int(payment[0]), int(payment[5])
-            amount = int(Decimal(payment[1]).to_integral_value(rounding=ROUND_HALF_UP))
+            amount = Decimal(payment[1])
             mapped_category = self.map_category(category, subcategory)
             if mapped_category is None:
                 continue
@@ -240,7 +240,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
 
         self.aggregate_totals(factuals_dict)
 
-        return factuals_dict
+        return {key: int(Decimal(value).to_integral_value(rounding=ROUND_HALF_UP)) for key, value in factuals_dict.items()}
 
     def categorie_level(self, categorie: int) -> int:
         subcategories_present = bool(self.FULFILLMENT_STRUCTURE[categorie][0])
