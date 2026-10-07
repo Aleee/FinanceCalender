@@ -47,6 +47,21 @@ def test_migrate_calls_function_step(dbh, old_db, migrations):
     assert read_meta(old_db)["from_function"] == "1"
 
 
+def test_after_commit_action_runs_after_successful_migration(dbh, old_db, migrations):
+    versions_seen = []
+    migrations[2] = [lambda handler: handler.after_commit_actions.append(lambda: versions_seen.append(read_version(old_db)))]
+    assert dbh.migrate_db()
+    assert versions_seen == [CLIENT_VERSION]
+
+
+def test_after_commit_action_is_skipped_when_migration_fails(dbh, old_db, migrations):
+    calls = []
+    migrations[2] = [lambda handler: handler.after_commit_actions.append(lambda: calls.append(1))]
+    migrations[3] = ["INSERT INTO no_such_table VALUES (1)"]
+    assert not dbh.migrate_db()
+    assert calls == []
+
+
 def test_migrated_db_passes_integrity_check(dbh, old_db):
     assert dbh.migrate_db()
     assert dbh.check_db_file_integrity()

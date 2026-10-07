@@ -5,7 +5,7 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from datetime import date
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from PySide6.QtCore import QDate
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
@@ -37,6 +37,7 @@ class DBHandler:
         self.db: QSqlDatabase = QSqlDatabase.addDatabase("QSQLITE")
 
         self.personal_data_max_id: int = 0
+        self.after_commit_actions: list[Callable[[], None]] = []
 
     @staticmethod
     def _is_null(value: Any) -> bool:
@@ -108,6 +109,7 @@ class DBHandler:
 
     def migrate_db(self, alternative_path: str = "") -> bool:
         migrated_path: str = alternative_path if alternative_path else db_path()
+        self.after_commit_actions.clear()
         self.db.setDatabaseName(migrated_path)
         if not self.db.open():
             log.e(f"Не удалось открыть базу данных для обновления структуры: {migrated_path}")
@@ -141,6 +143,11 @@ class DBHandler:
             return False
         self.db.close()
         log.i(f"Структура базы данных обновлена: версия {version} -> {self.DB_VERSION}")
+        for action in self.after_commit_actions:
+            try:
+                action()
+            except Exception as e:
+                log.x(f"Не удалось выполнить действие после обновления структуры базы данных: {e}")
         return True
 
     def _apply_migration(self, target_version: int) -> None:
