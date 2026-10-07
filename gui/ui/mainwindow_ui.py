@@ -163,7 +163,7 @@ class Ui_MainWindow(object):
         self.wdg_eventfilter = QWidget(self.spl_main)
         self.wdg_eventfilter.setObjectName(u"wdg_eventfilter")
         self.wdg_eventfilter.setMinimumSize(QSize(200, 0))
-        self.wdg_eventfilter.setStyleSheet(u"background-color:white;")
+        self.wdg_eventfilter.setStyleSheet(u"QWidget#wdg_eventfilter {background-color:white;}")
         self.gridLayout_2 = QGridLayout(self.wdg_eventfilter)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.gridLayout_2.setContentsMargins(0, 0, 0, 0)
@@ -171,7 +171,8 @@ class Ui_MainWindow(object):
         self.scrollArea.setObjectName(u"scrollArea")
         self.scrollArea.setStyleSheet(u"QPushButton {\n"
 "    border:none\n"
-"}")
+"}\n"
+"QWidget#scrollAreaWidgetContents {background-color:white;}")
         self.scrollArea.setFrameShape(QFrame.Shape.NoFrame)
         self.scrollArea.setLineWidth(1)
         self.scrollArea.setWidgetResizable(True)

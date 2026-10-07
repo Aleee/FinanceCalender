@@ -41,7 +41,7 @@
         </size>
        </property>
        <property name="styleSheet">
-        <string notr="true">background-color:white;</string>
+        <string notr="true">QWidget#wdg_eventfilter {background-color:white;}</string>
        </property>
        <layout class="QGridLayout" name="gridLayout_2">
         <property name="leftMargin">
@@ -61,7 +61,8 @@
           <property name="styleSheet">
            <string notr="true">QPushButton {
     border:none
-}</string>
+}
+QWidget#scrollAreaWidgetContents {background-color:white;}</string>
           </property>
           <property name="frameShape">
            <enum>QFrame::Shape::NoFrame</enum>
