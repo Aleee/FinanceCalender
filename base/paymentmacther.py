@@ -11,8 +11,8 @@ import lovely_logger as log
 from base.casting import str_int
 from base.dbhandler import DBHandler
 from base.feeparser import (CODE_COLUMNINDEX, DATE_COLUMNINDEX, DESCR_COLUMNINDEX, SUM_COLUMNINDEX,
-                            RECEIVER_COLUMNINDEX, FEE_IN_TEXT_PATTERN, INCOME_FEE_CODE, CSVParseError,
-                            parse_date, parse_period, OUTGOING_FEE_CODES)
+                            RECEIVER_COLUMNINDEX, UNP_COLUMNINDEX, FEE_IN_TEXT_PATTERN, CSVParseError,
+                            FeeKind, classify_fee, read_bank_unp, parse_date, parse_period)
 from base.formatting import (str_decimal, dec_html, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_OK,
                              COLOR_HEADER_BG)
 
@@ -48,6 +48,7 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
     # 1 и 9 - дефолты из gui/settingsdialog.py (DEF_ROW_PERIOD, DEF_ROW_TRANSACTIONSTART)
     row_period: int = str_int(dbh.get_setting("CSVparser/rowperiod"), 1) - 1
     row_transactions_start: int = str_int(dbh.get_setting("CSVparser/rowtransactionstart"), 9) - 1
+    bank_unp: list[str] = read_bank_unp(dbh)
     keyword_templates: set[str] = {
         sub.strip().lower()
         for sub in dbh.get_setting("CSVparser/patterns").split(",")
@@ -87,6 +88,7 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
             try:
                 transaction_code: str = content[columns_to_parse[CODE_COLUMNINDEX]]
                 description: str = content[columns_to_parse[DESCR_COLUMNINDEX]]
+                unp: str = content[columns_to_parse[UNP_COLUMNINDEX]]
                 receiver: str = content[columns_to_parse[RECEIVER_COLUMNINDEX]]
                 debit_raw: str = content[columns_to_parse[SUM_COLUMNINDEX]]
                 raw_date: str = content[columns_to_parse[DATE_COLUMNINDEX]]
@@ -109,14 +111,15 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
                     )
                 if debit_amount > 0:
                     transaction_date = parse_date(raw_date, row_index)
-                    is_outgoing_fee = (
-                            transaction_code in OUTGOING_FEE_CODES
-                            and any(kw in description_lower for kw in keyword_templates)
-                    )
+                    fee_kind = classify_fee(transaction_code, unp, description, bank_unp, keyword_templates)
                     is_payroll = any(kw in description_lower for kw in PAYROLL_KEYWORDS)
-                    if is_outgoing_fee:
+                    if fee_kind == FeeKind.OUTGOING:
                         outgoing_fee_totals[transaction_date] = (
                                 outgoing_fee_totals.get(transaction_date, Decimal("0")) + debit_amount
+                        )
+                    elif fee_kind == FeeKind.INCOME:
+                        income_fee_totals[transaction_date] = (
+                                income_fee_totals.get(transaction_date, Decimal("0")) + debit_amount
                         )
                     elif is_payroll:
                         payroll_totals[transaction_date] = (
@@ -127,7 +130,7 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
                     continue
 
             # Дебета нет
-            if transaction_code == INCOME_FEE_CODE:
+            if classify_fee(transaction_code, unp, description, bank_unp, keyword_templates) == FeeKind.EMBEDDED:
                 matches = FEE_IN_TEXT_PATTERN.findall(description)
                 if len(matches) > 1:
                     raise CSVParseError(

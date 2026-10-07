@@ -1061,7 +1061,7 @@ class Ui_settingsdialog(object):
         self.pb_ok.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u041a", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("settingsdialog", u"\u041f\u0430\u0440\u0441\u0435\u0440 \u043a\u043e\u043c\u0438\u0441\u0441\u0438\u0439", None))
         self.label_16.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0437\u0430 \u043a\u043e\u043c\u0438\u0441\u0441\u0438\u0438:", None))
-        self.label_20.setText(QCoreApplication.translate("settingsdialog", u"\u0418\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0435 \u0423\u041d\u041f:", None))
+        self.label_20.setText(QCoreApplication.translate("settingsdialog", u"\u0423\u041d\u041f \u0431\u0430\u043d\u043a\u043e\u0432:", None))
         self.label_19.setText(QCoreApplication.translate("settingsdialog", u"\u0421\u0442\u043e\u043b\u0431\u0446\u044b (\u0434\u0430\u0442\u0430, \u043a\u043e\u0434, \u0423\u041d\u041f, \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435, \u0441\u0443\u043c\u043c\u0430, \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435, \u043f\u043e\u043b\u0443\u0447\u0430\u0442\u0435\u043b\u044c):", None))
         self.le_csv_columns.setInputMask(QCoreApplication.translate("settingsdialog", u"9,9,9,9,9,9,9", None))
         self.label_15.setText(QCoreApplication.translate("settingsdialog", u"\u041d\u043e\u043c\u0435\u0440 \u0441\u0442\u0440\u043e\u043a\u0438 \u0441 \u043f\u0435\u0440\u0432\u043e\u0439 \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0435\u0439:", None))

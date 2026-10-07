@@ -560,7 +560,7 @@ class SettingsDialog(QDialog):
                             self.MENU_ROW_CSV, self.ui.le_csv_columns)
             return
         if not self.ui.le_csv_unp.hasAcceptableInput():
-            self.show_error("Поле с перечнем известных УНП заполнено неверно (разрешены только девятизначные УНП через запятую)",
+            self.show_error("Поле с перечнем УНП банков заполнено неверно (разрешены только девятизначные УНП через запятую)",
                             self.MENU_ROW_CSV, self.ui.le_csv_unp)
             return
 

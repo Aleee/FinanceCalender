@@ -94,7 +94,8 @@ class FeeDialog(QDialog):
     @staticmethod
     def _render_category_report(title: str, fees: FeeCategoryResult) -> str:
         if not fees.daily:
-            return f"<h4>{title}</h4><p>Транзакций с комиссией не обнаружено.</p>"
+            return (f"<h4>{title}</h4><p>Транзакций с комиссией не обнаружено.</p>"
+                    + FeeDialog._render_suspicious(fees, full=False))
 
         total_count = sum(agg.count for agg in fees.daily.values())
         total_sum = sum(agg.total for agg in fees.daily.values())
@@ -126,12 +127,15 @@ class FeeDialog(QDialog):
                 )
             lines.append("</table>")
 
+        lines.append(FeeDialog._render_suspicious(fees, full=False))
+
         return "\n".join(lines)
 
     @staticmethod
     def _render_category_full(title: str, fees: FeeCategoryResult) -> str:
         if not fees.records:
-            return f"<h4>{title}</h4><p>Транзакций с комиссией не обнаружено.</p>"
+            return (f"<h4>{title}</h4><p>Транзакций с комиссией не обнаружено.</p>"
+                    + FeeDialog._render_suspicious(fees, full=True))
 
         total_sum = sum(record.amount for record in fees.records)
         lines = [
@@ -162,6 +166,7 @@ class FeeDialog(QDialog):
                 f"<td valign='top'>{html.escape(' '.join(record.description.split()))}</td></tr>"
             )
         lines.append("</table>")
+        lines.append(FeeDialog._render_suspicious(fees, full=True))
         return "\n".join(lines)
 
     @staticmethod
@@ -169,10 +174,35 @@ class FeeDialog(QDialog):
         where = "Такие строки выделены в таблице цветом." if in_table else "Список записей приведён ниже."
         return (
             f"<p style='color:{COLOR_WARNING}; background-color:{COLOR_WARNING_BG};'>"
-            f"<b>Внимание!</b> Среди транзакций замечены записи с неизвестными УНП плательщика "
+            f"<b>Внимание!</b> Среди транзакций замечены записи с УНП, которых нет в списке УНП банков "
             f"(всего {count}). Проверьте эти записи на правильность включения в список уплаченных комиссий! "
-            f"При необходимости добавьте эти УНП в список доверенных в настройках. {where}</p>"
+            f"При необходимости добавьте эти УНП в список УНП банков в настройках. {where}</p>"
         )
+
+    @staticmethod
+    def _render_suspicious(fees: FeeCategoryResult, full: bool) -> str:
+        if not fees.suspicious:
+            return ""
+
+        lines = [
+            f"<p style='color:{COLOR_WARNING}; background-color:{COLOR_WARNING_BG};'>"
+            f"<b>Внимание!</b> Обнаружены подозрительные операции с кодом 6 (всего {len(fees.suspicious)}): "
+            f"выполняется только одно из условий — УНП банка или ключевые слова. "
+            f"В комиссии такие операции НЕ включены. Проверьте их вручную; "
+            f"при необходимости скорректируйте список УНП банков или ключевые слова в настройках.</p>",
+            "<table cellspacing='0' cellpadding='3'>",
+        ]
+        for item in sorted(fees.suspicious, key=lambda s: s.record.fee_date):
+            record = item.record
+            description_cell = f"<td>{html.escape(' '.join(record.description.split()))}</td>" if full else ""
+            lines.append(
+                f"<tr><td>{record.fee_date.strftime('%d.%m.%Y')}</td>"
+                f"<td>{html.escape(record.unp)}</td><td>{html.escape(record.receiver)}</td>"
+                f"<td align='right'>{dec_html(record.amount)}</td>"
+                f"<td>{html.escape(item.reason)}</td>{description_cell}</tr>"
+            )
+        lines.append("</table>")
+        return "\n".join(lines)
 
     # ------------------------------------------------------------------ #
     # Создание платежей

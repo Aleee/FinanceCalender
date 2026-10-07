@@ -3,6 +3,7 @@ import re
 from dataclasses import dataclass, field
 from decimal import Decimal
 from datetime import datetime, date
+from enum import Enum, auto
 from typing import Optional
 
 import lovely_logger as log
@@ -21,8 +22,8 @@ RECEIVER_COLUMNINDEX: int = 6
 
 # Комиссия банка, "спрятанная" внутри зачисления (эквайринг/ЕРИП) — всегда код 6
 INCOME_FEE_CODE: str = "6"
-# Комиссии, которые платим сами / которые банк списывает отдельным требованием — коды 2 и 6
-OUTGOING_FEE_CODES: tuple[str, ...] = ("2", "6")
+# Комиссии, которые банк списывает отдельным требованием — код 2
+OUTGOING_FEE_CODE: str = "2"
 
 FEE_IN_TEXT_PATTERN = re.compile(r"комиссия\s+(\d{1,3}(?:[ \xa0]\d{3})*(?:[.,]\d+)?)")
 
@@ -48,6 +49,22 @@ class DailyFees:
         return f"Всего комиссий: {self.count} (в том числе на суммы: {amounts_str})"
 
 
+class FeeKind(Enum):
+
+    NONE = auto()
+    EMBEDDED = auto()
+    INCOME = auto()
+    OUTGOING = auto()
+    SUSPICIOUS_NO_KEYWORDS = auto()
+    SUSPICIOUS_NOT_BANK_UNP = auto()
+
+
+SUSPICIOUS_REASONS: dict[FeeKind, str] = {
+    FeeKind.SUSPICIOUS_NO_KEYWORDS: "УНП банка, но нет ключевых слов",
+    FeeKind.SUSPICIOUS_NOT_BANK_UNP: "Есть ключевые слова, но УНП не из списка банков",
+}
+
+
 @dataclass
 class FeeRecord:
 
@@ -56,7 +73,14 @@ class FeeRecord:
     unp: str
     receiver: str
     description: str
-    is_known_unp: bool
+    is_known_unp: bool = True
+
+
+@dataclass
+class SuspiciousRecord:
+
+    record: FeeRecord
+    reason: str
 
 
 @dataclass
@@ -64,13 +88,21 @@ class FeeCategoryResult:
 
     daily: dict[date, DailyFees] = field(default_factory=dict)
     unknown_unp: list[tuple[str, date, str]] = field(default_factory=list)
+    suspicious: list[SuspiciousRecord] = field(default_factory=list)
     records: list[FeeRecord] = field(default_factory=list)
 
-    def add(self, dt: date, amount: Decimal, unp: str, receiver: str, description: str, is_known_unp: bool) -> None:
+    def add(
+        self, dt: date, amount: Decimal, unp: str, receiver: str, description: str, is_known_unp: bool = True
+    ) -> None:
         self.daily.setdefault(dt, DailyFees()).add(amount)
         self.records.append(FeeRecord(dt, amount, unp, receiver, description, is_known_unp))
         if not is_known_unp:
             self.unknown_unp.append((unp, dt, receiver))
+
+    def add_suspicious(
+        self, dt: date, amount: Decimal, unp: str, receiver: str, description: str, reason: str
+    ) -> None:
+        self.suspicious.append(SuspiciousRecord(FeeRecord(dt, amount, unp, receiver, description), reason))
 
     @property
     def payments(self) -> dict[date, Decimal]:
@@ -84,8 +116,8 @@ class FeeCategoryResult:
 @dataclass
 class StatementParseResult:
     period: tuple[date, date]
-    income_fees: FeeCategoryResult  # код 6, сумма из текста — комиссии банка из поступлений
-    outgoing_fees: FeeCategoryResult  # коды 2 и 6, сумма из "Дебет" — уплаченные/списанные отдельно
+    income_fees: FeeCategoryResult  # код 6: зашитые (сумма из текста) и УНП банка + ключевые слова (из "Дебет")
+    outgoing_fees: FeeCategoryResult  # код 2 + УНП банка, сумма из "Дебет" — списанные отдельно
 
 
 def parse_period(text: str) -> Optional[tuple[date, date]]:
@@ -108,14 +140,44 @@ def parse_date(raw: str, row_index: int) -> date:
         raise CSVParseError(f"Не удалось получить дату из строки {row_index}: {raw!r}")
 
 
+def read_bank_unp(dbh: DBHandler) -> list[str]:
+    return [x for x in dbh.get_setting("CSVparser/knownunp").split(",") if x]
+
+
+def classify_fee(
+    transaction_code: str, unp: str, description: str, bank_unp: list[str], keyword_templates: set[str]
+) -> FeeKind:
+    is_bank_unp = unp in bank_unp
+    has_keywords = any(kw in description.lower() for kw in keyword_templates)
+
+    if transaction_code == INCOME_FEE_CODE:
+        if FEE_IN_TEXT_PATTERN.search(description):
+            return FeeKind.EMBEDDED
+        if is_bank_unp and has_keywords:
+            return FeeKind.INCOME
+        if is_bank_unp:
+            return FeeKind.SUSPICIOUS_NO_KEYWORDS
+        if has_keywords:
+            return FeeKind.SUSPICIOUS_NOT_BANK_UNP
+    elif transaction_code == OUTGOING_FEE_CODE and is_bank_unp:
+        return FeeKind.OUTGOING
+    return FeeKind.NONE
+
+
+def read_debit(content: list[str], columns_to_parse: list[int]) -> Decimal:
+    debit_raw = content[columns_to_parse[SUM_COLUMNINDEX]]
+    debit = str_decimal(debit_raw)
+    if debit is None:
+        raise CSVParseError(f"Не удалось преобразовать в число значение Дебета: {debit_raw!r}")
+    return debit
+
+
 def read_transaction_csv(filename: str, dbh: DBHandler) -> StatementParseResult:
 
     columns_to_parse: list[int] = list(
         map(int, dbh.get_setting("CSVparser/columnstoparse").split(","))
     )
-    known_unp: list[str] = [
-        x for x in dbh.get_setting("CSVparser/knownunp").split(",") if x
-    ]
+    bank_unp: list[str] = read_bank_unp(dbh)
     keyword_templates: set[str] = {
         sub.strip().lower()
         for sub in dbh.get_setting("CSVparser/patterns").split(",")
@@ -155,7 +217,7 @@ def read_transaction_csv(filename: str, dbh: DBHandler) -> StatementParseResult:
                 break
 
             is_income_fee_code = transaction_code == INCOME_FEE_CODE
-            is_outgoing_fee_code = transaction_code in OUTGOING_FEE_CODES
+            is_outgoing_fee_code = transaction_code == OUTGOING_FEE_CODE
             if not (is_income_fee_code or is_outgoing_fee_code):
                 continue  # нетранзакционные строки (сальдо/итоги) и прочие коды
 
@@ -168,36 +230,37 @@ def read_transaction_csv(filename: str, dbh: DBHandler) -> StatementParseResult:
                 log.e(f"Ошибка обработки строки {row_index}: столбец недостижим (IndexError)")
                 break
 
-            description_lower = description.lower()
-            matched_as_income_fee = False
+            fee_kind = classify_fee(transaction_code, unp, description, bank_unp, keyword_templates)
+            if fee_kind == FeeKind.NONE:
+                continue
 
-            # --- Категория А: комиссия банка, зашитая в тексте поступления (код 6) ---
-            if is_income_fee_code:
+            transaction_date = parse_date(raw_date, row_index)
+
+            # Категория А: зашитая в тексте поступления комиссия (код 6), сумма из текста
+            if fee_kind == FeeKind.EMBEDDED:
                 matches = FEE_IN_TEXT_PATTERN.findall(description)
                 if len(matches) > 1:
                     raise CSVParseError(
                         f"Строка {row_index}: найдено более одного совпадения суммы комиссии: {description}"
                     )
-                if len(matches) == 1:
-                    fee = str_decimal(matches[0])
-                    if fee is None:
-                        raise CSVParseError(f"Не удалось преобразовать в число: {matches[0]!r}")
-                    transaction_date = parse_date(raw_date, row_index)
-                    income_fees.add(transaction_date, fee, unp, receiver, description, unp in known_unp)
-                    matched_as_income_fee = True
-
-            # --- Категория Б: комиссии по ключевым словам, коды 2 и 6, сумма из "Дебет" ---
-            if (
-                not matched_as_income_fee
-                and is_outgoing_fee_code
-                and any(kw in description_lower for kw in keyword_templates)
-            ):
-                debit_raw = content[columns_to_parse[SUM_COLUMNINDEX]]
-                fee = str_decimal(debit_raw)
+                fee = str_decimal(matches[0])
                 if fee is None:
-                    raise CSVParseError(f"Не удалось преобразовать в число значение Дебета: {debit_raw!r}")
-                transaction_date = parse_date(raw_date, row_index)
-                outgoing_fees.add(transaction_date, fee, unp, receiver, description, unp in known_unp)
+                    raise CSVParseError(f"Не удалось преобразовать в число: {matches[0]!r}")
+                income_fees.add(transaction_date, fee, unp, receiver, description, unp in bank_unp)
+
+            # Категория А: прочие комиссии (код 6, УНП банка + ключевые слова), сумма из "Дебет"
+            elif fee_kind == FeeKind.INCOME:
+                income_fees.add(transaction_date, read_debit(content, columns_to_parse), unp, receiver, description)
+
+            # Категория Б: код 2 и УНП банка, сумма из "Дебет"
+            elif fee_kind == FeeKind.OUTGOING:
+                outgoing_fees.add(transaction_date, read_debit(content, columns_to_parse), unp, receiver, description)
+
+            else:
+                amount = str_decimal(content[columns_to_parse[SUM_COLUMNINDEX]]) or Decimal("0")
+                income_fees.add_suspicious(
+                    transaction_date, amount, unp, receiver, description, SUSPICIOUS_REASONS[fee_kind]
+                )
 
     if period is None:
         raise CSVParseError("В файле не найдена строка с периодом выписки")

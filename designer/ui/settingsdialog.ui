@@ -142,7 +142,7 @@
           <item row="4" column="0">
            <widget class="QLabel" name="label_20">
             <property name="text">
-             <string>Известные УНП:</string>
+             <string>УНП банков:</string>
             </property>
            </widget>
           </item>
