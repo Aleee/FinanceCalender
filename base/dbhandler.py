@@ -330,7 +330,7 @@ class DBHandler:
     def load_fulfillmentpayments_from_db(self, start_date: QDate, end_date: QDate) -> None | list:
         if not self.is_db_connected():
             return None
-        query = QSqlQuery(f"SELECT E.category, P.sum, P.paymentdate, E.receiver, E.name, E.subcategory, E.nds FROM payment AS P "
+        query = QSqlQuery(f"SELECT E.category, P.sum, P.paymentdate, E.receiver, E.name, E.subcategory, E.nds, E.hidden FROM payment AS P "
                           f"INNER JOIN event AS E ON P.eventid = E.id "
                           f"WHERE P.paymentdate BETWEEN \'{date_str(start_date)}\' AND \'{date_str(end_date)}\' "
                           f"ORDER BY E.category ASC, CAST(P.sum AS decimal) DESC")
@@ -339,7 +339,7 @@ class DBHandler:
             return None
         values: list = []
         while query.next():
-            values.append([query.value(0), query.value(1), query.value(2), query.value(3), query.value(4), query.value(5), query.value(6)])
+            values.append([query.value(0), query.value(1), query.value(2), query.value(3), query.value(4), query.value(5), query.value(6), int(query.value(7) or 0)])
         return values
 
     def load_fulfillmentplanvalues_from_db(self, year: int, start_month: int, end_month: int) -> None | dict:

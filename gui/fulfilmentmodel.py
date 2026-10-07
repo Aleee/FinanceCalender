@@ -169,13 +169,20 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
                     fulfillment = None
                 self.rootItem.appendChild(TreeItem((data[1], data[2], plan_value, factuals[categorie], deviation, fulfillment), self.rootItem, categorie))
             # Заполнение платежей
+            hidden_sums: dict = {}
             for payment in payments:
                 category, amount, textamount, date, receiver, name, subcategory = (int(payment[0]), Decimal(payment[1]), dec_strcommaspace(Decimal(payment[1])),
                                                                                    date_displstr(str_date(payment[2])), str(payment[3]), str(payment[4]), int(payment[5]))
                 mapped_category = self.map_category(category, subcategory)
                 if mapped_category is None:
                     continue
+                if payment[7]:
+                    hidden_sums[mapped_category] = hidden_sums.get(mapped_category, 0) + amount
+                    continue
                 text = f"{textamount} р.\t{date}\t{receiver}  ({name})"
+                self.rootItem.child(self.categories.index(mapped_category)).appendChild(TreeItem((text,), self.rootItem.child(self.categories.index(mapped_category))))
+            for mapped_category, hidden_amount in hidden_sums.items():
+                text = f"{dec_strcommaspace(hidden_amount)} р.\t\tДругие"
                 self.rootItem.child(self.categories.index(mapped_category)).appendChild(TreeItem((text,), self.rootItem.child(self.categories.index(mapped_category))))
         else:
             factuals, ndsfree = self.calculate_ndsfree(payments)
@@ -183,6 +190,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
                 if categorie // 10000 != 3:
                     continue
                 self.rootItem.appendChild(TreeItem((data[1], data[2], factuals[categorie], ndsfree[categorie]), self.rootItem, categorie))
+            hidden_sums: dict = {}
             for payment in payments:
                 category, amount, textamount, date, receiver, name, subcategory, nds = (int(payment[0]), Decimal(str(payment[1])),
                                                                                         dec_strcommaspace(Decimal(str(payment[1]))), date_displstr(str_date(payment[2])),
@@ -191,8 +199,15 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
                 if mapped_category is None or mapped_category // 10000 != 3:
                     continue
                 ndsfree_amount = self.nds_free_value(amount, nds)
+                if payment[7]:
+                    total, ndsfree_total = hidden_sums.get(mapped_category, (0, 0))
+                    hidden_sums[mapped_category] = (total + amount, ndsfree_total + ndsfree_amount)
+                    continue
                 ndsfree_text = dec_strcommaspace(ndsfree_amount)
                 text = f"{textamount} р. (НДС {str(nds)}%)\t {ndsfree_text} р.\t{date}\t{receiver}  ({name})"
+                self.rootItem.child(self.payments_categories.index(mapped_category)).appendChild(TreeItem((text,), self.rootItem.child(self.payments_categories.index(mapped_category))))
+            for mapped_category, (hidden_amount, hidden_ndsfree) in hidden_sums.items():
+                text = f"{dec_strcommaspace(hidden_amount)} р.\t {dec_strcommaspace(hidden_ndsfree)} р.\t\tДругие"
                 self.rootItem.child(self.payments_categories.index(mapped_category)).appendChild(TreeItem((text,), self.rootItem.child(self.payments_categories.index(mapped_category))))
 
     def map_category(self, category: int, subcategory: int) -> int | None:
