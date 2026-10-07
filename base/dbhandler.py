@@ -254,8 +254,9 @@ class DBHandler:
         if not query.exec():
             log.e(f"Ошибка SQL при попытке загрузить данные из таблицы fulfillmentdata: {query.lastError().text()}")
             return None
-        query.next()
-        return [query.value(2), query.value(3), query.value(4), query.value(5), query.value(6)] if query.value(0) else None
+        if not query.next():
+            return None
+        return [query.value(2), query.value(3), query.value(4), query.value(5), query.value(6)]
 
     def save_fulfillmentdata_to_db(self, begin_date: QDate, end_date: QDate, values: list) -> None:
         if not self.is_db_connected():
