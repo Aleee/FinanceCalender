@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QFileDialog, QWidget
 
 from base.dbhandler import DBHandler
@@ -31,10 +33,13 @@ class RecoveryDialog(QDialog):
                                                 "SQLite3 Database (*.db)")[0]
         if not path:
             return
-        if not self.db_handler.check_db_file_integrity(path):
+        migrated_path: str | None = self.db_handler.make_migrated_copy(path)
+        if migrated_path is None:
             self._fail("При проверке файла базы данных обнаружились ошибки (для подробностей см. лог). Выберите другой файл")
             return
-        if self.db_handler.switch_db_files(path, close_current_connection=True):
+        switched: bool = self.db_handler.switch_db_files(migrated_path, close_current_connection=True)
+        Path(migrated_path).unlink(missing_ok=True)
+        if switched:
             self.accept()
         else:
             self._fail("При попытке заменить файл базы данных произошла ошибка (для подробностей см. лог)")

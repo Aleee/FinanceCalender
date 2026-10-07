@@ -55,9 +55,21 @@ def clean_backup_folder(sh: SettingsHandler) -> bool:
 
 
 def restore_backup(dbh: DBHandler, db_file_path: str) -> bool:
-    if not dbh.check_db_file_integrity(db_file_path):
+    migrated_path: str | None = dbh.make_migrated_copy(db_file_path)
+    if migrated_path is None:
         log.e(f"Файл {db_file_path} не подходит для восстановления")
+        dbh.open_db_connection()
         return False
+    try:
+        if not replace_db_file(dbh, migrated_path):
+            return False
+    finally:
+        Path(migrated_path).unlink(missing_ok=True)
+    log.i(f"База данных восстановлена из файла {db_file_path}")
+    return True
+
+
+def replace_db_file(dbh: DBHandler, db_file_path: str) -> bool:
     temp_file_created: bool = False
     database: QSqlDatabase = QSqlDatabase.database()
     database.close()
@@ -71,7 +83,6 @@ def restore_backup(dbh: DBHandler, db_file_path: str) -> bool:
         shutil.copy(Path(db_file_path), default_db_path)
         temp_db_path.unlink(missing_ok=True)
         dbh.open_db_connection()
-        log.i(f"База данных восстановлена из файла {db_file_path}")
         return True
     except FileNotFoundError:
         log.e(f"Файл {db_file_path} не найден")

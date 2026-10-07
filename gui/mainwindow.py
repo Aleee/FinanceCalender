@@ -108,6 +108,8 @@ class MainWindow(QMainWindow):
                                          cancel_available=False, parent=self)
             if recover_dlg.exec() != QDialog.DialogCode.Accepted:
                 sys.exit()
+        ## Обновление структуры до актуальной версии
+        self.db_handler.migrate_db()
         ## Проверка файла
         if not self.db_handler.check_db_file_integrity():
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,

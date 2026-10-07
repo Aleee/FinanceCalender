@@ -145,8 +145,8 @@ class UpdateChecker(QObject):
             info = UpdateInfo.from_json(bytes(reply.readAll()))
             if not is_newer(info.version):
                 self.finish("Установлена актуальная версия", "Обновления: нет")
-            elif info.db_version != DB_VERSION:
-                log.w(f"Версия {info.version} требует другой версии БД ({info.db_version}, у нас {DB_VERSION}), "
+            elif info.db_version < DB_VERSION:
+                log.w(f"Версия {info.version} требует более старой версии БД ({info.db_version}, у нас {DB_VERSION}), "
                       f"обновление не предлагается")
                 self.finish(f"Доступна версия {info.version}, но она несовместима с текущей базой данных",
                             "Обновления: ошибка")

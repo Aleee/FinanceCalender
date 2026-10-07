@@ -14,7 +14,8 @@ import lovely_logger as log
 from base.date import str_date, date_str, date_displstr, days_to_weekend, days_to_month
 from base.formatting import str_decimal
 from base.liability import LiabilityCategory, FilterFlags, RowType
-from base.paths import db_path
+from base.migrations import MIGRATIONS, MigrationError
+from base.paths import db_path, backup_dir
 from base.payment import Payment
 from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
@@ -104,6 +105,80 @@ class DBHandler:
             return False
         self.db.close()
         return True
+
+    def migrate_db(self, alternative_path: str = "") -> bool:
+        migrated_path: str = alternative_path if alternative_path else db_path()
+        self.db.setDatabaseName(migrated_path)
+        if not self.db.open():
+            log.e(f"Не удалось открыть базу данных для обновления структуры: {migrated_path}")
+            return False
+        version = self.get_db_version()
+        if version is None:
+            return False
+        if version == self.DB_VERSION:
+            self.db.close()
+            return True
+        if version > self.DB_VERSION:
+            log.e(f"Версия базы данных ({version}) новее версии клиента ({self.DB_VERSION}), обновление структуры невозможно")
+            self.db.close()
+            return False
+        if not alternative_path and not self._save_pre_migration_copy(version):
+            self.db.close()
+            return False
+        if not self.db.transaction():
+            log.e(f"Не удалось начать транзакцию для обновления структуры базы данных: {self.db.lastError().text()}")
+            self.db.close()
+            return False
+        try:
+            for target_version in range(version + 1, self.DB_VERSION + 1):
+                self._apply_migration(target_version)
+            if not self.db.commit():
+                raise MigrationError(f"Не удалось подтвердить транзакцию: {self.db.lastError().text()}")
+        except Exception as e:
+            log.x(f"Обновление структуры базы данных не удалось, изменения отменены: {e}")
+            self.db.rollback()
+            self.db.close()
+            return False
+        self.db.close()
+        log.i(f"Структура базы данных обновлена: версия {version} -> {self.DB_VERSION}")
+        return True
+
+    def _apply_migration(self, target_version: int) -> None:
+        steps = MIGRATIONS.get(target_version)
+        if steps is None:
+            raise MigrationError(f"Не описана миграция до версии {target_version}")
+        for step in steps:
+            if callable(step):
+                step(self)
+                continue
+            query = QSqlQuery()
+            if not query.exec(step):
+                raise MigrationError(f"Ошибка SQL: {query.lastError().text()}. Запрос: {step}")
+        if not self.set_setting("db_version", target_version):
+            raise MigrationError(f"Не удалось записать версию базы данных {target_version}")
+
+    @staticmethod
+    def _save_pre_migration_copy(version: int) -> bool:
+        copy_path: Path = Path(backup_dir()) / f"before_migration_v{version}.db"
+        try:
+            shutil.copy(db_path(), copy_path)
+        except OSError as e:
+            log.x(f"Не удалось сохранить копию базы данных перед обновлением структуры: {e}")
+            return False
+        log.i(f"Копия базы данных перед обновлением структуры: {copy_path}")
+        return True
+
+    def make_migrated_copy(self, source_path: str) -> str | None:
+        temp_path: Path = Path(db_path()).with_name("db_restore_temp.db")
+        try:
+            shutil.copy(source_path, temp_path)
+        except OSError as e:
+            log.x(f"Не удалось скопировать {source_path} во временный файл {temp_path}: {e}")
+            return None
+        if self.migrate_db(str(temp_path)) and self.check_db_file_integrity(str(temp_path)):
+            return str(temp_path)
+        temp_path.unlink(missing_ok=True)
+        return None
 
     def open_db_connection(self) -> bool:
         self.db.setDatabaseName(db_path())
