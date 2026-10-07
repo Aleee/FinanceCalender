@@ -15,7 +15,7 @@ def dec_strcommaspace(dec: Decimal, add_rub: bool = False) -> str:
 
 
 def dec_html(dec: Decimal) -> str:
-    return dec_strcommaspace(dec, add_rub=True).replace(" ", "&nbsp;")
+    return dec_strcommaspace(dec, add_rub=True).replace(" ", "&nbsp;").replace("&nbsp;руб.", " руб.")
 
 
 def int_strspace(integer: int) -> str:

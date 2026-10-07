@@ -82,7 +82,7 @@ class FeeDialog(QDialog):
             else self._render_category_report
         text = f"<h3>Выписка за период {period_from} – {period_to}</h3>"
         text += render_category("Комиссии, относящиеся к банковским расходам", result.income_fees)
-        text += render_category("Комиссии, относящиеся к комиссионным расходам", result.outgoing_fees)
+        text += render_category("<br>Комиссии, относящиеся к комиссионным расходам", result.outgoing_fees)
 
         has_any_fees = bool(result.income_fees.daily or result.outgoing_fees.daily)
         self.ui.pb_createfeeliabilities.setEnabled(has_any_fees)
@@ -99,7 +99,7 @@ class FeeDialog(QDialog):
 
         lines = [
             f"<h4>{title}</h4>",
-            "<table cellspacing='0' cellpadding='4'>",
+            "<table cellspacing='0' cellpadding='4' style='margin-top:8px;'>",
             f"<tr bgcolor='{COLOR_HEADER_BG}'><th align='left'>Дата</th>"
             f"<th align='right'>Транзакций</th><th align='right'>Сумма комиссий</th></tr>",
         ]
@@ -143,10 +143,10 @@ class FeeDialog(QDialog):
             lines.append(FeeDialog._render_unknown_unp_warning(len(fees.unknown_unp), in_table=True))
 
         lines.append("<table width='100%' cellspacing='0' cellpadding='4' border='1' "
-                     "style='border-collapse:collapse; border-color:#c8c8c8;'>")
+                     "style='border-collapse:collapse; border-color:#c8c8c8; margin-top:8px;'>")
         lines.append(
             f"<tr bgcolor='{COLOR_HEADER_BG}'><th>№</th><th>Сумма</th>"
-            f"<th>Контрагент</th><th>Назначение платежа</th></tr>"
+            f"<th width='30%'>Наименование</th><th width='50%'>Назначение</th></tr>"
         )
         current_date = None
         for number, record in enumerate(sorted(fees.records, key=lambda r: r.fee_date), start=1):
