@@ -3,7 +3,7 @@ from enum import IntEnum
 
 import lovely_logger as log
 
-from PySide6.QtCore import QSettings, QDir, QDate, QSize, QPoint, QRect, QCoreApplication
+from PySide6.QtCore import QSettings, QDir, QSize, QPoint, QRect, QCoreApplication
 from PySide6.QtWidgets import QApplication, QWidget
 
 from base.casting import str_bool, str_int
@@ -32,14 +32,16 @@ class SettingsHandler:
     def set_backup_path(self, path: str) -> None:
         self.settings.setValue("Backup/path", to_stored_path(path))
 
+    def paid_load_months(self) -> int:
+        return str_int(self.settings.value("Common/paidloadperiod"), 999)
+
     def apply_settings(self, apply_geometry: bool = False) -> None:
         # Отключение фильтра на время применения настроек
         self.mw.ui.trw_event.model().sourceModel().enable_sortfilter(False)
 
         # Основные настройки
         ## Отображение оплаченных
-        self.mw.base_model.paid_minimum_date = QDate.currentDate().addDays(
-            -30 * str_int(self.settings.value("Common/paidloadperiod"), 999))
+        self.mw.base_model.paid_load_months = self.paid_load_months()
         ## Размер шрифта
         self.change_fontsize()
         ## Ширина столбцов

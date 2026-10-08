@@ -123,7 +123,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
 
         self.db_handler = db_handler
         self.current_date: QDate = QDate().currentDate()
-        self.paid_minimum_date: QDate = QDate()
+        self.paid_load_months: int = 999
         self.payment_totals: dict[int, tuple[Decimal, Decimal, str]] = {}
         self.liability_cache: dict[int, LiabilityRow] | None = None
         self.event_cache: dict[int, tuple] | None = None
@@ -399,6 +399,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.beforeSelect.emit()
         self.document_titles.clear()
         self.current_date = QDate.currentDate()
+        self.setFilter(self.db_handler.paid_load_filter(paid_threshold(self.current_date, self.paid_load_months)))
         self.load_payment_totals()
         result = super(LiabilitySqlTableModel, self).select()
         while self.canFetchMore():

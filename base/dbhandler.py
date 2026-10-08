@@ -557,6 +557,14 @@ class DBHandler:
                                       "" if self._is_null(last_date) else str(last_date))
         return totals
 
+    @staticmethod
+    def paid_load_filter(threshold: str) -> str:
+        cents = "CAST(ROUND(CAST({}.{} AS REAL) * 100) AS INTEGER)"
+        return ("event.id NOT IN (SELECT p.eventid FROM payment p JOIN event e ON e.id = p.eventid "
+                "GROUP BY p.eventid "
+                f"HAVING MAX(p.paymentdate) <= '{threshold}' "
+                f"AND SUM({cents.format('p', 'sum')}) >= {cents.format('e', 'totalamount')})")
+
     def load_contractors(self) -> list[tuple[int, str]] | None:
         if not self.is_db_connected():
             return None
