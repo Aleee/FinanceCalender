@@ -145,7 +145,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
 
         self.modelReset.connect(self.invalidate_liability_cache)
         self.dataChanged.connect(self.invalidate_liability_cache)
-        self.rowsInserted.connect(self.invalidate_liability_cache)
+        self.rowsInserted.connect(self.extend_liability_cache)
         self.rowsRemoved.connect(self.invalidate_liability_cache)
 
     def sort_key(self, row):
@@ -304,14 +304,22 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.liability_cache = None
         self.event_cache = None
 
+    def extend_liability_cache(self, _parent, first: int, last: int) -> None:
+        if self.event_cache is None:
+            return
+        new_events = self.build_event_cache(range(first, last + 1))
+        self.event_cache.update(new_events)
+        if self.liability_cache is not None:
+            self.liability_cache.update(self.build_liability_rows(new_events))
+
     def event_columns(self) -> dict[int, tuple]:
         if self.event_cache is None:
             self.event_cache = self.build_event_cache()
         return self.event_cache
 
-    def build_event_cache(self) -> dict[int, tuple]:
+    def build_event_cache(self, rows: range | None = None) -> dict[int, tuple]:
         event_cache: dict[int, tuple] = {}
-        for row in range(self.rowCount()):
+        for row in rows if rows is not None else range(self.rowCount()):
             if self.raw_value(row, Col.TYPE) != RowType.LIABILITY:
                 continue
             event_id = self.raw_value(row, Col.ID)
@@ -326,9 +334,11 @@ class LiabilitySqlTableModel(QSqlTableModel):
                                      str_date(self.raw_value(row, Col.DUEDATE)))
         return event_cache
 
-    def build_liability_rows(self) -> dict[int, LiabilityRow]:
+    def build_liability_rows(self, event_cache: dict[int, tuple] | None = None) -> dict[int, LiabilityRow]:
         liability_rows: dict[int, LiabilityRow] = {}
-        for event_id, (category, receiver, responsible, featured, hidden, total, due_date) in self.event_columns().items():
+        if event_cache is None:
+            event_cache = self.event_columns()
+        for event_id, (category, receiver, responsible, featured, hidden, total, due_date) in event_cache.items():
             paid, today_share, last_payment_date = self.payment_totals.get(event_id, self.NO_PAYMENTS)
             try:
                 remain = Decimal(total) - paid
