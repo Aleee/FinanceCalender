@@ -279,8 +279,9 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
 
     def lessThan(self, source_left, source_right, /):
         model = self.sourceModel()
-        left_key = model.data(source_left, model.sortRole)
-        right_key = model.data(source_right, model.sortRole)
+        keys = model.row_sort_keys
+        left_key = keys.get(source_left.row()) or model.sort_key(source_left.row())
+        right_key = keys.get(source_right.row()) or model.sort_key(source_right.row())
         return left_key < right_key
 
 

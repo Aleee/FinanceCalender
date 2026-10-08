@@ -142,6 +142,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
             self.setHeaderData(key, Qt.Orientation.Horizontal, val)
 
         self.sort_cache = {}
+        self.row_sort_keys: dict[int, tuple] = {}
 
         self.modelReset.connect(self.invalidate_liability_cache)
         self.dataChanged.connect(self.invalidate_liability_cache)
@@ -149,15 +150,19 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.rowsRemoved.connect(self.invalidate_liability_cache)
 
     def sort_key(self, row):
-        entry_id = self.raw_value(row, Col.ID)
-        key = self.sort_cache.get(entry_id)
+        key = self.row_sort_keys.get(row)
         if key is None:
-            key = self.compute_sort_key(row)
-            self.sort_cache[entry_id] = key
+            entry_id = self.raw_value(row, Col.ID)
+            key = self.sort_cache.get(entry_id)
+            if key is None:
+                key = self.compute_sort_key(row)
+                self.sort_cache[entry_id] = key
+            self.row_sort_keys[row] = key
         return key
 
     def invalidate_sort_cache(self):
         self.sort_cache.clear()
+        self.row_sort_keys.clear()
 
     def compute_sort_key(self, row: int):
         idx = self.index(row, Col.TYPE)
@@ -303,8 +308,10 @@ class LiabilitySqlTableModel(QSqlTableModel):
     def invalidate_liability_cache(self, *_) -> None:
         self.liability_cache = None
         self.event_cache = None
+        self.row_sort_keys.clear()
 
     def extend_liability_cache(self, _parent, first: int, last: int) -> None:
+        self.row_sort_keys.clear()
         if self.event_cache is None:
             return
         new_events = self.build_event_cache(range(first, last + 1))
