@@ -12,6 +12,7 @@ class RowStyle:
     highlight_color: QColor | None = None
     background_brush: QBrush | None = None
     vertical_grid_color: QColor | None = None
+    font_bold: bool | None = None
 
 
 class StatusBarSeparator(QFrame):

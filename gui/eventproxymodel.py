@@ -13,7 +13,7 @@ from base.liability import (CATEGORY_NAMES, LiabilityCategory, FilterFlags, RowT
                              category_section, is_top_level_category, matches_filters, paid_threshold)
 from gui.common import model_atlevel
 from gui.commonwidgets.common import RowStyle
-from gui.eventsqlmodel import Col, LiabilitySqlTableModel, RowFormatting
+from gui.eventsqlmodel import Col, LiabilitySqlTableModel
 
 
 class Filter(IntEnum):
@@ -103,11 +103,13 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
                 style.highlighted_text_color = due_fore
                 style.background_brush = QBrush(due_back)
                 style.vertical_grid_color = due_back.darker(self.DARKER_RATIO)
+                style.font_bold = row_formatting.due_textbold
             elif today_condition:
                 style.text_color = today_fore
                 style.highlighted_text_color = today_fore
                 style.background_brush = QBrush(today_back)
                 style.vertical_grid_color = today_back.darker(self.DARKER_RATIO)
+                style.font_bold = row_formatting.today_textbold
             else:
                 style.highlighted_text_color = QColor("black")
                 style.background_brush = QBrush(QColor("#FFFFFF"))
@@ -120,6 +122,7 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
             elif subtype == HeaderFooterSubtype.ORDINARY:
                 style.text_color = QColor(row_formatting.header_subsection_forecolor)
                 style.background_brush = QBrush(QColor(row_formatting.header_subsection_backcolor))
+            style.font_bold = row_formatting.header_textbold
 
         elif row_type == RowType.FOOTER:
             subtype: HeaderFooterSubtype = (base_model.index(source_index.row(), Col.SUBCATEGORY).data(db_role))
@@ -129,9 +132,11 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
             elif subtype == HeaderFooterSubtype.ORDINARY:
                 style.text_color = QColor(row_formatting.footer_subsection_forecolor)
                 style.background_brush = QBrush(QColor(row_formatting.footer_subsection_backcolor))
+            style.font_bold = row_formatting.footer_textbold
 
         elif row_type == RowType.FINALFOOTER:
             style.background_brush = QBrush(self.FINALFOOTER_BACK_COLOR)
+            style.font_bold = True
 
         return style
 
@@ -217,30 +222,10 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
         if not index.isValid():
             return None
         if role == Qt.ItemDataRole.FontRole:
-            font = QFont()
-
-            row_formatting: RowFormatting = model_atlevel(-1, self).row_formatting
-            if not row_formatting:
-                return QSortFilterProxyModel.data(self, index, role)
-
-            row_type = index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole)
-
-            if row_type == RowType.LIABILITY:
-                filter_flags = FilterFlags(index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.dbValueRole))
-                if FilterFlags.DUE in filter_flags and self.term_filter != TermCategory.DUE and not self.paytoday_filter:
-                    font.setBold(self.sourceModel().row_formatting.due_textbold)
-                    return font
-                if FilterFlags.TODAY in filter_flags and self.term_filter != TermCategory.TODAY and not self.paytoday_filter:
-                    font.setBold(self.sourceModel().row_formatting.today_textbold)
-                    return font
-            elif row_type == RowType.HEADER:
-                font.setBold(self.sourceModel().row_formatting.header_textbold)
-                return font
-            elif row_type == RowType.FOOTER:
-                font.setBold(self.sourceModel().row_formatting.footer_textbold)
-                return font
-            elif row_type == RowType.FINALFOOTER:
-                font.setBold(True)
+            font_bold = self.style_data(index.row()).font_bold
+            if font_bold is not None:
+                font = QFont()
+                font.setBold(font_bold)
                 return font
 
         elif role == self.styleRole:
@@ -302,6 +287,7 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
 class LiabilityTotalsProxyModel(QSortFilterProxyModel):
 
     TOTAL_CATEGORY = 9999
+    TOTAL_COLUMNS = (Col.TOTALAMOUNT, Col.REMAINAMOUNT, Col.TODAYSHARE)
 
     decimalValueRole: int = Qt.ItemDataRole.UserRole + 4
     RowStyleRole: int = LiabilitySortFilterProxyModel.styleRole
@@ -365,9 +351,11 @@ class LiabilityTotalsProxyModel(QSortFilterProxyModel):
         return False
 
     def data(self, index, /, role=...):
+        if index.column() not in self.TOTAL_COLUMNS:
+            return QSortFilterProxyModel.data(self, index, role)
         if role == Qt.ItemDataRole.FontRole:
             if index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole) in (RowType.FOOTER, RowType.FINALFOOTER):
-                if index.column() in (Col.TOTALAMOUNT, Col.REMAINAMOUNT, Col.TODAYSHARE):
+                if index.column() in self.TOTAL_COLUMNS:
                     font: QFont = QFont()
                     font.setBold(True)
                     return font
