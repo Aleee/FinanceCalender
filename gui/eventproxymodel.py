@@ -1,10 +1,10 @@
 import re
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from enum import IntEnum, auto
 from typing import Any
 
 from PySide6 import QtGui
-from PySide6.QtCore import QSortFilterProxyModel, QDate, Qt, QModelIndex, Signal
+from PySide6.QtCore import QSortFilterProxyModel, QDate, Qt, Signal
 from PySide6.QtGui import QFont, QColor, QBrush
 from PySide6.QtWidgets import QApplication
 
@@ -310,16 +310,23 @@ class LiabilityTotalsProxyModel(QSortFilterProxyModel):
             stored_dict[self.TOTAL_CATEGORY] = 0
         self.stored_count = 0
 
+        base_model: LiabilitySqlTableModel = model_atlevel(-2, self)
+        liability_rows = base_model.liability_rows()
+        event_columns = base_model.event_columns()
         for row in range(self.rowCount()):
-            if self.index(row, Col.TYPE).data(LiabilitySqlTableModel.dbValueRole) == RowType.LIABILITY:
-                self.stored_count += 1
-                category: int = self.index(row, Col.CATEGORY).data(LiabilitySqlTableModel.dbValueRole)
-                totalamount: Decimal = self.index(row, Col.TOTALAMOUNT, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
-                self.stored_total[category] += totalamount
-                remainamount: Decimal = self.index(row, Col.REMAINAMOUNT, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
-                self.stored_remain[category] += remainamount
-                todayshare: Decimal = self.index(row, Col.TODAYSHARE, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
-                self.stored_today[category] += todayshare
+            event_id: int = self.index(row, Col.ID).data(LiabilitySqlTableModel.dbValueRole)
+            liability = liability_rows.get(event_id)
+            if liability is None:
+                continue
+            self.stored_count += 1
+            category, _, _, _, _, total, _ = event_columns[event_id]
+            try:
+                totalamount: Decimal = Decimal(total)
+            except (InvalidOperation, TypeError):
+                totalamount = Decimal(0)
+            self.stored_total[category] += totalamount
+            self.stored_remain[category] += liability.remain
+            self.stored_today[category] += liability.today_share
         for stored_dict in self.stored_total, self.stored_remain, self.stored_today:
             total_total: Decimal = Decimal(0)
             for category in stored_dict.keys():
