@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem, QStyle
 from PySide6.QtGui import QPainter, QColor, QPen, QPalette
-from PySide6.QtCore import QModelIndex
+from PySide6.QtCore import QModelIndex, QSize
 
 from gui.commonwidgets.common import RowStyle
 from gui.eventproxymodel import LiabilityTotalsProxyModel
@@ -46,6 +46,12 @@ class EventItemDelegate(QStyledItemDelegate):
             )
         if style.background_brush:
             option.backgroundBrush = style.background_brush
+
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex):
+        option = QStyleOptionViewItem(option)
+        self.initStyleOption(option, index)
+        option.text = option.text.replace(" ", " ")
+        return option.widget.style().sizeFromContents(QStyle.ContentsType.CT_ItemViewItem, option, QSize(), option.widget)
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
         style: RowStyle = index.data(LiabilityTotalsProxyModel.RowStyleRole)

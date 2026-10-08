@@ -11,6 +11,9 @@ CSV_SETTINGS_KEYS: tuple[str, ...] = (
 )
 
 
+TRAILING_CHARS = "char(10) || char(13) || char(9) || ' '"
+
+
 class MigrationError(Exception):
     pass
 
@@ -35,8 +38,9 @@ def remove_settings_keys(settings, keys: list[str]) -> None:
     settings.sync()
 
 
-# Ключ - версия БД, до которой поднимает миграция. Элемент списка - SQL-запрос или функция от DBHandler
 MIGRATIONS: dict[int, list[Migration]] = {
     3: [migrate_2_to_3],
-    4: [f"ALTER TABLE event DROP COLUMN {column}" for column in ("remainamount", "todayshare", "lastpaymentdate", "filterflags")],
+    4: [f"ALTER TABLE event DROP COLUMN {column}" for column in ("remainamount", "todayshare", "lastpaymentdate", "filterflags")]
+       + [f"UPDATE event SET {column} = rtrim({column}, {TRAILING_CHARS}) WHERE {column} <> rtrim({column}, {TRAILING_CHARS})"
+          for column in ("receiver", "name", "descr", "notes", "receivernocase")],
 }

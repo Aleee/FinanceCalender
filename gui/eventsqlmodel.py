@@ -411,6 +411,8 @@ class LiabilitySqlTableModel(QSqlTableModel):
     def setData(self, index, value, /, role=Qt.ItemDataRole.EditRole) -> bool:
         if index.column() in self.DERIVED_COLUMNS:
             return False
+        if role == Qt.ItemDataRole.EditRole and isinstance(value, str):
+            value = value.rstrip()
         return super(LiabilitySqlTableModel, self).setData(self.index(index.row(), self.table_column(index.column())), value, role)
 
     def stored_flags(self, index):
