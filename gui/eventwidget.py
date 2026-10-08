@@ -6,7 +6,6 @@ from gui.common import model_atlevel
 from gui.commonwidgets.eventfilter import TooltipFilter
 from gui.commonwidgets.itemdelegate import EventItemDelegate
 from gui.eventsqlmodel import Col, LiabilitySqlTableModel
-from base.liability import RowType
 from gui.booldelegate import BoolDelegate
 
 
@@ -105,13 +104,16 @@ class EventWidget(QTreeView):
 
     def span_columns(self) -> None:
         # Каждое применение setFirstColumnSpanned() вызывает фильтрацию, поэтому на время она отключается
-        model_atlevel(-1, self.model()).enable_sortfilter(False)
+        proxy1_model = model_atlevel(-1, self.model())
+        base_model = model_atlevel(-2, self.model())
+        proxy1_model.enable_sortfilter(False)
         try:
-            for row in range(self.model().rowCount()):
-                if self.model().index(row, Col.TYPE, QModelIndex()).data(LiabilitySqlTableModel.dbValueRole) == RowType.HEADER:
-                    self.setFirstColumnSpanned(row, QModelIndex(), True)
+            for source_row in base_model.header_rows():
+                index = self.model().mapFromSource(proxy1_model.mapFromSource(base_model.index(source_row, 0)))
+                if index.isValid():
+                    self.setFirstColumnSpanned(index.row(), QModelIndex(), True)
         finally:
-            model_atlevel(-1, self.model()).enable_sortfilter(True)
+            proxy1_model.enable_sortfilter(True)
 
     def save_selection(self) -> None:
         selected = self.selectionModel().selectedRows()

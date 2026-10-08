@@ -129,6 +129,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.payment_totals: dict[int, tuple[Decimal, Decimal, str]] = {}
         self.liability_cache: dict[int, LiabilityRow] | None = None
         self.event_cache: dict[int, tuple] | None = None
+        self.header_cache: list[int] | None = None
         self.personal_dict: dict = {}
         self.document_titles: dict[int, DocumentTitle] = {}
         self.contract_icon = QIcon(":/icon-table/designer/icons/attachment.svg")
@@ -308,9 +309,16 @@ class LiabilitySqlTableModel(QSqlTableModel):
     def invalidate_liability_cache(self, *_) -> None:
         self.liability_cache = None
         self.event_cache = None
+        self.header_cache = None
         self.row_sort_keys.clear()
 
+    def header_rows(self) -> list[int]:
+        if self.header_cache is None:
+            self.header_cache = [row for row in range(self.rowCount()) if self.raw_value(row, Col.TYPE) == RowType.HEADER]
+        return self.header_cache
+
     def extend_liability_cache(self, _parent, first: int, last: int) -> None:
+        self.header_cache = None
         self.row_sort_keys.clear()
         if self.event_cache is None:
             return
@@ -411,7 +419,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
     def flags(self, index, /):
         if not index.isValid():
             return Qt.ItemFlag.NoItemFlags
-        if index.siblingAtColumn(Col.TYPE).data(self.qtValueRole) != RowType.LIABILITY:
+        if self.raw_value(index.row(), Col.TYPE) != RowType.LIABILITY:
             return self.stored_flags(index) & ~Qt.ItemFlag.ItemIsSelectable
         else:
             return self.stored_flags(index)
