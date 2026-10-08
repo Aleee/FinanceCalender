@@ -1,5 +1,6 @@
 from decimal import Decimal
 from enum import IntEnum, IntFlag, auto
+from typing import NamedTuple
 
 from PySide6.QtCore import QDate
 
@@ -154,29 +155,57 @@ def calculate_filterflags(remainamount: Decimal, duedate: QDate, are_today_payme
     return filter_flags
 
 
-def build_filter_clause(term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool, paid_months_toshow: int, featured: bool, current_date: QDate) -> str:
-    filt: str = "(("
+class LiabilityRow(NamedTuple):
+    category: int
+    receiver: str
+    responsible: int
+    featured: bool
+    hidden: bool
+    remain: Decimal
+    today_share: Decimal
+    last_payment_date: str
+    filter_flags: FilterFlags
+
+
+TERM_FLAGS = {
+    TermCategory.DUE: FilterFlags.DUE,
+    TermCategory.TODAY: FilterFlags.TODAY,
+    TermCategory.WEEK: FilterFlags.WEEK,
+    TermCategory.MONTH: FilterFlags.MONTH,
+}
+
+
+def paid_threshold(current_date: QDate, paid_months_toshow: int) -> str:
+    return date_str(current_date.addMonths(-paid_months_toshow))
+
+
+def matches_term(term: TermCategory, liability: LiabilityRow, threshold: str) -> bool:
     if term == TermCategory.PAID:
-        filt += f"(filterflags & {int(FilterFlags.PAID)} AND lastpaymentdate > '{date_str(current_date.addMonths(-paid_months_toshow))}') AND "
-    else:
-        filt += f"((filterflags & {int(FilterFlags.NOTPAID)}) OR (filterflags & {int(FilterFlags.PAID)} AND todayshare <> '0.0')) AND "
-        if term == TermCategory.DUE:
-            filt += f"filterflags & {int(FilterFlags.DUE)} AND "
-        elif term == TermCategory.TODAY:
-            filt += f"filterflags & {int(FilterFlags.TODAY)} AND "
-        elif term == TermCategory.WEEK:
-            filt += f"filterflags & {int(FilterFlags.WEEK)} AND "
-        elif term == TermCategory.MONTH:
-            filt += f"filterflags & {int(FilterFlags.MONTH)} AND "
-    filt = filt[:-5] + ") AND "
-    if category % 1000 != 0:
-        filt += f"category = {category} AND "
-    if receiver:
-        filt += f"receivernocase LIKE '%{receiver.lower()}%' AND "
-    if responsible:
-        filt += f"responsible = {responsible} AND "
-    if paid_today:
-        filt += f"todayshare <> '0.0' AND "
-    if featured:
-        filt += f"featured = 1 AND "
-    return filt[:-5]
+        return FilterFlags.PAID in liability.filter_flags and liability.last_payment_date > threshold
+    if FilterFlags.NOTPAID not in liability.filter_flags:
+        return False
+    term_flag = TERM_FLAGS.get(term)
+    return term_flag is None or term_flag in liability.filter_flags
+
+
+def matches_category(category: int, liability: LiabilityRow) -> bool:
+    return category % 1000 == 0 or liability.category == category
+
+
+def matches_details(liability: LiabilityRow, receiver: str, responsible: int, paid_today: bool, featured: bool) -> bool:
+    if receiver and receiver not in liability.receiver:
+        return False
+    if responsible and liability.responsible != int(responsible):
+        return False
+    if paid_today and not liability.today_share:
+        return False
+    if featured and not liability.featured:
+        return False
+    return True
+
+
+def matches_filters(liability: LiabilityRow, term: TermCategory, category: int, receiver: str, responsible: int,
+                    paid_today: bool, featured: bool, threshold: str) -> bool:
+    return (matches_term(term, liability, threshold)
+            and matches_category(category, liability)
+            and matches_details(liability, receiver, responsible, paid_today, featured))

@@ -10,6 +10,30 @@ CREATE TABLE "event" (
     "category"  INTEGER,
     "subcategory"  INTEGER,
     "name"  TEXT,
+    "totalamount"  TEXT,
+    "nds"  INTEGER,
+    "duedate"  TEXT,
+    "createdate"  TEXT,
+    "paymenttype"  INTEGER,
+    "descr"  TEXT,
+    "responsible"  TEXT,
+    "notes"  TEXT,
+    "featured"  INTEGER,
+    "hidden"  INTEGER,
+    "receivernocase"  TEXT,
+    PRIMARY KEY("id" AUTOINCREMENT)
+)
+"""
+
+LEGACY_EVENT_DDL = """
+CREATE TABLE "event" (
+    "receiver"  TEXT,
+    "id"  INTEGER NOT NULL,
+    "type"  INTEGER,
+    "contractdocument_id"  INTEGER,
+    "category"  INTEGER,
+    "subcategory"  INTEGER,
+    "name"  TEXT,
     "remainamount"  TEXT,
     "totalamount"  TEXT,
     "nds"  INTEGER,
@@ -43,11 +67,11 @@ CREATE TABLE "payment" (
 META_DDL = 'CREATE TABLE "meta" ("key" TEXT, "value" TEXT)'
 
 
-def create_db(path: Path, version: int, meta: dict[str, str] | None = None) -> Path:
+def create_db(path: Path, version: int, meta: dict[str, str] | None = None, legacy_event: bool = False) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(path)
     try:
-        for ddl in (EVENT_DDL, PAYMENT_DDL, META_DDL):
+        for ddl in (LEGACY_EVENT_DDL if legacy_event else EVENT_DDL, PAYMENT_DDL, META_DDL):
             con.execute(ddl)
         rows = {"db_version": str(version), **(meta or {})}
         con.executemany("INSERT INTO meta (key, value) VALUES (?, ?)", rows.items())

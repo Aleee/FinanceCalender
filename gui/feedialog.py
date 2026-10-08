@@ -1,6 +1,5 @@
 import html
 from datetime import date
-from decimal import Decimal
 from pathlib import Path
 from typing import Optional
 
@@ -13,7 +12,7 @@ from base.date import date_str, date_displstr
 from base.dbhandler import DBHandler
 from base.feeparser import CSVParseError, DailyFees, FeeCategoryResult, StatementParseResult, read_transaction_csv
 from base.formatting import dec_strcommaspace, dec_html, COLOR_HEADER_BG, COLOR_WARNING, COLOR_WARNING_BG
-from base.liability import LiabilityCategory, FilterFlags, RowType, calculate_filterflags
+from base.liability import LiabilityCategory, RowType
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.eventsqlmodel import LiabilitySqlTableModel, Col
 from gui.paymenthistorymodel import PaymentHistoryTableModel
@@ -268,10 +267,6 @@ class FeeDialog(QDialog):
         today_str = date_str(QDate.currentDate())
         comment = agg.as_comment()
 
-        filter_flags: FilterFlags = calculate_filterflags(
-            Decimal("0.0"), qt_fee_date, False, QDate.currentDate()
-        )
-
         event_data: list = [
             FEE_RECEIVER,
             0,
@@ -280,7 +275,6 @@ class FeeDialog(QDialog):
             int(category),
             0,
             description,
-            str(Decimal("0.0")),
             str(agg.total),
             0,
             fee_date_str,
@@ -289,9 +283,6 @@ class FeeDialog(QDialog):
             f"Выписка от {date_displstr(qt_fee_date)}",
             self.dbh.get_setting("CSVparser/responsible", "0"),
             comment,
-            str(Decimal("0.0")),
-            fee_date_str,
-            int(filter_flags),
             0,
             0,
             str.lower(FEE_RECEIVER),

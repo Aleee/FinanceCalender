@@ -18,7 +18,7 @@ from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.responsiblemodels import ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
 from gui.ui.eventdialog_ui import Ui_EventDialog
-from base.liability import LiabilityCategory, LiabilityFinanceSubcategory, CATEGORY_NAMES, NDS_VALUE, FilterFlags, RowType, PaymentType, calculate_filterflags
+from base.liability import LiabilityCategory, LiabilityFinanceSubcategory, CATEGORY_NAMES, NDS_VALUE, FilterFlags, RowType, PaymentType
 from base.contract import PaymentDueType, SavedContractValues
 from base.paymentdate import calculate_payment_date
 from base.workcalendar import WEEKDAY_ABBR
@@ -208,7 +208,7 @@ class EventDialog(QDialog):
         self.sh = settings_handler
         self.edit_mode: bool = edit_mode
         self.copy_mode: bool = copy_mode
-        self.non_editable_values: dict = {"id": 0, "paidamount": Decimal(0), "todayshare": Decimal(0)}
+        self.non_editable_values: dict = {"id": 0, "paidamount": Decimal(0)}
         self.sidepanel_visibility: bool = False
 
         self.index: QModelIndex = current_index if current_index is not None else QModelIndex()
@@ -296,8 +296,6 @@ class EventDialog(QDialog):
             self.non_editable_values["id"] = self.index.siblingAtColumn(Col.ID).data(LiabilitySqlTableModel.qtValueRole)
             self.non_editable_values["paidamount"] = (self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilitySqlTableModel.qtValueRole)
                                                       - self.index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilitySqlTableModel.qtValueRole))
-            self.non_editable_values["todayshare"] = self.index.siblingAtColumn(Col.TODAYSHARE).data(LiabilitySqlTableModel.qtValueRole)
-            self.non_editable_values["lastpaymentdate"] = self.index.siblingAtColumn(Col.LASTPAYMENTDATE).data(LiabilitySqlTableModel.qtValueRole)
             self.non_editable_values["featured"] = self.index.siblingAtColumn(Col.FEATURED).data(LiabilitySqlTableModel.qtValueRole)
 
         if self.edit_mode or self.copy_mode:
@@ -645,18 +643,11 @@ class EventDialog(QDialog):
         data.append(self.ui.cmb_subcategory.currentData() if self.ui.cmb_category.currentData() == LiabilityCategory.TOP_FINANCES else 0)
         # name
         data.append(self._stripped(self.ui.te_name.toPlainText()))
-        # remainamount
+        # totalamount
         if not self.ui.rb_typerefund.isChecked():
             total_amount = Decimal(str(self.ui.dsb_totalamount.value()))
-            if not self.edit_mode:
-                remain_amount: Decimal = total_amount
-            else:
-                remain_amount: Decimal = total_amount - self.non_editable_values["paidamount"]
         else:
             total_amount = -Decimal(str(self.ui.dsb_totalamount.value()))
-            remain_amount: Decimal = Decimal(str("0.0"))
-        data.append(str(remain_amount))
-        # totalamount
         data.append(str(total_amount))
         # nds
         data.append(self.ui.cmb_nds.currentData())
@@ -672,29 +663,6 @@ class EventDialog(QDialog):
         data.append(self.ui.cmb_responsible.currentData())
         # notes
         data.append(self._stripped(self.ui.te_notes.toPlainText()))
-        # todayshare
-        if not self.ui.rb_typerefund.isChecked():
-            if not self.edit_mode:
-                data.append("0.0")
-                today_payments: bool = False
-            else:
-                data.append(str(self.non_editable_values["todayshare"]))
-                today_payments: bool = (self.non_editable_values["todayshare"] != 0)
-        else:
-            data.append("0.0")
-            today_payments: bool = False
-        # lastpaymentdate
-        if not self.ui.rb_typerefund.isChecked():
-            if self.edit_mode:
-                data.append(self.non_editable_values["lastpaymentdate"])
-            else:
-                data.append("")
-        else:
-            data.append(date_str(self.ui.de_duedate.date()))
-        # filterflags
-        original_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
-        filter_flags: FilterFlags = calculate_filterflags(remain_amount, self.ui.de_duedate.date(), today_payments, original_model.current_date)
-        data.append(int(filter_flags))
         # featured
         if not self.edit_mode:
             data.append(0)
@@ -705,6 +673,7 @@ class EventDialog(QDialog):
         # receivernocase
         data.append(self._stripped(self.ui.le_receiver.text()).lower())
 
+        original_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
         if not self.edit_mode:
             new_row = original_model.insert_row(data)
             if new_row is None:

@@ -11,9 +11,9 @@ from PySide6.QtCore import QDate
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 import lovely_logger as log
 
-from base.date import str_date, date_str, date_displstr, days_to_weekend, days_to_month
+from base.date import str_date, date_str, date_displstr
 from base.formatting import str_decimal
-from base.liability import LiabilityCategory, FilterFlags, RowType
+from base.liability import LiabilityCategory, RowType
 from base.migrations import MIGRATIONS, MigrationError
 from base.paths import db_path, backup_dir
 from base.payment import Payment
@@ -27,7 +27,7 @@ from gui.finplanmodel import FinPlanTableModel
 class DBHandler:
 
     DB_VERSION: int = _DB_VERSION
-    EVENT_TABLE_COLUMNUM: int = 22
+    EVENT_TABLE_COLUMNUM: int = 18
     PAYMENT_TABLE_COLUMNUM: int = 5
 
     DATE_FORMAT = "yyyy-MM-dd"
@@ -536,66 +536,26 @@ class DBHandler:
             results.append(query.value(0))
         return results if not as_set else set(results)
 
-    def insert_filterflags(self):
+    def load_payment_totals(self, current_date: QDate) -> dict[int, tuple[Decimal, Decimal, str]] | None:
         if not self.is_db_connected():
-            return False
-        current_date = QDate.currentDate()
-        current_date_str = current_date.toString("yyyy-MM-dd")
-
-        date_diff_sql = f"(julianday(duedate) - julianday('{current_date_str}'))"
-        days_week = days_to_weekend(current_date)
-        days_month = days_to_month(current_date)
-        remain_num = "CAST(remainamount AS NUMERIC)"
-        today_num = "CAST(todayshare AS NUMERIC)"
-
-        sql_query = f"""
-            UPDATE event 
-            SET filterflags = CASE 
-                -- Если тип строки не LIABILITY, сбрасываем флаг в NONE
-                WHEN type != {RowType.LIABILITY.value} THEN {int(FilterFlags.NONE)}
-
-                -- Если оплачено (remainamount <= 0 И todayshare == 0)
-                WHEN {remain_num} <= 0 AND {today_num} = 0 THEN {int(FilterFlags.PAID)}
-
-                -- Если НЕ оплачено, собираем битовую маску из NOTPAID + условий по датам
-                ELSE {int(FilterFlags.NOTPAID)} 
-                    + CASE WHEN {date_diff_sql} < 0 THEN {int(FilterFlags.DUE)} ELSE 0 END
-                    + CASE WHEN {date_diff_sql} = 0 THEN {int(FilterFlags.TODAY)} ELSE 0 END
-                    + CASE WHEN {date_diff_sql} > -1 AND {date_diff_sql} <= {days_week} THEN {int(FilterFlags.WEEK)} ELSE 0 END
-                    + CASE WHEN {date_diff_sql} > -1 AND {date_diff_sql} <= {days_month} THEN {int(FilterFlags.MONTH)} ELSE 0 END
-            END
-            WHERE id IN (SELECT id FROM event) -- обновляет все записи, на которые не наложен filter()
-            """
-        query: QSqlQuery = QSqlQuery(sql_query)
-        if not query.exec():
-            log.e(f"Ошибка SQL при попытке обновить флаги фильтров в таблице event: {query.lastError().text()}")
-            return False
-        return True
-
-    def insert_manualcalculated_data(self) -> bool:
-        if not self.is_db_connected():
-            return False
-        current_date = QDate.currentDate()
+            return None
+        cents = "CAST(ROUND(CAST(payment.sum AS REAL) * 100) AS INTEGER)"
         query = QSqlQuery()
-        if not query.exec("UPDATE event SET remainamount = event.totalamount, todayshare = '0.0', lastpaymentdate = ''"):
-            log.e(f"Ошибка SQL при попытке сбросить расчётные значения в таблице event: {query.lastError().text()}")
-            return False
-        query = QSqlQuery()
-        query.prepare(f"UPDATE event "
-                      f"SET remainamount = remain_amount, todayshare = today_share, lastpaymentdate = lastpayment_date "
-                      f"FROM ("
-                      f"SELECT event.id AS event_id, "
-                      f"ROUND(CAST(event.totalamount AS REAL) - COALESCE(SUM(CAST(payment.sum AS REAL)), 0.0), 2) AS remain_amount, "
-                      f"ROUND(SUM(CASE WHEN payment.paymentdate = '{date_str(current_date)}' THEN CAST(payment.sum AS REAL) ELSE 0.0 END), 2) AS today_share, "
-                      f"MAX(payment.paymentdate) AS lastpayment_date "
-                      f"FROM payment "
-                      f"LEFT JOIN event ON event.id = payment.eventid "
-                      f"GROUP BY event.id) "
-                      f"WHERE id = event_id")
+        query.prepare(f"SELECT eventid, SUM({cents}), "
+                      f"SUM(CASE WHEN paymentdate = ? THEN {cents} ELSE 0 END), "
+                      f"MAX(paymentdate) "
+                      f"FROM payment GROUP BY eventid")
+        query.addBindValue(date_str(current_date))
         if not query.exec():
-            log.e(f"Ошибка SQL при попытке пересчитать остатки по таблице event: {query.lastError().text()}")
-            return False
-        return True
+            log.e(f"Ошибка SQL при попытке получить итоги по платежам из таблицы payment: {query.lastError().text()}")
+            return None
+        totals: dict[int, tuple[Decimal, Decimal, str]] = {}
+        while query.next():
+            last_date = query.value(3)
+            totals[query.value(0)] = (Decimal(query.value(1) or 0) / 100,
+                                      Decimal(query.value(2) or 0) / 100,
+                                      "" if self._is_null(last_date) else str(last_date))
+        return totals
 
     def load_contractors(self) -> list[tuple[int, str]] | None:
         if not self.is_db_connected():

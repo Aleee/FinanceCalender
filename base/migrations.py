@@ -38,4 +38,5 @@ def remove_settings_keys(settings, keys: list[str]) -> None:
 # Ключ - версия БД, до которой поднимает миграция. Элемент списка - SQL-запрос или функция от DBHandler
 MIGRATIONS: dict[int, list[Migration]] = {
     3: [migrate_2_to_3],
+    4: [f"ALTER TABLE event DROP COLUMN {column}" for column in ("remainamount", "todayshare", "lastpaymentdate", "filterflags")],
 }

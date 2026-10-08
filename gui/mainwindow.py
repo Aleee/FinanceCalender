@@ -470,15 +470,17 @@ class MainWindow(QMainWindow):
     def _current_filter_args(self) -> tuple:
         return (self.ui.lw_term.current_term(),
                 self.ui.lw_category.current_category(),
-                self.ui.le_receiverfilter.text().replace("'", "''"),
+                self.ui.le_receiverfilter.text(),
                 self.ui.cmb_responsiblefilter.currentData(),
                 self.ui.chb_paytoday.isChecked(),
                 str_int(self.settings_handler.settings.value("Common/paidloadperiod", 3), 3),
                 self.ui.act_featured.isChecked())
 
     def update_filters_and_select(self) -> None:
-        self.base_model.set_filters(*self._current_filter_args())
-        self.proxy2_model.recalculate_totals()
+        filter_args = self._current_filter_args()
+        self.proxy1_model.set_filters(*filter_args)
+        self.base_model.send_filterwidget_labeldata(*filter_args)
+        self.ui.trw_event.span_columns()
         self.ui.pb_resetfilters.setEnabled(self.any_filter_active())
 
     def any_filter_active(self) -> bool:
@@ -550,8 +552,7 @@ class MainWindow(QMainWindow):
                                          date_str(date),
                                          str(amount),
                                          date_str(QDate.currentDate())]):
-            last_payment_date: QDate = self.payment_proxy_model.get_last_paymentdate(date)
-            self.base_model.recalculate_values_on_newpayment(self.get_current_event_index(source_model_index=True), amount, date, last_payment_date)
+            self.base_model.load_payment_totals()
             self.update_filters_and_select()
             self.update_eventinfo()
             return True
@@ -572,8 +573,7 @@ class MainWindow(QMainWindow):
 
         if self.payment_model.removeRow(origin_index_row):
             self.payment_model.submitAll()
-            last_payment_date: QDate = self.payment_proxy_model.get_last_paymentdate(date)
-            self.base_model.recalculate_values_on_paymentdelete(self.get_current_event_index(source_model_index=True), amount, date, last_payment_date)
+            self.base_model.load_payment_totals()
             self.update_filters_and_select()
             self.update_eventinfo()
             return True
@@ -619,7 +619,7 @@ class MainWindow(QMainWindow):
                         set_due_filter = True
                 self.select_new_event(set_due_filter)
             else:
-                self.proxy2_model.recalculate_totals()
+                self.update_filters_and_select()
             self.proxy1_model.invalidate()
             return True
         else:
@@ -627,12 +627,11 @@ class MainWindow(QMainWindow):
 
     def select_new_event(self, set_due_filter: bool) -> None:
         self.base_model.submitAll()
+        self.base_model.load_payment_totals()
         self.ui.trw_event.selectionModel().clear()
         if set_due_filter:
-            # автоматически запустит self.update_filters_and_select()
             self.ui.lw_term.setCurrentRow(0)
-        else:
-            self.update_filters_and_select()
+        self.update_filters_and_select()
         # ищем и выделяем новую строку
         query = QSqlQuery()
         if not query.exec("SELECT last_insert_rowid()"):
@@ -706,17 +705,20 @@ class MainWindow(QMainWindow):
         settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, self.db_handler, reject_possible, self)
         settings_dialog.exec()
         self.on_currentevent_change()
+        self.base_model.select()
         self.update_filters_and_select()
         self.base_model.cacheUpdateNeeded.emit()
 
     def open_fees_dialog(self) -> None:
         fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.base_model, self.payment_model, self)
         fees_dialog.exec()
+        self.base_model.select()
         self.update_filters_and_select()
 
     def open_matching_dialog(self) -> None:
         matching_dialog: MatchingDialog = MatchingDialog(self.settings_handler, self.db_handler, self)
         matching_dialog.exec()
+        self.base_model.select()
         self.update_filters_and_select()
 
     def open_export_dialog(self) -> bool:

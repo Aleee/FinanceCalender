@@ -1,7 +1,11 @@
+import os
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QSettings
+from PySide6.QtCore import QSettings
+from PySide6.QtWidgets import QApplication
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import base.backup as backupmod
 import base.dbhandler as dbmod
@@ -15,7 +19,7 @@ class FakeSettingsHandler:
 
 @pytest.fixture(scope="session")
 def qapp():
-    return QCoreApplication.instance() or QCoreApplication([])
+    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(scope="session")

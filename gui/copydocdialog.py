@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QDialog, QPlainTextEdit
 from base.contract import DocumentTitle, PaymentDueType
 from base.date import date_str, date_displstr, MONTHS_RU
 from base.dbhandler import DBHandler
-from base.liability import RowType, PaymentType, calculate_filterflags
+from base.liability import RowType, PaymentType
 from base.paymentdate import calculate_payment_date
 from base.workcalendar import WEEKDAY_ABBR
 from gui.common import model_atlevel
@@ -197,7 +197,6 @@ class CopyDocDialog(QDialog):
         due_date: QDate = self.ui.de_duedate.date()
         receiver: str = self.source_value(Col.RECEIVER)
         original_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
-        filter_flags = calculate_filterflags(amount, due_date, False, original_model.current_date)
 
         data: list = [
             receiver,
@@ -208,7 +207,6 @@ class CopyDocDialog(QDialog):
             self.source_value(Col.SUBCATEGORY),
             " ".join(self.ui.te_name.toPlainText().split()),
             str(amount),
-            str(amount),
             self.source_value(Col.NDS),
             date_str(due_date),
             date_str(self.ui.de_incurrencedate.date()),
@@ -216,9 +214,6 @@ class CopyDocDialog(QDialog):
             self.ui.te_descr.toPlainText().strip(),
             self.source_value(Col.RESPONSIBLE),
             self.source_value(Col.NOTES),
-            "0.0",
-            "",
-            int(filter_flags),
             0,
             int(bool(self.source_value(Col.HIDDEN))),
             receiver.lower(),

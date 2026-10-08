@@ -423,7 +423,7 @@ class LiabilityXlsWriter(BaseXlsWriter):
 
         ### Временная смена фильтров модели ###
         if show_hidden == HiddenDisplayMode.NONE:
-            model_atlevel(-2, self.model).modify_filter("AND hidden = 0")
+            model_atlevel(-1, self.model).set_hidden_filter(True)
         ########################################
 
         ### ЗАГОЛОВОЧНАЯ ЧАСТЬ ###
@@ -497,7 +497,7 @@ class LiabilityXlsWriter(BaseXlsWriter):
 
         ### Возврат фильтра модели ###
         if show_hidden == HiddenDisplayMode.NONE:
-            model_atlevel(-2, self.model).restore_modified_filter()
+            model_atlevel(-1, self.model).set_hidden_filter(False)
         ###############################
 
         if str_bool(self.settings_handler.settings.value("Export/frozenheader")):

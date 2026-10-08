@@ -8,14 +8,15 @@ import lovely_logger as log
 
 from PySide6.QtCore import Qt, QModelIndex, Signal, QDate, QTimer
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtSql import QSqlTableModel, QSqlQuery
+from PySide6.QtSql import QSqlTableModel
 
 from base.contract import DocumentTitle
-from base.date import date_displstr, str_date, date_str
+from base.date import date_displstr, str_date
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
-from base.liability import (CATEGORY_NAMES, FilterFlags, RowType, HeaderFooterSubtype, TermCategory,
-                             PAYMENTTYPE_NAMES, calculate_filterflags, build_filter_clause)
+from base.liability import (CATEGORY_NAMES, FilterFlags, RowType, HeaderFooterSubtype, TermCategory, LiabilityRow,
+                             PAYMENTTYPE_NAMES, calculate_filterflags, paid_threshold, matches_term, matches_category,
+                             matches_details)
 
 
 @dataclass()
@@ -103,6 +104,10 @@ class LiabilitySqlTableModel(QSqlTableModel):
         Col.REMAINAMOUNT, Col.TOTALAMOUNT, Col.TODAYSHARE
     ]
 
+    DERIVED_COLUMNS = (Col.REMAINAMOUNT, Col.TODAYSHARE, Col.LASTPAYMENTDATE, Col.FILTERFLAGS)
+    NON_LIABILITY_VALUES = {Col.TODAYSHARE: "0.0", Col.LASTPAYMENTDATE: "", Col.FILTERFLAGS: int(FilterFlags.NONE)}
+    NO_PAYMENTS = (Decimal(0), Decimal(0), "")
+
     ICON_SIZE = 16
 
     dbValueRole = Qt.ItemDataRole.UserRole + 1
@@ -119,8 +124,9 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.db_handler = db_handler
         self.current_date: QDate = QDate().currentDate()
         self.paid_minimum_date: QDate = QDate()
-        self.next_select_norecalc: bool = False
-        self.filter_to_restore: str = ""
+        self.payment_totals: dict[int, tuple[Decimal, Decimal, str]] = {}
+        self.liability_cache: dict[int, LiabilityRow] | None = None
+        self.event_cache: dict[int, tuple] | None = None
         self.personal_dict: dict = {}
         self.document_titles: dict[int, DocumentTitle] = {}
         self.contract_icon = QIcon(":/icon-table/designer/icons/attachment.svg")
@@ -135,8 +141,13 @@ class LiabilitySqlTableModel(QSqlTableModel):
 
         self.sort_cache = {}
 
+        self.modelReset.connect(self.invalidate_liability_cache)
+        self.dataChanged.connect(self.invalidate_liability_cache)
+        self.rowsInserted.connect(self.invalidate_liability_cache)
+        self.rowsRemoved.connect(self.invalidate_liability_cache)
+
     def sort_key(self, row):
-        entry_id = self.data(self.index(row, Col.ID), self.qtValueRole)
+        entry_id = self.raw_value(row, Col.ID)
         key = self.sort_cache.get(entry_id)
         if key is None:
             key = self.compute_sort_key(row)
@@ -187,7 +198,9 @@ class LiabilitySqlTableModel(QSqlTableModel):
             return None
 
         if role == self.dbValueRole:
-            return super(LiabilitySqlTableModel, self).data(idx, Qt.ItemDataRole.DisplayRole)
+            if idx.column() in self.DERIVED_COLUMNS:
+                return self.derived_db_value(idx)
+            return self.stored_data(idx, Qt.ItemDataRole.DisplayRole)
 
         elif role == self.qtValueRole:
             try:
@@ -248,7 +261,92 @@ class LiabilitySqlTableModel(QSqlTableModel):
                 return (99, 0, 0, 0, 0)
             return self.sort_key(idx.row())
 
-        return super(LiabilitySqlTableModel, self).data(idx, role)
+        return self.stored_data(idx, role)
+
+    def table_column(self, column: int) -> int:
+        return column - sum(1 for derived in self.DERIVED_COLUMNS if derived < column)
+
+    def stored_columns(self) -> list[Col]:
+        return [column for column in Col if column not in self.DERIVED_COLUMNS]
+
+    def stored_data(self, idx, role) -> Any:
+        if idx.column() in self.DERIVED_COLUMNS:
+            return None
+        return super(LiabilitySqlTableModel, self).data(self.index(idx.row(), self.table_column(idx.column())), role)
+
+    def raw_value(self, row: int, column: int) -> Any:
+        return self.stored_data(self.index(row, column), Qt.ItemDataRole.DisplayRole)
+
+    def derived_db_value(self, idx) -> Any:
+        if self.raw_value(idx.row(), Col.TYPE) != RowType.LIABILITY:
+            return self.NON_LIABILITY_VALUES.get(idx.column())
+        liability = self.liability_rows().get(self.raw_value(idx.row(), Col.ID))
+        if liability is None:
+            return None
+        if idx.column() == Col.REMAINAMOUNT:
+            return str(liability.remain)
+        if idx.column() == Col.TODAYSHARE:
+            return str(liability.today_share)
+        if idx.column() == Col.LASTPAYMENTDATE:
+            return liability.last_payment_date
+        return int(liability.filter_flags)
+
+    def liability_rows(self) -> dict[int, LiabilityRow]:
+        if self.liability_cache is None:
+            self.liability_cache = self.build_liability_rows()
+        return self.liability_cache
+
+    def invalidate_liability_cache(self, *_) -> None:
+        self.liability_cache = None
+        self.event_cache = None
+
+    def event_columns(self) -> dict[int, tuple]:
+        if self.event_cache is None:
+            self.event_cache = self.build_event_cache()
+        return self.event_cache
+
+    def build_event_cache(self) -> dict[int, tuple]:
+        event_cache: dict[int, tuple] = {}
+        for row in range(self.rowCount()):
+            if self.raw_value(row, Col.TYPE) != RowType.LIABILITY:
+                continue
+            event_id = self.raw_value(row, Col.ID)
+            if event_id is None:
+                continue
+            event_cache[event_id] = (self.raw_value(row, Col.CATEGORY) or 0,
+                                     self.raw_value(row, Col.RECEIVERNOCASE) or "",
+                                     self.to_int(self.raw_value(row, Col.RESPONSIBLE)),
+                                     bool(self.raw_value(row, Col.FEATURED)),
+                                     bool(self.raw_value(row, Col.HIDDEN)),
+                                     self.raw_value(row, Col.TOTALAMOUNT),
+                                     str_date(self.raw_value(row, Col.DUEDATE)))
+        return event_cache
+
+    def build_liability_rows(self) -> dict[int, LiabilityRow]:
+        liability_rows: dict[int, LiabilityRow] = {}
+        for event_id, (category, receiver, responsible, featured, hidden, total, due_date) in self.event_columns().items():
+            paid, today_share, last_payment_date = self.payment_totals.get(event_id, self.NO_PAYMENTS)
+            try:
+                remain = Decimal(total) - paid
+            except (decimal.InvalidOperation, TypeError):
+                remain = -paid
+            filter_flags = calculate_filterflags(remain, due_date, today_share != 0, self.current_date)
+            liability_rows[event_id] = LiabilityRow(category=category, receiver=receiver, responsible=responsible,
+                                                    featured=featured, hidden=hidden, remain=remain,
+                                                    today_share=today_share, last_payment_date=last_payment_date,
+                                                    filter_flags=filter_flags)
+        return liability_rows
+
+    @staticmethod
+    def to_int(value: Any) -> int:
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return 0
+
+    def load_payment_totals(self) -> None:
+        self.payment_totals = self.db_handler.load_payment_totals(self.current_date) or {}
+        self.liability_cache = None
 
     def document_title(self, document_id: int) -> DocumentTitle | None:
         if not self.document_titles:
@@ -276,31 +374,42 @@ class LiabilitySqlTableModel(QSqlTableModel):
                 return Qt.AlignmentFlag.AlignHCenter
         return super(LiabilitySqlTableModel, self).headerData(section, orientation, role)
 
+    def columnCount(self, parent=QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
+        return super(LiabilitySqlTableModel, self).columnCount(parent) + len(self.DERIVED_COLUMNS)
+
+    def setData(self, index, value, /, role=Qt.ItemDataRole.EditRole) -> bool:
+        if index.column() in self.DERIVED_COLUMNS:
+            return False
+        return super(LiabilitySqlTableModel, self).setData(self.index(index.row(), self.table_column(index.column())), value, role)
+
+    def stored_flags(self, index):
+        return super(LiabilitySqlTableModel, self).flags(self.index(index.row(), 0))
+
     def flags(self, index, /):
         if not index.isValid():
             return Qt.ItemFlag.NoItemFlags
         if index.siblingAtColumn(Col.TYPE).data(self.qtValueRole) != RowType.LIABILITY:
-            return super(LiabilitySqlTableModel, self).flags(index) & ~Qt.ItemFlag.ItemIsSelectable
+            return self.stored_flags(index) & ~Qt.ItemFlag.ItemIsSelectable
         else:
-            return super(LiabilitySqlTableModel, self).flags(index)
+            return self.stored_flags(index)
 
-    def select(self, recalculate_manual_data: bool = True):
+    def select(self):
         self.beforeSelect.emit()
         self.document_titles.clear()
-        if not self.next_select_norecalc and recalculate_manual_data:
-            self.calculate_manual_data()
-            self.insert_filterflags()
+        self.current_date = QDate.currentDate()
+        self.load_payment_totals()
         result = super(LiabilitySqlTableModel, self).select()
         while self.canFetchMore():
             self.fetchMore()
-        self.next_select_norecalc = False
         QTimer.singleShot(0, self.afterSelect.emit)
         return result
 
     def insert_row(self, data: list) -> int | None:
         new_row_position: int = self.rowCount()
         self.insertRow(new_row_position)
-        if len(data) != self.columnCount():
+        if len(data) != len(self.stored_columns()):
             raise IndexError("В новую строку передано неверное количество данных")
         result = self.insert_data_in_row(new_row_position, data)
         self.cacheUpdateNeeded.emit()
@@ -312,7 +421,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
         return result
 
     def insert_data_in_row(self, row: int, data: list) -> int | None:
-        for column, value in enumerate(data):
+        for column, value in zip(self.stored_columns(), data):
             if column == Col.ID:
                 continue
             if not self.setData(self.index(row, column), value):
@@ -338,98 +447,28 @@ class LiabilitySqlTableModel(QSqlTableModel):
             log.e(f"Не удалось записать изменения в таблицу event: {self.lastError().text()}")
         return result
 
-    def set_filters(self, term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
-        filt = build_filter_clause(term, category, receiver, responsible, paid_today, paid_months_toshow, featured, self.current_date)
-        filt += f" OR filterflags = {int(FilterFlags.NONE)})"
+    def send_filterwidget_labeldata(self, term: TermCategory, category: int, receiver: str, responsible: int, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
+        threshold = paid_threshold(self.current_date, paid_months_toshow)
+        receiver = receiver.lower()
+        term_labels_dict = dict.fromkeys(TermCategory, 0)
+        category_counts: dict[int, int] = {}
+        total_by_term = 0
+        for liability in self.liability_rows().values():
+            if not matches_details(liability, receiver, responsible, paid_today, featured):
+                continue
+            if matches_category(category, liability):
+                for term_category in TermCategory:
+                    if matches_term(term_category, liability, threshold):
+                        term_labels_dict[term_category] += 1
+            if matches_term(term, liability, threshold):
+                total_by_term += 1
+                category_counts[liability.category] = category_counts.get(liability.category, 0) + 1
 
-        self.send_filterwidget_labeldata(term, category, receiver, responsible, paid_today, paid_months_toshow, featured)
-        self.next_select_norecalc = True
-        self.setFilter(filt)
-
-    def modify_filter(self, new_clause: str):
-        self.next_select_norecalc = True
-        self.filter_to_restore = self.filter()
-        self.setFilter(self.filter() + " " + new_clause)
-
-    def restore_modified_filter(self):
-        self.next_select_norecalc = True
-        self.setFilter(self.filter_to_restore)
-        self.filter_to_restore = ""
-
-    def update_labels(self, term, category, receiver, responsible, paid_today, paid_months_toshow, featured):
-        self.send_filterwidget_labeldata(term, category, receiver, responsible, paid_today, paid_months_toshow, featured)
-
-    def send_filterwidget_labeldata(self, term: TermCategory, category: int, receiver: str, responsible: str, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
-        term_subqueries = []
-        for term_category in TermCategory:
-            clause = build_filter_clause(term_category, category, receiver, responsible, paid_today, paid_months_toshow, featured, self.current_date)
-            term_subqueries.append(f"(SELECT COUNT(id) FROM event WHERE {clause}))")
-        query = QSqlQuery(f"SELECT {', '.join(term_subqueries)}")
-        if not query.isActive():
-            log.w(f"Не удалось получить статистику по срокам для боковой панели. Ошибка: {query.lastError().text()}")
-        query.next()
-        term_labels_dict = {}
-        for i, term_category in enumerate(TermCategory):
-            term_labels_dict[term_category] = query.value(i)
-
-        category_subqueries = []
-        for category in list(CATEGORY_NAMES.keys()):
-            clause = build_filter_clause(term, category, receiver, responsible, paid_today, paid_months_toshow, featured, self.current_date)
-            category_subqueries.append(f"(SELECT COUNT(id) FROM event WHERE {clause}))")
-        query = QSqlQuery(f"SELECT {', '.join(category_subqueries)}")
-        if not query.isActive():
-            log.w(f"Не удалось получить статистику по категориям для боковой панели. Ошибка: {query.lastError().text()}")
-        query.next()
         category_labels_dict = {}
-        for i, category in enumerate(CATEGORY_NAMES.keys()):
-            category_labels_dict[category] = query.value(i)
+        for category_key in CATEGORY_NAMES.keys():
+            category_labels_dict[category_key] = total_by_term if category_key % 1000 == 0 else category_counts.get(category_key, 0)
 
         self.filterwidget_labels_changed.emit(term_labels_dict, category_labels_dict)
-
-    def calculate_manual_data(self):
-        self.db_handler.insert_manualcalculated_data()
-
-    def insert_filterflags(self):
-        self.db_handler.insert_filterflags()
-
-    def recalculate_values_on_newpayment(self, index: QModelIndex, amount: Decimal, date: QDate, last_payment_date: QDate):
-
-        old_remain: Decimal = index.siblingAtColumn(Col.REMAINAMOUNT).data(self.qtValueRole)
-        new_remain: Decimal = old_remain - amount if old_remain - amount > 0.001 else Decimal(0)
-        self.setData(index.siblingAtColumn(Col.REMAINAMOUNT), str(new_remain))
-
-        old_today_amount: Decimal = index.siblingAtColumn(Col.TODAYSHARE).data(self.qtValueRole)
-        if date == QDate.currentDate():
-            today_share: Decimal = old_today_amount + amount
-        else:
-            today_share: Decimal = old_today_amount
-        self.setData(index.siblingAtColumn(Col.TODAYSHARE), str(today_share))
-
-        self.setData(index.siblingAtColumn(Col.LASTPAYMENTDATE), date_str(last_payment_date))
-
-        new_filter_flags: FilterFlags = calculate_filterflags(new_remain, index.siblingAtColumn(Col.DUEDATE).data(self.qtValueRole), bool(today_share), self.current_date)
-        self.setData(index.siblingAtColumn(Col.FILTERFLAGS), int(new_filter_flags))
-
-    def recalculate_values_on_paymentdelete(self, index: QModelIndex, amount: Decimal, date: QDate, last_payment_date: QDate):
-
-        old_remain: Decimal = index.siblingAtColumn(Col.REMAINAMOUNT).data(self.qtValueRole)
-        new_remain: Decimal = old_remain + amount
-        total_amount: Decimal = index.siblingAtColumn(Col.TOTALAMOUNT).data(self.qtValueRole)
-        if new_remain > total_amount:
-            new_remain = total_amount
-        self.setData(index.siblingAtColumn(Col.REMAINAMOUNT), str(new_remain))
-
-        old_today_amount: Decimal = index.siblingAtColumn(Col.TODAYSHARE).data(self.qtValueRole)
-        if date == QDate.currentDate():
-            today_share: Decimal = old_today_amount - amount
-            self.setData(index.siblingAtColumn(Col.TODAYSHARE), str(today_share))
-        else:
-            today_share: Decimal = old_today_amount
-
-        self.setData(index.siblingAtColumn(Col.LASTPAYMENTDATE), date_str(last_payment_date))
-
-        new_filter_flags: FilterFlags = calculate_filterflags(new_remain, index.siblingAtColumn(Col.DUEDATE).data(self.qtValueRole), bool(today_share), self.current_date)
-        self.setData(index.siblingAtColumn(Col.FILTERFLAGS), int(new_filter_flags))
 
     def set_row_formatting(self, row_formatting: RowFormatting) -> bool:
         for var in astuple(row_formatting):

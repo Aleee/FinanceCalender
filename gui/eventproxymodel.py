@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication
 
 from base.formatting import dec_strcommaspace
 from base.liability import (CATEGORY_NAMES, LiabilityCategory, FilterFlags, RowType, HeaderFooterSubtype, TermCategory,
-                             category_section, is_top_level_category)
+                             category_section, is_top_level_category, matches_filters, paid_threshold)
 from gui.common import model_atlevel
 from gui.commonwidgets.common import RowStyle
 from gui.eventsqlmodel import Col, LiabilitySqlTableModel, RowFormatting
@@ -49,10 +49,14 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
         self.footer_filter: bool = False
         self.paytoday_filter: bool = False
         self.search_filter: str = ""
+        self.receiver_filter: str = ""
+        self.responsible_filter: int = 0
+        self.featured_filter: bool = False
+        self.paid_months_filter: int = 3
+        self.exclude_hidden: bool = False
 
-        self.cache: dict = {}
-        self.modelReset.connect(self.cache_data)
-        self.dataChanged.connect(self.on_data_changed)
+        self.accepted_ids: set[int] | None = None
+        self.cache: dict | None = None
 
         self.style_cache = {}
         self.modelReset.connect(self.invalidate_style_cache)
@@ -131,27 +135,58 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
 
         return style
 
-    def cache_data(self):
-        self.cache = {}
+    def setSourceModel(self, source_model) -> None:
+        source_model.modelAboutToBeReset.connect(self.invalidate_accepted)
+        source_model.dataChanged.connect(self.invalidate_accepted)
+        source_model.rowsInserted.connect(self.invalidate_accepted)
+        source_model.rowsRemoved.connect(self.invalidate_accepted)
+        super().setSourceModel(source_model)
 
-        source = self.sourceModel()
-        role = LiabilitySqlTableModel.dbValueRole
+    def invalidate_accepted(self, *_) -> None:
+        self.accepted_ids = None
+        self.cache = None
 
-        for row in range(source.rowCount()):
-            idx_type = source.index(row, Col.TYPE)
-            if idx_type.data(role) != RowType.LIABILITY:
+    def build_accepted(self) -> None:
+        accepted_ids: set[int] = set()
+        cache: dict = {}
+        threshold = paid_threshold(self.sourceModel().current_date, self.paid_months_filter)
+        for event_id, liability in self.sourceModel().liability_rows().items():
+            if self.exclude_hidden and liability.hidden:
                 continue
+            if not matches_filters(liability, self.term_filter, self.category_filter, self.receiver_filter,
+                                   self.responsible_filter, self.paytoday_filter, self.featured_filter, threshold):
+                continue
+            accepted_ids.add(event_id)
+            group = category_section(liability.category)
+            cache[liability.category] = cache.get(liability.category, 0) + 1
+            cache[group] = cache.get(group, 0) + 1
+        self.accepted_ids = accepted_ids
+        self.cache = cache
 
-            category = source.index(row, Col.CATEGORY).data(role)
+    def category_count(self, category: int) -> int:
+        if self.cache is None:
+            self.build_accepted()
+        return self.cache.get(category, 0)
 
-            group = category_section(category)
+    def set_filters(self, term: TermCategory, category: int, receiver: str, responsible: int, paid_today: bool,
+                    paid_months_toshow: int, featured: bool) -> None:
+        self.term_filter = term
+        self.category_filter = category
+        self.receiver_filter = receiver.lower()
+        self.responsible_filter = responsible
+        self.paytoday_filter = paid_today
+        self.paid_months_filter = paid_months_toshow
+        self.featured_filter = featured
+        self.invalidate_accepted()
+        self.invalidate_style_cache()
+        if self.sortfilter_enabled:
+            self.invalidate()
+            self.modelInvalidated.emit()
 
-            self.cache[category] = self.cache.get(category, 0) + 1
-            self.cache[group] = self.cache.get(group, 0) + 1
-
-    def on_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex, roles=None) -> None:
-        if top_left.column() <= Col.TYPE <= bottom_right.column() or top_left.column() <= Col.CATEGORY <= bottom_right.column():
-            self.cache_data()
+    def set_hidden_filter(self, exclude_hidden: bool) -> None:
+        self.exclude_hidden = exclude_hidden
+        self.invalidate_accepted()
+        self.invalidate()
 
     def enable_sortfilter(self, enable: bool) -> None:
         self.sortfilter_enabled = enable
@@ -172,6 +207,8 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
             self.paytoday_filter = condition
         elif filter_type == Filter.SEARCH:
             self.search_filter = str(condition).strip().lower()
+        if filter_type in (Filter.TERM, Filter.CATEGORY, Filter.PAYTODAY):
+            self.invalidate_accepted()
         if self.sortfilter_enabled and invalidate:
             self.invalidate()
             self.modelInvalidated.emit()
@@ -215,10 +252,12 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
         if not self.sortfilter_enabled:
             return True
 
-        def data_from_row(column: int, role=LiabilitySqlTableModel.dbValueRole) -> Any:
-            return model_atlevel(-1, self).index(source_row, column, source_parent).data(role)
+        source_model = self.sourceModel()
 
-        row_type: RowType = data_from_row(Col.TYPE)
+        def data_from_row(column: int, role=LiabilitySqlTableModel.dbValueRole) -> Any:
+            return source_model.index(source_row, column, source_parent).data(role)
+
+        row_type: RowType = source_model.raw_value(source_row, Col.TYPE)
 
         ### Быстрый поиск по наименованию и основанию платежа
         if self.search_filter:
@@ -247,7 +286,11 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
                         return False
                 elif row_type == RowType.FINALFOOTER:
                     return False
-        return True
+            return True
+
+        if self.accepted_ids is None:
+            self.build_accepted()
+        return source_model.raw_value(source_row, Col.ID) in self.accepted_ids
 
     def lessThan(self, source_left, source_right, /):
         model = self.sourceModel()
@@ -372,6 +415,6 @@ class LiabilityTotalsProxyModel(QSortFilterProxyModel):
     def category_not_empty(self, category: int, subcategories: bool = False):
         if subcategories:
             subcategory_prefix: int = category_section(category)
-            return model_atlevel(-1, self).cache.get(subcategory_prefix, 0) > 0
+            return model_atlevel(-1, self).category_count(subcategory_prefix) > 0
         else:
-            return model_atlevel(-1, self).cache.get(category, 0) > 0
+            return model_atlevel(-1, self).category_count(category) > 0
