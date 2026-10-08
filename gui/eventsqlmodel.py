@@ -458,11 +458,16 @@ class LiabilitySqlTableModel(QSqlTableModel):
         return result
 
     def insert_data_in_row(self, row: int, data: list) -> int | None:
-        for column, value in zip(self.stored_columns(), data):
-            if column == Col.ID:
-                continue
-            if not self.setData(self.index(row, column), value):
-                return None
+        self.blockSignals(True)
+        try:
+            for column, value in zip(self.stored_columns(), data):
+                if column == Col.ID:
+                    continue
+                if not self.setData(self.index(row, column), value):
+                    return None
+        finally:
+            self.blockSignals(False)
+            self.dataChanged.emit(self.index(row, 0), self.index(row, self.columnCount() - 1))
         return row
 
     # Функция возвращает ID удаленной строки (0 в случае неудачи)
