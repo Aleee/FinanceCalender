@@ -122,8 +122,10 @@ class LiabilitySqlTableModel(QSqlTableModel):
         super(LiabilitySqlTableModel, self).__init__(parent)
 
         self.db_handler = db_handler
+        self.table_columns: dict[int, int] = {column: column - sum(1 for derived in self.DERIVED_COLUMNS if derived < column)
+                                              for column in Col}
         self.current_date: QDate = QDate().currentDate()
-        self.paid_load_months: int = 999
+        self.paid_load_months: int | None = None
         self.payment_totals: dict[int, tuple[Decimal, Decimal, str]] = {}
         self.liability_cache: dict[int, LiabilityRow] | None = None
         self.event_cache: dict[int, tuple] | None = None
@@ -264,7 +266,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
         return self.stored_data(idx, role)
 
     def table_column(self, column: int) -> int:
-        return column - sum(1 for derived in self.DERIVED_COLUMNS if derived < column)
+        return self.table_columns[column]
 
     def stored_columns(self) -> list[Col]:
         return [column for column in Col if column not in self.DERIVED_COLUMNS]
@@ -272,10 +274,12 @@ class LiabilitySqlTableModel(QSqlTableModel):
     def stored_data(self, idx, role) -> Any:
         if idx.column() in self.DERIVED_COLUMNS:
             return None
-        return super(LiabilitySqlTableModel, self).data(self.index(idx.row(), self.table_column(idx.column())), role)
+        return QSqlTableModel.data(self, self.index(idx.row(), self.table_columns[idx.column()]), role)
 
     def raw_value(self, row: int, column: int) -> Any:
-        return self.stored_data(self.index(row, column), Qt.ItemDataRole.DisplayRole)
+        if column in self.DERIVED_COLUMNS:
+            return None
+        return QSqlTableModel.data(self, self.index(row, self.table_columns[column]), Qt.ItemDataRole.DisplayRole)
 
     def derived_db_value(self, idx) -> Any:
         if self.raw_value(idx.row(), Col.TYPE) != RowType.LIABILITY:
@@ -377,7 +381,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
     def columnCount(self, parent=QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return super(LiabilitySqlTableModel, self).columnCount(parent) + len(self.DERIVED_COLUMNS)
+        return QSqlTableModel.columnCount(self, parent) + len(self.DERIVED_COLUMNS)
 
     def setData(self, index, value, /, role=Qt.ItemDataRole.EditRole) -> bool:
         if index.column() in self.DERIVED_COLUMNS:
@@ -395,11 +399,16 @@ class LiabilitySqlTableModel(QSqlTableModel):
         else:
             return self.stored_flags(index)
 
+    def set_paid_load_months(self, months: int) -> None:
+        if months == self.paid_load_months:
+            return
+        self.paid_load_months = months
+        self.setFilter(self.db_handler.paid_load_filter(paid_threshold(QDate.currentDate(), months)))
+
     def select(self):
         self.beforeSelect.emit()
         self.document_titles.clear()
         self.current_date = QDate.currentDate()
-        self.setFilter(self.db_handler.paid_load_filter(paid_threshold(self.current_date, self.paid_load_months)))
         self.load_payment_totals()
         result = super(LiabilitySqlTableModel, self).select()
         while self.canFetchMore():

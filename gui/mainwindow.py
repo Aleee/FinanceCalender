@@ -128,7 +128,7 @@ class MainWindow(QMainWindow):
         self.base_model: LiabilitySqlTableModel = LiabilitySqlTableModel(self.db_handler, self)
         self.base_model.setTable("event")
         self.base_model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
-        self.base_model.paid_load_months = self.settings_handler.paid_load_months()
+        self.base_model.set_paid_load_months(self.settings_handler.paid_load_months())
         self.base_model.select()
 
         self.proxy1_model = LiabilitySortFilterProxyModel()

@@ -41,7 +41,7 @@ class SettingsHandler:
 
         # Основные настройки
         ## Отображение оплаченных
-        self.mw.base_model.paid_load_months = self.paid_load_months()
+        self.mw.base_model.set_paid_load_months(self.paid_load_months())
         ## Размер шрифта
         self.change_fontsize()
         ## Ширина столбцов
