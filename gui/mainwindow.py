@@ -15,7 +15,7 @@ from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
 from base.payment import PaymentField
-from base.sync import MasterInfo, SyncAction, SyncChannel, SyncError, SyncParams, read_local_state, synchronize
+from base.sync import MasterInfo, NetworkError, SyncAction, SyncChannel, SyncError, SyncParams, read_local_state, synchronize
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
@@ -42,8 +42,9 @@ from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
 from gui.syncconflictdialog import SyncConflictDialog
-from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_STALE_DAYS, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, connect_to_master,
-                             create_master, create_sync_channel, create_sync_params, describe_master, failure_status_text,
+from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS,
+                             SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, connect_to_master, create_master,
+                             create_sync_channel, create_sync_params, describe_master, failure_status_text,
                              master_age_days, overwrite_master, take_master, token_days_left)
 from gui.ui.syncicon import create_sync_icon
 from gui.syncprogressdialog import SyncProgressDialog
@@ -85,6 +86,7 @@ class MainWindow(QMainWindow):
         self.bound_document_id: int = 0
         self.sync_status_text: str = "не выполнялась"
         self.sync_error: str = ""
+        self.sync_network_failed: bool = False
         self.sync_failure_text: str = "ОШИБКА"
         self.sync_master_info: MasterInfo | None = None
         self.sync_checked_at: str = ""
@@ -429,11 +431,14 @@ class MainWindow(QMainWindow):
             self.sync_channel_settings = current_settings
         return self.sync_channel
 
-    def auto_sync(self) -> None:
+    def auto_sync(self, retries_left: int = SYNC_RETRY_ATTEMPTS) -> None:
         if (not self.settings_handler.sync_enabled() or not self.tb_sync.isEnabled()
                 or QApplication.activeModalWidget() is not None or self.ui.tb_savenote.isEnabled()):
             return
         self.run_sync(interactive=False)
+        if self.sync_network_failed and retries_left > 0:
+            log.i(f"Повтор синхронизации через {SYNC_RETRY_DELAY_MS // 1000} с, осталось попыток: {retries_left}")
+            QTimer.singleShot(SYNC_RETRY_DELAY_MS, lambda: self.auto_sync(retries_left - 1))
 
     def run_sync(self, interactive: bool = True) -> None:
         if not self.settings_handler.sync_enabled():
@@ -503,11 +508,13 @@ class MainWindow(QMainWindow):
         try:
             action: SyncAction = step()
             self.sync_error = ""
+            self.sync_network_failed = False
             self.sync_master_info = channel.last_master_info()
             return action
         except SyncError as e:
             log.e(f"Синхронизация не выполнена: {e}")
             self.sync_error = str(e)
+            self.sync_network_failed = isinstance(e, NetworkError)
             self.sync_failure_text = failure_status_text(e)
             return None
         finally:

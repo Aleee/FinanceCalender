@@ -11,6 +11,8 @@ from base.yandexchannel import YandexDiskApiChannel
 from gui.settings import SettingsHandler
 
 SYNC_STALE_DAYS = 7
+SYNC_RETRY_DELAY_MS = 30000
+SYNC_RETRY_ATTEMPTS = 2
 TOKEN_WARNING_DAYS = 30
 
 SYNC_STATUS_TEXT: dict[SyncAction, str] = {
