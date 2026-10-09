@@ -4,9 +4,9 @@ from typing import Any, Callable
 import lovely_logger as log
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
-from PySide6.QtGui import QAction, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QColor, QKeySequence, QPalette, QShortcut
 from PySide6.QtSql import QSqlTableModel
-from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QWidget, QListView, QToolButton, QLineEdit
+from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QWidget, QListView, QToolButton, QLineEdit, QSizePolicy
 
 from base.backup import clean_backup_folder, save_backup
 from base.casting import str_int
@@ -66,6 +66,10 @@ class YearInputDialog(QDialog):
 class MainWindow(QMainWindow):
 
     CONTRACT_NOTBOUND_TEXT = '<span style="color: #808080;">не привязан</span>'
+    SYNC_OK_STATUSES = ("не выполнялась", SYNC_STATUS_TEXT[SyncAction.NOTHING],
+                        SYNC_STATUS_TEXT[SyncAction.PULL], SYNC_STATUS_TEXT[SyncAction.PUSH])
+    SYNC_PROBLEM_COLOR = QColor("#C62828")
+    SYNC_WARNING_COLOR = QColor("#B26A00")
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -91,6 +95,9 @@ class MainWindow(QMainWindow):
 
         # Поле быстрого поиска в тулбаре
         self._init_toolbar_search()
+
+        # Кнопка синхронизации в правой части тулбара
+        self._init_toolbar_sync()
 
         # Подключение всех сигналов (фильтры, модели, тулбар)
         self._connect_signals()
@@ -300,56 +307,88 @@ class MainWindow(QMainWindow):
         self.separator1 = StatusBarSeparator(self)
         self.separator2 = StatusBarSeparator(self)
         self.separator3 = StatusBarSeparator(self)
-        self.separator4 = StatusBarSeparator(self)
         self.spacer = QWidget()
         self.spacer.setFixedWidth(10)
-
-        self.act_sync_now = QAction("Синхронизировать сейчас", self)
-        self.act_sync_settings = QAction("Настройки синхронизации...", self)
-        sync_menu = QMenu(self)
-        sync_menu.addAction(self.act_sync_now)
-        sync_menu.addAction(self.act_sync_settings)
-        self.tb_sbar_sync = QToolButton()
-        self.tb_sbar_sync.setAutoRaise(True)
-        self.tb_sbar_sync.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self.tb_sbar_sync.setMenu(sync_menu)
-        self.act_sync_now.triggered.connect(lambda: self.run_sync())
-        self.act_sync_settings.triggered.connect(self.open_sync_settings_dialog)
-        self.sync_timer = QTimer(self)
-        self.sync_timer.timeout.connect(self.auto_sync)
-        self.apply_sync_timer()
-        self.update_sync_status()
 
         self.ui.statusBar.addPermanentWidget(self.separator1)
         self.ui.statusBar.addPermanentWidget(self.la_sbar_backup)
         self.ui.statusBar.addPermanentWidget(self.separator2)
         self.ui.statusBar.addPermanentWidget(self.la_sbar_update)
         self.ui.statusBar.addPermanentWidget(self.separator3)
-        self.ui.statusBar.addPermanentWidget(self.tb_sbar_sync)
-        self.ui.statusBar.addPermanentWidget(self.separator4)
         self.ui.statusBar.addPermanentWidget(self.spacer)
+
+    def _init_toolbar_sync(self) -> None:
+        self.act_sync_now = QAction("Синхронизировать сейчас", self)
+        self.act_sync_settings = QAction("Настройки синхронизации...", self)
+        sync_menu = QMenu(self)
+        sync_menu.addAction(self.act_sync_now)
+        sync_menu.addAction(self.act_sync_settings)
+        self.tb_sync = QToolButton()
+        self.tb_sync.setAutoRaise(True)
+        self.tb_sync.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self.tb_sync.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.tb_sync.setMenu(sync_menu)
+        self.tb_sync.clicked.connect(self.on_sync_button_clicked)
+        self.act_sync_now.triggered.connect(lambda: self.run_sync())
+        self.act_sync_settings.triggered.connect(self.open_sync_settings_dialog)
+        self.sync_timer = QTimer(self)
+        self.sync_timer.timeout.connect(self.auto_sync)
+        self.apply_sync_timer()
+        self.update_sync_status()
+        self.sync_status_timer = QTimer(self)
+        self.sync_status_timer.timeout.connect(self.refresh_sync_status)
+        self.sync_status_timer.start(3000)
+
+        sync_spacer = QWidget(self)
+        sync_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        right_margin = QWidget(self)
+        right_margin.setFixedWidth(6)
+        self.ui.tlbr.addWidget(sync_spacer)
+        self.ui.tlbr.addWidget(self.tb_sync)
+        self.ui.tlbr.addWidget(right_margin)
+
+    def on_sync_button_clicked(self) -> None:
+        if self.settings_handler.sync_enabled():
+            self.run_sync()
+        else:
+            self.open_sync_settings_dialog()
+
+    def set_sync_button_state(self, text: str, color: QColor | None = None) -> None:
+        self.tb_sync.setText(text)
+        palette: QPalette = QApplication.palette(self.tb_sync)
+        if color is not None:
+            palette.setColor(QPalette.ColorRole.ButtonText, color)
+            palette.setColor(QPalette.ColorRole.WindowText, color)
+        self.tb_sync.setPalette(palette)
 
     def update_sync_status(self) -> None:
         if not self.settings_handler.sync_enabled():
-            self.tb_sbar_sync.setText("Синхронизация: выключена")
-            self.tb_sbar_sync.setToolTip("Синхронизация выключена. Включить её можно в настройках синхронизации")
+            self.set_sync_button_state("⟳ Синхронизация выключена", self.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText))
+            self.tb_sync.setToolTip("Синхронизация выключена. Нажмите, чтобы открыть настройки синхронизации")
             self.act_sync_now.setEnabled(False)
             return
         self.act_sync_now.setEnabled(True)
         master_age: int | None = master_age_days(self.sync_master_info) if self.sync_master_info else None
         is_master_stale: bool = master_age is not None and master_age >= SYNC_STALE_DAYS
-        status_text: str = f"Синхронизация: {self.sync_status_text}"
-        if is_master_stale:
-            status_text += f" (мастер не обновлялся {master_age} дн.)"
         days_left: int | None = token_days_left(self.settings_handler)
         token_warning: str = ""
         if days_left is not None and days_left < 0:
             token_warning = "Токен Яндекса истёк, получите новый и укажите его в настройках синхронизации"
-            status_text += " (токен истёк)"
         elif days_left is not None and days_left <= TOKEN_WARNING_DAYS:
             token_warning = f"Токен Яндекса истекает через {days_left} дн., получите новый заранее"
-            status_text += f" (токен истекает через {days_left} дн.)"
-        self.tb_sbar_sync.setText(status_text)
+        is_problem: bool = self.sync_status_text not in self.SYNC_OK_STATUSES or (days_left is not None and days_left < 0)
+        has_unsent_changes: bool = False
+        if self.sync_status_text in (SYNC_STATUS_TEXT[SyncAction.NOTHING], SYNC_STATUS_TEXT[SyncAction.PUSH]):
+            try:
+                has_unsent_changes = read_local_state(self.db_handler).has_changes
+            except SyncError as e:
+                log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
+        is_warning: bool = is_master_stale or bool(token_warning) or has_unsent_changes
+        status_text: str = f"⟳ Синхронизация: {'есть неотправленные изменения' if has_unsent_changes else self.sync_status_text}"
+        if not is_problem and is_warning and not has_unsent_changes:
+            status_text += " ⚠"
+        color: QColor | None = self.SYNC_PROBLEM_COLOR if is_problem else self.SYNC_WARNING_COLOR if is_warning else None
+        self.set_sync_button_state(status_text, color)
         if self.settings_handler.sync_channel_type() == "yandex":
             tooltip_lines: list[str] = [f"Яндекс.Диск, папка {self.settings_handler.sync_disk_folder()}"]
         else:
@@ -361,10 +400,15 @@ class MainWindow(QMainWindow):
         if self.sync_master_info:
             tooltip_lines.append(f"Мастер обновлён: {describe_master(self.sync_master_info)}")
         if is_master_stale:
-            tooltip_lines.append("Внимание: мастер давно не обновлялся, возможно, второй пользователь не отправляет изменения")
+            tooltip_lines.append(f"Внимание: мастер не обновлялся {master_age} дн., возможно, второй пользователь не отправляет изменения")
         if self.sync_error:
             tooltip_lines.append(f"Последняя ошибка: {self.sync_error}")
-        self.tb_sbar_sync.setToolTip("\n".join(tooltip_lines))
+        tooltip_lines.append("Нажмите, чтобы синхронизировать; стрелка справа — меню")
+        self.tb_sync.setToolTip("\n".join(tooltip_lines))
+
+    def refresh_sync_status(self) -> None:
+        if self.settings_handler.sync_enabled() and self.tb_sync.isEnabled():
+            self.update_sync_status()
 
     def apply_sync_timer(self) -> None:
         self.sync_timer.stop()
@@ -372,7 +416,7 @@ class MainWindow(QMainWindow):
             self.sync_timer.start(self.settings_handler.sync_interval_minutes() * 60 * 1000)
 
     def auto_sync(self) -> None:
-        if (not self.settings_handler.sync_enabled() or not self.tb_sbar_sync.isEnabled()
+        if (not self.settings_handler.sync_enabled() or not self.tb_sync.isEnabled()
                 or QApplication.activeModalWidget() is not None or self.ui.tb_savenote.isEnabled()):
             return
         self.run_sync(interactive=False)
@@ -398,7 +442,7 @@ class MainWindow(QMainWindow):
             elif action in SYNC_ACTION_MESSAGE:
                 ErrorInfoMessageBox(SYNC_ACTION_MESSAGE[action], is_info=True, parent=self).exec()
         elif self.sync_status_text != previous_status_text and action in (SyncAction.CONFLICT, SyncAction.CLIENT_OUTDATED):
-            self.ui.statusBar.showMessage(f"Синхронизация: {self.sync_status_text}. Нажмите на кнопку синхронизации в строке состояния", 15000)
+            self.ui.statusBar.showMessage(f"Синхронизация: {self.sync_status_text}. Нажмите на кнопку синхронизации на панели инструментов", 15000)
 
     def _resolve_sync_action(self, action: SyncAction | None, channel: SyncChannel, params: SyncParams) -> SyncAction | None:
         if action == SyncAction.NO_MASTER and YesNoMessagebox(
@@ -438,7 +482,7 @@ class MainWindow(QMainWindow):
                                self).exec() == YesNoMessagebox.YES_RETURN_VALUE
 
     def _run_sync_step(self, channel: SyncChannel, step: Callable[[], SyncAction]) -> SyncAction | None:
-        self.tb_sbar_sync.setEnabled(False)
+        self.tb_sync.setEnabled(False)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
             action: SyncAction = step()
@@ -452,7 +496,7 @@ class MainWindow(QMainWindow):
             return None
         finally:
             QApplication.restoreOverrideCursor()
-            self.tb_sbar_sync.setEnabled(True)
+            self.tb_sync.setEnabled(True)
 
     def reload_after_sync_pull(self) -> None:
         clear_calendar_cache()
