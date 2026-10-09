@@ -298,7 +298,6 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
             log.w(f"Не удалось удалить старые копии мастера: {e}")
     if not dbh.finish_push(new_token, counter):
         raise SyncError("Мастер обновлён, но не удалось записать результат в локальную базу данных (подробности см. в логе)")
-    log.i(f"Мастер обновлён локальной базой данных, токен {new_token}")
 
 
 def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncAction, ...] = (SyncAction.PULL,),
@@ -335,7 +334,6 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
         finally:
             if migrated_path is not None:
                 Path(migrated_path).unlink(missing_ok=True)
-    log.i(f"Локальная база данных заменена мастером, токен {master.sync_token}")
 
 
 def save_conflict_copy(dbh: "DBHandler") -> None:

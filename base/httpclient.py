@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-import lovely_logger as log
 from PySide6.QtCore import QByteArray, QEventLoop, QFile, QIODevice, QTimer, QUrl
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
@@ -72,9 +71,6 @@ class QtHttpClient(HttpClient):
         finally:
             if upload is not None:
                 upload.close()
-        if response.status in (401, 403):
-            log.w(f"Отказ в доступе {response.status}: {method} {request.url().host()}{request.url().path()}, "
-                  f"ответ: {response.body[:300].decode('utf-8', 'replace')}")
         if download_file is not None and response.status == 200:
             try:
                 download_file.write_bytes(response.body)

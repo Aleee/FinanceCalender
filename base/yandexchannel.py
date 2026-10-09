@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 
+import lovely_logger as log
+
 from base.httpclient import HttpClient, HttpResponse
 from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INFO_NAME,
                        MasterInfo, SyncChannel, SyncError, TEMP_SUFFIX, backup_time_from_name, file_md5, master_backup_name)
@@ -116,6 +118,9 @@ class YandexDiskApiChannel(SyncChannel):
             self.http.pause(UNAUTHORIZED_RETRY_PAUSE_MS)
             response = self.http.send(method, url, self.auth_headers())
         if response.status not in allowed:
+            if response.status in (401, 403):
+                log.w(f"Отказ в доступе {response.status}: {method} {endpoint}, "
+                      f"ответ: {response.body[:300].decode('utf-8', 'replace')}")
             raise self.error_from(response)
         return response
 
