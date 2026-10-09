@@ -1,15 +1,17 @@
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
+import lovely_logger as log
 from PySide6.QtCore import QByteArray, QEventLoop, QFile, QIODevice, QTimer, QUrl
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 from base.sync import NetworkError, SyncError
 
-TRANSFER_TIMEOUT_MS = 30000
-TIMEOUT_STEPS = (1 / 6, 1 / 3, 1)
-RETRY_PAUSE_MS = 1000
+TIMEOUT_STEPS_MS = (1000, 1500, 2000, 2500, 3000)
+RETRY_PAUSES_MS = (200, 300, 400, 500)
+SINGLE_ATTEMPT_TIMEOUT_MS = 5000
 RETRY_METHODS = ("GET", "PUT")
 
 
@@ -30,22 +32,33 @@ class HttpClient(ABC):
         ...
 
 
+def elapsed_ms(started: float) -> int:
+    return int((time.monotonic() - started) * 1000)
+
+
 class QtHttpClient(HttpClient):
-    def __init__(self, timeout_ms: int = TRANSFER_TIMEOUT_MS):
-        self.timeout_ms: int = timeout_ms
+    def __init__(self):
         self.manager: QNetworkAccessManager = QNetworkAccessManager()
         self.manager.setRedirectPolicy(QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy)
 
     def send(self, method: str, url: str, headers: dict[str, str] | None = None, data: bytes = b"",
              upload_file: Path | None = None, download_file: Path | None = None) -> HttpResponse:
-        steps = TIMEOUT_STEPS if method in RETRY_METHODS else TIMEOUT_STEPS[-1:]
-        for attempt, step in enumerate(steps, 1):
+        steps = TIMEOUT_STEPS_MS if method in RETRY_METHODS else (SINGLE_ATTEMPT_TIMEOUT_MS,)
+        qurl = QUrl(url)
+        target = f"{method} {qurl.host()}{qurl.path()}"
+        for attempt, timeout_ms in enumerate(steps, 1):
+            started = time.monotonic()
             try:
-                return self.send_once(method, url, int(self.timeout_ms * step), headers, data, upload_file, download_file)
-            except NetworkError:
+                response = self.send_once(method, url, timeout_ms, headers, data, upload_file, download_file)
+            except NetworkError as e:
+                log.d(f"{target}: попытка {attempt}/{len(steps)} не удалась за {elapsed_ms(started)} мс "
+                      f"(таймаут {timeout_ms} мс): {e}")
                 if attempt == len(steps):
                     raise
-                self.pause(RETRY_PAUSE_MS)
+                self.pause(RETRY_PAUSES_MS[attempt - 1])
+                continue
+            log.d(f"{target}: статус {response.status} за {elapsed_ms(started)} мс, попытка {attempt}/{len(steps)}")
+            return response
 
     def send_once(self, method: str, url: str, timeout_ms: int, headers: dict[str, str] | None = None,
                   data: bytes = b"", upload_file: Path | None = None, download_file: Path | None = None) -> HttpResponse:

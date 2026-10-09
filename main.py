@@ -19,6 +19,7 @@ class App(QApplication):
     def __init__(self):
         super().__init__(sys.argv)
 
+
         QNetworkProxyFactory.setUseSystemConfiguration(True)
 
         self.app_version = APP_VERSION
@@ -43,6 +44,11 @@ def close(pr):
 def main():
     # pr = cProfile.Profile()
     # pr.enable()
+
+    #TEMP
+    if not getattr(sys, 'frozen', False):
+        os.environ['PATH'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'openssl') + os.pathsep + \
+                             os.environ['PATH']
 
     logs_folder = logs_dir()
     if sys.stderr is None or sys.stderr.name == '<stderr>':

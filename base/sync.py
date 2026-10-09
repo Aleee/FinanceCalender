@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import tempfile
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
@@ -289,8 +290,12 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
             raise MasterChangedError("Мастер изменился во время подготовки отправки")
         info = MasterInfo(local.db_uuid, new_token, local.db_version, params.author, params.machine,
                           datetime.now().isoformat(timespec="seconds"), params.app_version)
+        stage_started = time.monotonic()
         channel.backup_master()
+        log.d(f"Отправка мастера: копия прежнего мастера за {elapsed_ms(stage_started)} мс")
+        stage_started = time.monotonic()
         channel.upload_master(snapshot, info)
+        log.d(f"Отправка мастера: загрузка за {elapsed_ms(stage_started)} мс")
     if backups_cleanup_due(master):
         try:
             channel.remove_old_backups(params.backup_keep_days)
@@ -342,11 +347,18 @@ def save_conflict_copy(dbh: "DBHandler") -> None:
         raise SyncError("Не удалось сохранить копию локальной базы данных перед разрешением конфликта")
 
 
+def elapsed_ms(started: float) -> int:
+    return int((time.monotonic() - started) * 1000)
+
+
 def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams) -> SyncAction:
+    started = time.monotonic()
     master = channel.read_master_info()
+    log.d(f"Синхронизация: чтение master.json за {elapsed_ms(started)} мс")
     action = decide_action(read_local_state(dbh), master)
     if action == SyncAction.PULL:
         pull_master(dbh, channel, master=master)
     elif action == SyncAction.PUSH:
         push_master(dbh, channel, params, master=master)
+    log.d(f"Синхронизация: действие «{action.value}», всего {elapsed_ms(started)} мс")
     return action
