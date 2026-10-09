@@ -36,6 +36,19 @@ class SettingsHandler:
     def sync_enabled(self) -> bool:
         return str_bool(self.settings.value("Sync/enabled"), False)
 
+    def sync_channel_type(self) -> str:
+        channel_type: str = self.settings.value("Sync/channel", "folder")
+        return channel_type if channel_type in ("yandex", "folder") else "folder"
+
+    def sync_token(self) -> str:
+        return self.settings.value("Sync/token", "") or ""
+
+    def sync_disk_folder(self) -> str:
+        return self.settings.value("Sync/diskfolder", "") or "app:/"
+
+    def sync_token_expires(self) -> str:
+        return self.settings.value("Sync/tokenexpires", "") or ""
+
     def sync_folder(self) -> str:
         return from_stored_path(self.settings.value("Sync/folder", ""))
 

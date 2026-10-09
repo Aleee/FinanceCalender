@@ -42,9 +42,9 @@ from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
 from gui.syncconflictdialog import SyncConflictDialog
-from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_STALE_DAYS, SYNC_STATUS_TEXT, connect_to_master, create_master,
-                             create_sync_channel, create_sync_params, describe_master, master_age_days, overwrite_master,
-                             take_master)
+from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_STALE_DAYS, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, connect_to_master,
+                             create_master, create_sync_channel, create_sync_params, describe_master, failure_status_text,
+                             master_age_days, overwrite_master, take_master, token_days_left)
 from gui.syncsettingsdialog import SyncSettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
 from gui.ui.yearinputdialog_ui import Ui_YearInputDialog
@@ -79,6 +79,7 @@ class MainWindow(QMainWindow):
         self.bound_document_id: int = 0
         self.sync_status_text: str = "не выполнялась"
         self.sync_error: str = ""
+        self.sync_failure_text: str = "ОШИБКА"
         self.sync_master_info: MasterInfo | None = None
         self.sync_checked_at: str = ""
 
@@ -337,8 +338,21 @@ class MainWindow(QMainWindow):
         status_text: str = f"Синхронизация: {self.sync_status_text}"
         if is_master_stale:
             status_text += f" (мастер не обновлялся {master_age} дн.)"
+        days_left: int | None = token_days_left(self.settings_handler)
+        token_warning: str = ""
+        if days_left is not None and days_left < 0:
+            token_warning = "Токен Яндекса истёк, получите новый и укажите его в настройках синхронизации"
+            status_text += " (токен истёк)"
+        elif days_left is not None and days_left <= TOKEN_WARNING_DAYS:
+            token_warning = f"Токен Яндекса истекает через {days_left} дн., получите новый заранее"
+            status_text += f" (токен истекает через {days_left} дн.)"
         self.tb_sbar_sync.setText(status_text)
-        tooltip_lines: list[str] = [f"Папка обмена: {self.settings_handler.sync_folder()}"]
+        if self.settings_handler.sync_channel_type() == "yandex":
+            tooltip_lines: list[str] = [f"Яндекс.Диск, папка {self.settings_handler.sync_disk_folder()}"]
+        else:
+            tooltip_lines = [f"Папка обмена: {self.settings_handler.sync_folder()}"]
+        if token_warning:
+            tooltip_lines.append(token_warning)
         if self.sync_checked_at:
             tooltip_lines.append(f"Последняя проверка: {self.sync_checked_at}")
         if self.sync_master_info:
@@ -371,7 +385,7 @@ class MainWindow(QMainWindow):
         if interactive:
             action = self._resolve_sync_action(action, channel, params)
         self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
-        self.sync_status_text = "ОШИБКА" if action is None else SYNC_STATUS_TEXT[action]
+        self.sync_status_text = self.sync_failure_text if action is None else SYNC_STATUS_TEXT[action]
         if action == SyncAction.PULL:
             self.reload_after_sync_pull()
         self.update_sync_status()
@@ -431,6 +445,7 @@ class MainWindow(QMainWindow):
         except SyncError as e:
             log.e(f"Синхронизация не выполнена: {e}")
             self.sync_error = str(e)
+            self.sync_failure_text = failure_status_text(e)
             return None
         finally:
             QApplication.restoreOverrideCursor()

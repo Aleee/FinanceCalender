@@ -32,6 +32,14 @@ class SyncError(Exception):
     pass
 
 
+class NetworkError(SyncError):
+    pass
+
+
+class AuthError(SyncError):
+    pass
+
+
 class MasterChangedError(SyncError):
     pass
 
