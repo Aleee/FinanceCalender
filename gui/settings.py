@@ -1,3 +1,4 @@
+import getpass
 import sys
 from enum import IntEnum
 
@@ -31,6 +32,24 @@ class SettingsHandler:
 
     def set_backup_path(self, path: str) -> None:
         self.settings.setValue("Backup/path", to_stored_path(path))
+
+    def sync_enabled(self) -> bool:
+        return str_bool(self.settings.value("Sync/enabled"), False)
+
+    def sync_folder(self) -> str:
+        return from_stored_path(self.settings.value("Sync/folder", ""))
+
+    def set_sync_folder(self, path: str) -> None:
+        self.settings.setValue("Sync/folder", to_stored_path(path))
+
+    def sync_author(self) -> str:
+        return self.settings.value("Sync/author", "") or getpass.getuser()
+
+    def sync_interval_minutes(self) -> int:
+        return str_int(self.settings.value("Sync/interval"), 5)
+
+    def sync_backup_keep_days(self) -> int:
+        return str_int(self.settings.value("Sync/backupkeepdays"), 30)
 
     def paid_load_months(self) -> int:
         return str_int(self.settings.value("Common/paidloadperiod"), 999)
