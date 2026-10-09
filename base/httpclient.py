@@ -46,14 +46,17 @@ class QtHttpClient(HttpClient):
         steps = TIMEOUT_STEPS_MS if method in RETRY_METHODS else (SINGLE_ATTEMPT_TIMEOUT_MS,)
         qurl = QUrl(url)
         target = f"{method} {qurl.host()}{qurl.path()}"
+        failures: list[str] = []
         for attempt, timeout_ms in enumerate(steps, 1):
             started = time.monotonic()
             try:
                 response = self.send_once(method, url, timeout_ms, headers, data, upload_file, download_file)
             except NetworkError as e:
-                log.d(f"{target}: попытка {attempt}/{len(steps)} не удалась за {elapsed_ms(started)} мс "
-                      f"(таймаут {timeout_ms} мс): {e}")
+                failures.append(f"{target}: попытка {attempt}/{len(steps)} не удалась за {elapsed_ms(started)} мс "
+                                f"(таймаут {timeout_ms} мс): {e}")
                 if attempt == len(steps):
+                    for failure in failures:
+                        log.d(failure)
                     raise
                 self.pause(RETRY_PAUSES_MS[attempt - 1])
                 continue
