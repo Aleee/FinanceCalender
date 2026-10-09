@@ -2,7 +2,8 @@ from datetime import datetime
 from pathlib import Path
 from platform import node
 
-from base.sync import FolderChannel, MasterInfo, SyncAction, SyncParams
+from base.dbhandler import DBHandler
+from base.sync import FolderChannel, MasterInfo, SyncAction, SyncChannel, SyncParams, pull_master, push_master
 from base.version import APP_VERSION
 from gui.settings import SettingsHandler
 
@@ -19,8 +20,6 @@ SYNC_STATUS_TEXT: dict[SyncAction, str] = {
 SYNC_ACTION_MESSAGE: dict[SyncAction, str] = {
     SyncAction.CONFLICT: "Изменения есть и в вашей базе данных, и в мастере. Автоматически объединить их нельзя, "
                          "поэтому ничего не изменено",
-    SyncAction.NO_MASTER: "В папке обмена нет мастера. Ничего не изменено",
-    SyncAction.FOREIGN_DB: "Мастер в папке обмена относится к другой базе данных. Ничего не изменено",
     SyncAction.CLIENT_OUTDATED: "Мастер создан более новой версией программы. Обновите программу. Ничего не изменено",
 }
 
@@ -31,6 +30,16 @@ def create_sync_channel(settings_handler: SettingsHandler) -> FolderChannel:
 
 def create_sync_params(settings_handler: SettingsHandler) -> SyncParams:
     return SyncParams(settings_handler.sync_author(), node(), APP_VERSION, settings_handler.sync_backup_keep_days())
+
+
+def create_master(dbh: DBHandler, channel: SyncChannel, params: SyncParams) -> SyncAction:
+    push_master(dbh, channel, params)
+    return SyncAction.PUSH
+
+
+def connect_to_master(dbh: DBHandler, channel: SyncChannel) -> SyncAction:
+    pull_master(dbh, channel, (SyncAction.FOREIGN_DB,))
+    return SyncAction.PULL
 
 
 def describe_master(info: MasterInfo) -> str:

@@ -1,6 +1,6 @@
 import sys
 from decimal import Decimal
-from typing import Any
+from typing import Any, Callable
 import lovely_logger as log
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
@@ -15,7 +15,7 @@ from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
 from base.payment import PaymentField
-from base.sync import MasterInfo, SyncAction, SyncError, synchronize
+from base.sync import MasterInfo, SyncAction, SyncChannel, SyncError, synchronize
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
@@ -41,8 +41,8 @@ from gui.recoverydialog import RecoveryDialog
 from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
-from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_STATUS_TEXT, create_sync_channel, create_sync_params,
-                             describe_master)
+from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_STATUS_TEXT, connect_to_master, create_master, create_sync_channel,
+                             create_sync_params, describe_master)
 from gui.syncsettingsdialog import SyncSettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
 from gui.ui.yearinputdialog_ui import Ui_YearInputDialog
@@ -339,19 +339,17 @@ class MainWindow(QMainWindow):
             return
         self.save_note()
         channel = create_sync_channel(self.settings_handler)
-        self.tb_sbar_sync.setEnabled(False)
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        action: SyncAction | None = None
-        try:
-            action = synchronize(self.db_handler, channel, create_sync_params(self.settings_handler))
-            self.sync_error = ""
-            self.sync_master_info = channel.read_master_info()
-        except SyncError as e:
-            log.e(f"Синхронизация не выполнена: {e}")
-            self.sync_error = str(e)
-        finally:
-            QApplication.restoreOverrideCursor()
-            self.tb_sbar_sync.setEnabled(True)
+        params = create_sync_params(self.settings_handler)
+        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params))
+        if action == SyncAction.NO_MASTER and YesNoMessagebox(
+                "В папке обмена нет мастера. Создать его из вашей текущей базы данных?",
+                self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
+            action = self._run_sync_step(channel, lambda: create_master(self.db_handler, channel, params))
+        elif action == SyncAction.FOREIGN_DB and YesNoMessagebox(
+                "В папке обмена лежит мастер другой базы данных. Заменить им вашу базу данных? "
+                "Текущая база будет сохранена в папке резервных копий.",
+                self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
+            action = self._run_sync_step(channel, lambda: connect_to_master(self.db_handler, channel))
         self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
         self.sync_status_text = "ОШИБКА" if action is None else SYNC_STATUS_TEXT[action]
         if action == SyncAction.PULL:
@@ -361,6 +359,22 @@ class MainWindow(QMainWindow):
             ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
         elif action in SYNC_ACTION_MESSAGE:
             ErrorInfoMessageBox(SYNC_ACTION_MESSAGE[action], is_info=True, parent=self).exec()
+
+    def _run_sync_step(self, channel: SyncChannel, step: Callable[[], SyncAction]) -> SyncAction | None:
+        self.tb_sbar_sync.setEnabled(False)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            action: SyncAction = step()
+            self.sync_error = ""
+            self.sync_master_info = channel.read_master_info()
+            return action
+        except SyncError as e:
+            log.e(f"Синхронизация не выполнена: {e}")
+            self.sync_error = str(e)
+            return None
+        finally:
+            QApplication.restoreOverrideCursor()
+            self.tb_sbar_sync.setEnabled(True)
 
     def reload_after_sync_pull(self) -> None:
         clear_calendar_cache()
