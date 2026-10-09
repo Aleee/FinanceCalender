@@ -108,6 +108,10 @@ class MainWindow(QMainWindow):
                                          cancel_available=False, parent=self)
             if recover_dlg.exec() != QDialog.DialogCode.Accepted:
                 sys.exit()
+        ## База данных новее программы - ничего не трогаем
+        if self.db_handler.is_db_newer_than_client():
+            ErrorInfoMessageBox("База данных создана более новой версией программы. Обновите программу").exec()
+            sys.exit()
         ## Обновление структуры до актуальной версии
         self.db_handler.migrate_db()
         ## Проверка файла

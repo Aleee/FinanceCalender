@@ -73,6 +73,14 @@ class DBHandler:
             return None
         return version
 
+    def is_db_newer_than_client(self) -> bool:
+        self.db.setDatabaseName(db_path())
+        if not self.db.open():
+            return False
+        version = self.get_db_version()
+        self.db.close()
+        return version is not None and version > self.DB_VERSION
+
     def check_db_file_integrity(self, alternative_path: str = "") -> bool:
         checked_path: str = alternative_path if alternative_path else db_path()
         self.db.setDatabaseName(checked_path)

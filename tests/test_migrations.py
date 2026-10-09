@@ -126,6 +126,25 @@ def test_migrate_refuses_db_newer_than_client(dbh, work_db_path, backup_folder):
     assert not any(backup_folder.iterdir())
 
 
+def test_is_db_newer_than_client(dbh, work_db_path):
+    create_db(work_db_path, CLIENT_VERSION + 1)
+    assert dbh.is_db_newer_than_client()
+    assert not dbh.is_db_connected()
+    assert read_version(work_db_path) == CLIENT_VERSION + 1
+
+
+@pytest.mark.parametrize("version", [CLIENT_VERSION - 1, CLIENT_VERSION])
+def test_is_db_newer_than_client_false_for_current_and_older(dbh, work_db_path, version):
+    create_db(work_db_path, version)
+    assert not dbh.is_db_newer_than_client()
+
+
+def test_is_db_newer_than_client_false_for_garbage(dbh, work_db_path):
+    work_db_path.parent.mkdir(parents=True)
+    work_db_path.write_bytes(b"this is not a sqlite database" * 100)
+    assert not dbh.is_db_newer_than_client()
+
+
 def test_migrate_garbage_file_returns_false(dbh, work_db_path):
     work_db_path.parent.mkdir(parents=True)
     work_db_path.write_bytes(b"this is not a sqlite database" * 100)
