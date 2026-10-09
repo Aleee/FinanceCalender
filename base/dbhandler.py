@@ -200,28 +200,43 @@ class DBHandler:
     @contextmanager
     def _file_connection(self, path: str):
         name = f"file_{uuid4().hex}"
-        connection = QSqlDatabase.addDatabase("QSQLITE", name)
-        connection.setDatabaseName(path)
         try:
-            if not connection.open():
-                raise RuntimeError(f"Не удалось открыть базу данных {path}: {connection.lastError().text()}")
-            yield connection
+            self._open_file_connection(name, path)
+            yield name
         finally:
-            connection.close()
-            del connection
-            QSqlDatabase.removeDatabase(name)
+            self._close_file_connection(name)
 
     @staticmethod
-    def _file_execute(connection: QSqlDatabase, sql: str, *values: Any) -> list[list]:
-        query = QSqlQuery(connection)
+    def _open_file_connection(name: str, path: str) -> None:
+        connection = QSqlDatabase.addDatabase("QSQLITE", name)
+        connection.setDatabaseName(path)
+        opened = connection.open()
+        error = connection.lastError().text()
+        del connection
+        if not opened:
+            raise RuntimeError(f"Не удалось открыть базу данных {path}: {error}")
+
+    @staticmethod
+    def _close_file_connection(name: str) -> None:
+        connection = QSqlDatabase.database(name, False)
+        connection.close()
+        del connection
+        QSqlDatabase.removeDatabase(name)
+
+    @staticmethod
+    def _file_execute(connection_name: str, sql: str, *values: Any) -> list[list]:
+        query = QSqlQuery(QSqlDatabase.database(connection_name, False))
         query.prepare(sql)
         for value in values:
             query.addBindValue(value)
-        if not query.exec():
-            raise RuntimeError(f"Ошибка SQL: {query.lastError().text()}. Запрос: {sql}")
+        error = "" if query.exec() else query.lastError().text()
         rows: list[list] = []
-        while query.next():
+        while not error and query.next():
             rows.append([query.value(i) for i in range(query.record().count())])
+        query.finish()
+        del query
+        if error:
+            raise RuntimeError(f"Ошибка SQL: {error}. Запрос: {sql}")
         return rows
 
     def read_file_settings(self, path: str, keys: tuple[str, ...]) -> dict[str, str | None] | None:
