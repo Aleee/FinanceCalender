@@ -5,8 +5,8 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 from base.httpclient import HttpClient, HttpResponse
-from base.sync import (AuthError, BACKUP_PREFIX, BACKUP_TIME_FORMAT, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INFO_NAME,
-                       MasterInfo, SyncChannel, SyncError, TEMP_SUFFIX, backup_time_from_name, file_md5)
+from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INFO_NAME,
+                       MasterInfo, SyncChannel, SyncError, TEMP_SUFFIX, backup_time_from_name, file_md5, master_backup_name)
 
 API_URL = "https://cloud-api.yandex.net/v1/disk"
 DEFAULT_DISK_FOLDER = "app:/"
@@ -71,7 +71,7 @@ class YandexDiskApiChannel(SyncChannel):
             return
         backups_folder = self.remote_path(MASTER_BACKUPS_DIR)
         self.ensure_folder_chain(backups_folder)
-        backup_name = f"{BACKUP_PREFIX}{datetime.now().strftime(BACKUP_TIME_FORMAT)}.db"
+        backup_name = master_backup_name()
         response = self.api("POST", "resources/copy", {"from": self.remote_path(MASTER_DB_NAME),
                                                        "path": f"{backups_folder}/{backup_name}",
                                                        "overwrite": "true"}, (201, 202))

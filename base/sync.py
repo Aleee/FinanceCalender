@@ -23,6 +23,7 @@ MASTER_DB_NAME = "master.db"
 MASTER_INFO_NAME = "master.json"
 MASTER_BACKUPS_DIR = "master_backups"
 BACKUP_TIME_FORMAT = "%Y%m%d-%H%M%S"
+PRECISE_BACKUP_TIME_FORMAT = BACKUP_TIME_FORMAT + "-%f"
 BACKUP_PREFIX = "master_"
 TEMP_SUFFIX = ".tmp"
 STATE_KEYS = ("db_uuid", "sync_token", "db_version", "change_counter")
@@ -213,10 +214,9 @@ class FolderChannel(SyncChannel):
     def backup_master(self) -> None:
         if not self.master_db_path.is_file():
             return
-        backup_name = f"{BACKUP_PREFIX}{datetime.now().strftime(BACKUP_TIME_FORMAT)}.db"
         try:
             self.backups_path.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(self.master_db_path, self.backups_path / backup_name)
+            shutil.copyfile(self.master_db_path, self.backups_path / master_backup_name())
         except OSError as e:
             raise SyncError(f"Не удалось сохранить копию прежнего мастера: {e}") from e
 
@@ -233,13 +233,20 @@ class FolderChannel(SyncChannel):
             raise SyncError(f"Не удалось удалить старые копии мастера: {e}") from e
 
 
+def master_backup_name() -> str:
+    return f"{BACKUP_PREFIX}{datetime.now().strftime(PRECISE_BACKUP_TIME_FORMAT)}.db"
+
+
 def backup_time_from_name(name: str) -> datetime | None:
     if not (name.startswith(BACKUP_PREFIX) and name.endswith(".db")):
         return None
-    try:
-        return datetime.strptime(name[len(BACKUP_PREFIX):-len(".db")], BACKUP_TIME_FORMAT)
-    except ValueError:
-        return None
+    time_text = name[len(BACKUP_PREFIX):-len(".db")]
+    for time_format in (PRECISE_BACKUP_TIME_FORMAT, BACKUP_TIME_FORMAT):
+        try:
+            return datetime.strptime(time_text, time_format)
+        except ValueError:
+            continue
+    return None
 
 
 @dataclass
@@ -305,7 +312,7 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
             if migrated_path is None:
                 raise SyncError("Не удалось обновить структуру скачанного мастера (подробности см. в логе)")
             new_file = Path(migrated_path)
-        local_copy = Path(backup_dir()) / f"before_sync_{datetime.now().strftime(BACKUP_TIME_FORMAT + '-%f')}.db"
+        local_copy = Path(backup_dir()) / f"before_sync_{datetime.now().strftime(PRECISE_BACKUP_TIME_FORMAT)}.db"
         try:
             if not dbh.copy_db_file(str(local_copy)):
                 raise SyncError("Не удалось сохранить копию локальной базы данных перед заменой")
@@ -318,7 +325,7 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
 
 
 def save_conflict_copy(dbh: "DBHandler") -> None:
-    copy_path = Path(backup_dir()) / f"conflict_{datetime.now().strftime(BACKUP_TIME_FORMAT + '-%f')}.db"
+    copy_path = Path(backup_dir()) / f"conflict_{datetime.now().strftime(PRECISE_BACKUP_TIME_FORMAT)}.db"
     if not dbh.copy_db_file(str(copy_path)):
         raise SyncError("Не удалось сохранить копию локальной базы данных перед разрешением конфликта")
 
