@@ -1,0 +1,209 @@
+import hashlib
+import json
+import os
+import shutil
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, asdict
+from datetime import datetime, timedelta
+from enum import Enum
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from base.dbhandler import DBHandler
+
+MASTER_DB_NAME = "master.db"
+MASTER_INFO_NAME = "master.json"
+MASTER_BACKUPS_DIR = "master_backups"
+BACKUP_TIME_FORMAT = "%Y%m%d-%H%M%S"
+BACKUP_PREFIX = "master_"
+TEMP_SUFFIX = ".tmp"
+
+
+class SyncError(Exception):
+    pass
+
+
+class SyncAction(Enum):
+    NOTHING = "nothing"
+    PULL = "pull"
+    PUSH = "push"
+    CONFLICT = "conflict"
+    NO_MASTER = "no_master"
+    FOREIGN_DB = "foreign_db"
+    CLIENT_OUTDATED = "client_outdated"
+
+
+@dataclass
+class LocalState:
+    db_uuid: str
+    sync_token: str
+    db_version: int
+    change_counter: int
+
+    @property
+    def has_changes(self) -> bool:
+        return self.change_counter > 0
+
+
+@dataclass
+class MasterInfo:
+    db_uuid: str
+    sync_token: str
+    db_version: int
+    author: str
+    machine: str
+    uploaded_at: str
+    app_version: str
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self), ensure_ascii=False, indent=2)
+
+    @classmethod
+    def from_json(cls, text: str) -> "MasterInfo":
+        try:
+            return cls(**json.loads(text))
+        except (ValueError, TypeError) as e:
+            raise SyncError(f"Файл {MASTER_INFO_NAME} повреждён или имеет неизвестный формат: {e}") from e
+
+
+def read_local_state(dbh: "DBHandler") -> LocalState:
+    keys = ("db_uuid", "sync_token", "db_version", "change_counter")
+    values = {key: dbh.get_setting(key, None) for key in keys}
+    missing = [key for key, value in values.items() if value is None]
+    if missing:
+        raise SyncError(f"В базе данных нет служебных ключей синхронизации: {', '.join(missing)}")
+    try:
+        return LocalState(values["db_uuid"], values["sync_token"], int(values["db_version"]), int(values["change_counter"]))
+    except ValueError as e:
+        raise SyncError(f"Служебные ключи синхронизации содержат недопустимые значения: {e}") from e
+
+
+def decide_action(local: LocalState, master: MasterInfo | None) -> SyncAction:
+    if master is None:
+        return SyncAction.NO_MASTER
+    if master.db_uuid != local.db_uuid:
+        return SyncAction.FOREIGN_DB
+    if master.db_version > local.db_version:
+        return SyncAction.CLIENT_OUTDATED
+    master_changed = master.sync_token != local.sync_token
+    if master_changed and local.has_changes:
+        return SyncAction.CONFLICT
+    if master_changed:
+        return SyncAction.PULL
+    if local.has_changes:
+        return SyncAction.PUSH
+    return SyncAction.NOTHING
+
+
+def file_md5(path: Path) -> str:
+    digest = hashlib.md5()
+    with open(path, "rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+class SyncChannel(ABC):
+    @abstractmethod
+    def read_master_info(self) -> MasterInfo | None:
+        ...
+
+    @abstractmethod
+    def download_master(self, destination: Path) -> None:
+        ...
+
+    @abstractmethod
+    def upload_master(self, source: Path, info: MasterInfo) -> None:
+        ...
+
+    @abstractmethod
+    def backup_master(self) -> None:
+        ...
+
+    @abstractmethod
+    def remove_old_backups(self, keep_days: int) -> None:
+        ...
+
+
+class FolderChannel(SyncChannel):
+    def __init__(self, folder: Path):
+        self.folder: Path = Path(folder)
+
+    @property
+    def master_db_path(self) -> Path:
+        return self.folder / MASTER_DB_NAME
+
+    @property
+    def master_info_path(self) -> Path:
+        return self.folder / MASTER_INFO_NAME
+
+    @property
+    def backups_path(self) -> Path:
+        return self.folder / MASTER_BACKUPS_DIR
+
+    def read_master_info(self) -> MasterInfo | None:
+        if not self.master_info_path.is_file():
+            return None
+        try:
+            return MasterInfo.from_json(self.master_info_path.read_text(encoding="utf-8"))
+        except OSError as e:
+            raise SyncError(f"Не удалось прочитать {self.master_info_path}: {e}") from e
+
+    def download_master(self, destination: Path) -> None:
+        if not self.master_db_path.is_file():
+            raise SyncError(f"Файл мастера не найден: {self.master_db_path}")
+        try:
+            shutil.copyfile(self.master_db_path, destination)
+        except OSError as e:
+            raise SyncError(f"Не удалось скопировать мастер: {e}") from e
+        if file_md5(destination) != file_md5(self.master_db_path):
+            raise SyncError("Скопированный файл мастера не совпадает с исходным")
+
+    def upload_master(self, source: Path, info: MasterInfo) -> None:
+        temp_db_path = self.master_db_path.with_name(MASTER_DB_NAME + TEMP_SUFFIX)
+        temp_info_path = self.master_info_path.with_name(MASTER_INFO_NAME + TEMP_SUFFIX)
+        try:
+            self.folder.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, temp_db_path)
+            if file_md5(temp_db_path) != file_md5(source):
+                raise SyncError("Загруженный файл мастера не совпадает с исходным")
+            os.replace(temp_db_path, self.master_db_path)
+            temp_info_path.write_text(info.to_json(), encoding="utf-8")
+            os.replace(temp_info_path, self.master_info_path)
+        except OSError as e:
+            raise SyncError(f"Не удалось записать мастер в {self.folder}: {e}") from e
+        finally:
+            temp_db_path.unlink(missing_ok=True)
+            temp_info_path.unlink(missing_ok=True)
+
+    def backup_master(self) -> None:
+        if not self.master_db_path.is_file():
+            return
+        backup_name = f"{BACKUP_PREFIX}{datetime.now().strftime(BACKUP_TIME_FORMAT)}.db"
+        try:
+            self.backups_path.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(self.master_db_path, self.backups_path / backup_name)
+        except OSError as e:
+            raise SyncError(f"Не удалось сохранить копию прежнего мастера: {e}") from e
+
+    def remove_old_backups(self, keep_days: int) -> None:
+        if not self.backups_path.is_dir():
+            return
+        minimum_time = datetime.now() - timedelta(days=keep_days)
+        try:
+            for item in self.backups_path.iterdir():
+                backup_time = backup_time_from_name(item.name)
+                if backup_time is not None and backup_time < minimum_time:
+                    item.unlink(missing_ok=True)
+        except OSError as e:
+            raise SyncError(f"Не удалось удалить старые копии мастера: {e}") from e
+
+
+def backup_time_from_name(name: str) -> datetime | None:
+    if not (name.startswith(BACKUP_PREFIX) and name.endswith(".db")):
+        return None
+    try:
+        return datetime.strptime(name[len(BACKUP_PREFIX):-len(".db")], BACKUP_TIME_FORMAT)
+    except ValueError:
+        return None
