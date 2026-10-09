@@ -53,28 +53,27 @@ class YandexDiskApiChannel(SyncChannel):
 
     def upload_master(self, source: Path, info: MasterInfo) -> None:
         temp_db = self.remote_path(MASTER_DB_NAME + TEMP_SUFFIX)
-        temp_info = self.remote_path(MASTER_INFO_NAME + TEMP_SUFFIX)
         self.ensure_folder_chain(self.folder)
         info_bytes = info.to_json().encode("utf-8")
         try:
             self.put_file(temp_db, file_md5(source), source.stat().st_size, upload_file=source)
             self.move(temp_db, self.remote_path(MASTER_DB_NAME))
-            self.put_file(temp_info, hashlib.md5(info_bytes).hexdigest(), len(info_bytes), data=info_bytes)
-            self.move(temp_info, self.remote_path(MASTER_INFO_NAME))
+            self.put_file(self.remote_path(MASTER_INFO_NAME), hashlib.md5(info_bytes).hexdigest(), len(info_bytes),
+                          data=info_bytes)
         except SyncError:
-            for temp_path in (temp_db, temp_info):
-                self.delete_quietly(temp_path)
+            self.delete_quietly(temp_db)
             raise
 
     def backup_master(self) -> None:
         if self.metadata(MASTER_DB_NAME) is None:
             return
         backups_folder = self.remote_path(MASTER_BACKUPS_DIR)
-        self.ensure_folder_chain(backups_folder)
-        backup_name = master_backup_name()
-        response = self.api("POST", "resources/copy", {"from": self.remote_path(MASTER_DB_NAME),
-                                                       "path": f"{backups_folder}/{backup_name}",
-                                                       "overwrite": "true"}, (201, 202))
+        copy_params = {"from": self.remote_path(MASTER_DB_NAME), "path": f"{backups_folder}/{master_backup_name()}",
+                       "overwrite": "true"}
+        response = self.api("POST", "resources/copy", copy_params, (201, 202, 409))
+        if response.status == 409:
+            self.ensure_folder_chain(backups_folder)
+            response = self.api("POST", "resources/copy", copy_params, (201, 202))
         self.wait_operation(response)
 
     def remove_old_backups(self, keep_days: int) -> None:
@@ -120,13 +119,16 @@ class YandexDiskApiChannel(SyncChannel):
         response = self.http.send("PUT", href, data=data, upload_file=upload_file)
         if response.status not in (201, 202):
             raise self.error_from(response)
+        mismatch = False
         for _ in range(UPLOAD_CONFIRM_ATTEMPTS):
             metadata = self.metadata(name)
             if metadata is not None and metadata.get("md5"):
-                if metadata["md5"] != expected_md5 or metadata.get("size") != expected_size:
-                    raise SyncError("Файл на Яндекс.Диске не совпадает с отправленным")
-                return
+                if metadata["md5"] == expected_md5 and metadata.get("size") == expected_size:
+                    return
+                mismatch = True
             self.http.pause(UPLOAD_CONFIRM_PAUSE_MS)
+        if mismatch:
+            raise SyncError("Файл на Яндекс.Диске не совпадает с отправленным")
         raise SyncError("Не удалось подтвердить загрузку файла на Яндекс.Диск")
 
     def move(self, source_path: str, target_path: str) -> None:
@@ -142,7 +144,10 @@ class YandexDiskApiChannel(SyncChannel):
     def ensure_folder_chain(self, folder_path: str) -> None:
         root, separator, rest = folder_path.partition(":/")
         current = root + separator
-        for segment in [part for part in rest.split("/") if part]:
+        segments = [part for part in rest.split("/") if part]
+        if len(segments) > 1 and self.api("GET", "resources", {"path": folder_path, "fields": "name"}, (200, 404)).status == 200:
+            return
+        for segment in segments:
             current += segment
             self.api("PUT", "resources", {"path": current}, (201, 409))
             current += "/"

@@ -261,9 +261,20 @@ def master_token(master: MasterInfo | None) -> str | None:
     return None if master is None else master.sync_token
 
 
-def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, overwrite: bool = False) -> None:
+def backups_cleanup_due(previous_master: MasterInfo | None) -> bool:
+    if previous_master is None:
+        return True
+    try:
+        return datetime.fromisoformat(previous_master.uploaded_at).date() < datetime.now().date()
+    except ValueError:
+        return True
+
+
+def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, overwrite: bool = False,
+                master: MasterInfo | None = None) -> None:
     local = read_local_state(dbh)
-    master = channel.read_master_info()
+    if master is None:
+        master = channel.read_master_info()
     action = decide_action(local, master)
     allowed = {SyncAction.PUSH, SyncAction.NO_MASTER} | ({SyncAction.CONFLICT} if overwrite else set())
     if action not in allowed:
@@ -280,18 +291,21 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
                           datetime.now().isoformat(timespec="seconds"), params.app_version)
         channel.backup_master()
         channel.upload_master(snapshot, info)
-    try:
-        channel.remove_old_backups(params.backup_keep_days)
-    except SyncError as e:
-        log.w(f"Не удалось удалить старые копии мастера: {e}")
+    if backups_cleanup_due(master):
+        try:
+            channel.remove_old_backups(params.backup_keep_days)
+        except SyncError as e:
+            log.w(f"Не удалось удалить старые копии мастера: {e}")
     if not dbh.finish_push(new_token, counter):
         raise SyncError("Мастер обновлён, но не удалось записать результат в локальную базу данных (подробности см. в логе)")
     log.i(f"Мастер обновлён локальной базой данных, токен {new_token}")
 
 
-def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncAction, ...] = (SyncAction.PULL,)) -> None:
+def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncAction, ...] = (SyncAction.PULL,),
+                master: MasterInfo | None = None) -> None:
     local = read_local_state(dbh)
-    master = channel.read_master_info()
+    if master is None:
+        master = channel.read_master_info()
     action = decide_action(local, master)
     if action not in allowed:
         raise SyncError(f"Подтягивание невозможно в состоянии «{action.value}»")
@@ -331,9 +345,10 @@ def save_conflict_copy(dbh: "DBHandler") -> None:
 
 
 def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams) -> SyncAction:
-    action = decide_action(read_local_state(dbh), channel.read_master_info())
+    master = channel.read_master_info()
+    action = decide_action(read_local_state(dbh), master)
     if action == SyncAction.PULL:
-        pull_master(dbh, channel)
+        pull_master(dbh, channel, master=master)
     elif action == SyncAction.PUSH:
-        push_master(dbh, channel, params)
+        push_master(dbh, channel, params, master=master)
     return action
