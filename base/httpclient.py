@@ -7,7 +7,10 @@ from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequ
 
 from base.sync import NetworkError, SyncError
 
-TRANSFER_TIMEOUT_MS = 60000
+TRANSFER_TIMEOUT_MS = 30000
+TIMEOUT_STEPS = (1 / 6, 1 / 3, 1)
+RETRY_PAUSE_MS = 1000
+RETRY_METHODS = ("GET", "PUT")
 
 
 @dataclass
@@ -35,8 +38,19 @@ class QtHttpClient(HttpClient):
 
     def send(self, method: str, url: str, headers: dict[str, str] | None = None, data: bytes = b"",
              upload_file: Path | None = None, download_file: Path | None = None) -> HttpResponse:
+        steps = TIMEOUT_STEPS if method in RETRY_METHODS else TIMEOUT_STEPS[-1:]
+        for attempt, step in enumerate(steps, 1):
+            try:
+                return self.send_once(method, url, int(self.timeout_ms * step), headers, data, upload_file, download_file)
+            except NetworkError:
+                if attempt == len(steps):
+                    raise
+                self.pause(RETRY_PAUSE_MS)
+
+    def send_once(self, method: str, url: str, timeout_ms: int, headers: dict[str, str] | None = None,
+                  data: bytes = b"", upload_file: Path | None = None, download_file: Path | None = None) -> HttpResponse:
         request = QNetworkRequest(QUrl(url))
-        request.setTransferTimeout(self.timeout_ms)
+        request.setTransferTimeout(timeout_ms)
         for name, value in (headers or {}).items():
             request.setRawHeader(QByteArray(name.encode("ascii")), QByteArray(value.encode("utf-8")))
         verb = QByteArray(method.encode("ascii"))
