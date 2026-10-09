@@ -127,8 +127,11 @@ class MainWindow(QMainWindow):
         if self.db_handler.is_db_newer_than_client():
             ErrorInfoMessageBox("База данных создана более новой версией программы. Обновите программу").exec()
             sys.exit()
-        ## Обновление структуры до актуальной версии
-        self.db_handler.migrate_db()
+        ## Обновление структуры до актуальной версии: при сбое файл остаётся прежним, восстановление не предлагаем
+        if not self.db_handler.migrate_db() and self.db_handler.migration_failed:
+            ErrorInfoMessageBox("Не удалось обновить структуру базы данных до версии этой программы. "
+                                "Файл базы данных не изменён (подробности см. в логе)").exec()
+            sys.exit()
         ## Проверка файла
         if not self.db_handler.check_db_file_integrity():
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,

@@ -40,6 +40,7 @@ class DBHandler:
 
         self.personal_data_max_id: int = 0
         self.after_commit_actions: list[Callable[[], None]] = []
+        self.migration_failed: bool = False
 
     @staticmethod
     def _is_null(value: Any) -> bool:
@@ -120,6 +121,7 @@ class DBHandler:
     def migrate_db(self, alternative_path: str = "") -> bool:
         migrated_path: str = alternative_path if alternative_path else db_path()
         self.after_commit_actions.clear()
+        self.migration_failed = False
         self.db.setDatabaseName(migrated_path)
         if not self.db.open():
             log.e(f"Не удалось открыть базу данных для обновления структуры: {migrated_path}")
@@ -135,6 +137,7 @@ class DBHandler:
             log.e(f"Версия базы данных ({version}) новее версии клиента ({self.DB_VERSION}), обновление структуры невозможно")
             self.db.close()
             return False
+        self.migration_failed = True
         if not alternative_path and not self._save_pre_migration_copy(version):
             self.db.close()
             return False
@@ -155,6 +158,7 @@ class DBHandler:
             self.db.close()
             return False
         self.db.close()
+        self.migration_failed = False
         log.i(f"Структура базы данных обновлена: версия {version} -> {self.DB_VERSION}")
         for action in self.after_commit_actions:
             try:
