@@ -120,7 +120,7 @@ class YandexDiskApiChannel(SyncChannel):
         url = f"{API_URL}/{endpoint}?{urlencode(params)}"
         response = self.http.send(method, url, self.auth_headers())
         for _ in range(UNAUTHORIZED_RETRIES):
-            if response.status != 401 or method != "GET":
+            if response.status != 401:
                 break
             self.http.pause(UNAUTHORIZED_RETRY_PAUSE_MS)
             response = self.http.send(method, url, self.auth_headers())

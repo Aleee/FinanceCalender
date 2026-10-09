@@ -45,7 +45,7 @@ from gui.syncconflictdialog import SyncConflictDialog
 from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_STALE_DAYS, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, connect_to_master,
                              create_master, create_sync_channel, create_sync_params, describe_master, failure_status_text,
                              master_age_days, overwrite_master, take_master, token_days_left)
-from gui.syncicon import create_sync_icon
+from gui.ui.syncicon import create_sync_icon
 from gui.syncprogressdialog import SyncProgressDialog
 from gui.syncsettingsdialog import SyncSettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         self.ui.stw_eventinfo.setCurrentIndex(1)
 
         # Первая синхронизация после запуска
-        QTimer.singleShot(2000, self.auto_sync)
+        QTimer.singleShot(1500, self.auto_sync)
 
 
     def _load_database(self) -> None:
@@ -359,7 +359,7 @@ class MainWindow(QMainWindow):
             self.open_sync_settings_dialog()
 
     def set_sync_button_state(self, text: str, color: QColor | None = None) -> None:
-        self.tb_sync.setText(text)
+        self.tb_sync.setText("  " + text)
         palette: QPalette = QApplication.palette(self.tb_sync)
         if color is not None:
             palette.setColor(QPalette.ColorRole.ButtonText, color)

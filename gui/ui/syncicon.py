@@ -10,7 +10,7 @@ SYNC_ICON_SVG = (
 )
 
 
-def create_sync_icon(color: QColor, size: int = 12, scale: int = 2) -> QIcon:
+def create_sync_icon(color: QColor, size: int = 10, scale: int = 2) -> QIcon:
     svg = SYNC_ICON_SVG.format(color=color.name())
     renderer = QSvgRenderer(QByteArray(svg.encode("utf-8")))
     image = QImage(size * scale, size * scale, QImage.Format.Format_ARGB32_Premultiplied)
