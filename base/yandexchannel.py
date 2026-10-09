@@ -16,6 +16,8 @@ UPLOAD_CONFIRM_PAUSE_MS = 1000
 OPERATION_ATTEMPTS = 60
 OPERATION_PAUSE_MS = 500
 BACKUPS_LIST_LIMIT = 1000
+UNAUTHORIZED_RETRIES = 2
+UNAUTHORIZED_RETRY_PAUSE_MS = 500
 
 
 class YandexDiskApiChannel(SyncChannel):
@@ -106,7 +108,13 @@ class YandexDiskApiChannel(SyncChannel):
         return self.folder + name
 
     def api(self, method: str, endpoint: str, params: dict, allowed: tuple[int, ...]) -> HttpResponse:
-        response = self.http.send(method, f"{API_URL}/{endpoint}?{urlencode(params)}", self.auth_headers())
+        url = f"{API_URL}/{endpoint}?{urlencode(params)}"
+        response = self.http.send(method, url, self.auth_headers())
+        for _ in range(UNAUTHORIZED_RETRIES):
+            if response.status != 401 or method != "GET":
+                break
+            self.http.pause(UNAUTHORIZED_RETRY_PAUSE_MS)
+            response = self.http.send(method, url, self.auth_headers())
         if response.status not in allowed:
             raise self.error_from(response)
         return response
