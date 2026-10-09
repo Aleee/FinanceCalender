@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Any, Callable
 import lovely_logger as log
 
-from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
+from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QSize, QTimer
 from PySide6.QtGui import QAction, QColor, QKeySequence, QPalette, QShortcut
 from PySide6.QtSql import QSqlTableModel
 from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QWidget, QListView, QToolButton, QLineEdit, QSizePolicy
@@ -45,6 +45,8 @@ from gui.syncconflictdialog import SyncConflictDialog
 from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_STALE_DAYS, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, connect_to_master,
                              create_master, create_sync_channel, create_sync_params, describe_master, failure_status_text,
                              master_age_days, overwrite_master, take_master, token_days_left)
+from gui.syncicon import create_sync_icon
+from gui.syncprogressdialog import SyncProgressDialog
 from gui.syncsettingsdialog import SyncSettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
 from gui.ui.yearinputdialog_ui import Ui_YearInputDialog
@@ -325,7 +327,8 @@ class MainWindow(QMainWindow):
         sync_menu.addAction(self.act_sync_settings)
         self.tb_sync = QToolButton()
         self.tb_sync.setAutoRaise(True)
-        self.tb_sync.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self.tb_sync.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.tb_sync.setIconSize(QSize(12, 12))
         self.tb_sync.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
         self.tb_sync.setMenu(sync_menu)
         self.tb_sync.clicked.connect(self.on_sync_button_clicked)
@@ -362,10 +365,11 @@ class MainWindow(QMainWindow):
             palette.setColor(QPalette.ColorRole.ButtonText, color)
             palette.setColor(QPalette.ColorRole.WindowText, color)
         self.tb_sync.setPalette(palette)
+        self.tb_sync.setIcon(create_sync_icon(palette.buttonText().color()))
 
     def update_sync_status(self) -> None:
         if not self.settings_handler.sync_enabled():
-            self.set_sync_button_state("⟳ Синхронизация выключена", self.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText))
+            self.set_sync_button_state("Синхронизация выключена", self.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText))
             self.tb_sync.setToolTip("Синхронизация выключена. Нажмите, чтобы открыть настройки синхронизации")
             self.act_sync_now.setEnabled(False)
             return
@@ -386,7 +390,7 @@ class MainWindow(QMainWindow):
             except SyncError as e:
                 log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
         is_warning: bool = is_master_stale or bool(token_warning) or has_unsent_changes
-        status_text: str = f"⟳ Синхронизация: {'есть неотправленные изменения' if has_unsent_changes else self.sync_status_text}"
+        status_text: str = f"Синхронизация: {'есть неотправленные изменения' if has_unsent_changes else self.sync_status_text}"
         if not is_problem and is_warning and not has_unsent_changes:
             status_text += " ⚠"
         color: QColor | None = self.SYNC_PROBLEM_COLOR if is_problem else self.SYNC_WARNING_COLOR if is_warning else None
@@ -494,6 +498,8 @@ class MainWindow(QMainWindow):
     def _run_sync_step(self, channel: SyncChannel, step: Callable[[], SyncAction]) -> SyncAction | None:
         self.tb_sync.setEnabled(False)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        progress = SyncProgressDialog(self)
+        progress.start()
         try:
             action: SyncAction = step()
             self.sync_error = ""
@@ -505,6 +511,7 @@ class MainWindow(QMainWindow):
             self.sync_failure_text = failure_status_text(e)
             return None
         finally:
+            progress.finish()
             QApplication.restoreOverrideCursor()
             self.tb_sync.setEnabled(True)
 
