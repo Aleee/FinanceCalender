@@ -66,12 +66,27 @@ CREATE TABLE "payment" (
 
 META_DDL = 'CREATE TABLE "meta" ("key" TEXT, "value" TEXT)'
 
+OTHER_TABLES_DDL = [
+    'CREATE TABLE "contractor" ("id" INTEGER NOT NULL UNIQUE, "name" TEXT, PRIMARY KEY("id" AUTOINCREMENT))',
+    'CREATE TABLE "contract" ("id" INTEGER NOT NULL UNIQUE, "contractor_id" INTEGER, "name" TEXT, "date" TEXT, PRIMARY KEY("id" AUTOINCREMENT))',
+    'CREATE TABLE "contractdocument" ("id" INTEGER NOT NULL UNIQUE, "contract_id" INTEGER, "document_type" INTEGER, '
+    '"document_name" TEXT, "description" TEXT, "position_id" INTEGER, PRIMARY KEY("id" AUTOINCREMENT))',
+    'CREATE TABLE "contractpaymentterm" ("document_id" INTEGER, "payment_type" TEXT NOT NULL, "days_count" INTEGER DEFAULT 0)',
+    'CREATE TABLE "contractsavedvalues" ("contract_id" INTEGER, "category" INTEGER, "name" TEXT)',
+    'CREATE TABLE "personal" ("id" INTEGER NOT NULL, "name" TEXT, "department" INTEGER, "position" INTEGER, "archived" INTEGER, PRIMARY KEY("id"))',
+    'CREATE TABLE "position" ("id" INTEGER, "department" INTEGER, "name" TEXT, PRIMARY KEY("id"))',
+    'CREATE TABLE "department" ("id" INTEGER NOT NULL, "name" TEXT NOT NULL, PRIMARY KEY("id"))',
+    'CREATE TABLE "finplan" ("year" INTEGER, "category" INTEGER, "m1" INTEGER)',
+    'CREATE TABLE "fulfillmentdata" ("startdate" TEXT, "enddate" TEXT, "10000" INTEGER, UNIQUE("enddate", "startdate"))',
+    'CREATE TABLE "contractdocumenttype" ("id" INTEGER, "name" TEXT)',
+]
+
 
 def create_db(path: Path, version: int, meta: dict[str, str] | None = None, legacy_event: bool = False) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(path)
     try:
-        for ddl in (LEGACY_EVENT_DDL if legacy_event else EVENT_DDL, PAYMENT_DDL, META_DDL):
+        for ddl in (LEGACY_EVENT_DDL if legacy_event else EVENT_DDL, PAYMENT_DDL, META_DDL, *OTHER_TABLES_DDL):
             con.execute(ddl)
         rows = {"db_version": str(version), **(meta or {})}
         con.executemany("INSERT INTO meta (key, value) VALUES (?, ?)", rows.items())

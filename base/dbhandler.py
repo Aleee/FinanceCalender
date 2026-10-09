@@ -14,7 +14,7 @@ import lovely_logger as log
 from base.date import str_date, date_str, date_displstr
 from base.formatting import str_decimal
 from base.liability import LiabilityCategory, RowType
-from base.migrations import MIGRATIONS, MigrationError
+from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER
 from base.paths import db_path, backup_dir
 from base.payment import Payment
 from base.workcalendar import clear_calendar_cache
@@ -142,6 +142,8 @@ class DBHandler:
         try:
             for target_version in range(version + 1, self.DB_VERSION + 1):
                 self._apply_migration(target_version)
+            if not alternative_path and not self._increase_change_counter():
+                raise MigrationError("Не удалось отметить изменение базы данных после обновления структуры")
             if not self.db.commit():
                 raise MigrationError(f"Не удалось подтвердить транзакцию: {self.db.lastError().text()}")
         except Exception as e:
@@ -172,6 +174,22 @@ class DBHandler:
         if not self.set_setting("db_version", target_version):
             raise MigrationError(f"Не удалось записать версию базы данных {target_version}")
 
+    def _increase_change_counter(self) -> bool:
+        query = QSqlQuery()
+        if not query.exec(INCREASE_CHANGE_COUNTER):
+            log.e(f"Не удалось увеличить счётчик изменений базы данных: {query.lastError().text()}")
+            return False
+        return True
+
+    def mark_db_changed(self, path: str) -> bool:
+        self.db.setDatabaseName(path)
+        if not self.db.open():
+            log.e(f"Не удалось открыть базу данных, чтобы отметить изменение: {path}")
+            return False
+        marked = self._increase_change_counter()
+        self.db.close()
+        return marked
+
     @staticmethod
     def _save_pre_migration_copy(version: int) -> bool:
         copy_path: Path = Path(backup_dir()) / f"before_migration_v{version}.db"
@@ -190,7 +208,8 @@ class DBHandler:
         except OSError as e:
             log.x(f"Не удалось скопировать {source_path} во временный файл {temp_path}: {e}")
             return None
-        if self.migrate_db(str(temp_path)) and self.check_db_file_integrity(str(temp_path)):
+        if (self.migrate_db(str(temp_path)) and self.check_db_file_integrity(str(temp_path))
+                and self.mark_db_changed(str(temp_path))):
             return str(temp_path)
         temp_path.unlink(missing_ok=True)
         return None
