@@ -6,7 +6,7 @@ import lovely_logger as log
 from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtSql import QSqlTableModel, QSqlQuery
-from PySide6.QtWidgets import QMainWindow, QDialog, QLabel, QWidget, QListView, QToolButton, QLineEdit
+from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QWidget, QListView, QToolButton, QLineEdit
 
 from base.backup import clean_backup_folder, save_backup
 from base.casting import str_int
@@ -15,6 +15,8 @@ from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
 from base.payment import PaymentField
+from base.sync import MasterInfo, SyncAction, SyncError, synchronize
+from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
 from gui.common import map_to_source
@@ -39,6 +41,9 @@ from gui.recoverydialog import RecoveryDialog
 from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
+from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_STATUS_TEXT, create_sync_channel, create_sync_params,
+                             describe_master)
+from gui.syncsettingsdialog import SyncSettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
 from gui.ui.yearinputdialog_ui import Ui_YearInputDialog
 from gui.exportdialog import ExportDialog
@@ -70,6 +75,10 @@ class MainWindow(QMainWindow):
         self.saved_before_exit: bool = False
         self.nosave_exit: bool = False
         self.bound_document_id: int = 0
+        self.sync_status_text: str = "не выполнялась"
+        self.sync_error: str = ""
+        self.sync_master_info: MasterInfo | None = None
+        self.sync_checked_at: str = ""
 
         # Загрузка данных из БД: проверка файла, восстановление при необходимости, подключение
         self._load_database()
@@ -282,14 +291,89 @@ class MainWindow(QMainWindow):
         self.separator1 = StatusBarSeparator(self)
         self.separator2 = StatusBarSeparator(self)
         self.separator3 = StatusBarSeparator(self)
+        self.separator4 = StatusBarSeparator(self)
         self.spacer = QWidget()
         self.spacer.setFixedWidth(10)
+
+        self.act_sync_now = QAction("Синхронизировать сейчас", self)
+        self.act_sync_settings = QAction("Настройки синхронизации...", self)
+        sync_menu = QMenu(self)
+        sync_menu.addAction(self.act_sync_now)
+        sync_menu.addAction(self.act_sync_settings)
+        self.tb_sbar_sync = QToolButton()
+        self.tb_sbar_sync.setAutoRaise(True)
+        self.tb_sbar_sync.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.tb_sbar_sync.setMenu(sync_menu)
+        self.act_sync_now.triggered.connect(self.run_sync)
+        self.act_sync_settings.triggered.connect(self.open_sync_settings_dialog)
+        self.update_sync_status()
+
         self.ui.statusBar.addPermanentWidget(self.separator1)
         self.ui.statusBar.addPermanentWidget(self.la_sbar_backup)
         self.ui.statusBar.addPermanentWidget(self.separator2)
         self.ui.statusBar.addPermanentWidget(self.la_sbar_update)
         self.ui.statusBar.addPermanentWidget(self.separator3)
+        self.ui.statusBar.addPermanentWidget(self.tb_sbar_sync)
+        self.ui.statusBar.addPermanentWidget(self.separator4)
         self.ui.statusBar.addPermanentWidget(self.spacer)
+
+    def update_sync_status(self) -> None:
+        if not self.settings_handler.sync_enabled():
+            self.tb_sbar_sync.setText("Синхронизация: выключена")
+            self.tb_sbar_sync.setToolTip("Синхронизация выключена. Включить её можно в настройках синхронизации")
+            self.act_sync_now.setEnabled(False)
+            return
+        self.act_sync_now.setEnabled(True)
+        self.tb_sbar_sync.setText(f"Синхронизация: {self.sync_status_text}")
+        tooltip_lines: list[str] = [f"Папка обмена: {self.settings_handler.sync_folder()}"]
+        if self.sync_checked_at:
+            tooltip_lines.append(f"Последняя проверка: {self.sync_checked_at}")
+        if self.sync_master_info:
+            tooltip_lines.append(f"Мастер обновлён: {describe_master(self.sync_master_info)}")
+        if self.sync_error:
+            tooltip_lines.append(f"Последняя ошибка: {self.sync_error}")
+        self.tb_sbar_sync.setToolTip("\n".join(tooltip_lines))
+
+    def run_sync(self) -> None:
+        if not self.settings_handler.sync_enabled():
+            return
+        self.save_note()
+        channel = create_sync_channel(self.settings_handler)
+        self.tb_sbar_sync.setEnabled(False)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        action: SyncAction | None = None
+        try:
+            action = synchronize(self.db_handler, channel, create_sync_params(self.settings_handler))
+            self.sync_error = ""
+            self.sync_master_info = channel.read_master_info()
+        except SyncError as e:
+            log.e(f"Синхронизация не выполнена: {e}")
+            self.sync_error = str(e)
+        finally:
+            QApplication.restoreOverrideCursor()
+            self.tb_sbar_sync.setEnabled(True)
+        self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
+        self.sync_status_text = "ОШИБКА" if action is None else SYNC_STATUS_TEXT[action]
+        if action == SyncAction.PULL:
+            self.reload_after_sync_pull()
+        self.update_sync_status()
+        if action is None:
+            ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
+        elif action in SYNC_ACTION_MESSAGE:
+            ErrorInfoMessageBox(SYNC_ACTION_MESSAGE[action], is_info=True, parent=self).exec()
+
+    def reload_after_sync_pull(self) -> None:
+        clear_calendar_cache()
+        self.base_model.select()
+        self.payment_model.select()
+        self.update_responsible_models(update_widgets=True)
+        self.update_filters_and_select()
+        self.base_model.cacheUpdateNeeded.emit()
+        self.on_currentevent_change()
+
+    def open_sync_settings_dialog(self) -> None:
+        if SyncSettingsDialog(self.settings_handler, self).exec() == QDialog.DialogCode.Accepted:
+            self.update_sync_status()
 
     def set_update_status(self, text: str) -> None:
         self.la_sbar_update.setText(text)
