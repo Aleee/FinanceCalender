@@ -9,8 +9,8 @@ from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequ
 
 from base.sync import NetworkError, SyncError
 
-TIMEOUT_STEPS_MS = (1000, 1500, 2000, 2500, 3000)
-RETRY_PAUSES_MS = (200, 300, 400, 500)
+TIMEOUT_STEPS_MS = (1000, 1500, 2000, 2500, 7000)
+RETRY_PAUSES_MS = (200, 300, 400, 1000)
 SINGLE_ATTEMPT_TIMEOUT_MS = 5000
 RETRY_METHODS = ("GET", "PUT")
 
