@@ -1,11 +1,13 @@
 import shutil
 from collections import defaultdict
+from contextlib import contextmanager
 from dataclasses import asdict
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from datetime import date
 from typing import Any, Callable, Optional
+from uuid import uuid4
 
 from PySide6.QtCore import QDate
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
@@ -189,6 +191,92 @@ class DBHandler:
         marked = self._increase_change_counter()
         self.db.close()
         return marked
+
+    @contextmanager
+    def _file_connection(self, path: str):
+        name = f"file_{uuid4().hex}"
+        connection = QSqlDatabase.addDatabase("QSQLITE", name)
+        connection.setDatabaseName(path)
+        try:
+            if not connection.open():
+                raise RuntimeError(f"Не удалось открыть базу данных {path}: {connection.lastError().text()}")
+            yield connection
+        finally:
+            connection.close()
+            del connection
+            QSqlDatabase.removeDatabase(name)
+
+    @staticmethod
+    def _file_execute(connection: QSqlDatabase, sql: str, *values: Any) -> list[list]:
+        query = QSqlQuery(connection)
+        query.prepare(sql)
+        for value in values:
+            query.addBindValue(value)
+        if not query.exec():
+            raise RuntimeError(f"Ошибка SQL: {query.lastError().text()}. Запрос: {sql}")
+        rows: list[list] = []
+        while query.next():
+            rows.append([query.value(i) for i in range(query.record().count())])
+        return rows
+
+    def read_file_settings(self, path: str, keys: tuple[str, ...]) -> dict[str, str | None] | None:
+        try:
+            with self._file_connection(path) as connection:
+                values: dict[str, str | None] = {}
+                for key in keys:
+                    rows = self._file_execute(connection, "SELECT value FROM meta WHERE key = ?", key)
+                    values[key] = str(rows[0][0]) if rows else None
+                return values
+        except Exception as e:
+            log.x(f"Не удалось прочитать служебные ключи из файла {path}: {e}")
+            return None
+
+    def check_file_integrity(self, path: str) -> bool:
+        try:
+            with self._file_connection(path) as connection:
+                return self._file_execute(connection, "PRAGMA integrity_check")[0][0] == "ok"
+        except Exception as e:
+            log.x(f"Не удалось проверить целостность файла {path}: {e}")
+            return False
+
+    def copy_db_file(self, target_path: str) -> bool:
+        try:
+            with self._file_connection(db_path()) as connection:
+                self._file_execute(connection, "VACUUM INTO ?", target_path)
+        except Exception as e:
+            log.x(f"Не удалось сохранить копию базы данных в {target_path}: {e}")
+            return False
+        return True
+
+    def create_sync_snapshot(self, snapshot_path: str, new_token: str) -> int | None:
+        try:
+            with self._file_connection(db_path()) as source:
+                counter = int(self._file_execute(source, "SELECT value FROM meta WHERE key = 'change_counter'")[0][0])
+                self._file_execute(source, "VACUUM INTO ?", snapshot_path)
+            with self._file_connection(snapshot_path) as snapshot:
+                self._file_execute(snapshot, "UPDATE meta SET value = ? WHERE key = 'sync_token'", new_token)
+                self._file_execute(snapshot, "UPDATE meta SET value = '0' WHERE key = 'change_counter'")
+                triggers = self._file_execute(snapshot, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'")[0][0]
+                indexes = self._file_execute(snapshot, "SELECT COUNT(*) FROM sqlite_master WHERE name = 'idx_meta_key'")[0][0]
+                if triggers == 0 or indexes == 0:
+                    raise RuntimeError("В снимке базы данных нет триггеров или индекса таблицы meta")
+        except Exception as e:
+            log.x(f"Не удалось создать снимок базы данных для синхронизации: {e}")
+            return None
+        return counter
+
+    def finish_push(self, new_token: str, snapshot_counter: int) -> bool:
+        if not self.db.transaction():
+            log.e(f"Не удалось начать транзакцию после отправки: {self.db.lastError().text()}")
+            return False
+        query = QSqlQuery()
+        query.prepare("UPDATE meta SET value = '0' WHERE key = 'change_counter' AND CAST(value AS INTEGER) = ?")
+        query.addBindValue(snapshot_counter)
+        if not (self.set_setting("sync_token", new_token) and query.exec() and self.db.commit()):
+            log.e(f"Не удалось записать результат отправки в базу данных: {self.db.lastError().text()} {query.lastError().text()}")
+            self.db.rollback()
+            return False
+        return True
 
     @staticmethod
     def _save_pre_migration_copy(version: int) -> bool:

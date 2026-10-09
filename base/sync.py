@@ -2,12 +2,19 @@ import hashlib
 import json
 import os
 import shutil
+import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
+from uuid import uuid4
+
+import lovely_logger as log
+
+from base.backup import replace_db_file
+from base.paths import backup_dir
 
 if TYPE_CHECKING:
     from base.dbhandler import DBHandler
@@ -18,9 +25,18 @@ MASTER_BACKUPS_DIR = "master_backups"
 BACKUP_TIME_FORMAT = "%Y%m%d-%H%M%S"
 BACKUP_PREFIX = "master_"
 TEMP_SUFFIX = ".tmp"
+STATE_KEYS = ("db_uuid", "sync_token", "db_version", "change_counter")
 
 
 class SyncError(Exception):
+    pass
+
+
+class MasterChangedError(SyncError):
+    pass
+
+
+class MasterUpdatingError(SyncError):
     pass
 
 
@@ -68,8 +84,17 @@ class MasterInfo:
 
 
 def read_local_state(dbh: "DBHandler") -> LocalState:
-    keys = ("db_uuid", "sync_token", "db_version", "change_counter")
-    values = {key: dbh.get_setting(key, None) for key in keys}
+    return state_from_values({key: dbh.get_setting(key, None) for key in STATE_KEYS})
+
+
+def read_file_state(dbh: "DBHandler", path: Path) -> LocalState:
+    values = dbh.read_file_settings(str(path), STATE_KEYS)
+    if values is None:
+        raise SyncError(f"Не удалось прочитать служебные ключи синхронизации из файла {path}")
+    return state_from_values(values)
+
+
+def state_from_values(values: dict[str, str | None]) -> LocalState:
     missing = [key for key, value in values.items() if value is None]
     if missing:
         raise SyncError(f"В базе данных нет служебных ключей синхронизации: {', '.join(missing)}")
@@ -207,3 +232,87 @@ def backup_time_from_name(name: str) -> datetime | None:
         return datetime.strptime(name[len(BACKUP_PREFIX):-len(".db")], BACKUP_TIME_FORMAT)
     except ValueError:
         return None
+
+
+@dataclass
+class SyncParams:
+    author: str
+    machine: str
+    app_version: str
+    backup_keep_days: int = 30
+
+
+def master_token(master: MasterInfo | None) -> str | None:
+    return None if master is None else master.sync_token
+
+
+def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, overwrite: bool = False) -> None:
+    local = read_local_state(dbh)
+    master = channel.read_master_info()
+    action = decide_action(local, master)
+    allowed = {SyncAction.PUSH, SyncAction.NO_MASTER} | ({SyncAction.CONFLICT} if overwrite else set())
+    if action not in allowed:
+        raise SyncError(f"Отправка невозможна в состоянии «{action.value}»")
+    new_token = uuid4().hex
+    with tempfile.TemporaryDirectory() as folder:
+        snapshot = Path(folder) / MASTER_DB_NAME
+        counter = dbh.create_sync_snapshot(str(snapshot), new_token)
+        if counter is None or not dbh.check_file_integrity(str(snapshot)):
+            raise SyncError("Не удалось подготовить снимок базы данных для отправки")
+        if master_token(channel.read_master_info()) != master_token(master):
+            raise MasterChangedError("Мастер изменился во время подготовки отправки")
+        info = MasterInfo(local.db_uuid, new_token, local.db_version, params.author, params.machine,
+                          datetime.now().isoformat(timespec="seconds"), params.app_version)
+        channel.backup_master()
+        channel.upload_master(snapshot, info)
+    try:
+        channel.remove_old_backups(params.backup_keep_days)
+    except SyncError as e:
+        log.w(f"Не удалось удалить старые копии мастера: {e}")
+    if not dbh.finish_push(new_token, counter):
+        raise SyncError("Мастер обновлён, но не удалось записать результат в локальную базу данных (подробности см. в логе)")
+    log.i(f"Мастер обновлён локальной базой данных, токен {new_token}")
+
+
+def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncAction, ...] = (SyncAction.PULL,)) -> None:
+    local = read_local_state(dbh)
+    master = channel.read_master_info()
+    action = decide_action(local, master)
+    if action not in allowed:
+        raise SyncError(f"Подтягивание невозможно в состоянии «{action.value}»")
+    with tempfile.TemporaryDirectory() as folder:
+        downloaded = Path(folder) / MASTER_DB_NAME
+        channel.download_master(downloaded)
+        downloaded_state = read_file_state(dbh, downloaded)
+        if downloaded_state.sync_token != master.sync_token:
+            raise MasterUpdatingError("Мастер обновляется: файл базы данных и master.json не совпадают, повторите позже")
+        if downloaded_state.db_uuid != master.db_uuid or downloaded_state.db_version != master.db_version:
+            raise SyncError("Скачанный мастер не соответствует master.json")
+        if not dbh.check_file_integrity(str(downloaded)):
+            raise SyncError("Скачанный мастер не прошёл проверку целостности")
+        new_file = downloaded
+        migrated_path: str | None = None
+        if downloaded_state.db_version < dbh.DB_VERSION:
+            migrated_path = dbh.make_migrated_copy(str(downloaded))
+            if migrated_path is None:
+                raise SyncError("Не удалось обновить структуру скачанного мастера (подробности см. в логе)")
+            new_file = Path(migrated_path)
+        local_copy = Path(backup_dir()) / f"before_sync_{datetime.now().strftime(BACKUP_TIME_FORMAT + '-%f')}.db"
+        try:
+            if not dbh.copy_db_file(str(local_copy)):
+                raise SyncError("Не удалось сохранить копию локальной базы данных перед заменой")
+            if not replace_db_file(dbh, str(new_file)):
+                raise SyncError("Не удалось заменить локальную базу данных мастером (подробности см. в логе)")
+        finally:
+            if migrated_path is not None:
+                Path(migrated_path).unlink(missing_ok=True)
+    log.i(f"Локальная база данных заменена мастером, токен {master.sync_token}")
+
+
+def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams) -> SyncAction:
+    action = decide_action(read_local_state(dbh), channel.read_master_info())
+    if action == SyncAction.PULL:
+        pull_master(dbh, channel)
+    elif action == SyncAction.PUSH:
+        push_master(dbh, channel, params)
+    return action
