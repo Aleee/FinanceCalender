@@ -15,7 +15,7 @@ from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
 from base.payment import PaymentField
-from base.sync import MasterInfo, SyncAction, SyncChannel, SyncError, synchronize
+from base.sync import MasterInfo, SyncAction, SyncChannel, SyncError, SyncParams, read_local_state, synchronize
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
@@ -41,8 +41,10 @@ from gui.recoverydialog import RecoveryDialog
 from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
-from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_STATUS_TEXT, connect_to_master, create_master, create_sync_channel,
-                             create_sync_params, describe_master)
+from gui.syncconflictdialog import SyncConflictDialog
+from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_STALE_DAYS, SYNC_STATUS_TEXT, connect_to_master, create_master,
+                             create_sync_channel, create_sync_params, describe_master, master_age_days, overwrite_master,
+                             take_master)
 from gui.syncsettingsdialog import SyncSettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
 from gui.ui.yearinputdialog_ui import Ui_YearInputDialog
@@ -104,6 +106,9 @@ class MainWindow(QMainWindow):
         # Начальные действия
         self.settings_handler.apply_settings(apply_geometry=True)
         self.ui.stw_eventinfo.setCurrentIndex(1)
+
+        # Первая синхронизация после запуска
+        QTimer.singleShot(2000, self.auto_sync)
 
 
     def _load_database(self) -> None:
@@ -304,8 +309,11 @@ class MainWindow(QMainWindow):
         self.tb_sbar_sync.setAutoRaise(True)
         self.tb_sbar_sync.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.tb_sbar_sync.setMenu(sync_menu)
-        self.act_sync_now.triggered.connect(self.run_sync)
+        self.act_sync_now.triggered.connect(lambda: self.run_sync())
         self.act_sync_settings.triggered.connect(self.open_sync_settings_dialog)
+        self.sync_timer = QTimer(self)
+        self.sync_timer.timeout.connect(self.auto_sync)
+        self.apply_sync_timer()
         self.update_sync_status()
 
         self.ui.statusBar.addPermanentWidget(self.separator1)
@@ -324,41 +332,93 @@ class MainWindow(QMainWindow):
             self.act_sync_now.setEnabled(False)
             return
         self.act_sync_now.setEnabled(True)
-        self.tb_sbar_sync.setText(f"Синхронизация: {self.sync_status_text}")
+        master_age: int | None = master_age_days(self.sync_master_info) if self.sync_master_info else None
+        is_master_stale: bool = master_age is not None and master_age >= SYNC_STALE_DAYS
+        status_text: str = f"Синхронизация: {self.sync_status_text}"
+        if is_master_stale:
+            status_text += f" (мастер не обновлялся {master_age} дн.)"
+        self.tb_sbar_sync.setText(status_text)
         tooltip_lines: list[str] = [f"Папка обмена: {self.settings_handler.sync_folder()}"]
         if self.sync_checked_at:
             tooltip_lines.append(f"Последняя проверка: {self.sync_checked_at}")
         if self.sync_master_info:
             tooltip_lines.append(f"Мастер обновлён: {describe_master(self.sync_master_info)}")
+        if is_master_stale:
+            tooltip_lines.append("Внимание: мастер давно не обновлялся, возможно, второй пользователь не отправляет изменения")
         if self.sync_error:
             tooltip_lines.append(f"Последняя ошибка: {self.sync_error}")
         self.tb_sbar_sync.setToolTip("\n".join(tooltip_lines))
 
-    def run_sync(self) -> None:
+    def apply_sync_timer(self) -> None:
+        self.sync_timer.stop()
+        if self.settings_handler.sync_enabled():
+            self.sync_timer.start(self.settings_handler.sync_interval_minutes() * 60 * 1000)
+
+    def auto_sync(self) -> None:
+        if (not self.settings_handler.sync_enabled() or not self.tb_sbar_sync.isEnabled()
+                or QApplication.activeModalWidget() is not None or self.ui.tb_savenote.isEnabled()):
+            return
+        self.run_sync(interactive=False)
+
+    def run_sync(self, interactive: bool = True) -> None:
         if not self.settings_handler.sync_enabled():
             return
         self.save_note()
         channel = create_sync_channel(self.settings_handler)
         params = create_sync_params(self.settings_handler)
+        previous_status_text: str = self.sync_status_text
         action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params))
-        if action == SyncAction.NO_MASTER and YesNoMessagebox(
-                "В папке обмена нет мастера. Создать его из вашей текущей базы данных?",
-                self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
-            action = self._run_sync_step(channel, lambda: create_master(self.db_handler, channel, params))
-        elif action == SyncAction.FOREIGN_DB and YesNoMessagebox(
-                "В папке обмена лежит мастер другой базы данных. Заменить им вашу базу данных? "
-                "Текущая база будет сохранена в папке резервных копий.",
-                self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
-            action = self._run_sync_step(channel, lambda: connect_to_master(self.db_handler, channel))
+        if interactive:
+            action = self._resolve_sync_action(action, channel, params)
         self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
         self.sync_status_text = "ОШИБКА" if action is None else SYNC_STATUS_TEXT[action]
         if action == SyncAction.PULL:
             self.reload_after_sync_pull()
         self.update_sync_status()
-        if action is None:
-            ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
-        elif action in SYNC_ACTION_MESSAGE:
-            ErrorInfoMessageBox(SYNC_ACTION_MESSAGE[action], is_info=True, parent=self).exec()
+        if interactive:
+            if action is None:
+                ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
+            elif action in SYNC_ACTION_MESSAGE:
+                ErrorInfoMessageBox(SYNC_ACTION_MESSAGE[action], is_info=True, parent=self).exec()
+        elif self.sync_status_text != previous_status_text and action in (SyncAction.CONFLICT, SyncAction.CLIENT_OUTDATED):
+            self.ui.statusBar.showMessage(f"Синхронизация: {self.sync_status_text}. Нажмите на кнопку синхронизации в строке состояния", 15000)
+
+    def _resolve_sync_action(self, action: SyncAction | None, channel: SyncChannel, params: SyncParams) -> SyncAction | None:
+        if action == SyncAction.NO_MASTER and YesNoMessagebox(
+                "В папке обмена нет мастера. Создать его из вашей текущей базы данных?",
+                self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
+            return self._run_sync_step(channel, lambda: create_master(self.db_handler, channel, params))
+        if action == SyncAction.FOREIGN_DB and YesNoMessagebox(
+                "В папке обмена лежит мастер другой базы данных. Заменить им вашу базу данных? "
+                "Текущая база будет сохранена в папке резервных копий.",
+                self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
+            return self._run_sync_step(channel, lambda: connect_to_master(self.db_handler, channel))
+        if action == SyncAction.CONFLICT and self.sync_master_info:
+            conflict_dlg = SyncConflictDialog(describe_master(self.sync_master_info), self)
+            conflict_dlg.exec()
+            if conflict_dlg.take_master_chosen():
+                return self._run_sync_step(channel, lambda: take_master(self.db_handler, channel))
+            if conflict_dlg.overwrite_chosen():
+                return self._run_sync_step(channel, lambda: overwrite_master(self.db_handler, channel, params))
+        return action
+
+    def confirm_exit_with_sync(self) -> bool:
+        if not self.settings_handler.sync_enabled():
+            return True
+        try:
+            if not read_local_state(self.db_handler).has_changes:
+                return True
+        except SyncError as e:
+            log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
+            return True
+        channel = create_sync_channel(self.settings_handler)
+        params = create_sync_params(self.settings_handler)
+        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params))
+        if action == SyncAction.PUSH:
+            return True
+        reason: str = self.sync_error if action is None else SYNC_STATUS_TEXT[action]
+        return YesNoMessagebox(f"Изменения не отправлены в мастер ({reason}). Закрыть программу без отправки?",
+                               self).exec() == YesNoMessagebox.YES_RETURN_VALUE
 
     def _run_sync_step(self, channel: SyncChannel, step: Callable[[], SyncAction]) -> SyncAction | None:
         self.tb_sbar_sync.setEnabled(False)
@@ -387,7 +447,9 @@ class MainWindow(QMainWindow):
 
     def open_sync_settings_dialog(self) -> None:
         if SyncSettingsDialog(self.settings_handler, self).exec() == QDialog.DialogCode.Accepted:
+            self.apply_sync_timer()
             self.update_sync_status()
+            QTimer.singleShot(1000, self.auto_sync)
 
     def set_update_status(self, text: str) -> None:
         self.la_sbar_update.setText(text)
@@ -886,5 +948,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event, /):
         self.save_note()
+        if not self.confirm_exit_with_sync():
+            event.ignore()
+            return
         self.settings_handler.save_settings()
         event.accept()

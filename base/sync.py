@@ -309,6 +309,12 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
     log.i(f"Локальная база данных заменена мастером, токен {master.sync_token}")
 
 
+def save_conflict_copy(dbh: "DBHandler") -> None:
+    copy_path = Path(backup_dir()) / f"conflict_{datetime.now().strftime(BACKUP_TIME_FORMAT + '-%f')}.db"
+    if not dbh.copy_db_file(str(copy_path)):
+        raise SyncError("Не удалось сохранить копию локальной базы данных перед разрешением конфликта")
+
+
 def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams) -> SyncAction:
     action = decide_action(read_local_state(dbh), channel.read_master_info())
     if action == SyncAction.PULL:

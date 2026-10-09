@@ -9,6 +9,8 @@ from base.dbhandler import DBHandler
 from base.paths import db_path
 from gui.settings import SettingsHandler
 
+BACKUP_FILE_PREFIXES = ("backup_", "before_sync_", "conflict_")
+
 
 def save_backup(sh: SettingsHandler, dbh: DBHandler) -> QDateTime:
     backup_path: str = sh.backup_path()
@@ -39,9 +41,10 @@ def clean_backup_folder(sh: SettingsHandler) -> bool:
     minimum_date: QDate = QDate.currentDate().addDays(-cleanup_period)
     filenames: list[str] = [item.name for item in Path(backup_foldername).iterdir() if item.is_file()]
     for fname in filenames:
-        if not fname.startswith("backup_"):  # чтобы не трогать посторонние файлы в папке бэкапов
+        prefix: str | None = next((p for p in BACKUP_FILE_PREFIXES if fname.startswith(p)), None)
+        if prefix is None:  # чтобы не трогать посторонние файлы в папке бэкапов
             continue
-        date_substring: str = fname[7:15]
+        date_substring: str = fname[len(prefix):len(prefix) + 8]
         filedate: QDate = QDate.fromString(date_substring, "yyyyMMdd")
         if not filedate.isValid():
             continue
