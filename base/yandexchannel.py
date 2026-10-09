@@ -1,5 +1,6 @@
 import hashlib
 import json
+from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
@@ -23,6 +24,7 @@ class YandexDiskApiChannel(SyncChannel):
         self.http: HttpClient = http
         folder = folder.strip() or DEFAULT_DISK_FOLDER
         self.folder: str = folder if folder.endswith("/") else folder + "/"
+        self.cached_info: tuple[str, MasterInfo] | None = None
 
     def check_connection(self) -> None:
         response = self.api("GET", "resources", {"path": self.folder, "fields": "name,type"}, (200, 404))
@@ -30,13 +32,21 @@ class YandexDiskApiChannel(SyncChannel):
             raise SyncError(f"Папка {self.folder} не найдена на Яндекс.Диске")
 
     def read_master_info(self) -> MasterInfo | None:
+        if self.cached_info is not None:
+            metadata = self.metadata(MASTER_INFO_NAME)
+            if metadata is None:
+                return None
+            if metadata.get("md5") == self.cached_info[0]:
+                return replace(self.cached_info[1])
         href = self.link("resources/download", {"path": self.remote_path(MASTER_INFO_NAME)})
         if href is None:
             return None
         response = self.http.send("GET", href, self.auth_headers())
         if response.status != 200:
             raise self.error_from(response)
-        return MasterInfo.from_json(response.body.decode("utf-8"))
+        info = MasterInfo.from_json(response.body.decode("utf-8"))
+        self.cached_info = (hashlib.md5(response.body).hexdigest(), info)
+        return replace(info)
 
     def download_master(self, destination: Path) -> None:
         href = self.link("resources/download", {"path": self.remote_path(MASTER_DB_NAME)})
@@ -63,6 +73,7 @@ class YandexDiskApiChannel(SyncChannel):
         except SyncError:
             self.delete_quietly(temp_db)
             raise
+        self.cached_info = (hashlib.md5(info_bytes).hexdigest(), replace(info))
 
     def backup_master(self) -> None:
         if self.metadata(MASTER_DB_NAME) is None:
