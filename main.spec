@@ -1,10 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+
+openssl_dlls = [os.path.join('openssl', name) for name in ('libssl-3-x64.dll', 'libcrypto-3-x64.dll')]
+missing = [path for path in openssl_dlls if not os.path.exists(path)]
+if missing:
+    raise SystemExit(f'Не найдены библиотеки OpenSSL: {missing}. Положите их в папку openssl/ (см. объяснение в чате).')
 
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=[(path, '.') for path in openssl_dlls],
     datas=[],
     hiddenimports=[],
     hookspath=[],

@@ -4,28 +4,42 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
+import time
 import zipfile
 from dataclasses import dataclass
 from typing import Optional
 
 import lovely_logger as log
-from PySide6.QtCore import QObject, QUrl, QUrlQuery, QFile, QIODevice, QDateTime, Signal
-from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
+from PySide6.QtCore import QObject, QUrl, QUrlQuery, QFile, QIODevice, QDateTime, QTimer, Signal
+from PySide6.QtNetwork import (QNetworkAccessManager, QNetworkReply, QNetworkRequest, QNetworkProxy,
+                               QNetworkProxyFactory, QNetworkProxyQuery, QSslSocket)
 
 from base.paths import app_dir, update_dir
-from base.version import DB_VERSION, is_newer
+from base.version import APP_VERSION, DB_VERSION, is_newer
 
 API_URL = "https://cloud-api.yandex.net/v1/disk/public/resources/download"
 PUBLIC_KEY = "https://disk.yandex.by/d/-feulMjOLlZpoA"
 VERSION_FILE = "version.json"
-CHECK_TIMEOUT_MS = 10000
-DOWNLOAD_TIMEOUT_MS = 30000
+CHECK_TIMEOUT_MS = 60000
+DOWNLOAD_TIMEOUT_MS = 90000
+NETWORK_ATTEMPTS = 3
+RETRY_DELAY_MS = 3000
 APP_EXE = "FinanceCalender.exe"
 DETACHED_PROCESS = 0x00000008
 CREATE_NEW_PROCESS_GROUP = 0x00000200
+CREATE_NO_WINDOW = 0x08000000
+DIAG_HOSTS = ("cloud-api.yandex.net", "downloader.disk.yandex.ru", "api.github.com")
+DIAG_TIMEOUT_MS = 8000
+DIAG_COMMAND_TIMEOUT = 30
+INTERNET_SETTINGS_KEY = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
 
 
 class UpdateError(Exception):
+    pass
+
+
+class NetworkError(UpdateError):
     pass
 
 
@@ -86,9 +100,79 @@ def request_download_link(manager: QNetworkAccessManager, file_name: str, timeou
     return manager.get(request)
 
 
+def describe_proxy(proxy: QNetworkProxy) -> str:
+    return f"{proxy.type().name} {proxy.hostName()}:{proxy.port()}"
+
+
+def probe_host(host: str, proxy: QNetworkProxy, label: str) -> None:
+    socket = QSslSocket()
+    socket.setProxy(proxy)
+    start = time.monotonic()
+    socket.connectToHost(host, 443)
+    if not socket.waitForConnected(DIAG_TIMEOUT_MS):
+        log.w(f"Диагностика [{label}] {host}: TCP не установлен за {(time.monotonic() - start) * 1000:.0f} мс: "
+              f"{socket.error().name}, {socket.errorString()}")
+        return
+    tcp_ms = (time.monotonic() - start) * 1000
+    socket.startClientEncryption()
+    if not socket.waitForEncrypted(DIAG_TIMEOUT_MS):
+        errors = [e.errorString() for e in socket.sslHandshakeErrors()]
+        log.w(f"Диагностика [{label}] {host}: TCP за {tcp_ms:.0f} мс, TLS не завершён: "
+              f"{socket.errorString()} {errors}")
+        return
+    log.i(f"Диагностика [{label}] {host}: TCP за {tcp_ms:.0f} мс, TLS ок за {(time.monotonic() - start) * 1000:.0f} мс")
+    socket.disconnectFromHost()
+
+
+def run_command(label: str, args: list[str]) -> None:
+    try:
+        result = subprocess.run(args, capture_output=True, stdin=subprocess.DEVNULL, timeout=DIAG_COMMAND_TIMEOUT,
+                                creationflags=CREATE_NO_WINDOW, encoding="oem", errors="replace")
+    except subprocess.TimeoutExpired:
+        log.w(f"Диагностика, команда [{label}]: нет ответа за {DIAG_COMMAND_TIMEOUT} с")
+        return
+    except OSError as e:
+        log.w(f"Диагностика, команда [{label}]: не удалось запустить: {e}")
+        return
+    output = (result.stdout + result.stderr).strip()
+    log.i(f"Диагностика, команда [{label}], код {result.returncode}:\n{output[:4000]}")
+
+
+def run_command_diagnostics() -> None:
+    api_link = f"{API_URL}?public_key={PUBLIC_KEY}&path=/{VERSION_FILE}"
+    curl = ["curl.exe", "-v", "-sS", "-m", "20", "-o", "NUL"]
+    settings = (f"Get-ItemProperty '{INTERNET_SETTINGS_KEY}' | "
+                f"Select-Object ProxyEnable,ProxyServer,ProxyOverride,AutoConfigURL | Format-List; "
+                f"'DefaultConnectionSettings flags: ' + "
+                f"(Get-ItemProperty '{INTERNET_SETTINGS_KEY}\\Connections').DefaultConnectionSettings[8]")
+    antivirus = ("Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct | "
+                 "Select-Object displayName,productState | Format-List")
+    proxy_vars = {name: os.environ[name] for name in ("HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY")
+                  if name in os.environ}
+    log.i(f"Диагностика, переменные прокси: {proxy_vars}")
+    run_command("curl API", curl + [api_link])
+    run_command("curl API без прокси", curl + ["--noproxy", "*", api_link])
+    run_command("curl GitHub", curl + ["https://api.github.com"])
+    run_command("nslookup", ["nslookup", DIAG_HOSTS[0]])
+    run_command("netsh winhttp", ["netsh", "winhttp", "show", "proxy"])
+    run_command("настройки прокси", ["powershell", "-NoProfile", "-NonInteractive", "-Command", settings])
+    run_command("антивирус", ["powershell", "-NoProfile", "-NonInteractive", "-Command", antivirus])
+
+
+def run_network_diagnostics() -> None:
+    log.i(f"Диагностика сети: версия {APP_VERSION}, SSL {QSslSocket.supportsSsl()} ({QSslSocket.activeBackend()}), "
+          f"системные настройки прокси {QNetworkProxyFactory.usesSystemConfiguration()}")
+    for host in DIAG_HOSTS:
+        system_proxy = QNetworkProxyFactory.systemProxyForQuery(QNetworkProxyQuery(host, 443, "https"))[0]
+        probe_host(host, QNetworkProxy(QNetworkProxy.ProxyType.NoProxy), "без прокси")
+        probe_host(host, system_proxy, f"системный прокси: {describe_proxy(system_proxy)}")
+    run_command_diagnostics()
+    log.i("Диагностика сети завершена")
+
+
 def read_download_link(reply: QNetworkReply) -> str:
     if reply.error() != QNetworkReply.NetworkError.NoError:
-        raise UpdateError(f"Не удалось получить ссылку на скачивание: {reply.errorString()}")
+        raise NetworkError(f"Не удалось получить ссылку на скачивание: {reply.error().name}, {reply.errorString()}")
     try:
         return str(json.loads(bytes(reply.readAll()).decode("utf-8"))["href"])
     except (ValueError, KeyError, TypeError) as e:
@@ -106,6 +190,7 @@ class UpdateChecker(QObject):
         self.last_check_time: Optional[QDateTime] = None
         self.last_check_result: str = ""
         self.last_check_status: str = ""
+        self.attempt: int = 0
 
     def finish(self, result: str, status: str) -> None:
         self.checking = False
@@ -121,15 +206,29 @@ class UpdateChecker(QObject):
             self.finish("Проверка обновлений отключена", "Обновления: отключены")
             return
         self.checking = True
+        self.attempt = 1
+        log.i(f"Проверка обновлений: TLS-библиотека {QSslSocket.activeBackend()}")
+        self.request_link()
+
+    def request_link(self) -> None:
         reply = request_download_link(self.manager, VERSION_FILE, CHECK_TIMEOUT_MS)
         reply.finished.connect(lambda: self.on_link_received(reply))
+
+    def on_failure(self, error: Exception) -> None:
+        log.w(f"Проверка обновлений (попытка {self.attempt} из {NETWORK_ATTEMPTS}): {error}")
+        if isinstance(error, NetworkError):
+            if self.attempt < NETWORK_ATTEMPTS:
+                self.attempt += 1
+                QTimer.singleShot(RETRY_DELAY_MS, self.request_link)
+                return
+            threading.Thread(target=run_network_diagnostics, daemon=True).start()
+        self.finish("Не удалось проверить обновления (подробности в логе)", "Обновления: ошибка")
 
     def on_link_received(self, reply: QNetworkReply) -> None:
         try:
             href = read_download_link(reply)
         except UpdateError as e:
-            log.w(f"Проверка обновлений: {e}")
-            self.finish("Не удалось проверить обновления (подробности в логе)", "Обновления: ошибка")
+            self.on_failure(e)
             return
         finally:
             reply.deleteLater()
@@ -141,7 +240,7 @@ class UpdateChecker(QObject):
     def on_version_received(self, reply: QNetworkReply) -> None:
         try:
             if reply.error() != QNetworkReply.NetworkError.NoError:
-                raise UpdateError(f"Не удалось скачать {VERSION_FILE}: {reply.errorString()}")
+                raise NetworkError(f"Не удалось скачать {VERSION_FILE}: {reply.error().name}, {reply.errorString()}")
             info = UpdateInfo.from_json(bytes(reply.readAll()))
             if not is_newer(info.version):
                 self.finish("Установлена актуальная версия", "Обновления: нет")
@@ -154,8 +253,7 @@ class UpdateChecker(QObject):
                 self.finish(f"Доступно обновление {info.version}", f"Обновления: доступна {info.version}")
                 self.update_available.emit(info)
         except (UpdateError, ValueError) as e:
-            log.w(f"Проверка обновлений: {e}")
-            self.finish("Не удалось проверить обновления (подробности в логе)", "Обновления: ошибка")
+            self.on_failure(e)
         finally:
             reply.deleteLater()
 
@@ -172,6 +270,7 @@ class UpdateDownloader(QObject):
         self.file: Optional[QFile] = None
         self.info: Optional[UpdateInfo] = None
         self.cancelled: bool = False
+        self.attempt: int = 0
 
     def start(self, info: UpdateInfo) -> None:
         self.info = info
@@ -183,8 +282,21 @@ class UpdateDownloader(QObject):
             self.failed.emit("Не удалось записать файлы в папку программы. "
                              "Возможно, флешка защищена от записи или закончилось место.")
             return
-        reply = request_download_link(self.manager, info.file, CHECK_TIMEOUT_MS)
+        self.attempt = 1
+        self.request_link()
+
+    def request_link(self) -> None:
+        if self.cancelled:
+            return
+        reply = request_download_link(self.manager, self.info.file, CHECK_TIMEOUT_MS)
         reply.finished.connect(lambda: self.on_link_received(reply))
+
+    def retry(self) -> bool:
+        if self.attempt >= NETWORK_ATTEMPTS:
+            return False
+        self.attempt += 1
+        QTimer.singleShot(RETRY_DELAY_MS, self.request_link)
+        return True
 
     def cancel(self) -> None:
         self.cancelled = True
@@ -210,8 +322,9 @@ class UpdateDownloader(QObject):
         try:
             href = read_download_link(reply)
         except UpdateError as e:
-            log.w(f"Скачивание обновления: {e}")
-            self.failed.emit("Не удалось связаться с Яндекс.Диском. Проверьте подключение к интернету.")
+            log.w(f"Скачивание обновления (попытка {self.attempt} из {NETWORK_ATTEMPTS}): {e}")
+            if not (isinstance(e, NetworkError) and self.retry()):
+                self.failed.emit("Не удалось связаться с Яндекс.Диском. Проверьте подключение к интернету.")
             return
         finally:
             reply.deleteLater()
@@ -240,8 +353,10 @@ class UpdateDownloader(QObject):
         if self.cancelled:
             return
         if error != QNetworkReply.NetworkError.NoError:
-            log.w(f"Ошибка скачивания обновления: {error_text}")
-            self.failed.emit("Не удалось скачать обновление. Проверьте подключение к интернету.")
+            log.w(f"Ошибка скачивания обновления (попытка {self.attempt} из {NETWORK_ATTEMPTS}): "
+                  f"{error.name}, {error_text}")
+            if not self.retry():
+                self.failed.emit("Не удалось скачать обновление. Проверьте подключение к интернету.")
             return
         try:
             self.verify_and_extract()

@@ -2,6 +2,7 @@ import os
 import sys
 import cProfile
 import lovely_logger as log
+from PySide6.QtNetwork import QNetworkProxyFactory
 
 from PySide6.QtWidgets import QApplication
 
@@ -17,6 +18,8 @@ class App(QApplication):
     # def __init__(self, pr):
     def __init__(self):
         super().__init__(sys.argv)
+
+        QNetworkProxyFactory.setUseSystemConfiguration(True)
 
         self.app_version = APP_VERSION
 
