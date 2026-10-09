@@ -497,7 +497,7 @@ class MainWindow(QMainWindow):
         try:
             action: SyncAction = step()
             self.sync_error = ""
-            self.sync_master_info = channel.read_master_info()
+            self.sync_master_info = channel.last_master_info()
             return action
         except SyncError as e:
             log.e(f"Синхронизация не выполнена: {e}")

@@ -35,15 +35,22 @@ class YandexDiskApiChannel(SyncChannel):
         if response.status == 404:
             raise SyncError(f"Папка {self.folder} не найдена на Яндекс.Диске")
 
+    def last_master_info(self) -> MasterInfo | None:
+        if self.cached_info is None:
+            return self.read_master_info()
+        return replace(self.cached_info[1])
+
     def read_master_info(self) -> MasterInfo | None:
         if self.cached_info is not None:
             metadata = self.metadata(MASTER_INFO_NAME)
             if metadata is None:
+                self.cached_info = None
                 return None
             if metadata.get("md5") == self.cached_info[0]:
                 return replace(self.cached_info[1])
         href = self.link("resources/download", {"path": self.remote_path(MASTER_INFO_NAME)})
         if href is None:
+            self.cached_info = None
             return None
         response = self.http.send("GET", href, self.auth_headers())
         if response.status != 200:

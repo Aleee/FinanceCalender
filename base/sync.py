@@ -144,6 +144,9 @@ class SyncChannel(ABC):
     def read_master_info(self) -> MasterInfo | None:
         ...
 
+    def last_master_info(self) -> MasterInfo | None:
+        return self.read_master_info()
+
     @abstractmethod
     def download_master(self, destination: Path) -> None:
         ...
