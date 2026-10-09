@@ -96,7 +96,7 @@ class QtHttpClient(HttpClient):
     def read_response(reply: QNetworkReply) -> HttpResponse:
         status = reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
         error, error_text = reply.error(), reply.errorString()
-        body = bytes(reply.readAll())
+        body = bytes(reply.readAll()) if reply.isOpen() else b""
         reply.deleteLater()
         if status is None:
             raise NetworkError(f"Нет связи с сервером: {error_text}")
