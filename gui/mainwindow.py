@@ -331,6 +331,8 @@ class MainWindow(QMainWindow):
         self.tb_sync.clicked.connect(self.on_sync_button_clicked)
         self.act_sync_now.triggered.connect(lambda: self.run_sync())
         self.act_sync_settings.triggered.connect(self.open_sync_settings_dialog)
+        self.sync_channel: SyncChannel | None = None
+        self.sync_channel_settings: tuple | None = None
         self.sync_timer = QTimer(self)
         self.sync_timer.timeout.connect(self.auto_sync)
         self.apply_sync_timer()
@@ -415,6 +417,14 @@ class MainWindow(QMainWindow):
         if self.settings_handler.sync_enabled():
             self.sync_timer.start(self.settings_handler.sync_interval_minutes() * 60 * 1000)
 
+    def get_sync_channel(self) -> SyncChannel:
+        current_settings = (self.settings_handler.sync_channel_type(), self.settings_handler.sync_token(),
+                            self.settings_handler.sync_disk_folder(), self.settings_handler.sync_folder())
+        if self.sync_channel is None or self.sync_channel_settings != current_settings:
+            self.sync_channel = create_sync_channel(self.settings_handler)
+            self.sync_channel_settings = current_settings
+        return self.sync_channel
+
     def auto_sync(self) -> None:
         if (not self.settings_handler.sync_enabled() or not self.tb_sync.isEnabled()
                 or QApplication.activeModalWidget() is not None or self.ui.tb_savenote.isEnabled()):
@@ -425,7 +435,7 @@ class MainWindow(QMainWindow):
         if not self.settings_handler.sync_enabled():
             return
         self.save_note()
-        channel = create_sync_channel(self.settings_handler)
+        channel = self.get_sync_channel()
         params = create_sync_params(self.settings_handler)
         previous_status_text: str = self.sync_status_text
         action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params))
@@ -472,7 +482,7 @@ class MainWindow(QMainWindow):
         except SyncError as e:
             log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
             return True
-        channel = create_sync_channel(self.settings_handler)
+        channel = self.get_sync_channel()
         params = create_sync_params(self.settings_handler)
         action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params))
         if action == SyncAction.PUSH:
