@@ -73,6 +73,7 @@ class SyncProgressDialog(QDialog):
         layout.setSpacing(18)
         layout.addWidget(self.spinner, 0, Qt.AlignmentFlag.AlignVCenter)
         layout.addLayout(text_layout, 1)
+        self.setFixedSize(self.sizeHint().expandedTo(self.minimumSize()))
 
         self.delay_timer = QTimer(self)
         self.delay_timer.setSingleShot(True)
