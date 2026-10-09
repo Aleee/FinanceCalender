@@ -126,6 +126,7 @@ class DBHandler:
             return False
         version = self.get_db_version()
         if version is None:
+            self.db.close()
             return False
         if version == self.DB_VERSION:
             self.db.close()
@@ -346,6 +347,31 @@ class DBHandler:
     def is_db_connected(self) -> bool:
         return self.db.isOpen()
 
+    def run_in_transaction(self, action: Callable[[], bool]) -> bool:
+        if not self.db.transaction():
+            log.e(f"Не удалось начать транзакцию: {self.db.lastError().text()}")
+            return False
+        try:
+            succeeded: bool = action()
+        except Exception as e:
+            log.x(f"Ошибка внутри транзакции, изменения отменены: {e}")
+            self.db.rollback()
+            return False
+        if succeeded and self.db.commit():
+            return True
+        log.e(f"Транзакция отменена: {self.db.lastError().text()}")
+        self.db.rollback()
+        return False
+
+    def delete_payments_by_event(self, event_id: int) -> bool:
+        query = QSqlQuery()
+        query.prepare("DELETE FROM payment WHERE eventid = ?")
+        query.addBindValue(event_id)
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке удалить платежи обязательства {event_id}: {query.lastError().text()}")
+            return False
+        return True
+
     def switch_db_files(self, new_file_path: str = "", close_current_connection: bool = False) -> bool:
         if close_current_connection:
             self.db.close()
@@ -423,6 +449,9 @@ class DBHandler:
         if not self.is_db_connected():
             log.w("Отсутствует соединение с базой данных")
             return False
+        return self.run_in_transaction(lambda: self._write_finplan(year, finplan_structure, finplanmodel))
+
+    def _write_finplan(self, year: int, finplan_structure: dict, finplanmodel: FinPlanTableModel) -> bool:
         query = QSqlQuery()
         query.prepare("DELETE FROM finplan WHERE year = ?")
         query.addBindValue(year)
@@ -538,6 +567,9 @@ class DBHandler:
     def delete_position(self, position_id: int) -> bool:
         if not self.is_db_connected():
             return False
+        return self.run_in_transaction(lambda: self._remove_position(position_id))
+
+    def _remove_position(self, position_id: int) -> bool:
         query = QSqlQuery()
         query.prepare("UPDATE personal SET position = NULL WHERE position = ?")
         query.addBindValue(position_id)
@@ -596,6 +628,9 @@ class DBHandler:
     def save_personal_data(self, data: list) -> bool:
         if not self.is_db_connected():
             return False
+        return self.run_in_transaction(lambda: self._write_personal_data(data))
+
+    def _write_personal_data(self, data: list) -> bool:
         query: QSqlQuery = QSqlQuery()
         for entry in data:
             position_value = entry[4] if entry[4] else None

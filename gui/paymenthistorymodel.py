@@ -91,9 +91,11 @@ class PaymentHistoryTableModel(QSqlTableModel):
                     log.e(f"Не удалось записать данные {value} в столбец {column + 1}")
                     self.update_filter()
                     return False
-            self.submitAll()
+            submitted: bool = self.submitAll()
+            if not submitted:
+                self.revertAll()
             self.update_filter()
-            return True
+            return submitted
         self.update_filter()
         return False
 
@@ -102,9 +104,3 @@ class PaymentHistoryTableModel(QSqlTableModel):
         if not result:
             log.e(f"Не удалось записать изменения в таблицу payment: {self.lastError().text()}")
         return result
-
-    def delete_rows_byeventid(self, eventid: int) -> None:
-        for row in range(self.rowCount() - 1, -1, -1):
-            if self.index(row, PaymentCol.EVENT).data(self.qtValueRole) == eventid:
-                self.removeRow(row)
-        self.submitAll()

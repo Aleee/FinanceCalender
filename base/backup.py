@@ -19,13 +19,13 @@ def save_backup(sh: SettingsHandler, dbh: DBHandler) -> QDateTime:
         return QDateTime()
     backup_filepath: Path = Path(backup_path).joinpath("backup_" + QDateTime.currentDateTime().toString("yyyyMMdd-hhmmss") + ".db")
     try:
-        shutil.copy(db_path(), backup_filepath)
-        return QDateTime.currentDateTime()
-    except FileNotFoundError:
-        log.e(f"Файл для копирования {db_path()} не найден")
-    except Exception as e:
-        log.x(f"При попытке создать резервную копию произошла ошибка: {e}")
-    return QDateTime()
+        backup_filepath.unlink(missing_ok=True)
+    except OSError as e:
+        log.x(f"Не удалось заменить существующую резервную копию {backup_filepath}: {e}")
+        return QDateTime()
+    if not dbh.copy_db_file(str(backup_filepath)):
+        return QDateTime()
+    return QDateTime.currentDateTime()
 
 
 def clean_backup_folder(sh: SettingsHandler) -> bool:

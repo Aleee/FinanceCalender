@@ -132,6 +132,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.header_cache: list[int] | None = None
         self.personal_dict: dict = {}
         self.document_titles: dict[int, DocumentTitle] = {}
+        self.last_inserted_id: int = 0
         self.contract_icon = QIcon(":/icon-table/designer/icons/attachment.svg")
         empty_pixmap = QPixmap(self.ICON_SIZE, self.ICON_SIZE)
         empty_pixmap.fill(Qt.GlobalColor.transparent)
@@ -449,6 +450,12 @@ class LiabilitySqlTableModel(QSqlTableModel):
         if len(data) != len(self.stored_columns()):
             raise IndexError("В новую строку передано неверное количество данных")
         result = self.insert_data_in_row(new_row_position, data)
+        if result is not None:
+            if self.submitAll():
+                self.last_inserted_id = self.index(new_row_position, Col.ID).data(self.qtValueRole)
+            else:
+                self.revertAll()
+                result = None
         self.cacheUpdateNeeded.emit()
         return result
 

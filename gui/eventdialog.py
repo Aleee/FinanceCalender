@@ -621,6 +621,14 @@ class EventDialog(QDialog):
                 return False
         return True
 
+    def _insert_refund(self, original_model: LiabilitySqlTableModel, data: list, total_amount: Decimal) -> bool:
+        if original_model.insert_row(data) is None:
+            return False
+        return self.payment_model.append_row([original_model.last_inserted_id,
+                                              date_str(self.ui.de_duedate.date()),
+                                              str(total_amount),
+                                              date_str(QDate.currentDate())])
+
     def accept(self, /):
         if not self.check_integrity():
             return
@@ -675,16 +683,15 @@ class EventDialog(QDialog):
 
         original_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
         if not self.edit_mode:
-            new_row = original_model.insert_row(data)
-            if new_row is None:
+            if self.ui.rb_typerefund.isChecked():
+                saved: bool = self.dbh.run_in_transaction(lambda: self._insert_refund(original_model, data, total_amount))
+                if not saved:
+                    original_model.select()
+            else:
+                saved = original_model.insert_row(data) is not None
+            if not saved:
                 log.e(f"Не удалось вставить новую строку в таблицу event со следующими данными: {data}")
                 return
-            if self.ui.rb_typerefund.isChecked():
-                original_model.submitAll()
-                self.payment_model.append_row([original_model.index(new_row, Col.ID).data(LiabilitySqlTableModel.qtValueRole),
-                                               date_str(self.ui.de_duedate.date()),
-                                               str(total_amount),
-                                               date_str(QDate.currentDate())])
             QDialog.accept(self)
         else:
             original_model.edit_row(map_to_source(-2, self.index).row(), data)

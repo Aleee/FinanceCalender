@@ -5,7 +5,7 @@ import lovely_logger as log
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
-from PySide6.QtSql import QSqlTableModel, QSqlQuery
+from PySide6.QtSql import QSqlTableModel
 from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QWidget, QListView, QToolButton, QLineEdit
 
 from base.backup import clean_backup_folder, save_backup
@@ -813,13 +813,7 @@ class MainWindow(QMainWindow):
             self.ui.lw_term.setCurrentRow(0)
         self.update_filters_and_select()
         # ищем и выделяем новую строку
-        query = QSqlQuery()
-        if not query.exec("SELECT last_insert_rowid()"):
-            log.w(f"Не удалось получить id последней добавленной записи: {query.lastError().text()}")
-        if query.next():
-            last_id = query.value(0)
-        else:
-            last_id = 0
+        last_id: int = self.base_model.last_inserted_id
 
         base_index_to_select = None
         for row in range(self.base_model.rowCount() - 1, -1, -1):
@@ -871,12 +865,17 @@ class MainWindow(QMainWindow):
             return False
         msg_box = YesNoMessagebox("Удаление платежа - необратимое действие. Уверены, что хотите продолжить?")
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
-            deleted_event_id: int = self.base_model.delete_row(self.proxy1_model.mapToSource(self.proxy2_model.mapToSource(curr_index)).row())
-            if deleted_event_id == 0:
+            event_id: int = self.current_data(Col.ID, LiabilitySqlTableModel.qtValueRole)
+            row: int = self.proxy1_model.mapToSource(self.proxy2_model.mapToSource(curr_index)).row()
+            deleted: bool = self.db_handler.run_in_transaction(
+                lambda: self.db_handler.delete_payments_by_event(event_id) and self.base_model.delete_row(row) != 0)
+            if not deleted:
+                self.base_model.select()
+                self.update_filters_and_select()
+                ErrorInfoMessageBox("Не удалось удалить платеж (подробности см. в логе)", parent=self).exec()
                 return False
             # Удаление строки не вызывает currentChanged
             self.on_currentevent_change()
-            self.payment_model.delete_rows_byeventid(deleted_event_id)
             self.update_filters_and_select()
             return True
         return False
