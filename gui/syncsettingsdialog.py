@@ -68,12 +68,12 @@ class SyncSettingsDialog(QDialog):
         self.spb_interval: QSpinBox = QSpinBox()
         self.spb_interval.setRange(1, 60)
         self.spb_interval.setSuffix(" мин")
-        self.form.addRow("Проверять мастер каждые:", self.spb_interval)
+        self.form.addRow("Проверять общую базу каждые:", self.spb_interval)
 
         self.spb_keepdays: QSpinBox = QSpinBox()
         self.spb_keepdays.setRange(1, 365)
         self.spb_keepdays.setSuffix(" дн")
-        self.form.addRow("Хранить копии мастера:", self.spb_keepdays)
+        self.form.addRow("Хранить резервные копии общей базы:", self.spb_keepdays)
 
         self.chb_enabled.setChecked(settings_handler.sync_enabled())
         self.cmb_channel.setCurrentIndex(max(self.cmb_channel.findData(settings_handler.sync_channel_type()), 0))

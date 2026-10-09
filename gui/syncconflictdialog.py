@@ -7,12 +7,12 @@ class SyncConflictDialog(QMessageBox):
 
         self.setWindowTitle("Конфликт синхронизации")
         self.setIcon(QMessageBox.Icon.Warning)
-        self.setText("Изменения есть и в вашей базе данных, и в мастере. Автоматически объединить их нельзя.")
-        self.setInformativeText(f"Мастер обновлён: {master_description}.\n\n"
+        self.setText("Изменения есть и в вашей локальной копии, и в общей базе. Автоматически объединить их нельзя.")
+        self.setInformativeText(f"Общая база обновлена: {master_description}.\n\n"
                                 "Перед любым выбором ваша версия будет сохранена в папке резервных копий.")
 
-        self.take_master_button: QPushButton = QPushButton("Взять мастер", self)
-        self.overwrite_button: QPushButton = QPushButton("Перезаписать мастер моей версией", self)
+        self.take_master_button: QPushButton = QPushButton("Взять общую базу", self)
+        self.overwrite_button: QPushButton = QPushButton("Перезаписать общую базу моей версией", self)
         self.cancel_button: QPushButton = QPushButton("Отмена", self)
         self.addButton(self.take_master_button, QMessageBox.ButtonRole.AcceptRole)
         self.addButton(self.overwrite_button, QMessageBox.ButtonRole.DestructiveRole)

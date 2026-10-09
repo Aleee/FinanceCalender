@@ -62,15 +62,15 @@ class YandexDiskApiChannel(SyncChannel):
     def download_master(self, destination: Path) -> None:
         href = self.link("resources/download", {"path": self.remote_path(MASTER_DB_NAME)})
         if href is None:
-            raise SyncError("Файл мастера не найден на Яндекс.Диске")
+            raise SyncError("Файл общей базы не найден на Яндекс.Диске")
         response = self.http.send("GET", href, self.auth_headers(), download_file=destination)
         if response.status != 200:
             raise self.error_from(response)
         metadata = self.metadata(MASTER_DB_NAME)
         if metadata is None:
-            raise SyncError("Файл мастера исчез с Яндекс.Диска во время скачивания")
+            raise SyncError("Файл общей базы исчез с Яндекс.Диска во время скачивания")
         if metadata.get("md5") and file_md5(destination) != metadata["md5"]:
-            raise SyncError("Скачанный файл мастера не совпадает с файлом на Яндекс.Диске")
+            raise SyncError("Скачанный файл общей базы не совпадает с файлом на Яндекс.Диске")
 
     def upload_master(self, source: Path, info: MasterInfo) -> None:
         temp_db = self.remote_path(MASTER_DB_NAME + TEMP_SUFFIX)

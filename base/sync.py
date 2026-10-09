@@ -190,13 +190,13 @@ class FolderChannel(SyncChannel):
 
     def download_master(self, destination: Path) -> None:
         if not self.master_db_path.is_file():
-            raise SyncError(f"Файл мастера не найден: {self.master_db_path}")
+            raise SyncError(f"Файл общей базы не найден: {self.master_db_path}")
         try:
             shutil.copyfile(self.master_db_path, destination)
         except OSError as e:
-            raise SyncError(f"Не удалось скопировать мастер: {e}") from e
+            raise SyncError(f"Не удалось скопировать общую базу: {e}") from e
         if file_md5(destination) != file_md5(self.master_db_path):
-            raise SyncError("Скопированный файл мастера не совпадает с исходным")
+            raise SyncError("Скопированный файл общей базы не совпадает с исходным")
 
     def upload_master(self, source: Path, info: MasterInfo) -> None:
         temp_db_path = self.master_db_path.with_name(MASTER_DB_NAME + TEMP_SUFFIX)
@@ -205,12 +205,12 @@ class FolderChannel(SyncChannel):
             self.folder.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, temp_db_path)
             if file_md5(temp_db_path) != file_md5(source):
-                raise SyncError("Загруженный файл мастера не совпадает с исходным")
+                raise SyncError("Загруженный файл общей базы не совпадает с исходным")
             os.replace(temp_db_path, self.master_db_path)
             temp_info_path.write_text(info.to_json(), encoding="utf-8")
             os.replace(temp_info_path, self.master_info_path)
         except OSError as e:
-            raise SyncError(f"Не удалось записать мастер в {self.folder}: {e}") from e
+            raise SyncError(f"Не удалось записать общую базу в {self.folder}: {e}") from e
         finally:
             temp_db_path.unlink(missing_ok=True)
             temp_info_path.unlink(missing_ok=True)
@@ -222,7 +222,7 @@ class FolderChannel(SyncChannel):
             self.backups_path.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(self.master_db_path, self.backups_path / master_backup_name())
         except OSError as e:
-            raise SyncError(f"Не удалось сохранить копию прежнего мастера: {e}") from e
+            raise SyncError(f"Не удалось сохранить копию прежней общей базы: {e}") from e
 
     def remove_old_backups(self, keep_days: int) -> None:
         if not self.backups_path.is_dir():
@@ -234,7 +234,7 @@ class FolderChannel(SyncChannel):
                 if backup_time is not None and backup_time < minimum_time:
                     item.unlink(missing_ok=True)
         except OSError as e:
-            raise SyncError(f"Не удалось удалить старые копии мастера: {e}") from e
+            raise SyncError(f"Не удалось удалить старые копии общей базы: {e}") from e
 
 
 def master_backup_name() -> str:
@@ -290,22 +290,22 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
         if counter is None or not dbh.check_file_integrity(str(snapshot)):
             raise SyncError("Не удалось подготовить снимок базы данных для отправки")
         if master_token(channel.read_master_info()) != master_token(master):
-            raise MasterChangedError("Мастер изменился во время подготовки отправки")
+            raise MasterChangedError("Общая база изменилась во время подготовки отправки")
         info = MasterInfo(local.db_uuid, new_token, local.db_version, params.author, params.machine,
                           datetime.now().isoformat(timespec="seconds"), params.app_version)
         stage_started = time.monotonic()
         channel.backup_master()
-        log.d(f"Отправка мастера: копия прежнего мастера за {elapsed_ms(stage_started)} мс")
+        log.d(f"Отправка общей базы: копия прежней общей базы за {elapsed_ms(stage_started)} мс")
         stage_started = time.monotonic()
         channel.upload_master(snapshot, info)
-        log.d(f"Отправка мастера: загрузка за {elapsed_ms(stage_started)} мс")
+        log.d(f"Отправка общей базы: загрузка за {elapsed_ms(stage_started)} мс")
     if backups_cleanup_due(master):
         try:
             channel.remove_old_backups(params.backup_keep_days)
         except SyncError as e:
-            log.w(f"Не удалось удалить старые копии мастера: {e}")
+            log.w(f"Не удалось удалить старые копии общей базы: {e}")
     if not dbh.finish_push(new_token, counter):
-        raise SyncError("Мастер обновлён, но не удалось записать результат в локальную базу данных (подробности см. в логе)")
+        raise SyncError("Общая база обновлена, но не удалось записать результат в локальную копию (подробности см. в логе)")
 
 
 def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncAction, ...] = (SyncAction.PULL,),
@@ -321,24 +321,24 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
         channel.download_master(downloaded)
         downloaded_state = read_file_state(dbh, downloaded)
         if downloaded_state.sync_token != master.sync_token:
-            raise MasterUpdatingError("Мастер обновляется: файл базы данных и master.json не совпадают, повторите позже")
+            raise MasterUpdatingError("Общая база обновляется: файл базы данных и master.json не совпадают, повторите позже")
         if downloaded_state.db_uuid != master.db_uuid or downloaded_state.db_version != master.db_version:
-            raise SyncError("Скачанный мастер не соответствует master.json")
+            raise SyncError("Скачанная общая база не соответствует master.json")
         if not dbh.check_file_integrity(str(downloaded)):
-            raise SyncError("Скачанный мастер не прошёл проверку целостности")
+            raise SyncError("Скачанная общая база не прошла проверку целостности")
         new_file = downloaded
         migrated_path: str | None = None
         if downloaded_state.db_version < dbh.DB_VERSION:
             migrated_path = dbh.make_migrated_copy(str(downloaded))
             if migrated_path is None:
-                raise SyncError("Не удалось обновить структуру скачанного мастера (подробности см. в логе)")
+                raise SyncError("Не удалось обновить структуру скачанной общей базы (подробности см. в логе)")
             new_file = Path(migrated_path)
         local_copy = Path(backup_dir()) / f"before_sync_{datetime.now().strftime(PRECISE_BACKUP_TIME_FORMAT)}.db"
         try:
             if not dbh.copy_db_file(str(local_copy)):
-                raise SyncError("Не удалось сохранить копию локальной базы данных перед заменой")
+                raise SyncError("Не удалось сохранить локальную копию перед заменой")
             if not replace_db_file(dbh, str(new_file)):
-                raise SyncError("Не удалось заменить локальную базу данных мастером (подробности см. в логе)")
+                raise SyncError("Не удалось заменить локальную копию общей базой (подробности см. в логе)")
         finally:
             if migrated_path is not None:
                 Path(migrated_path).unlink(missing_ok=True)
@@ -347,7 +347,7 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
 def save_conflict_copy(dbh: "DBHandler") -> None:
     copy_path = Path(backup_dir()) / f"conflict_{datetime.now().strftime(PRECISE_BACKUP_TIME_FORMAT)}.db"
     if not dbh.copy_db_file(str(copy_path)):
-        raise SyncError("Не удалось сохранить копию локальной базы данных перед разрешением конфликта")
+        raise SyncError("Не удалось сохранить локальную копию перед разрешением конфликта")
 
 
 def elapsed_ms(started: float) -> int:

@@ -16,18 +16,20 @@ SYNC_RETRY_ATTEMPTS = 2
 TOKEN_WARNING_DAYS = 30
 
 SYNC_STATUS_TEXT: dict[SyncAction, str] = {
-    SyncAction.NOTHING: "актуально",
-    SyncAction.PULL: "получены изменения",
-    SyncAction.PUSH: "изменения отправлены",
+    SyncAction.NOTHING: "данные актуальны",
+    SyncAction.PULL: "данные актуальны",
+    SyncAction.PUSH: "данные актуальны",
     SyncAction.CONFLICT: "КОНФЛИКТ",
-    SyncAction.NO_MASTER: "мастера нет",
-    SyncAction.FOREIGN_DB: "другая база данных",
+    SyncAction.NO_MASTER: "общей базы нет",
+    SyncAction.FOREIGN_DB: "в общей базе другие данные",
     SyncAction.CLIENT_OUTDATED: "обновите программу",
 }
 
 SYNC_ACTION_MESSAGE: dict[SyncAction, str] = {
-    SyncAction.CLIENT_OUTDATED: "Мастер создан более новой версией программы. Обновите программу. Ничего не изменено",
+    SyncAction.CLIENT_OUTDATED: "Общая база создана более новой версией программы. Обновите программу. Ничего не изменено",
 }
+
+SYNC_PULL_MESSAGE = "Данные были изменены другим пользователем. Программа обновлена по актуальной версии"
 
 
 def create_yandex_channel(token: str, disk_folder: str) -> YandexDiskApiChannel:
@@ -50,7 +52,7 @@ def failure_status_text(error: SyncError) -> str:
     if isinstance(error, AuthError):
         return "токен недействителен"
     if isinstance(error, MasterUpdatingError):
-        return "мастер обновляется"
+        return "общая база обновляется"
     return "ОШИБКА"
 
 

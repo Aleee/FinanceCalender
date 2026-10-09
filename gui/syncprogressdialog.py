@@ -47,7 +47,7 @@ class SpinnerWidget(QWidget):
 class SyncProgressDialog(QDialog):
     SHOW_DELAY_MS = 350
 
-    def __init__(self, parent=None, text: str = "Синхронизация…", details: str = "Обмен данными с мастером"):
+    def __init__(self, parent=None, text: str = "Синхронизация…", details: str = "Обмен данными с общей базой"):
         super().__init__(parent)
         self.setWindowTitle("Синхронизация")
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)

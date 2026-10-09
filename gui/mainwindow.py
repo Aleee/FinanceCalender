@@ -42,8 +42,8 @@ from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
 from gui.syncconflictdialog import SyncConflictDialog
-from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS,
-                             SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, connect_to_master, create_master,
+from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PULL_MESSAGE, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS,
+                             SYNC_STALE_DAYS, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, connect_to_master, create_master,
                              create_sync_channel, create_sync_params, describe_master, failure_status_text,
                              master_age_days, overwrite_master, take_master, token_days_left)
 from gui.ui.syncicon import create_sync_icon
@@ -69,10 +69,11 @@ class YearInputDialog(QDialog):
 class MainWindow(QMainWindow):
 
     CONTRACT_NOTBOUND_TEXT = '<span style="color: #808080;">не привязан</span>'
-    SYNC_OK_STATUSES = ("не выполнялась", SYNC_STATUS_TEXT[SyncAction.NOTHING],
-                        SYNC_STATUS_TEXT[SyncAction.PULL], SYNC_STATUS_TEXT[SyncAction.PUSH])
+    SYNC_PROBLEM_STATUSES = (SYNC_STATUS_TEXT[SyncAction.CONFLICT], SYNC_STATUS_TEXT[SyncAction.FOREIGN_DB],
+                             SYNC_STATUS_TEXT[SyncAction.CLIENT_OUTDATED], "токен недействителен", "ОШИБКА")
     SYNC_PROBLEM_COLOR = QColor("#C62828")
     SYNC_WARNING_COLOR = QColor("#B26A00")
+    SYNC_OK_COLOR = QColor("#2E7D32")
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -360,14 +361,14 @@ class MainWindow(QMainWindow):
         else:
             self.open_sync_settings_dialog()
 
-    def set_sync_button_state(self, text: str, color: QColor | None = None) -> None:
+    def set_sync_button_state(self, text: str, color: QColor | None = None, icon_color: QColor | None = None) -> None:
         self.tb_sync.setText("  " + text)
         palette: QPalette = QApplication.palette(self.tb_sync)
         if color is not None:
             palette.setColor(QPalette.ColorRole.ButtonText, color)
             palette.setColor(QPalette.ColorRole.WindowText, color)
         self.tb_sync.setPalette(palette)
-        self.tb_sync.setIcon(create_sync_icon(palette.buttonText().color()))
+        self.tb_sync.setIcon(create_sync_icon(palette.buttonText().color() if icon_color is None else icon_color))
 
     def update_sync_status(self) -> None:
         if not self.settings_handler.sync_enabled():
@@ -384,9 +385,10 @@ class MainWindow(QMainWindow):
             token_warning = "Токен Яндекса истёк, получите новый и укажите его в настройках синхронизации"
         elif days_left is not None and days_left <= TOKEN_WARNING_DAYS:
             token_warning = f"Токен Яндекса истекает через {days_left} дн., получите новый заранее"
-        is_problem: bool = self.sync_status_text not in self.SYNC_OK_STATUSES or (days_left is not None and days_left < 0)
+        is_problem: bool = self.sync_status_text in self.SYNC_PROBLEM_STATUSES or (days_left is not None and days_left < 0)
+        is_actual: bool = self.sync_status_text == SYNC_STATUS_TEXT[SyncAction.NOTHING]
         has_unsent_changes: bool = False
-        if self.sync_status_text in (SYNC_STATUS_TEXT[SyncAction.NOTHING], SYNC_STATUS_TEXT[SyncAction.PUSH]):
+        if is_actual:
             try:
                 has_unsent_changes = read_local_state(self.db_handler).has_changes
             except SyncError as e:
@@ -395,8 +397,15 @@ class MainWindow(QMainWindow):
         status_text: str = f"Синхронизация: {'есть неотправленные изменения' if has_unsent_changes else self.sync_status_text}"
         if not is_problem and is_warning and not has_unsent_changes:
             status_text += " ⚠"
-        color: QColor | None = self.SYNC_PROBLEM_COLOR if is_problem else self.SYNC_WARNING_COLOR if is_warning else None
-        self.set_sync_button_state(status_text, color)
+        color: QColor | None = None
+        icon_color: QColor | None = None
+        if is_problem:
+            color = self.SYNC_PROBLEM_COLOR
+        elif is_warning or not is_actual:
+            color = self.SYNC_WARNING_COLOR
+        else:
+            icon_color = self.SYNC_OK_COLOR
+        self.set_sync_button_state(status_text, color, icon_color)
         if self.settings_handler.sync_channel_type() == "yandex":
             tooltip_lines: list[str] = [f"Яндекс.Диск, папка {self.settings_handler.sync_disk_folder()}"]
         else:
@@ -406,9 +415,9 @@ class MainWindow(QMainWindow):
         if self.sync_checked_at:
             tooltip_lines.append(f"Последняя проверка: {self.sync_checked_at}")
         if self.sync_master_info:
-            tooltip_lines.append(f"Мастер обновлён: {describe_master(self.sync_master_info)}")
+            tooltip_lines.append(f"Общая база обновлена: {describe_master(self.sync_master_info)}")
         if is_master_stale:
-            tooltip_lines.append(f"Внимание: мастер не обновлялся {master_age} дн., возможно, второй пользователь не отправляет изменения")
+            tooltip_lines.append(f"Внимание: общая база не обновлялась {master_age} дн., возможно, второй пользователь не отправляет изменения")
         if self.sync_error:
             tooltip_lines.append(f"Последняя ошибка: {self.sync_error}")
         tooltip_lines.append("Нажмите, чтобы синхронизировать; стрелка справа — меню")
@@ -448,6 +457,7 @@ class MainWindow(QMainWindow):
         params = create_sync_params(self.settings_handler)
         previous_status_text: str = self.sync_status_text
         action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params))
+        is_changed_by_other: bool = action == SyncAction.PULL
         if interactive:
             action = self._resolve_sync_action(action, channel, params)
         self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
@@ -455,6 +465,8 @@ class MainWindow(QMainWindow):
         if action == SyncAction.PULL:
             self.reload_after_sync_pull()
         self.update_sync_status()
+        if is_changed_by_other:
+            ErrorInfoMessageBox(SYNC_PULL_MESSAGE, is_info=True, parent=self).exec()
         if interactive:
             if action is None:
                 ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
@@ -465,12 +477,12 @@ class MainWindow(QMainWindow):
 
     def _resolve_sync_action(self, action: SyncAction | None, channel: SyncChannel, params: SyncParams) -> SyncAction | None:
         if action == SyncAction.NO_MASTER and YesNoMessagebox(
-                "В папке обмена нет мастера. Создать его из вашей текущей базы данных?",
+                "В папке обмена нет общей базы. Создать её из вашей локальной копии?",
                 self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
             return self._run_sync_step(channel, lambda: create_master(self.db_handler, channel, params))
         if action == SyncAction.FOREIGN_DB and YesNoMessagebox(
-                "В папке обмена лежит мастер другой базы данных. Заменить им вашу базу данных? "
-                "Текущая база будет сохранена в папке резервных копий.",
+                "В папке обмена лежит общая база с другими данными. Заменить ею вашу локальную копию? "
+                "Текущая локальная копия будет сохранена в папке резервных копий.",
                 self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
             return self._run_sync_step(channel, lambda: connect_to_master(self.db_handler, channel))
         if action == SyncAction.CONFLICT and self.sync_master_info:
@@ -497,7 +509,7 @@ class MainWindow(QMainWindow):
         if action == SyncAction.PUSH:
             return True
         reason: str = self.sync_error if action is None else SYNC_STATUS_TEXT[action]
-        return YesNoMessagebox(f"Изменения не отправлены в мастер ({reason}). Закрыть программу без отправки?",
+        return YesNoMessagebox(f"Изменения не отправлены в общую базу ({reason}). Закрыть программу без отправки?",
                                self).exec() == YesNoMessagebox.YES_RETURN_VALUE
 
     def _run_sync_step(self, channel: SyncChannel, step: Callable[[], SyncAction]) -> SyncAction | None:
