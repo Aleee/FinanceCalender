@@ -243,7 +243,7 @@ class UpdateChecker(QObject):
                 raise NetworkError(f"Не удалось скачать {VERSION_FILE}: {reply.error().name}, {reply.errorString()}")
             info = UpdateInfo.from_json(bytes(reply.readAll()))
             if not is_newer(info.version):
-                self.finish("Установлена актуальная версия", "Обновления: нет")
+                self.finish("Установлена актуальная версия", "Обновления: актуальная версия")
             elif info.db_version < DB_VERSION:
                 log.w(f"Версия {info.version} требует более старой версии БД ({info.db_version}, у нас {DB_VERSION}), "
                       f"обновление не предлагается")
