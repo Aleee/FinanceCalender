@@ -970,6 +970,7 @@ class MainWindow(QMainWindow):
         self.base_model.select()
         self.update_filters_and_select()
         self.base_model.cacheUpdateNeeded.emit()
+        self.update_sync_status()
 
     def open_fees_dialog(self) -> None:
         fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.base_model, self.payment_model, self)
