@@ -61,7 +61,7 @@ class SettingsHandler:
     def sync_interval_minutes(self) -> int:
         return str_int(self.settings.value("Sync/interval"), 30)
 
-    def sync_backup_keep_days(self) -> int:
+    def sync_long_backup_keep_days(self) -> int:
         return str_int(self.settings.value("Sync/backupkeepdays"), 30)
 
     def paid_load_months(self) -> int:

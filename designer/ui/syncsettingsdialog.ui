@@ -156,7 +156,7 @@
      <item row="9" column="0">
       <widget class="QLabel" name="label_keepdays">
        <property name="text">
-        <string>Хранить резервные копии общей базы:</string>
+        <string>Хранить ежедневные копии общей базы:</string>
        </property>
       </widget>
      </item>

@@ -23,6 +23,8 @@ if TYPE_CHECKING:
 MASTER_DB_NAME = "master.db"
 MASTER_INFO_NAME = "master.json"
 MASTER_BACKUPS_DIR = "master_backups"
+MASTER_LONG_BACKUPS_DIR = "master_backups_long"
+SHORT_BACKUPS_KEEP_DAYS = 3
 BACKUP_TIME_FORMAT = "%Y%m%d-%H%M%S"
 PRECISE_BACKUP_TIME_FORMAT = BACKUP_TIME_FORMAT + "-%f"
 BACKUP_PREFIX = "master_"
@@ -160,7 +162,7 @@ class SyncChannel(ABC):
         ...
 
     @abstractmethod
-    def remove_old_backups(self, keep_days: int) -> None:
+    def remove_old_backups(self, long_keep_days: int) -> None:
         ...
 
 
@@ -215,26 +217,43 @@ class FolderChannel(SyncChannel):
             temp_db_path.unlink(missing_ok=True)
             temp_info_path.unlink(missing_ok=True)
 
+    @property
+    def long_backups_path(self) -> Path:
+        return self.folder / MASTER_LONG_BACKUPS_DIR
+
     def backup_master(self) -> None:
         if not self.master_db_path.is_file():
             return
+        backup_name = master_backup_name()
         try:
             self.backups_path.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(self.master_db_path, self.backups_path / master_backup_name())
+            shutil.copyfile(self.master_db_path, self.backups_path / backup_name)
+            if not any(is_backup_of_today(name) for name in self.backup_names(self.long_backups_path)):
+                self.long_backups_path.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(self.master_db_path, self.long_backups_path / backup_name)
         except OSError as e:
             raise SyncError(f"Не удалось сохранить копию прежней общей базы: {e}") from e
 
-    def remove_old_backups(self, keep_days: int) -> None:
-        if not self.backups_path.is_dir():
-            return
-        minimum_time = datetime.now() - timedelta(days=keep_days)
+    @staticmethod
+    def backup_names(folder: Path) -> list[str]:
+        return [item.name for item in folder.iterdir()] if folder.is_dir() else []
+
+    def remove_old_backups(self, long_keep_days: int) -> None:
         try:
-            for item in self.backups_path.iterdir():
-                backup_time = backup_time_from_name(item.name)
-                if backup_time is not None and backup_time < minimum_time:
-                    item.unlink(missing_ok=True)
+            self.remove_old_backups_in(self.backups_path, SHORT_BACKUPS_KEEP_DAYS)
+            self.remove_old_backups_in(self.long_backups_path, long_keep_days)
         except OSError as e:
             raise SyncError(f"Не удалось удалить старые копии общей базы: {e}") from e
+
+    @staticmethod
+    def remove_old_backups_in(folder: Path, keep_days: int) -> None:
+        if not folder.is_dir():
+            return
+        minimum_time = datetime.now() - timedelta(days=keep_days)
+        for item in folder.iterdir():
+            backup_time = backup_time_from_name(item.name)
+            if backup_time is not None and backup_time < minimum_time:
+                item.unlink(missing_ok=True)
 
 
 def master_backup_name() -> str:
@@ -253,12 +272,17 @@ def backup_time_from_name(name: str) -> datetime | None:
     return None
 
 
+def is_backup_of_today(name: str) -> bool:
+    backup_time = backup_time_from_name(name)
+    return backup_time is not None and backup_time.date() == datetime.now().date()
+
+
 @dataclass
 class SyncParams:
     author: str
     machine: str
     app_version: str
-    backup_keep_days: int = 30
+    long_backup_keep_days: int = 30
 
 
 def master_token(master: MasterInfo | None) -> str | None:
@@ -301,7 +325,7 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
         log.d(f"Отправка общей базы: загрузка за {elapsed_ms(stage_started)} мс")
     if backups_cleanup_due(master):
         try:
-            channel.remove_old_backups(params.backup_keep_days)
+            channel.remove_old_backups(params.long_backup_keep_days)
         except SyncError as e:
             log.w(f"Не удалось удалить старые копии общей базы: {e}")
     if not dbh.finish_push(new_token, counter):

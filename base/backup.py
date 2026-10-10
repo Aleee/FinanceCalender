@@ -9,7 +9,7 @@ from base.dbhandler import DBHandler
 from base.paths import db_path
 from gui.settings import SettingsHandler
 
-BACKUP_FILE_PREFIXES = ("backup_", "before_sync_", "conflict_")
+BACKUP_FILE_PREFIXES = ("backup_", "before_sync_")
 
 
 def save_backup(sh: SettingsHandler, dbh: DBHandler) -> QDateTime:

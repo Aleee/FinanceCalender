@@ -8,8 +8,9 @@ from urllib.parse import urlencode
 import lovely_logger as log
 
 from base.httpclient import HttpClient, HttpResponse
-from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INFO_NAME,
-                       MasterInfo, SyncChannel, SyncError, TEMP_SUFFIX, backup_time_from_name, file_md5, master_backup_name)
+from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INFO_NAME, MASTER_LONG_BACKUPS_DIR,
+                       MasterInfo, SHORT_BACKUPS_KEEP_DAYS, SyncChannel, SyncError, TEMP_SUFFIX, backup_time_from_name,
+                       file_md5, is_backup_of_today, master_backup_name)
 
 API_URL = "https://cloud-api.yandex.net/v1/disk"
 DEFAULT_DISK_FOLDER = "app:/"
@@ -89,8 +90,14 @@ class YandexDiskApiChannel(SyncChannel):
     def backup_master(self) -> None:
         if self.metadata(MASTER_DB_NAME) is None:
             return
-        backups_folder = self.remote_path(MASTER_BACKUPS_DIR)
-        copy_params = {"from": self.remote_path(MASTER_DB_NAME), "path": f"{backups_folder}/{master_backup_name()}",
+        backup_name = master_backup_name()
+        self.copy_master_to(MASTER_BACKUPS_DIR, backup_name)
+        if not any(is_backup_of_today(name) for name in self.backup_names(MASTER_LONG_BACKUPS_DIR)):
+            self.copy_master_to(MASTER_LONG_BACKUPS_DIR, backup_name)
+
+    def copy_master_to(self, folder_name: str, backup_name: str) -> None:
+        backups_folder = self.remote_path(folder_name)
+        copy_params = {"from": self.remote_path(MASTER_DB_NAME), "path": f"{backups_folder}/{backup_name}",
                        "overwrite": "true"}
         response = self.api("POST", "resources/copy", copy_params, (201, 202, 409))
         if response.status == 409:
@@ -98,16 +105,23 @@ class YandexDiskApiChannel(SyncChannel):
             response = self.api("POST", "resources/copy", copy_params, (201, 202))
         self.wait_operation(response)
 
-    def remove_old_backups(self, keep_days: int) -> None:
-        response = self.api("GET", "resources", {"path": self.remote_path(MASTER_BACKUPS_DIR), "limit": BACKUPS_LIST_LIMIT,
+    def backup_names(self, folder_name: str) -> list[str]:
+        response = self.api("GET", "resources", {"path": self.remote_path(folder_name), "limit": BACKUPS_LIST_LIMIT,
                                                  "fields": "_embedded.items.name"}, (200, 404))
         if response.status == 404:
-            return
+            return []
+        return [str(item.get("name", "")) for item in self.parse_json(response).get("_embedded", {}).get("items", [])]
+
+    def remove_old_backups(self, long_keep_days: int) -> None:
+        self.remove_old_backups_in(MASTER_BACKUPS_DIR, SHORT_BACKUPS_KEEP_DAYS)
+        self.remove_old_backups_in(MASTER_LONG_BACKUPS_DIR, long_keep_days)
+
+    def remove_old_backups_in(self, folder_name: str, keep_days: int) -> None:
         minimum_time = datetime.now() - timedelta(days=keep_days)
-        for item in self.parse_json(response).get("_embedded", {}).get("items", []):
-            backup_time = backup_time_from_name(str(item.get("name", "")))
+        for name in self.backup_names(folder_name):
+            backup_time = backup_time_from_name(name)
             if backup_time is not None and backup_time < minimum_time:
-                self.api("DELETE", "resources", {"path": self.remote_path(f"{MASTER_BACKUPS_DIR}/{item['name']}"),
+                self.api("DELETE", "resources", {"path": self.remote_path(f"{folder_name}/{name}"),
                                                  "permanently": "true"}, (202, 204, 404))
 
     def auth_headers(self) -> dict[str, str]:

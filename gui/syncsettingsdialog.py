@@ -31,7 +31,7 @@ class SyncSettingsDialog(QDialog):
         self.ui.chb_enabled.setChecked(settings_handler.sync_enabled())
         self.ui.cmb_channel.setCurrentIndex(max(self.ui.cmb_channel.findData(settings_handler.sync_channel_type()), 0))
         self.ui.spb_interval.setValue(settings_handler.sync_interval_minutes())
-        self.ui.spb_keepdays.setValue(settings_handler.sync_backup_keep_days())
+        self.ui.spb_keepdays.setValue(settings_handler.sync_long_backup_keep_days())
 
         self.ui.chb_enabled.toggled.connect(self.update_enabled_state)
         self.ui.cmb_channel.currentIndexChanged.connect(self.update_channel_rows)

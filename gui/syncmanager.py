@@ -43,7 +43,7 @@ def create_sync_channel(settings_handler: SettingsHandler) -> SyncChannel:
 
 
 def create_sync_params(settings_handler: SettingsHandler) -> SyncParams:
-    return SyncParams(settings_handler.sync_author(), node(), APP_VERSION, settings_handler.sync_backup_keep_days())
+    return SyncParams(settings_handler.sync_author(), node(), APP_VERSION, settings_handler.sync_long_backup_keep_days())
 
 
 def failure_status_text(error: SyncError) -> str:
