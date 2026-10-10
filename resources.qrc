@@ -1,0 +1,62 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="icon-toolbar/designer/icons/contract.svg">designer/icons/contract.svg</file>
+    <file>designer/icons/left.svg</file>
+    <file>designer/icons/right.svg</file>
+    <file>designer/icons/add.svg</file>
+    <file>designer/icons/remove.svg</file>
+    <file>designer/icons/csvparser.svg</file>
+    <file alias="icon-toolbar/designer/icons/matching.svg">designer/icons/matching.svg</file>
+    <file alias="icon-toolbar/designer/icons/copydoc.svg">designer/icons/copydoc.svg</file>
+    <file alias="gif/designer/gif/load.gif">designer/gif/load.gif</file>
+    <file alias="icon-terms/designer/icons/termmonth.svg">designer/icons/termmonth.svg</file>
+    <file alias="icon-terms/designer/icons/termweek.svg">designer/icons/termweek.svg</file>
+    <file alias="icon-terms/designer/icons/termpaid.svg">designer/icons/termpaid.svg</file>
+    <file alias="icon-terms/designer/icons/allitems.svg">designer/icons/allitems.svg</file>
+    <file alias="icon-terms/designer/icons/termdue.svg">designer/icons/termdue.svg</file>
+    <file alias="icon-terms/designer/icons/termtoday.svg">designer/icons/termtoday.svg</file>
+    <file alias="icon-settings/designer/icons/set_pers.svg">designer/icons/set_pers.svg</file>
+    <file alias="icon-settings/designer/icons/generalsettings.svg">designer/icons/generalsettings.svg</file>
+    <file alias="icon-settings/designer/icons/info.svg">designer/icons/info.svg</file>
+    <file alias="icon-settings/designer/icons/storage.svg">designer/icons/storage.svg</file>
+    <file alias="icon-settings/designer/icons/table.svg">designer/icons/table.svg</file>
+    <file alias="icon-settings/designer/icons/appearance.svg">designer/icons/appearance.svg</file>
+    <file alias="icon-toolbar/designer/icons/fulfillment.svg">designer/icons/fulfillment.svg</file>
+    <file alias="icon-toolbar/designer/icons/new.svg">designer/icons/new.svg</file>
+    <file alias="icon-toolbar/designer/icons/featured.svg">designer/icons/featured.svg</file>
+    <file alias="icon-toolbar/designer/icons/financing.svg">designer/icons/financing.svg</file>
+    <file alias="icon-toolbar/designer/icons/copy.svg">designer/icons/copy.svg</file>
+    <file alias="icon-toolbar/designer/icons/export.svg">designer/icons/export.svg</file>
+    <file alias="icon-toolbar/designer/icons/featured_no.svg">designer/icons/featured_no.svg</file>
+    <file alias="icon-toolbar/designer/icons/featured_yes.svg">designer/icons/featured_yes.svg</file>
+    <file alias="icon-toolbar/designer/icons/chart.svg">designer/icons/chart.svg</file>
+    <file alias="icon-toolbar/designer/icons/edit.svg">designer/icons/edit.svg</file>
+    <file alias="icon-toolbar/designer/icons/itemtop.svg">designer/icons/itemtop.svg</file>
+    <file alias="icon-toolbar/designer/icons/fees.svg">designer/icons/fees.svg</file>
+    <file alias="icon-toolbar/designer/icons/settings.svg">designer/icons/settings.svg</file>
+    <file alias="icon-toolbar/designer/icons/delete.svg">designer/icons/delete.svg</file>
+    <file>designer/icons/calendar.svg</file>
+    <file alias="icon-toolbar/designer/icons/itembottom.svg">designer/icons/itembottom.svg</file>
+    <file alias="icon-categories/designer/icons/104energy.svg">designer/icons/104energy.svg</file>
+    <file alias="icon-categories/designer/icons/300invest.svg">designer/icons/300invest.svg</file>
+    <file alias="icon-categories/designer/icons/110maintenance.svg">designer/icons/110maintenance.svg</file>
+    <file alias="icon-categories/designer/icons/200finance.svg">designer/icons/200finance.svg</file>
+    <file alias="icon-categories/designer/icons/114goods.svg">designer/icons/114goods.svg</file>
+    <file alias="icon-categories/designer/icons/116medequipment.svg">designer/icons/116medequipment.svg</file>
+    <file alias="icon-categories/designer/icons/112phone.svg">designer/icons/112phone.svg</file>
+    <file alias="icon-categories/designer/icons/101loan.svg">designer/icons/101loan.svg</file>
+    <file alias="icon-categories/designer/icons/107buildings.svg">designer/icons/107buildings.svg</file>
+    <file alias="icon-categories/designer/icons/106office.svg">designer/icons/106office.svg</file>
+    <file alias="icon-categories/designer/icons/111bank.svg">designer/icons/111bank.svg</file>
+    <file alias="icon-categories/designer/icons/000all.svg">designer/icons/000all.svg</file>
+    <file alias="icon-categories/designer/icons/102taxes.svg">designer/icons/102taxes.svg</file>
+    <file alias="icon-categories/designer/icons/109other.svg">designer/icons/109other.svg</file>
+    <file alias="icon-categories/designer/icons/115rate.svg">designer/icons/115rate.svg</file>
+    <file alias="icon-categories/designer/icons/105marketing.svg">designer/icons/105marketing.svg</file>
+    <file alias="icon-categories/designer/icons/113education.svg">designer/icons/113education.svg</file>
+    <file alias="icon-categories/designer/icons/108printer.svg">designer/icons/108printer.svg</file>
+    <file alias="icon-categories/designer/icons/103stuff.svg">designer/icons/103stuff.svg</file>
+    <file alias="icon-table/designer/icons/attachment.svg">designer/icons/attachment.svg</file>
+    <file alias="icon-app/designer/icons/app.png">designer/icons/app.png</file>
+  </qresource>
+</RCC>
