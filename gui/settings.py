@@ -59,10 +59,10 @@ class SettingsHandler:
         return self.settings.value("Sync/author", "") or getpass.getuser()
 
     def sync_interval_minutes(self) -> int:
-        return str_int(self.settings.value("Sync/interval"), 30)
+        return str_int(self.settings.value("Sync/interval"), 5)
 
     def sync_long_backup_keep_days(self) -> int:
-        return str_int(self.settings.value("Sync/backupkeepdays"), 30)
+        return str_int(self.settings.value("Sync/backupkeepdays"), 60)
 
     def paid_load_months(self) -> int:
         return str_int(self.settings.value("Common/paidloadperiod"), 999)
