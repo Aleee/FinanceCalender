@@ -654,8 +654,10 @@ class DBHandler:
         for entry in data:
             position_value = entry[4] if entry[4] else None
             if entry[0] <= self.personal_data_max_id:
-                query.prepare("UPDATE personal SET name = ?, department = ?, archived = ?, position = ? WHERE id = ?")
-                for val in [entry[1], entry[2], entry[3], position_value, entry[0]]:
+                query.prepare("UPDATE personal SET name = ?, department = ?, archived = ?, position = ? WHERE id = ? "
+                              "AND (name, department, archived, position) IS NOT (?, ?, ?, ?)")
+                for val in [entry[1], entry[2], entry[3], position_value, entry[0],
+                            entry[1], entry[2], entry[3], position_value]:
                     query.addBindValue(val)
             else:
                 query.prepare("INSERT INTO personal(id, name, department, archived, position) VALUES (?,?,?,?,?)")
