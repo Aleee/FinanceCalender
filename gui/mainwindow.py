@@ -71,6 +71,7 @@ class MainWindow(QMainWindow):
     CONTRACT_NOTBOUND_TEXT = '<span style="color: #808080;">не привязан</span>'
     SYNC_PROBLEM_STATUSES = (SYNC_STATUS_TEXT[SyncAction.CONFLICT], SYNC_STATUS_TEXT[SyncAction.FOREIGN_DB],
                              SYNC_STATUS_TEXT[SyncAction.CLIENT_OUTDATED], "токен недействителен", "ОШИБКА")
+    SYNC_SUCCESS_ACTIONS = (SyncAction.NOTHING, SyncAction.PULL, SyncAction.PUSH)
     SYNC_PROBLEM_COLOR = QColor("#C62828")
     SYNC_WARNING_COLOR = QColor("#B26A00")
     SYNC_OK_COLOR = QColor("#2E7D32")
@@ -91,6 +92,7 @@ class MainWindow(QMainWindow):
         self.sync_failure_text: str = "ОШИБКА"
         self.sync_master_info: MasterInfo | None = None
         self.sync_checked_at: str = ""
+        self.sync_succeeded_at: QDateTime = QDateTime()
 
         # Загрузка данных из БД: проверка файла, восстановление при необходимости, подключение
         self._load_database()
@@ -101,14 +103,14 @@ class MainWindow(QMainWindow):
         # Поле быстрого поиска в тулбаре
         self._init_toolbar_search()
 
+        # Строка состояния
+        self._init_statusbar()
+
         # Кнопка синхронизации в правой части тулбара
         self._init_toolbar_sync()
 
         # Подключение всех сигналов (фильтры, модели, тулбар)
         self._connect_signals()
-
-        # Строка состояния
-        self._init_statusbar()
 
         # Косметика
         self._init_widget_cosmetics()
@@ -307,20 +309,41 @@ class MainWindow(QMainWindow):
         self.base_model.cacheUpdateNeeded.connect(self.base_model.invalidate_sort_cache)
 
     def _init_statusbar(self) -> None:
+        self.la_sbar_sync = QLabel("")
         self.la_sbar_backup = QLabel("")
         self.la_sbar_update = QLabel("")
         self.separator1 = StatusBarSeparator(self)
+        self.separator_sync = StatusBarSeparator(self)
         self.separator2 = StatusBarSeparator(self)
         self.separator3 = StatusBarSeparator(self)
         self.spacer = QWidget()
         self.spacer.setFixedWidth(10)
 
         self.ui.statusBar.addPermanentWidget(self.separator1)
+        self.ui.statusBar.addPermanentWidget(self.la_sbar_sync)
+        self.ui.statusBar.addPermanentWidget(self.separator_sync)
         self.ui.statusBar.addPermanentWidget(self.la_sbar_backup)
         self.ui.statusBar.addPermanentWidget(self.separator2)
         self.ui.statusBar.addPermanentWidget(self.la_sbar_update)
         self.ui.statusBar.addPermanentWidget(self.separator3)
         self.ui.statusBar.addPermanentWidget(self.spacer)
+        self.update_sync_statusbar()
+        self.set_backup_status("")
+
+    def update_sync_statusbar(self) -> None:
+        is_visible: bool = self.settings_handler.sync_enabled() and self.sync_succeeded_at.isValid()
+        if is_visible:
+            is_today: bool = self.sync_succeeded_at.date() == QDate.currentDate()
+            self.la_sbar_sync.setText(f"Последняя синхронизация: {self.sync_succeeded_at.toString('HH:mm' if is_today else 'HH:mm dd.MM.yyyy')}")
+        self.la_sbar_sync.setToolTip("Дата и время последней успешной синхронизации")
+        self.la_sbar_sync.setVisible(is_visible)
+        self.separator_sync.setVisible(is_visible)
+
+    def set_backup_status(self, error_text: str) -> None:
+        self.la_sbar_backup.setText(error_text)
+        self.la_sbar_backup.setStyleSheet(f"color: {self.SYNC_PROBLEM_COLOR.name()};")
+        self.la_sbar_backup.setVisible(bool(error_text))
+        self.separator2.setVisible(bool(error_text))
 
     def _init_toolbar_sync(self) -> None:
         self.act_sync_now = QAction("Синхронизировать сейчас", self)
@@ -371,6 +394,7 @@ class MainWindow(QMainWindow):
         self.tb_sync.setIcon(create_sync_icon(palette.buttonText().color() if icon_color is None else icon_color))
 
     def update_sync_status(self) -> None:
+        self.update_sync_statusbar()
         if not self.settings_handler.sync_enabled():
             self.set_sync_button_state("Синхронизация выключена", self.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText))
             self.tb_sync.setToolTip("Синхронизация выключена. Нажмите, чтобы открыть настройки синхронизации")
@@ -461,6 +485,8 @@ class MainWindow(QMainWindow):
         if interactive:
             action = self._resolve_sync_action(action, channel, params)
         self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
+        if action in self.SYNC_SUCCESS_ACTIONS:
+            self.sync_succeeded_at = QDateTime.currentDateTime()
         self.sync_status_text = self.sync_failure_text if action is None else SYNC_STATUS_TEXT[action]
         if action == SyncAction.PULL:
             self.reload_after_sync_pull()
@@ -598,10 +624,7 @@ class MainWindow(QMainWindow):
             error_msg = ErrorInfoMessageBox("Не удалось очистить папку с резервными копиями (см. подробности в логе)")
             error_msg.exec()
         backup_datetime: QDateTime = save_backup(self.settings_handler, self.db_handler)
-        if backup_datetime.isValid():
-            self.la_sbar_backup.setText(f"Резервная копия: {date_displstr(backup_datetime)}")
-        else:
-            self.la_sbar_backup.setText("Резервная копия: ОШИБКА СОЗДАНИЯ")
+        self.set_backup_status("" if backup_datetime.isValid() else "Резервная копия: ОШИБКА СОЗДАНИЯ")
 
 
     def get_current_event_index(self, source_model_index: bool = False) -> QModelIndex:
