@@ -196,7 +196,8 @@ class EventDialog(QDialog):
                             "Счет-фактура №", "Договор финансового лизинга №", "Договор лизинга №", "Кредитный договор №", "Договор поставки №"]
 
     def __init__(self, final_proxy_model, responsible_model: ResponsibleCategorySortModel, payment_model: PaymentHistoryTableModel, db_handler: DBHandler,
-                 settings_handler: SettingsHandler, edit_mode: bool = False, copy_mode: bool = False, current_index: QModelIndex | None = None, parent=None):
+                 settings_handler: SettingsHandler, edit_mode: bool = False, copy_mode: bool = False, current_index: QModelIndex | None = None,
+                 initial_amount: Decimal | None = None, parent=None):
         super(EventDialog, self).__init__(parent)
         self.ui = Ui_EventDialog()
         self.ui.setupUi(self)
@@ -344,6 +345,8 @@ class EventDialog(QDialog):
             self.ui.rb_typenormal.setChecked(True)
             self.set_subcategory_visible(False)
             self.show_bound_contract("")
+            if initial_amount is not None:
+                self.ui.dsb_totalamount.setValue(float(initial_amount))
             self.ui.le_receiver.setFocus()
 
         self.ui.de_paymenttrigger.setDate(self.ui.de_incurrencedate.date())

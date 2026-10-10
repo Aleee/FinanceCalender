@@ -8,6 +8,7 @@ COLOR_OK: str = "#2e7d32"
 COLOR_HEADER_BG: str = "#e9ecef"
 COLOR_WARNING: str = "#9a6700"
 COLOR_WARNING_BG: str = "#fff4cc"
+COLOR_PAIR_BG: str = "#fffbea"
 
 
 def dec_strcommaspace(dec: Decimal, add_rub: bool = False) -> str:

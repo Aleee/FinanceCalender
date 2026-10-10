@@ -18,7 +18,7 @@ from base.formatting import str_decimal
 from base.liability import LiabilityCategory, RowType
 from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER
 from base.paths import db_path, backup_dir
-from base.payment import Payment
+from base.payment import Payment, PaymentEntry
 from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
@@ -668,13 +668,13 @@ class DBHandler:
                 return False
         return True
 
-    def get_paymentsum_for_period(self, date_from: date, date_to: date) -> dict[date, list[Decimal]] | None:
+    def get_paymentsum_for_period(self, date_from: date, date_to: date) -> dict[date, list[PaymentEntry]] | None:
         if not self.is_db_connected():
             return None
         query: QSqlQuery = QSqlQuery()
         query.prepare(
             "SELECT payment.paymentdate, payment.sum, "
-            "COALESCE(event.name, ''), event.receiver "
+            "COALESCE(event.name, ''), event.receiver, payment.id, payment.eventid, event.descr "
             "FROM payment "
             "LEFT JOIN event ON event.id = payment.eventid "
             "WHERE payment.paymentdate BETWEEN ? AND ?"
@@ -685,15 +685,56 @@ class DBHandler:
             log.e(f"Не удалось получить перечень платежей за период с {date_from} по {date_to}: {query.lastError().text()}")
             return None
 
-        by_date: dict[date, list[Decimal]] = {}
+        by_date: dict[date, list[PaymentEntry]] = {}
 
         while query.next():
             paymentdate = str_date(query.value(0), python_date=True)
             amount = str_decimal(query.value(1))
-            descr = query.value(2) + f" ({query.value(3)})"
-            by_date.setdefault(paymentdate, []).append((amount, descr))
+            receiver = "" if self._is_null(query.value(3)) else query.value(3)
+            basis = "" if self._is_null(query.value(6)) else query.value(6)
+            descr = query.value(2) + f" ({receiver})"
+            by_date.setdefault(paymentdate, []).append(
+                PaymentEntry(amount, descr, receiver, query.value(4), query.value(5), f"{query.value(2)} {basis}"))
 
         return by_date
+
+    def correct_payment_sum(self, payment_id: int, new_sum: Decimal) -> bool:
+        if not self.is_db_connected():
+            return False
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare("SELECT payment.sum, payment.eventid, event.totalamount "
+                          "FROM payment LEFT JOIN event ON event.id = payment.eventid WHERE payment.id = ?")
+            query.addBindValue(payment_id)
+            if not query.exec() or not query.next():
+                log.e(f"Не удалось прочитать платёж {payment_id} для корректировки суммы: {query.lastError().text()}")
+                return False
+            old_sum = str_decimal(query.value(0))
+            event_id = query.value(1)
+            old_total = None if self._is_null(query.value(2)) else str_decimal(query.value(2))
+            if old_sum is None:
+                log.e(f"Не удалось распознать сумму платежа {payment_id}: {query.value(0)!r}")
+                return False
+
+            query.prepare("UPDATE payment SET sum = ? WHERE id = ?")
+            query.addBindValue(str(new_sum))
+            query.addBindValue(payment_id)
+            if not query.exec():
+                log.e(f"Ошибка SQL при попытке изменить сумму платежа {payment_id}: {query.lastError().text()}")
+                return False
+
+            if old_total is None or self._is_null(event_id):
+                return True
+            query.prepare("UPDATE event SET totalamount = ? WHERE id = ?")
+            query.addBindValue(str(old_total + new_sum - old_sum))
+            query.addBindValue(event_id)
+            if not query.exec():
+                log.e(f"Ошибка SQL при попытке изменить сумму обязательства {event_id}: {query.lastError().text()}")
+                return False
+            return True
+
+        return self.run_in_transaction(action)
 
     def load_column_values(self, column: str, as_set: bool = True) -> set | list | None:
         if not self.is_db_connected():

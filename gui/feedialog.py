@@ -1,5 +1,6 @@
 import html
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Optional
 
@@ -26,7 +27,8 @@ COMMISSION_DESCRIPTION: str = "[A] Комиссионное вознагражд
 
 
 class FeeDialog(QDialog):
-    def __init__(self, settings_handler, db_handler, base_model, payment_model, parent=None):
+    def __init__(self, settings_handler, db_handler, base_model, payment_model, parent=None,
+                 csv_path: str = "", statement_fee_totals: dict[tuple[date, LiabilityCategory], Decimal] | None = None):
         super(FeeDialog, self).__init__(parent)
         self.ui = Ui_feedialog()
         self.ui.setupUi(self)
@@ -37,10 +39,15 @@ class FeeDialog(QDialog):
         self.payment_model: PaymentHistoryTableModel = payment_model
 
         self.parse_result: Optional[StatementParseResult] = None
+        self.statement_fee_totals: dict[tuple[date, LiabilityCategory], Decimal] | None = statement_fee_totals
 
         self.ui.pb_opencsv.clicked.connect(self.open_csv)
         self.ui.pb_createfeeliabilities.clicked.connect(self.make_fee_payments)
         self.ui.chb_fullreport.clicked.connect(self.show_report)
+
+        if csv_path:
+            self.ui.pb_opencsv.setVisible(False)
+            self.load_csv(csv_path)
 
     # ------------------------------------------------------------------ #
     # Загрузка и отображение выписки
@@ -57,6 +64,9 @@ class FeeDialog(QDialog):
             return
 
         self.sh.settings.setValue("CSVparser/lastloadpath", str(Path(file_path).parent))
+        self.load_csv(file_path)
+
+    def load_csv(self, file_path: str) -> None:
         self.ui.te_info.clear()
         self.ui.pb_createfeeliabilities.setEnabled(False)
 
@@ -214,6 +224,9 @@ class FeeDialog(QDialog):
             (self.parse_result.outgoing_fees.daily, LiabilityCategory.COMMISSION, COMMISSION_DESCRIPTION),
         ]
 
+        if not self._confirm_fee_totals(categories):
+            return False
+
         already_paid = self._check_already_paid(categories)
         if already_paid is None:
             return False  # ошибка запроса к БД, сообщение уже показано
@@ -235,6 +248,29 @@ class FeeDialog(QDialog):
         ErrorInfoMessageBox("Операция завершена успешно", is_info=True).exec()
         self.close()
         return True
+
+    def _confirm_fee_totals(self, categories: list) -> bool:
+        if self.statement_fee_totals is None:
+            return True
+        mismatches: list = []
+        for daily, liability_category, _ in categories:
+            for fee_date, agg in daily.items():
+                statement_total = self.statement_fee_totals.get((fee_date, liability_category), Decimal("0"))
+                if statement_total != agg.total:
+                    mismatches.append((fee_date, liability_category, statement_total, agg.total))
+        for (fee_date, liability_category), statement_total in self.statement_fee_totals.items():
+            if not any(fee_date in daily and category == liability_category for daily, category, _ in categories):
+                mismatches.append((fee_date, liability_category, statement_total, Decimal("0")))
+        if not mismatches:
+            return True
+
+        text = "Вычисленная сумма комиссий не совпадает с суммой в сверке выписки:\n"
+        for fee_date, liability_category, statement_total, calculated_total in sorted(mismatches, key=lambda m: m[0]):
+            text += (f"- {fee_date.strftime('%d.%m.%Y')} ({liability_category.name}): в сверке "
+                     f"{dec_strcommaspace(statement_total, add_rub=True)}, вычислено "
+                     f"{dec_strcommaspace(calculated_total, add_rub=True)}\n")
+        text += "Всё равно создать платежи?"
+        return YesNoMessagebox(text).exec() != YesNoMessagebox.NO_RETURN_VALUE
 
     def _check_already_paid(self, categories: list) -> Optional[list]:
         already_paid: list = []

@@ -1,8 +1,9 @@
 import csv
-import html
+import re
 
 from dataclasses import dataclass, field
 from datetime import date
+from difflib import SequenceMatcher
 from decimal import Decimal
 from typing import Optional
 
@@ -13,8 +14,9 @@ from base.dbhandler import DBHandler
 from base.feeparser import (CODE_COLUMNINDEX, DATE_COLUMNINDEX, DESCR_COLUMNINDEX, SUM_COLUMNINDEX,
                             RECEIVER_COLUMNINDEX, UNP_COLUMNINDEX, FEE_IN_TEXT_PATTERN, CSVParseError,
                             FeeKind, classify_fee, read_bank_unp, parse_date, parse_period)
-from base.formatting import (str_decimal, dec_html, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_OK,
-                             COLOR_HEADER_BG)
+from base.formatting import str_decimal, dec_html, dec_strcommaspace, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_OK
+from base.liability import LiabilityCategory
+from base.payment import PaymentEntry
 
 
 PAYROLL_KEYWORDS: tuple[str, ...] = (
@@ -23,8 +25,33 @@ PAYROLL_KEYWORDS: tuple[str, ...] = (
     "заработная плата",
     "отчисления в фсзн",
     "подоходный налог",
+    "материальная помощь",
 )
 PAYROLL_DESCRIPTION: str = "Выплаты работникам (зарплата/отпускные/ФСЗН/налог)"
+CONTRACT_TAX_KEYWORDS: tuple[str, ...] = (
+    "по договору подряда",
+    "по договорам подряда",
+)
+CONTRACT_TAX_DESCRIPTION: str = "Налоги и взносы по договорам подряда"
+CALENDAR_TAX_KEYWORDS: tuple[str, ...] = ("фсзн", "подоходный налог")
+GROUP_MIN_NAME_SIMILARITY: float = 0.7
+
+PAIR_MAX_DIFF_SHARE: Decimal = Decimal("0.10")
+PAIR_MIN_CONFIDENCE: float = 0.35
+AMOUNT_PENALTY: float = 0.7
+NAME_NOISE_LEVEL: float = 0.4
+WORD_MIN_RATIO: float = 0.75
+TEXT_EVIDENCE_WEIGHT: float = 0.35
+EVIDENCE_NUMBER: float = 0.85
+EVIDENCE_NUMBER_AND_DATE: float = 0.95
+EVIDENCE_DATE: float = 0.3
+DOCUMENT_NUMBER_MIN_DIGITS: int = 3
+DOCUMENT_NUMBER_PATTERN = re.compile(r"\d+(?:[/-]\d+)*")
+DATE_IN_TEXT_PATTERN = re.compile(r"\b(\d{1,2})[./](\d{1,2})[./](\d{4}|\d{2})\b")
+LEGAL_FORMS: frozenset[str] = frozenset(
+    ("ооо", "зао", "оао", "ао", "чуп", "уп", "ип", "одо", "иооо", "тчуп", "чтуп", "пуп", "руп", "унп"))
+COMMON_WORDS: frozenset[str] = frozenset(
+    ("ттн", "акт", "счет", "счёт", "оплата", "платеж", "договор", "фактура", "накладная", "согласно", "ндс", "сумма"))
 
 
 # ---------------------------------------------------------------------------
@@ -34,10 +61,12 @@ PAYROLL_DESCRIPTION: str = "Выплаты работникам (зарплат�
 @dataclass
 class StatementPayments:
     period: tuple[date, date]
-    by_date: dict[date, list[tuple[Decimal, str]]] = field(default_factory=dict)
+    by_date: dict[date, list[PaymentEntry]] = field(default_factory=dict)
 
-    def add(self, dt: date, amount: Decimal, descr: str) -> None:
-        self.by_date.setdefault(dt, []).append((amount, descr))
+    def add(self, dt: date, amount: Decimal, descr: str, receiver: str = "", details: str = "",
+            fee_category: LiabilityCategory | None = None) -> None:
+        self.by_date.setdefault(dt, []).append(
+            PaymentEntry(amount, descr, receiver.strip(), details=details, fee_category=fee_category))
 
 
 def extract_statement_payments(filename: str, dbh) -> StatementPayments:
@@ -66,6 +95,7 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
     income_fee_totals: dict[date, Decimal] = {}
     outgoing_fee_totals: dict[date, Decimal] = {}
     payroll_totals: dict[date, Decimal] = {}
+    contract_tax_totals: dict[date, Decimal] = {}
 
     with open(filename, newline="", encoding="windows-1251") as f:
         reader = csv.reader(f, delimiter=";")
@@ -113,6 +143,7 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
                     transaction_date = parse_date(raw_date, row_index)
                     fee_kind = classify_fee(transaction_code, unp, description, bank_unp, keyword_templates)
                     is_payroll = any(kw in description_lower for kw in PAYROLL_KEYWORDS)
+                    is_contract_tax = is_payroll and any(kw in description_lower for kw in CONTRACT_TAX_KEYWORDS)
                     if fee_kind == FeeKind.OUTGOING:
                         outgoing_fee_totals[transaction_date] = (
                                 outgoing_fee_totals.get(transaction_date, Decimal("0")) + debit_amount
@@ -121,12 +152,16 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
                         income_fee_totals[transaction_date] = (
                                 income_fee_totals.get(transaction_date, Decimal("0")) + debit_amount
                         )
+                    elif is_contract_tax:
+                        contract_tax_totals[transaction_date] = (
+                                contract_tax_totals.get(transaction_date, Decimal("0")) + debit_amount
+                        )
                     elif is_payroll:
                         payroll_totals[transaction_date] = (
                                 payroll_totals.get(transaction_date, Decimal("0")) + debit_amount
                         )
                     else:
-                        payments.add(transaction_date, debit_amount, description_with_receiver)
+                        payments.add(transaction_date, debit_amount, description_with_receiver, receiver, description)
                     continue
 
             # Дебета нет
@@ -149,11 +184,13 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
         raise CSVParseError("В файле не найдена строка с периодом выписки")
 
     for transaction_date, total in income_fee_totals.items():
-        payments.add(transaction_date, total, "Комиссии в поступлениях")
+        payments.add(transaction_date, total, "Комиссии в поступлениях", fee_category=LiabilityCategory.BANKING)
     for transaction_date, total in outgoing_fee_totals.items():
-        payments.add(transaction_date, total, "Комиссии к уплате")
+        payments.add(transaction_date, total, "Комиссии к уплате", fee_category=LiabilityCategory.COMMISSION)
     for transaction_date, total in payroll_totals.items():
         payments.add(transaction_date, total, PAYROLL_DESCRIPTION)
+    for transaction_date, total in contract_tax_totals.items():
+        payments.add(transaction_date, total, CONTRACT_TAX_DESCRIPTION)
 
     payments.period = period
     return payments
@@ -162,36 +199,6 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
 # ---------------------------------------------------------------------------
 # 2. Сравнение (только по суммам, мультимножество) и отчёт
 # ---------------------------------------------------------------------------
-
-def _split_trailing_parenthetical(text: str) -> Optional[tuple[str, str]]:
-    if not text.endswith(")"):
-        return None
-    depth = 0
-    for i in range(len(text) - 1, -1, -1):
-        if text[i] == ")":
-            depth += 1
-        elif text[i] == "(":
-            depth -= 1
-            if depth == 0:
-                head_end = i - 1 if i > 0 and text[i - 1] == " " else i
-                return text[:head_end], text[i:]
-    return None
-
-
-def _clean_descr(text: str, limit: int = 100) -> str:
-    text = " ".join(text.split())
-    if len(text) <= limit:
-        return text
-
-    split = _split_trailing_parenthetical(text)
-    if split:
-        head, suffix = split
-        available = limit - len(suffix) - 2
-        if available > 0:
-            return head[:available].rstrip() + "… " + suffix
-
-    return text[: limit - 1].rstrip() + "…"
-
 
 def _payments_word(count: int) -> str:
     if count % 10 == 1 and count % 100 != 11:
@@ -207,53 +214,249 @@ def _summary_row(title: str, count: int, total: Decimal, color: str) -> str:
             f"<td align='right'><b>{dec_html(total)}</b></td></tr>")
 
 
-def _diff_amounts(statement_entries: list[tuple[Decimal, str]], calendar_entries: list[tuple[Decimal, str]]) \
-        -> tuple[list[tuple[Decimal, str]], list[tuple[Decimal, str]]]:
+def _diff_amounts(statement_entries: list[PaymentEntry], calendar_entries: list[PaymentEntry]) \
+        -> tuple[list[PaymentEntry], list[PaymentEntry]]:
 
     remaining_calendar = list(calendar_entries)
-    unmatched_statement: list[tuple[Decimal, str]] = []
-    for amount, descr in statement_entries:
+    unmatched_statement: list[PaymentEntry] = []
+    for entry in statement_entries:
         match_index = next(
-            (i for i, (cal_amount, _) in enumerate(remaining_calendar) if cal_amount == amount), None
+            (i for i, cal_entry in enumerate(remaining_calendar) if cal_entry.amount == entry.amount), None
         )
         if match_index is None:
-            unmatched_statement.append((amount, descr))
+            unmatched_statement.append(entry)
         else:
             remaining_calendar.pop(match_index)
     return unmatched_statement, remaining_calendar
 
 
+def _name_words(text: str) -> list[str]:
+    return [word for word in re.findall(r"[^\W\d_]+", text.lower()) if len(word) > 1 and word not in LEGAL_FORMS]
+
+
+def _text_words(text: str) -> list[str]:
+    return [word for word in _name_words(text) if len(word) > 2 and word not in COMMON_WORDS]
+
+
+def _word_closeness(words_a: list[str], words_b: list[str]) -> float:
+    if not words_a or not words_b:
+        return 0.0
+    shorter, longer = sorted((words_a, words_b), key=len)
+    total = 0.0
+    for word in shorter:
+        best = max(SequenceMatcher(None, word, other).ratio() for other in longer)
+        total += best if best >= WORD_MIN_RATIO else 0.0
+    return total / len(shorter)
+
+
+def _name_similarity(name_a: str, name_b: str) -> float:
+    words_a, words_b = _name_words(name_a), _name_words(name_b)
+    if not words_a or not words_b:
+        return 0.0
+    whole = SequenceMatcher(None, " ".join(sorted(words_a)), " ".join(sorted(words_b))).ratio()
+    return max(whole, _word_closeness(words_a, words_b))
+
+
+def _document_marks(text: str) -> tuple[set[str], set[tuple[int, int, int]]]:
+    dates: set[tuple[int, int, int]] = set()
+    for day, month, year in DATE_IN_TEXT_PATTERN.findall(text):
+        dates.add((int(day), int(month), int(year) + 2000 if len(year) == 2 else int(year)))
+    numbers = {number for number in DOCUMENT_NUMBER_PATTERN.findall(DATE_IN_TEXT_PATTERN.sub(" ", text))
+               if len(re.sub(r"\D", "", number)) >= DOCUMENT_NUMBER_MIN_DIGITS}
+    return numbers, dates
+
+
+def _document_evidence(text_a: str, text_b: str) -> float:
+    numbers_a, dates_a = _document_marks(text_a)
+    numbers_b, dates_b = _document_marks(text_b)
+    if numbers_a & numbers_b:
+        return EVIDENCE_NUMBER_AND_DATE if dates_a & dates_b else EVIDENCE_NUMBER
+    return EVIDENCE_DATE if dates_a & dates_b else 0.0
+
+
+def pair_confidence(statement_entry: PaymentEntry, calendar_entry: PaymentEntry) -> float:
+    biggest = max(statement_entry.amount, calendar_entry.amount)
+    if biggest <= 0:
+        return 0.0
+    diff_share = abs(statement_entry.amount - calendar_entry.amount) / biggest
+    if diff_share > PAIR_MAX_DIFF_SHARE:
+        return 0.0
+
+    name_closeness = max(0.0, (_name_similarity(statement_entry.receiver, calendar_entry.receiver)
+                               - NAME_NOISE_LEVEL) / (1 - NAME_NOISE_LEVEL))
+    text_closeness = _word_closeness(_text_words(statement_entry.details), _text_words(calendar_entry.details))
+    evidences = (name_closeness,
+                 _document_evidence(statement_entry.details, calendar_entry.details),
+                 TEXT_EVIDENCE_WEIGHT * text_closeness)
+    identity = 1.0
+    for evidence in evidences:
+        identity *= 1 - evidence
+    identity = 1 - identity
+
+    amount_factor = 1 - AMOUNT_PENALTY * float(diff_share / PAIR_MAX_DIFF_SHARE)
+    return identity * amount_factor
+
+
+def _pair_probable_matches(only_statement: list[PaymentEntry], only_calendar: list[PaymentEntry]) \
+        -> tuple[list[ProbablePair], list[PaymentEntry], list[PaymentEntry]]:
+
+    candidates: list[tuple] = []
+    for statement_index, statement_entry in enumerate(only_statement):
+        for calendar_index, calendar_entry in enumerate(only_calendar):
+            confidence = pair_confidence(statement_entry, calendar_entry)
+            if confidence >= PAIR_MIN_CONFIDENCE:
+                candidates.append((confidence, statement_index, calendar_index))
+
+    candidates.sort(reverse=True)
+    used_statement: set[int] = set()
+    used_calendar: set[int] = set()
+    pairs: list[ProbablePair] = []
+    for confidence, statement_index, calendar_index in candidates:
+        if statement_index in used_statement or calendar_index in used_calendar:
+            continue
+        used_statement.add(statement_index)
+        used_calendar.add(calendar_index)
+        pairs.append(ProbablePair(only_statement[statement_index], only_calendar[calendar_index], confidence))
+
+    rest_statement = [e for i, e in enumerate(only_statement) if i not in used_statement]
+    rest_calendar = [e for i, e in enumerate(only_calendar) if i not in used_calendar]
+    return pairs, rest_statement, rest_calendar
+
+
+def _regroup_contract_payments(fee_date: date, only_statement: list[PaymentEntry],
+                               only_calendar: list[PaymentEntry]
+                               ) -> tuple[list[RegroupedPayments], list[PaymentEntry], list[PaymentEntry]]:
+
+    statement_taxes = [e for e in only_statement if e.descr == CONTRACT_TAX_DESCRIPTION]
+    calendar_taxes = [e for e in only_calendar if any(kw in e.descr.lower() for kw in CALENDAR_TAX_KEYWORDS)]
+    if not statement_taxes:
+        return [], only_statement, only_calendar
+
+    nets = [e for e in only_statement if e.receiver and not e.fee_category and e not in statement_taxes]
+    grosses = [e for e in only_calendar if e.receiver and e not in calendar_taxes]
+    candidates = sorted(((_name_similarity(net.receiver, gross.receiver), net_index, gross_index)
+                         for net_index, net in enumerate(nets) for gross_index, gross in enumerate(grosses)
+                         if net.amount < gross.amount), reverse=True)
+    used_nets: set[int] = set()
+    used_grosses: set[int] = set()
+    contracts: list[tuple[PaymentEntry, PaymentEntry]] = []
+    for similarity, net_index, gross_index in candidates:
+        if similarity < GROUP_MIN_NAME_SIMILARITY or net_index in used_nets or gross_index in used_grosses:
+            continue
+        used_nets.add(net_index)
+        used_grosses.add(gross_index)
+        contracts.append((nets[net_index], grosses[gross_index]))
+    if not contracts:
+        return [], only_statement, only_calendar
+
+    group_statement = [net for net, _ in contracts] + statement_taxes
+    group_calendar = [gross for _, gross in contracts] + calendar_taxes
+    if sum(e.amount for e in group_statement) != sum(e.amount for e in group_calendar):
+        return [], only_statement, only_calendar
+
+    rest_statement = [e for e in only_statement if all(e is not g for g in group_statement)]
+    rest_calendar = [e for e in only_calendar if all(e is not g for g in group_calendar)]
+    return [RegroupedPayments(fee_date, group_statement, group_calendar, contracts)], rest_statement, rest_calendar
+
+
+@dataclass
+class ProbablePair:
+    statement: PaymentEntry
+    calendar: PaymentEntry
+    confidence: float
+
+    @property
+    def difference(self) -> Decimal:
+        return self.statement.amount - self.calendar.amount
+
+
+def _percent(share: Decimal) -> str:
+    return f"{share * 100:.1f}".removesuffix(".0").replace(".", ",") + "%"
+
+
+@dataclass
+class RegroupedPayments:
+    fee_date: date
+    statement: list[PaymentEntry]
+    calendar: list[PaymentEntry]
+    contracts: list[tuple[PaymentEntry, PaymentEntry]]
+
+    @property
+    def key(self) -> tuple:
+        return (self.fee_date,
+                tuple(sorted(e.amount for e in self.statement)),
+                tuple(sorted(e.amount for e in self.calendar)))
+
+    @property
+    def explanation(self) -> str:
+        contracts_total = sum((calendar_entry.amount for _, calendar_entry in self.contracts), Decimal("0"))
+        statement_taxes = [e for e in self.statement if all(e is not n for n, _ in self.contracts)]
+        calendar_taxes = [e for e in self.calendar if all(e is not c for _, c in self.contracts)]
+
+        lines: list[str] = []
+        for statement_entry, calendar_entry in self.contracts:
+            withheld = calendar_entry.amount - statement_entry.amount
+            lines.append(f"{calendar_entry.receiver}: по договору {dec_strcommaspace(calendar_entry.amount)}, "
+                         f"выплачено {dec_strcommaspace(statement_entry.amount)}, "
+                         f"удержано {dec_strcommaspace(withheld)} "
+                         f"({_percent(withheld / calendar_entry.amount)} - ПН/СТР)")
+        contracts_word = "договора" if len(self.contracts) == 1 else "договоров"
+        for entry in calendar_taxes:
+            lines.append(f"{entry.descr.split(' (')[0]} в календаре: {dec_strcommaspace(entry.amount)} "
+                         f"({_percent(entry.amount / contracts_total)} от суммы {contracts_word})")
+
+        statement_parts = [f"{dec_strcommaspace(n.amount)} (выплачено)" for n, _ in self.contracts]
+        statement_parts += [f"{dec_strcommaspace(e.amount)} (ФСЗН + ПН/СТР)" for e in statement_taxes]
+        calendar_parts = [f"{dec_strcommaspace(c.amount)} (выплачено + ПН/СТР)" for _, c in self.contracts]
+        calendar_parts += [f"{dec_strcommaspace(e.amount)} ({e.descr.split(' (')[0]})" for e in calendar_taxes]
+        lines.append(f"Выписка: {' + '.join(statement_parts)} = "
+                     f"{dec_strcommaspace(sum((e.amount for e in self.statement), Decimal('0')))}")
+        lines.append(f"Календарь: {' + '.join(calendar_parts)} = "
+                     f"{dec_strcommaspace(sum((e.amount for e in self.calendar), Decimal('0')))}")
+        return "\n".join(lines)
+
+
 @dataclass
 class DateDiscrepancy:
     fee_date: date
-    only_in_statement: list[tuple[Decimal, str]]
-    only_in_calendar: list[tuple[Decimal, str]]
+    only_in_statement: list[PaymentEntry]
+    only_in_calendar: list[PaymentEntry]
+    probable_pairs: list[ProbablePair] = field(default_factory=list)
+    groups: list[RegroupedPayments] = field(default_factory=list)
 
 
 @dataclass
 class ReconciliationResult:
     period: tuple[date, date]
     discrepancies: list[DateDiscrepancy]
+    fee_totals: dict[tuple[date, LiabilityCategory], Decimal] = field(default_factory=dict)
+    confirmed_groups_count: int = 0
 
     @property
     def only_in_statement_count(self) -> int:
-        return sum(len(d.only_in_statement) for d in self.discrepancies)
+        return sum(len(d.only_in_statement) + len(d.probable_pairs) + sum(len(g.statement) for g in d.groups)
+                   for d in self.discrepancies)
 
     @property
     def only_in_statement_sum(self) -> Decimal:
         return sum(
-            (sum((amount for amount, _ in d.only_in_statement), Decimal("0")) for d in self.discrepancies),
+            (sum((e.amount for e in d.only_in_statement), Decimal("0")) +
+             sum((p.statement.amount for p in d.probable_pairs), Decimal("0")) +
+             sum((e.amount for g in d.groups for e in g.statement), Decimal("0")) for d in self.discrepancies),
             Decimal("0"),
         )
 
     @property
     def only_in_calendar_count(self) -> int:
-        return sum(len(d.only_in_calendar) for d in self.discrepancies)
+        return sum(len(d.only_in_calendar) + len(d.probable_pairs) + sum(len(g.calendar) for g in d.groups)
+                   for d in self.discrepancies)
 
     @property
     def only_in_calendar_sum(self) -> Decimal:
         return sum(
-            (sum((amount for amount, _ in d.only_in_calendar), Decimal("0")) for d in self.discrepancies),
+            (sum((e.amount for e in d.only_in_calendar), Decimal("0")) +
+             sum((p.calendar.amount for p in d.probable_pairs), Decimal("0")) +
+             sum((e.amount for g in d.groups for e in g.calendar), Decimal("0")) for d in self.discrepancies),
             Decimal("0"),
         )
 
@@ -261,16 +464,18 @@ class ReconciliationResult:
     def has_discrepancies(self) -> bool:
         return bool(self.discrepancies)
 
-    def format_report(self, full: bool = False) -> str:
+    def format_summary(self) -> str:
         period_from = self.period[0].strftime("%d.%m.%Y")
         period_to = self.period[1].strftime("%d.%m.%Y")
         header = f"<h3>Сверка выписки за период {period_from} – {period_to}</h3>"
+        confirmed = (f"<p>Подтверждено вручную групп платежей: {self.confirmed_groups_count}</p>"
+                     if self.confirmed_groups_count else "")
 
         if not self.discrepancies:
             return (f"{header}<p style='color:{COLOR_OK};'>"
-                    f"Расхождений не найдено: все платежи из выписки учтены в календаре.</p>")
+                    f"Расхождений не найдено: все платежи из выписки учтены в календаре.</p>{confirmed}")
 
-        lines = [
+        return "\n".join([
             header,
             "<table cellspacing='0' cellpadding='3'>",
             _summary_row("Только в выписке:", self.only_in_statement_count,
@@ -278,57 +483,12 @@ class ReconciliationResult:
             _summary_row("Только в календаре:", self.only_in_calendar_count,
                          self.only_in_calendar_sum, COLOR_CALENDAR),
             "</table>",
-            "<br>",
-            "<table width='100%' cellspacing='0' cellpadding='4' border='0'>",
-        ]
-
-        if full:
-            for d in self.discrepancies:
-                lines.extend(self._render_date_full(d))
-        else:
-            lines.append(
-                f"<tr bgcolor='{COLOR_HEADER_BG}'><th align='left'>Дата</th>"
-                f"<th align='left' width='45%' style='color:{COLOR_STATEMENT};'>Есть в выписке, нет в календаре</th>"
-                f"<th align='left' width='45%' style='color:{COLOR_CALENDAR};'>Есть в календаре, нет в выписке</th></tr>"
-            )
-            for d in self.discrepancies:
-                lines.extend(self._render_date_short(d))
-
-        lines.append("</table>")
-        return "\n".join(lines)
-
-    @staticmethod
-    def _render_date_short(d: "DateDiscrepancy") -> list[str]:
-        date_label = d.fee_date.strftime("%d.%m.%Y")
-        statement_amounts = ", ".join(dec_html(amount) for amount, _ in d.only_in_statement)
-        calendar_amounts = ", ".join(dec_html(amount) for amount, _ in d.only_in_calendar)
-        return [
-            f"<tr><td valign='top'><b>{date_label}</b></td>"
-            f"<td valign='top' style='color:{COLOR_STATEMENT};'>{statement_amounts}</td>"
-            f"<td valign='top' style='color:{COLOR_CALENDAR};'>{calendar_amounts}</td></tr>"
-        ]
-
-    @staticmethod
-    def _render_date_full(d: "DateDiscrepancy") -> list[str]:
-        date_label = d.fee_date.strftime("%d.%m.%Y")
-        lines = [f"<tr bgcolor='{COLOR_HEADER_BG}'><td colspan='2'><b>{date_label}</b></td></tr>"]
-        groups = (
-            ("Есть в выписке, но нет в календаре", d.only_in_statement, COLOR_STATEMENT),
-            ("Есть в календаре, но нет в выписке", d.only_in_calendar, COLOR_CALENDAR),
-        )
-        for title, entries, color in groups:
-            if not entries:
-                continue
-            lines.append(f"<tr><td colspan='2' style='color:{color};'><i>{title}:</i></td></tr>")
-            for amount, descr in entries:
-                lines.append(
-                    f"<tr><td align='right' width='130' style='color:{color};'>{dec_html(amount)}</td>"
-                    f"<td>{html.escape(_clean_descr(descr))}</td></tr>"
-                )
-        return lines
+            confirmed,
+        ])
 
 
-def reconcile_statement_with_calendar(csv_filename: str, dbh: DBHandler) -> ReconciliationResult | None:
+def reconcile_statement_with_calendar(csv_filename: str, dbh: DBHandler,
+                                       confirmed_groups: frozenset = frozenset()) -> ReconciliationResult | None:
     statement = extract_statement_payments(csv_filename, dbh)
     calendar_by_date = dbh.get_paymentsum_for_period(statement.period[0], statement.period[1])
     if calendar_by_date is None:
@@ -336,12 +496,20 @@ def reconcile_statement_with_calendar(csv_filename: str, dbh: DBHandler) -> Reco
 
     all_dates = sorted(set(statement.by_date) | set(calendar_by_date))
     discrepancies: list[DateDiscrepancy] = []
+    confirmed_groups_count: int = 0
 
     for fee_date in all_dates:
         only_statement, only_calendar = _diff_amounts(
             statement.by_date.get(fee_date, []), calendar_by_date.get(fee_date, [])
         )
         if only_statement or only_calendar:
-            discrepancies.append(DateDiscrepancy(fee_date, only_statement, only_calendar))
+            pairs, only_statement, only_calendar = _pair_probable_matches(only_statement, only_calendar)
+            groups, only_statement, only_calendar = _regroup_contract_payments(fee_date, only_statement, only_calendar)
+            confirmed_groups_count += sum(1 for g in groups if g.key in confirmed_groups)
+            groups = [g for g in groups if g.key not in confirmed_groups]
+            if only_statement or only_calendar or pairs or groups:
+                discrepancies.append(DateDiscrepancy(fee_date, only_statement, only_calendar, pairs, groups))
 
-    return ReconciliationResult(period=statement.period, discrepancies=discrepancies)
+    fee_totals = {(fee_date, entry.fee_category): entry.amount
+                  for fee_date, entries in statement.by_date.items() for entry in entries if entry.fee_category}
+    return ReconciliationResult(statement.period, discrepancies, fee_totals, confirmed_groups_count)

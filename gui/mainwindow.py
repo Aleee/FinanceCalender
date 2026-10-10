@@ -291,7 +291,7 @@ class MainWindow(QMainWindow):
         self.ui.tlbr.widgetForAction(self.ui.act_finplan).installEventFilter(self.rmb_finplan_filter)
         self.ui.act_fulfillment.triggered.connect(self.open_fulfillment_dialog)
         self.ui.act_chart.triggered.connect(self.open_chart_dialog)
-        self.ui.act_fees.triggered.connect(self.open_fees_dialog)
+        self.ui.act_fees.triggered.connect(lambda: self.open_fees_dialog())
         self.ui.act_matching.triggered.connect(self.open_matching_dialog)
         self.ui.act_export.triggered.connect(self.open_export_dialog)
         self.ui.act_contracts.triggered.connect(self.open_contractor_dialog)
@@ -866,7 +866,8 @@ class MainWindow(QMainWindow):
         else:
             return False
 
-    def open_event_dialog(self, edit: bool = False, copy: bool = False) -> bool:
+    def open_event_dialog(self, edit: bool = False, copy: bool = False, initial_amount: Decimal | None = None,
+                          parent: QWidget | None = None) -> bool:
         curr_index: QModelIndex = self.get_current_event_index()
 
         if edit or copy:
@@ -896,7 +897,7 @@ class MainWindow(QMainWindow):
             return False
 
         event_dialog: EventDialog = EventDialog(final_proxy_model=self.proxy2_model, responsible_model=responsible_model, payment_model= self.payment_model,
-                                                settings_handler=self.settings_handler, db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, parent=self)
+                                                settings_handler=self.settings_handler, db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, initial_amount=initial_amount, parent=parent or self)
         if event_dialog.exec():
             if not edit:
                 set_due_filter = False
@@ -995,16 +996,22 @@ class MainWindow(QMainWindow):
         self.base_model.cacheUpdateNeeded.emit()
         self.update_sync_status()
 
-    def open_fees_dialog(self) -> None:
-        fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.base_model, self.payment_model, self)
+    def open_fees_dialog(self, csv_path: str = "", statement_fee_totals: dict | None = None,
+                         parent: QWidget | None = None) -> None:
+        fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.base_model, self.payment_model,
+                                           parent or self, csv_path, statement_fee_totals)
         fees_dialog.exec()
         self.base_model.select()
         self.update_filters_and_select()
 
     def open_matching_dialog(self) -> None:
-        matching_dialog: MatchingDialog = MatchingDialog(self.settings_handler, self.db_handler, self)
+        matching_dialog: MatchingDialog = MatchingDialog(
+            self.settings_handler, self.db_handler,
+            lambda amount, dialog: self.open_event_dialog(initial_amount=amount, parent=dialog),
+            self.open_fees_dialog, self)
         matching_dialog.exec()
         self.base_model.select()
+        self.payment_model.update_filter()
         self.update_filters_and_select()
 
     def open_export_dialog(self) -> bool:
