@@ -331,7 +331,7 @@ class MainWindow(QMainWindow):
         self.tb_sync = QToolButton()
         self.tb_sync.setAutoRaise(True)
         self.tb_sync.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.tb_sync.setIconSize(QSize(12, 12))
+        self.tb_sync.setIconSize(QSize(14, 14))
         self.tb_sync.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
         self.tb_sync.setMenu(sync_menu)
         self.tb_sync.clicked.connect(self.on_sync_button_clicked)
