@@ -123,7 +123,7 @@ class MainWindow(QMainWindow):
         self.ui.stw_eventinfo.setCurrentIndex(1)
 
         # Первая синхронизация после запуска
-        QTimer.singleShot(1500, self.auto_sync)
+        QTimer.singleShot(100, self.auto_sync)
 
 
     def _load_database(self) -> None:
