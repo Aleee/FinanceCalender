@@ -19,7 +19,7 @@ from base.liability import LiabilityCategory, RowType
 from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
 from base.paths import db_path, backup_dir
 from base.payment import Payment, PaymentEntry
-from base.syncdiff import DbDiff, TableDiff, DETAILED_TABLES, IGNORED_COLUMNS, DERIVED_COLUMNS
+from base.syncdiff import DbDiff, TableDiff, MergeWarnings, DETAILED_TABLES, IGNORED_COLUMNS, DERIVED_COLUMNS
 from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
@@ -277,10 +277,86 @@ class DBHandler:
             log.x(f"Не удалось сравнить файлы базы данных {old_path} и {new_path}: {e}")
             return None
 
-    def _common_columns(self, connection: str, table: str) -> list[str]:
-        old_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA old.table_info("{table}")')]
-        new_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA main.table_info("{table}")')]
-        return [column for column in new_columns if column in old_columns and column not in IGNORED_COLUMNS]
+    def _common_columns(self, connection: str, table: str, other_schema: str = "old", skip_ignored: bool = True) -> list[str]:
+        other_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA {other_schema}.table_info("{table}")')]
+        main_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA main.table_info("{table}")')]
+        return [column for column in main_columns if column in other_columns and not (skip_ignored and column in IGNORED_COLUMNS)]
+
+    def merge_added_rows(self, target_path: str, source_path: str, event_ids: list[int],
+                         payment_ids: list[int]) -> dict[str, dict[int, int]] | None:
+        try:
+            with self._file_connection(target_path) as connection:
+                self._file_execute(connection, "ATTACH DATABASE ? AS mine", source_path)
+                database = QSqlDatabase.database(connection, False)
+                if not database.transaction():
+                    raise RuntimeError(f"Не удалось начать транзакцию: {database.lastError().text()}")
+                try:
+                    event_map = self._copy_added_rows(connection, "event", event_ids, {})
+                    payment_map = self._copy_added_rows(connection, "payment", payment_ids, {"eventid": event_map})
+                    if not database.commit():
+                        raise RuntimeError(f"Не удалось завершить транзакцию: {database.lastError().text()}")
+                except Exception:
+                    database.rollback()
+                    raise
+                return {"event": event_map, "payment": payment_map}
+        except Exception as e:
+            log.x(f"Не удалось добавить строки из {source_path} в {target_path}: {e}")
+            return None
+
+    def _copy_added_rows(self, connection: str, table: str, ids: list[int], references: dict[str, dict[int, int]]) -> dict[int, int]:
+        columns = self._common_columns(connection, table, "mine", skip_ignored=False)
+        sequence = self._file_execute(connection, "SELECT seq FROM main.sqlite_sequence WHERE name = ?", table)
+        last_id = self._file_execute(connection, f'SELECT MAX(id) FROM main."{table}"')[0][0]
+        next_id = max(int(sequence[0][0]) if sequence else 0, int(last_id or 0)) + 1
+        fields = ", ".join(f'"{column}"' for column in columns)
+        placeholders = ", ".join("?" for _ in columns)
+        id_map: dict[int, int] = {}
+        for old_id in sorted(ids):
+            rows = self._file_execute(connection, f'SELECT {fields} FROM mine."{table}" WHERE id = ?', old_id)
+            if not rows:
+                raise RuntimeError(f"В таблице {table} нет строки с id {old_id}")
+            values = dict(zip(columns, rows[0]))
+            for column, mapping in references.items():
+                if values[column] in mapping:
+                    values[column] = mapping[values[column]]
+                elif not self._file_execute(connection, "SELECT 1 FROM main.event WHERE id = ?", values[column]):
+                    raise RuntimeError(f"Строка {old_id} таблицы {table} ссылается на отсутствующее событие {values[column]}")
+            values["id"] = next_id
+            self._file_execute(connection, f'INSERT INTO main."{table}" ({fields}) VALUES ({placeholders})', *values.values())
+            id_map[old_id] = next_id
+            next_id += 1
+        return id_map
+
+    def find_merge_warnings(self, path: str, event_ids: list[int], payment_ids: list[int]) -> MergeWarnings | None:
+        warnings = MergeWarnings()
+        events = ", ".join(str(event_id) for event_id in event_ids) or "NULL"
+        payments = ", ".join(str(payment_id) for payment_id in payment_ids) or "NULL"
+        title = "(SELECT e.receiver || ' — ' || e.name FROM event e WHERE e.id = n.eventid)"
+        try:
+            with self._file_connection(path) as connection:
+                warnings.duplicate_events = self._query_dicts(
+                    connection, ["receiver", "name", "totalamount", "duedate"],
+                    f"SELECT n.receiver, n.name, n.totalamount, n.duedate FROM event n WHERE n.id IN ({events}) AND EXISTS ("
+                    f"SELECT 1 FROM event o WHERE o.id NOT IN ({events}) AND o.receiver IS n.receiver AND o.name IS n.name "
+                    f"AND o.totalamount IS n.totalamount AND o.duedate IS n.duedate) ORDER BY n.id")
+                warnings.duplicate_payments = self._query_dicts(
+                    connection, ["event_title", "sum", "paymentdate"],
+                    f"SELECT {title}, n.sum, n.paymentdate FROM payment n WHERE n.id IN ({payments}) AND EXISTS ("
+                    f"SELECT 1 FROM payment o WHERE o.id NOT IN ({payments}) AND o.eventid IS n.eventid "
+                    f"AND o.paymentdate IS n.paymentdate AND o.sum IS n.sum) ORDER BY n.id")
+                warnings.overpaid_events = self._query_dicts(
+                    connection, ["receiver", "name", "totalamount", "duedate", "paid"],
+                    f"SELECT e.receiver, e.name, e.totalamount, e.duedate, ROUND(SUM(CAST(p.sum AS REAL)), 2) "
+                    f"FROM event e JOIN payment p ON p.eventid = e.id "
+                    f"WHERE e.id IN (SELECT eventid FROM payment WHERE id IN ({payments})) GROUP BY e.id "
+                    f"HAVING ROUND(SUM(CAST(p.sum AS REAL)), 2) > ROUND(CAST(e.totalamount AS REAL), 2) ORDER BY e.id")
+            return warnings
+        except Exception as e:
+            log.x(f"Не удалось проверить результат объединения в файле {path}: {e}")
+            return None
+
+    def _query_dicts(self, connection: str, names: list[str], sql: str) -> list[dict]:
+        return [dict(zip(names, row)) for row in self._file_execute(connection, sql)]
 
     def _read_table_diff(self, connection: str, table: str) -> TableDiff:
         columns = self._common_columns(connection, table)

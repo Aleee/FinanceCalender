@@ -46,6 +46,24 @@ class DbDiff:
     def is_empty(self) -> bool:
         return all(table.is_empty for table in self.tables.values()) and not self.other_tables
 
+    @property
+    def only_additions(self) -> bool:
+        return not self.other_tables and all(not table.changed and not table.removed for table in self.tables.values())
+
+    def added_ids(self, table: str) -> list[int]:
+        return [row["id"] for row in self.tables[table].added] if table in self.tables else []
+
+
+@dataclass
+class MergeWarnings:
+    duplicate_events: list[Row] = field(default_factory=list)
+    duplicate_payments: list[Row] = field(default_factory=list)
+    overpaid_events: list[Row] = field(default_factory=list)
+
+    @property
+    def is_empty(self) -> bool:
+        return not (self.duplicate_events or self.duplicate_payments or self.overpaid_events)
+
 
 def format_value(value: Any) -> str:
     if value is None or value == "":
@@ -91,6 +109,15 @@ def list_rows(lines: list[str], prefix: str, rows: list[str]) -> None:
     lines.extend(f"  {prefix} {row}" for row in rows[:MAX_LISTED_ROWS])
     if len(rows) > MAX_LISTED_ROWS:
         lines.append(f"  … и ещё {len(rows) - MAX_LISTED_ROWS}")
+
+
+def format_warnings(warnings: MergeWarnings) -> list[str]:
+    lines: list[str] = []
+    lines.extend(f"Возможный дубль события: {describe_row('event', row)}" for row in warnings.duplicate_events)
+    lines.extend(f"Возможный дубль платежа: {describe_row('payment', row)}" for row in warnings.duplicate_payments)
+    lines.extend(f"Оплачено больше суммы события: {describe_row('event', row)}, оплачено {format_value(row['paid'])}"
+                 for row in warnings.overpaid_events)
+    return lines
 
 
 def format_diff(diff: DbDiff) -> str:

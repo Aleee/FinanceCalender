@@ -10,7 +10,7 @@ from base.dbhandler import DBHandler
 from base.httpclient import QtHttpClient
 from base.sync import (AuthError, FolderChannel, MasterInfo, MasterUpdatingError, NetworkError, SyncAction, SyncChannel,
                        SyncError, SyncParams, SyncReport, collect_conflict_report, pull_master, push_master, save_conflict_copy)
-from base.syncdiff import DbDiff, diff_summary, format_diff
+from base.syncdiff import DbDiff, diff_summary, format_diff, format_warnings
 from base.version import APP_VERSION
 from base.yandexchannel import YandexDiskApiChannel
 from gui.settings import SettingsHandler
@@ -19,11 +19,13 @@ SYNC_STALE_DAYS = 7
 SYNC_RETRY_DELAY_MS = 30000
 SYNC_RETRY_ATTEMPTS = 2
 TOKEN_WARNING_DAYS = 30
+MAX_SHOWN_WARNINGS = 5
 
 SYNC_STATUS_TEXT: dict[SyncAction, str] = {
     SyncAction.NOTHING: "данные актуальны",
     SyncAction.PULL: "данные актуальны",
     SyncAction.PUSH: "данные актуальны",
+    SyncAction.MERGE: "данные актуальны",
     SyncAction.CONFLICT: "КОНФЛИКТ",
     SyncAction.NO_MASTER: "общей базы нет",
     SyncAction.FOREIGN_DB: "в общей базе другие данные",
@@ -134,21 +136,45 @@ def pull_details(report: SyncReport) -> str:
     return "" if report.their_changes is None else format_diff(report.their_changes)
 
 
-def conflict_texts(report: SyncReport, describe: Callable[[DbDiff], str], my_title: str, their_title: str) -> str:
-    parts: list[str] = []
-    for title, diff in ((my_title, report.my_changes), (their_title, report.their_changes)):
-        if diff is not None and not diff.is_empty:
-            parts.append(f"{title}:\n{describe(diff)}")
-    return "\n\n".join(parts)
+def diff_blocks(blocks: list[tuple[str, DbDiff | None]], describe: Callable[[DbDiff], str]) -> str:
+    return "\n\n".join(f"{title}:\n{describe(diff)}" for title, diff in blocks if diff is not None and not diff.is_empty)
 
 
 def conflict_summary(report: SyncReport) -> str:
-    return conflict_texts(report, diff_summary, "Ваши изменения", "Изменения в общей базе")
+    return diff_blocks([("Ваши изменения", report.my_changes), ("Изменения в общей базе", report.their_changes)], diff_summary)
 
 
 def conflict_details(report: SyncReport) -> str:
-    return conflict_texts(report, format_diff, "Ваши изменения с последней синхронизации",
-                          "Изменения в общей базе с последней синхронизации")
+    return diff_blocks([("Ваши изменения с последней синхронизации", report.my_changes),
+                        ("Изменения в общей базе с последней синхронизации", report.their_changes)], format_diff)
+
+
+def merge_message(report: SyncReport) -> str:
+    text: str = "Пока вы работали, общая база была изменена другим пользователем"
+    if report.master_info is not None:
+        text += f" ({describe_master(report.master_info)})"
+    text += ". Ваши изменения добавлены к ним"
+    text += " и отправлены в общую базу." if report.merge_pushed else ". Они будут отправлены при следующей синхронизации."
+    summary: str = diff_blocks([("Изменения другого пользователя", report.their_changes), ("Добавлено вами", report.my_changes)],
+                               diff_summary)
+    if summary:
+        text += f"\n\n{summary}"
+    warnings: list[str] = [] if report.warnings is None else format_warnings(report.warnings)
+    if warnings:
+        shown: list[str] = [f"• {warning}" for warning in warnings[:MAX_SHOWN_WARNINGS]]
+        if len(warnings) > MAX_SHOWN_WARNINGS:
+            shown.append(f"… и ещё {len(warnings) - MAX_SHOWN_WARNINGS}")
+        text += "\n\nПроверьте:\n" + "\n".join(shown)
+    return text
+
+
+def merge_details(report: SyncReport) -> str:
+    text: str = diff_blocks([("Изменения другого пользователя", report.their_changes), ("Добавлено вами", report.my_changes)],
+                            format_diff)
+    warnings: list[str] = [] if report.warnings is None else format_warnings(report.warnings)
+    if warnings:
+        text += "\n\nПроверьте:\n" + "\n".join(f"• {warning}" for warning in warnings)
+    return text.strip()
 
 
 def describe_master(info: MasterInfo) -> str:

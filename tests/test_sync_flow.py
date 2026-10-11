@@ -506,3 +506,170 @@ def test_conflict_report_empty_without_base(connected, channel):
     with machine_b as dbh:
         syncmod.collect_conflict_report(dbh, channel, report)
     assert report.their_changes is None and report.my_changes is None
+
+
+def add_payment(machine: Machine, payment_id: int, event_id: int, amount: str) -> None:
+    import sqlite3
+    con = sqlite3.connect(machine.file)
+    con.execute("INSERT INTO payment (id, eventid, paymentdate, sum, createdate) VALUES (?, ?, '2026-10-11', ?, '2026-10-11')",
+                (payment_id, event_id, amount))
+    con.commit()
+    con.close()
+
+
+def rows(machine: Machine, sql: str) -> list[tuple]:
+    from tests.dbtools import fetch_all
+    return fetch_all(machine.file, sql)
+
+
+@pytest.fixture
+def shared_event(connected, channel):
+    machine_a, machine_b = connected
+    add_event(machine_a, 1, "Общее")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    return machine_a, machine_b
+
+
+def test_merge_adds_new_events_and_payments_with_new_ids(connected, channel, backup_folder):
+    machine_a, machine_b = connected
+    add_event(machine_a, 1, "От первого")
+    add_payment(machine_a, 1, 1, "3.00")
+    add_event(machine_b, 1, "От второго")
+    add_payment(machine_b, 1, 1, "4.00")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    report = syncmod.SyncReport()
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, report, merge=True) == SyncAction.MERGE
+        assert report.merge_pushed
+    assert rows(machine_b, "SELECT id, name FROM event ORDER BY id") == [(1, "От первого"), (2, "От второго")]
+    assert rows(machine_b, "SELECT id, eventid, sum FROM payment ORDER BY id") == [(1, 1, "3.00"), (2, 2, "4.00")]
+    assert [row["name"] for row in report.their_changes.tables["event"].added] == ["От первого"]
+    assert [row["name"] for row in report.my_changes.tables["event"].added] == ["От второго"]
+    assert report.warnings.is_empty
+    assert machine_b.meta()["change_counter"] == "0"
+    assert any(read_meta(copy)["change_counter"] != "0" for copy in backup_folder.glob("conflict_*.db"))
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.NOTHING
+    with machine_a as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    assert rows(machine_a, "SELECT id, name FROM event ORDER BY id") == rows(machine_b, "SELECT id, name FROM event ORDER BY id")
+    assert rows(machine_a, "SELECT id, eventid, sum FROM payment ORDER BY id") == rows(machine_b, "SELECT id, eventid, sum FROM payment ORDER BY id")
+
+
+def test_merge_payments_to_existing_event_and_overpayment_warning(shared_event, channel):
+    machine_a, machine_b = shared_event
+    add_payment(machine_a, 1, 1, "8.00")
+    add_payment(machine_b, 1, 1, "8.00")
+    add_payment(machine_b, 2, 1, "1.00")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    report = syncmod.SyncReport()
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, report, merge=True) == SyncAction.MERGE
+    assert rows(machine_b, "SELECT id, eventid, sum FROM payment ORDER BY id") == [(1, 1, "8.00"), (2, 1, "8.00"), (3, 1, "1.00")]
+    assert [row["name"] for row in report.warnings.overpaid_events] == ["Общее"]
+    assert [row["sum"] for row in report.warnings.duplicate_payments] == ["8.00"]
+
+
+def test_merge_warns_about_duplicate_event(connected, channel):
+    machine_a, machine_b = connected
+    add_event(machine_a, 1, "Одинаковое")
+    add_event(machine_b, 1, "Одинаковое")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    report = syncmod.SyncReport()
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, report, merge=True) == SyncAction.MERGE
+    assert [row["name"] for row in report.warnings.duplicate_events] == ["Одинаковое"]
+    assert rows(machine_b, "SELECT COUNT(*) FROM event") == [(2,)]
+
+
+def test_merge_not_done_when_existing_row_changed(shared_event, channel):
+    import sqlite3
+    machine_a, machine_b = shared_event
+    add_event(machine_a, 2, "От первого")
+    con = sqlite3.connect(machine_b.file)
+    con.execute("UPDATE event SET totalamount = '99.00' WHERE id = 1")
+    con.commit()
+    con.close()
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, merge=True) == SyncAction.CONFLICT
+    assert rows(machine_b, "SELECT totalamount FROM event WHERE id = 1") == [("99.00",)]
+    assert rows(machine_b, "SELECT COUNT(*) FROM event") == [(1,)]
+
+
+def test_merge_not_done_when_other_table_changed(shared_event, channel):
+    import sqlite3
+    machine_a, machine_b = shared_event
+    add_event(machine_a, 2, "От первого")
+    con = sqlite3.connect(machine_b.file)
+    con.execute("INSERT INTO contractor (id, name) VALUES (1, 'Новый')")
+    con.commit()
+    con.close()
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, merge=True) == SyncAction.CONFLICT
+
+
+def test_merge_not_done_when_event_deleted_in_master(shared_event, channel):
+    import sqlite3
+    machine_a, machine_b = shared_event
+    con = sqlite3.connect(machine_a.file)
+    con.execute("DELETE FROM event WHERE id = 1")
+    con.commit()
+    con.close()
+    add_payment(machine_b, 1, 1, "5.00")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, merge=True) == SyncAction.CONFLICT
+    assert rows(machine_b, "SELECT COUNT(*) FROM payment") == [(1,)]
+
+
+def test_merge_not_done_without_base(connected, channel):
+    machine_a, machine_b = connected
+    add_event(machine_a, 1, "От первого")
+    add_event(machine_b, 1, "От второго")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    machine_b.base_file.unlink()
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, merge=True) == SyncAction.CONFLICT
+
+
+def test_merge_without_flag_stays_conflict(connected, channel):
+    machine_a, machine_b = connected
+    add_event(machine_a, 1, "От первого")
+    add_event(machine_b, 1, "От второго")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.CONFLICT
+
+
+def test_merge_keeps_changes_for_next_push_when_push_fails(connected, channel, monkeypatch):
+    machine_a, machine_b = connected
+    add_event(machine_a, 1, "От первого")
+    add_event(machine_b, 1, "От второго")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    real_push = syncmod.push_master
+    monkeypatch.setattr(syncmod, "push_master", lambda *args, **kwargs: (_ for _ in ()).throw(SyncError("нет связи")))
+    report = syncmod.SyncReport()
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, report, merge=True) == SyncAction.MERGE
+        assert not report.merge_pushed
+    monkeypatch.setattr(syncmod, "push_master", real_push)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PUSH
+    assert rows(machine_b, "SELECT COUNT(*) FROM event") == [(2,)]
+    with machine_a as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    assert rows(machine_a, "SELECT COUNT(*) FROM event") == [(2,)]

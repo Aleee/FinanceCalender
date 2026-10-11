@@ -115,3 +115,22 @@ def test_cleanup_removes_old_backups_and_keeps_conflict_migration_and_foreign_fi
     settings_handler.settings.setValue("Backup/cleanupperiod", 30)
     assert clean_backup_folder(settings_handler)
     assert sorted(item.name for item in backup_folder.iterdir()) == sorted(kept_names)
+
+
+def test_merge_message_lists_changes_and_warnings():
+    from base.sync import MasterInfo, SyncReport
+    from base.syncdiff import DbDiff, MergeWarnings, TableDiff
+    from gui.syncmanager import merge_details, merge_message
+    event = {"receiver": "ООО Ромашка", "name": "Аренда", "totalamount": "100.00", "duedate": "2026-10-15"}
+    report = SyncReport(
+        their_changes=DbDiff({"event": TableDiff(added=[event])}),
+        my_changes=DbDiff({"payment": TableDiff(added=[{"event_title": "ООО Ромашка — Аренда", "sum": "5.00", "paymentdate": "2026-10-11"}])}),
+        master_info=MasterInfo("u", "t", 5, "Иванов", "PC-2", "2026-10-11T14:32:00", "2026.10.11"),
+        warnings=MergeWarnings(duplicate_events=[event] * 7), merge_pushed=True)
+    text = merge_message(report)
+    assert "11.10.2026 14:32, Иванов (PC-2)" in text and "отправлены в общую базу" in text
+    assert "Изменения другого пользователя:\nСобытия: добавлено 1" in text and "Добавлено вами:\nПлатежи: добавлено 1" in text
+    assert text.count("• Возможный дубль события") == 5 and "… и ещё 2" in text
+    assert merge_details(report).count("• Возможный дубль события") == 7
+    report.merge_pushed = False
+    assert "будут отправлены при следующей синхронизации" in merge_message(report)

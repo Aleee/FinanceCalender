@@ -16,7 +16,7 @@ import lovely_logger as log
 
 from base.backup import replace_db_file
 from base.paths import backup_dir, sync_base_path
-from base.syncdiff import DbDiff
+from base.syncdiff import DbDiff, MergeWarnings
 
 if TYPE_CHECKING:
     from base.dbhandler import DBHandler
@@ -57,6 +57,7 @@ class SyncAction(Enum):
     NOTHING = "nothing"
     PULL = "pull"
     PUSH = "push"
+    MERGE = "merge"
     CONFLICT = "conflict"
     NO_MASTER = "no_master"
     FOREIGN_DB = "foreign_db"
@@ -79,6 +80,9 @@ class LocalState:
 class SyncReport:
     their_changes: DbDiff | None = None
     my_changes: DbDiff | None = None
+    master_info: "MasterInfo | None" = None
+    warnings: MergeWarnings | None = None
+    merge_pushed: bool = False
 
 
 @dataclass
@@ -432,6 +436,7 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
                 raise SyncError("Не удалось сохранить локальную копию перед заменой")
             if report is not None and action == SyncAction.PULL:
                 report.their_changes = dbh.read_db_diff(dbh.local_db_path(), str(new_file))
+                report.master_info = master
             if not replace_db_file(dbh, str(new_file)):
                 raise SyncError("Не удалось заменить локальную копию общей базой (подробности см. в логе)")
             save_sync_base(new_file)
@@ -452,6 +457,31 @@ def collect_conflict_report(dbh: "DBHandler", channel: SyncChannel, report: Sync
         report.my_changes = dbh.read_db_diff(str(base), dbh.local_db_path())
 
 
+def merge_into_master(dbh: "DBHandler", channel: SyncChannel, master: MasterInfo, report: SyncReport) -> bool:
+    local = read_local_state(dbh)
+    base = find_sync_base(dbh, local)
+    if base is None or master.db_version != local.db_version:
+        return False
+    my_changes = dbh.read_db_diff(str(base), dbh.local_db_path())
+    if my_changes is None or not my_changes.only_additions:
+        return False
+    with tempfile.TemporaryDirectory() as folder:
+        downloaded, _ = download_checked_master(dbh, channel, master, folder)
+        their_changes = dbh.read_db_diff(str(base), str(downloaded))
+        merged = Path(folder) / "merged.db"
+        shutil.copyfile(downloaded, merged)
+        id_maps = dbh.merge_added_rows(str(merged), dbh.local_db_path(), my_changes.added_ids("event"), my_changes.added_ids("payment"))
+        if id_maps is None or not dbh.check_file_integrity(str(merged)):
+            return False
+        warnings = dbh.find_merge_warnings(str(merged), list(id_maps["event"].values()), list(id_maps["payment"].values()))
+        save_conflict_copy(dbh)
+        if not replace_db_file(dbh, str(merged)):
+            raise SyncError("Не удалось заменить локальную копию объединённой базой (подробности см. в логе)")
+        save_sync_base(downloaded)
+    report.their_changes, report.my_changes, report.master_info, report.warnings = their_changes, my_changes, master, warnings
+    return True
+
+
 def save_conflict_copy(dbh: "DBHandler") -> None:
     copy_path = Path(backup_dir()) / f"conflict_{datetime.now().strftime(PRECISE_BACKUP_TIME_FORMAT)}.db"
     if not dbh.copy_db_file(str(copy_path)):
@@ -462,7 +492,8 @@ def elapsed_ms(started: float) -> int:
     return int((time.monotonic() - started) * 1000)
 
 
-def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, report: SyncReport | None = None) -> SyncAction:
+def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, report: SyncReport | None = None,
+                merge: bool = False) -> SyncAction:
     started = time.monotonic()
     master = channel.read_master_info()
     log.d(f"Синхронизация: чтение master.json за {elapsed_ms(started)} мс")
@@ -471,5 +502,15 @@ def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, repo
         pull_master(dbh, channel, master=master, report=report)
     elif action == SyncAction.PUSH:
         push_master(dbh, channel, params, master=master)
+    elif action == SyncAction.CONFLICT and merge:
+        report = report or SyncReport()
+        if merge_into_master(dbh, channel, master, report):
+            action = SyncAction.MERGE
+            try:
+                if read_local_state(dbh).has_changes:
+                    push_master(dbh, channel, params)
+                report.merge_pushed = True
+            except SyncError as e:
+                log.w(f"Объединённая база не отправлена, отправка будет повторена: {e}")
     log.d(f"Синхронизация: действие «{action.value}», всего {elapsed_ms(started)} мс")
     return action

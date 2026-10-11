@@ -45,8 +45,8 @@ from gui.syncconflictdialog import SyncConflictDialog
 from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS, SYNC_STATUS_TEXT,
                              TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_details, conflict_summary,
                              connect_to_master, create_master, create_sync_channel, create_sync_params, describe_master,
-                             failure_status_text, master_age_days, overwrite_master, pull_details, pull_message, take_master,
-                             token_days_left)
+                             failure_status_text, master_age_days, merge_details, merge_message, overwrite_master, pull_details,
+                             pull_message, take_master, token_days_left)
 from gui.ui.syncicon import create_sync_icon
 from gui.syncprogressdialog import SyncProgressDialog
 from gui.syncsettingsdialog import SyncSettingsDialog
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
     CONTRACT_NOTBOUND_TEXT = '<span style="color: #808080;">не привязан</span>'
     SYNC_PROBLEM_STATUSES = (SYNC_STATUS_TEXT[SyncAction.CONFLICT], SYNC_STATUS_TEXT[SyncAction.FOREIGN_DB],
                              SYNC_STATUS_TEXT[SyncAction.CLIENT_OUTDATED], "токен недействителен", "ОШИБКА")
-    SYNC_SUCCESS_ACTIONS = (SyncAction.NOTHING, SyncAction.PULL, SyncAction.PUSH)
+    SYNC_SUCCESS_ACTIONS = (SyncAction.NOTHING, SyncAction.PULL, SyncAction.PUSH, SyncAction.MERGE)
     SYNC_PROBLEM_COLOR = QColor("#C62828")
     SYNC_WARNING_COLOR = QColor("#B26A00")
     SYNC_OK_COLOR = QColor("#2E7D32")
@@ -495,22 +495,25 @@ class MainWindow(QMainWindow):
         params = create_sync_params(self.settings_handler)
         previous_status_text: str = self.sync_status_text
         report = SyncReport()
-        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report))
-        is_changed_by_other: bool = action == SyncAction.PULL
+        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True))
+        is_changed_by_other: bool = action in (SyncAction.PULL, SyncAction.MERGE)
+        is_merged: bool = action == SyncAction.MERGE
         if interactive:
             action = self._resolve_sync_action(action, channel, params)
         self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
         if action in self.SYNC_SUCCESS_ACTIONS:
             self.sync_succeeded_at = QDateTime.currentDateTime()
         self.sync_status_text = self.sync_failure_text if action is None else SYNC_STATUS_TEXT[action]
-        if action == SyncAction.PULL:
+        if action in (SyncAction.PULL, SyncAction.MERGE):
             self.reload_after_sync_pull()
         self.update_sync_status()
         if is_changed_by_other:
-            pull_box = ErrorInfoMessageBox(pull_message(self.sync_master_info, report), is_info=True, parent=self)
-            if pull_details(report):
-                pull_box.setDetailedText(pull_details(report))
-            pull_box.exec()
+            message, details = (merge_message(report), merge_details(report)) if is_merged else (
+                pull_message(report.master_info or self.sync_master_info, report), pull_details(report))
+            changes_box = ErrorInfoMessageBox(message, is_info=True, parent=self)
+            if details:
+                changes_box.setDetailedText(details)
+            changes_box.exec()
         if interactive:
             if action is None:
                 ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
