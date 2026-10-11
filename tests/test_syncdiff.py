@@ -63,7 +63,7 @@ def test_added_changed_removed_events_and_payments(dbh, old_db, new_db):
     assert describe_changes(old_row, new_row) == "сумма: 100.00 → 120.00"
     assert [(row["id"], row["event_title"]) for row in payments.added] == [(2, "ООО Лютик — Аренда"), (3, "ООО Ромашка — Поставка")]
     assert not payments.removed and not payments.changed
-    assert diff_summary(diff) == "События: добавлено 1, изменено 1, удалено 1\nПлатежи: добавлено 2"
+    assert diff_summary(diff) == "Платежи: добавлено 1, изменено 1, удалено 1\nОплаты: добавлено 2"
     text = format_diff(diff)
     assert "+ ООО Лютик — Аренда, 900.00, срок 15.10.2026" in text
     assert "~ ООО Ромашка — Поставка, 120.00, срок 15.10.2026 (сумма: 100.00 → 120.00)" in text

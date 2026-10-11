@@ -129,9 +129,9 @@ def test_merge_message_lists_changes_and_warnings():
         warnings=MergeWarnings(duplicate_events=[event] * 7), merge_pushed=True)
     text = merge_message(report)
     assert "11.10.2026 14:32, Иванов (PC-2)" in text and "отправлены в общую базу" in text
-    assert "Изменения другого пользователя:\nСобытия: добавлено 1" in text and "Ваши изменения:\nПлатежи: добавлено 1" in text
-    assert text.count("• Возможный дубль события") == 5 and "… и ещё 2" in text
-    assert merge_details(report).count("• Возможный дубль события") == 7
+    assert "Изменения другого пользователя:\nПлатежи: добавлено 1" in text and "Ваши изменения:\nОплаты: добавлено 1" in text
+    assert text.count("• Возможный дубль платежа") == 5 and "… и ещё 2" in text
+    assert merge_details(report).count("• Возможный дубль платежа") == 7
     report.merge_pushed = False
     assert "будут отправлены при следующей синхронизации" in merge_message(report)
 

@@ -775,7 +775,7 @@ def test_conflict_when_deleted_event_got_payment_in_master(shared_event, channel
                        "INSERT INTO payment (id, eventid, paymentdate, sum) VALUES (1, 1, '2026-10-11', '5.00')",
                        "DELETE FROM event WHERE id = 1", report)
     assert action == SyncAction.CONFLICT
-    assert "событие удалено у вас" in report.conflicts[0]
+    assert "платёж удалён у вас" in report.conflicts[0]
 
 
 def test_conflict_when_deleted_by_me_and_changed_by_other(shared_event, channel):

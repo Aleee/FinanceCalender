@@ -15,8 +15,8 @@ COLUMN_TITLES: dict[str, str] = {
     "receiver": "получатель", "name": "название", "totalamount": "сумма", "duedate": "срок", "descr": "описание",
     "notes": "заметки", "category": "категория", "subcategory": "подкатегория", "nds": "НДС", "paymenttype": "вид платежа",
     "responsible": "ответственный", "featured": "избранное", "hidden": "скрыто", "type": "тип",
-    "contractdocument_id": "документ договора", "createdate": "дата создания", "paymentdate": "дата платежа", "sum": "сумма",
-    "eventid": "событие",
+    "contractdocument_id": "документ договора", "createdate": "дата создания", "paymentdate": "дата оплаты", "sum": "сумма",
+    "eventid": "платёж",
 }
 
 TABLE_TITLES: dict[str, str] = {
@@ -93,7 +93,7 @@ def table_summary(table_diff: TableDiff) -> str:
 
 def diff_summary(diff: DbDiff) -> str:
     lines: list[str] = []
-    for table, title in (("event", "События"), ("payment", "Платежи")):
+    for table, title in (("event", "Платежи"), ("payment", "Оплаты")):
         table_diff: TableDiff | None = diff.tables.get(table)
         if table_diff is not None and not table_diff.is_empty:
             lines.append(f"{title}: {table_summary(table_diff)}")
@@ -156,27 +156,27 @@ def plan_merge(my_changes: DbDiff, their_changes: DbDiff) -> MergePlan:
     their_payments = their_changes.tables.get("payment", empty).added + [new_row for _, new_row in their_changes.tables.get("payment", empty).changed]
     for row in their_payments:
         if row["eventid"] in plan.deletes["event"]:
-            plan.conflicts.append(f"{describe_row('payment', row)}: событие удалено у вас, а в общей базе к нему есть платёж")
+            plan.conflicts.append(f"{describe_row('payment', row)}: платёж удалён у вас, а в общей базе к нему есть оплата")
     their_removed_events = {row["id"] for row in their_changes.tables.get("event", empty).removed}
     my_payments = my_changes.tables.get("payment", empty).added + [new_row for _, new_row in my_changes.tables.get("payment", empty).changed]
     for row in my_payments:
         if row["eventid"] in their_removed_events:
-            plan.conflicts.append(f"{describe_row('payment', row)}: событие удалено в общей базе")
+            plan.conflicts.append(f"{describe_row('payment', row)}: платёж удалён в общей базе")
     return plan
 
 
 def format_warnings(warnings: MergeWarnings) -> list[str]:
     lines: list[str] = []
-    lines.extend(f"Возможный дубль события: {describe_row('event', row)}" for row in warnings.duplicate_events)
-    lines.extend(f"Возможный дубль платежа: {describe_row('payment', row)}" for row in warnings.duplicate_payments)
-    lines.extend(f"Оплачено больше суммы события: {describe_row('event', row)}, оплачено {format_value(row['paid'])}"
+    lines.extend(f"Возможный дубль платежа: {describe_row('event', row)}" for row in warnings.duplicate_events)
+    lines.extend(f"Возможный дубль оплаты: {describe_row('payment', row)}" for row in warnings.duplicate_payments)
+    lines.extend(f"Оплачено больше суммы платежа: {describe_row('event', row)}, оплачено {format_value(row['paid'])}"
                  for row in warnings.overpaid_events)
     return lines
 
 
 def format_diff(diff: DbDiff) -> str:
     lines: list[str] = []
-    for table, title in (("event", "События"), ("payment", "Платежи")):
+    for table, title in (("event", "Платежи"), ("payment", "Оплаты")):
         table_diff: TableDiff | None = diff.tables.get(table)
         if table_diff is None or table_diff.is_empty:
             continue

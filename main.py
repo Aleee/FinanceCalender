@@ -2,6 +2,8 @@ import os
 import sys
 import cProfile
 import lovely_logger as log
+import PySide6
+from PySide6.QtCore import QTranslator
 from PySide6.QtNetwork import QNetworkProxyFactory
 
 from PySide6.QtWidgets import QApplication, QMessageBox
@@ -20,6 +22,9 @@ class App(QApplication):
     def __init__(self):
         super().__init__(sys.argv)
 
+        self.qt_translator: QTranslator = QTranslator(self)
+        if self.qt_translator.load("qtbase_ru", os.path.join(os.path.dirname(PySide6.__file__), "translations")):
+            self.installTranslator(self.qt_translator)
 
         QNetworkProxyFactory.setUseSystemConfiguration(True)
 

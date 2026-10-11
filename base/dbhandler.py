@@ -287,21 +287,14 @@ class DBHandler:
         try:
             with self._file_connection(target_path) as connection:
                 self._file_execute(connection, "ATTACH DATABASE ? AS mine", source_path)
-                database = QSqlDatabase.database(connection, False)
-                if not database.transaction():
-                    raise RuntimeError(f"Не удалось начать транзакцию: {database.lastError().text()}")
-                try:
-                    for table in ("payment", "event"):
-                        self._delete_rows(connection, table, plan.deletes.get(table, []))
-                    for table in DETAILED_TABLES:
-                        self._update_rows(connection, table, plan.updates.get(table, []))
-                    event_map = self._copy_added_rows(connection, "event", event_ids, {})
-                    payment_map = self._copy_added_rows(connection, "payment", payment_ids, {"eventid": event_map})
-                    if not database.commit():
-                        raise RuntimeError(f"Не удалось завершить транзакцию: {database.lastError().text()}")
-                except Exception:
-                    database.rollback()
-                    raise
+                self._file_execute(connection, "BEGIN")
+                for table in ("payment", "event"):
+                    self._delete_rows(connection, table, plan.deletes.get(table, []))
+                for table in DETAILED_TABLES:
+                    self._update_rows(connection, table, plan.updates.get(table, []))
+                event_map = self._copy_added_rows(connection, "event", event_ids, {})
+                payment_map = self._copy_added_rows(connection, "payment", payment_ids, {"eventid": event_map})
+                self._file_execute(connection, "COMMIT")
                 return {"event": event_map, "payment": payment_map}
         except Exception as e:
             log.x(f"Не удалось добавить строки из {source_path} в {target_path}: {e}")
