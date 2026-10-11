@@ -19,7 +19,7 @@ def data_dir() -> str:
 
 
 def update_dir() -> str:
-    return os.path.join(app_dir(), "_update")
+    return os.path.join(storage_dir(), "_update")
 
 
 def _data_subdir(name: str) -> str:

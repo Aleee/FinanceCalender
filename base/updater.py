@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -15,12 +16,13 @@ from PySide6.QtCore import QObject, QUrl, QUrlQuery, QFile, QIODevice, QDateTime
 from PySide6.QtNetwork import (QNetworkAccessManager, QNetworkReply, QNetworkRequest, QNetworkProxy,
                                QNetworkProxyFactory, QNetworkProxyQuery, QSslSocket)
 
+from base.macupdate import APP_BUNDLE, install_location_problem, launch_mac_updater
 from base.paths import app_dir, update_dir
 from base.version import APP_VERSION, DB_VERSION, is_newer
 
 API_URL = "https://cloud-api.yandex.net/v1/disk/public/resources/download"
 PUBLIC_KEY = "https://disk.yandex.by/d/-feulMjOLlZpoA"
-VERSION_FILE = "version.json"
+VERSION_FILE = f"version-mac-{platform.machine()}.json" if sys.platform == "darwin" else "version.json"
 CHECK_TIMEOUT_MS = 60000
 DOWNLOAD_TIMEOUT_MS = 90000
 NETWORK_ATTEMPTS = 3
@@ -72,9 +74,20 @@ def is_frozen() -> bool:
     return getattr(sys, "frozen", False)
 
 
+def check_install_location() -> None:
+    if sys.platform != "darwin":
+        return
+    problem = install_location_problem()
+    if problem:
+        raise UpdateError(problem)
+
+
 def launch_updater() -> None:
-    updater_path = os.path.join(update_dir(), "updater.exe")
+    updater_path = os.path.join(update_dir(), "update.sh" if sys.platform == "darwin" else "updater.exe")
     try:
+        if sys.platform == "darwin":
+            launch_mac_updater(new_dir())
+            return
         shutil.copy2(os.path.join(new_dir(), "updater.exe"), updater_path)
         subprocess.Popen([updater_path, "--pid", str(os.getpid()), "--app-dir", app_dir(), "--new-dir", new_dir()],
                          cwd=update_dir(), close_fds=True, creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
@@ -281,6 +294,11 @@ class UpdateDownloader(QObject):
         self.info = info
         self.cancelled = False
         try:
+            check_install_location()
+        except UpdateError as e:
+            self.failed.emit(str(e))
+            return
+        try:
             self.prepare_update_dir()
         except OSError as e:
             log.x(f"Не удалось подготовить папку {update_dir()}: {e}")
@@ -383,13 +401,19 @@ class UpdateDownloader(QObject):
                 digest.update(chunk)
         if digest.hexdigest() != self.info.sha256:
             raise UpdateError("Скачанный файл повреждён (не совпала контрольная сумма). Попробуйте ещё раз.")
+        mac = sys.platform == "darwin"
         try:
-            with zipfile.ZipFile(self.zip_path()) as archive:
-                archive.extractall(new_dir())
-        except zipfile.BadZipFile:
+            if mac:
+                subprocess.run(["ditto", "-x", "-k", self.zip_path(), new_dir()], check=True, capture_output=True)
+            else:
+                with zipfile.ZipFile(self.zip_path()) as archive:
+                    archive.extractall(new_dir())
+        except (zipfile.BadZipFile, subprocess.CalledProcessError):
             raise UpdateError("Архив с обновлением повреждён.")
-        for name in (APP_EXE, "_internal", "updater.exe"):
+        for name in (APP_BUNDLE,) if mac else (APP_EXE, "_internal", "updater.exe"):
             if not os.path.exists(os.path.join(new_dir(), name)):
                 raise UpdateError(f"В архиве обновления нет {name}.")
-        if os.path.exists(os.path.join(new_dir(), "data")):
+        data_path = os.path.join(new_dir(), APP_BUNDLE, "Contents", "MacOS", "data") if mac \
+            else os.path.join(new_dir(), "data")
+        if os.path.exists(data_path):
             raise UpdateError("В архиве обновления есть папка data, установка отменена.")

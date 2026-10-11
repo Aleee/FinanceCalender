@@ -1,4 +1,6 @@
+import argparse
 import hashlib
+import json
 import platform
 import subprocess
 import sys
@@ -7,9 +9,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from base.version import APP_VERSION, parse_version
+from base.macupdate import APP_BUNDLE
+from base.version import APP_VERSION, DB_VERSION, parse_version
 
-APP_BUNDLE = "Платежный календарь.app"
 DIST = ROOT / "dist"
 BUILD = ROOT / "build"
 RELEASE_DIR = DIST / "release"
@@ -50,6 +52,10 @@ def sha256_of(path: Path) -> str:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Сборка релиза Платежного календаря для macOS")
+    parser.add_argument("--notes", default="", help="Текст «Что нового» для version-mac-<архитектура>.json")
+    args = parser.parse_args()
+
     if sys.platform != "darwin":
         sys.exit("Скрипт собирает релиз для macOS и запускается только на Mac")
 
@@ -65,8 +71,19 @@ def main() -> None:
     zip_path = RELEASE_DIR / zip_name
     make_zip(app_path, zip_path)
 
-    print(f"Готово: {zip_path} ({zip_path.stat().st_size / 1024 / 1024:.1f} МБ)")
-    print(f"sha256: {sha256_of(zip_path)}")
+    version_info = {
+        "version": APP_VERSION,
+        "db_version": DB_VERSION,
+        "file": zip_name,
+        "sha256": sha256_of(zip_path),
+        "notes": args.notes,
+    }
+    version_name = f"version-mac-{arch}.json"
+    (RELEASE_DIR / version_name).write_text(json.dumps(version_info, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print(f"Готово. Загрузите на Яндекс.Диск два файла из {RELEASE_DIR}:")
+    print(f"  {zip_name} ({zip_path.stat().st_size / 1024 / 1024:.1f} МБ)")
+    print(f"  {version_name}")
 
 
 if __name__ == "__main__":
