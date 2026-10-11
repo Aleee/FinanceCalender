@@ -1,7 +1,7 @@
 from typing import Optional
 
 import lovely_logger as log
-from PySide6.QtCore import QObject, Qt
+from PySide6.QtCore import QObject, Qt, QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox, QProgressDialog, QPushButton, QWidget
 
 from base.backup import save_backup
@@ -9,6 +9,8 @@ from base.dbhandler import DBHandler
 from base.updater import UpdateDownloader, UpdateError, UpdateInfo, is_frozen, launch_updater
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.settings import SettingsHandler
+
+OFFER_RETRY_DELAY_MS = 5000
 
 
 class UpdateAvailableMessageBox(QMessageBox):
@@ -45,7 +47,8 @@ class UpdateController(QObject):
 
     def offer_update(self, info: UpdateInfo) -> None:
         if QApplication.activeModalWidget() is not None:
-            log.i(f"Обновление {info.version} не предложено: открыто модальное окно")
+            log.i(f"Обновление {info.version} отложено: открыто модальное окно")
+            QTimer.singleShot(OFFER_RETRY_DELAY_MS, lambda: self.offer_update(info))
             return
         message_box = UpdateAvailableMessageBox(info, self.window)
         message_box.exec()
