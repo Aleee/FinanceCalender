@@ -121,7 +121,7 @@ def compare_with_master(dbh: DBHandler, channel: SyncChannel, report: SyncReport
     return SyncAction.CONFLICT
 
 
-def pull_message(info: MasterInfo | None, report: SyncReport) -> str:
+def pull_message(info: MasterInfo | None) -> str:
     text: str = SYNC_PULL_MESSAGE
     if info is not None:
         text += f".\n\nОбщая база обновлена: {describe_master(info)}"

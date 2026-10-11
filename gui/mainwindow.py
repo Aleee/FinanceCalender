@@ -499,7 +499,7 @@ class MainWindow(QMainWindow):
         action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True))
         is_changed_by_other: bool = action in (SyncAction.PULL, SyncAction.MERGE)
         is_merged: bool = action == SyncAction.MERGE
-        if interactive:
+        if interactive or action == SyncAction.CONFLICT:
             action = self._resolve_sync_action(action, channel, params, report)
         self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
         if action in self.SYNC_SUCCESS_ACTIONS:
