@@ -6,6 +6,7 @@ Row = dict[str, Any]
 
 DETAILED_TABLES = ("event", "payment")
 IGNORED_COLUMNS = ("receivernocase",)
+COMPANION_COLUMNS = {"receiver": "receivernocase"}
 DERIVED_COLUMNS = ("event_title",)
 MAX_LISTED_ROWS = 30
 MAX_VALUE_LENGTH = 60
@@ -45,10 +46,6 @@ class DbDiff:
     @property
     def is_empty(self) -> bool:
         return all(table.is_empty for table in self.tables.values()) and not self.other_tables
-
-    @property
-    def only_additions(self) -> bool:
-        return not self.other_tables and all(not table.changed and not table.removed for table in self.tables.values())
 
     def added_ids(self, table: str) -> list[int]:
         return [row["id"] for row in self.tables[table].added] if table in self.tables else []
@@ -109,6 +106,63 @@ def list_rows(lines: list[str], prefix: str, rows: list[str]) -> None:
     lines.extend(f"  {prefix} {row}" for row in rows[:MAX_LISTED_ROWS])
     if len(rows) > MAX_LISTED_ROWS:
         lines.append(f"  … и ещё {len(rows) - MAX_LISTED_ROWS}")
+
+
+@dataclass
+class MergePlan:
+    updates: dict[str, list[tuple[int, list[str]]]] = field(default_factory=dict)
+    deletes: dict[str, list[int]] = field(default_factory=dict)
+    conflicts: list[str] = field(default_factory=list)
+
+
+def changed_columns(old_row: Row, new_row: Row) -> list[str]:
+    return [column for column in new_row if column not in DERIVED_COLUMNS and new_row[column] != old_row[column]]
+
+
+def plan_merge(my_changes: DbDiff, their_changes: DbDiff) -> MergePlan:
+    plan = MergePlan()
+    if my_changes.other_tables:
+        plan.conflicts.append("Вы изменили также: " + ", ".join(TABLE_TITLES.get(table, table) for table in my_changes.other_tables))
+    empty = TableDiff()
+    for table in DETAILED_TABLES:
+        mine, theirs = my_changes.tables.get(table, empty), their_changes.tables.get(table, empty)
+        their_changed = {new_row["id"]: (old_row, new_row) for old_row, new_row in theirs.changed}
+        their_removed = {row["id"] for row in theirs.removed}
+        plan.updates[table], plan.deletes[table] = [], []
+        for old_row, new_row in mine.changed:
+            row_id, title = new_row["id"], describe_row(table, new_row)
+            columns = changed_columns(old_row, new_row)
+            if row_id in their_removed:
+                plan.conflicts.append(f"{title}: изменено у вас, удалено в общей базе")
+                continue
+            if row_id in their_changed:
+                their_old, their_new = their_changed[row_id]
+                their_columns = changed_columns(their_old, their_new)
+                plan.conflicts.extend(
+                    f"{title}: {COLUMN_TITLES.get(column, column)} — у вас {format_value(new_row[column])}, "
+                    f"в общей базе {format_value(their_new[column])}"
+                    for column in columns if column in their_columns and their_new[column] != new_row[column])
+                columns = [column for column in columns if column not in their_columns]
+            columns += [COMPANION_COLUMNS[column] for column in columns if column in COMPANION_COLUMNS and table == "event"]
+            if columns:
+                plan.updates[table].append((row_id, columns))
+        for row in mine.removed:
+            if row["id"] in their_removed:
+                continue
+            if row["id"] in their_changed:
+                plan.conflicts.append(f"{describe_row(table, row)}: удалено у вас, изменено в общей базе")
+            else:
+                plan.deletes[table].append(row["id"])
+    their_payments = their_changes.tables.get("payment", empty).added + [new_row for _, new_row in their_changes.tables.get("payment", empty).changed]
+    for row in their_payments:
+        if row["eventid"] in plan.deletes["event"]:
+            plan.conflicts.append(f"{describe_row('payment', row)}: событие удалено у вас, а в общей базе к нему есть платёж")
+    their_removed_events = {row["id"] for row in their_changes.tables.get("event", empty).removed}
+    my_payments = my_changes.tables.get("payment", empty).added + [new_row for _, new_row in my_changes.tables.get("payment", empty).changed]
+    for row in my_payments:
+        if row["eventid"] in their_removed_events:
+            plan.conflicts.append(f"{describe_row('payment', row)}: событие удалено в общей базе")
+    return plan
 
 
 def format_warnings(warnings: MergeWarnings) -> list[str]:

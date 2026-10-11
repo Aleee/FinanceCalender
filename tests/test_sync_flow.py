@@ -588,22 +588,6 @@ def test_merge_warns_about_duplicate_event(connected, channel):
     assert rows(machine_b, "SELECT COUNT(*) FROM event") == [(2,)]
 
 
-def test_merge_not_done_when_existing_row_changed(shared_event, channel):
-    import sqlite3
-    machine_a, machine_b = shared_event
-    add_event(machine_a, 2, "От первого")
-    con = sqlite3.connect(machine_b.file)
-    con.execute("UPDATE event SET totalamount = '99.00' WHERE id = 1")
-    con.commit()
-    con.close()
-    with machine_a as dbh:
-        push_master(dbh, channel, PARAMS)
-    with machine_b as dbh:
-        assert synchronize(dbh, channel, PARAMS, merge=True) == SyncAction.CONFLICT
-    assert rows(machine_b, "SELECT totalamount FROM event WHERE id = 1") == [("99.00",)]
-    assert rows(machine_b, "SELECT COUNT(*) FROM event") == [(1,)]
-
-
 def test_merge_not_done_when_other_table_changed(shared_event, channel):
     import sqlite3
     machine_a, machine_b = shared_event
@@ -673,3 +657,147 @@ def test_merge_keeps_changes_for_next_push_when_push_fails(connected, channel, m
     with machine_a as dbh:
         assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
     assert rows(machine_a, "SELECT COUNT(*) FROM event") == [(2,)]
+
+
+def run_sql(machine: Machine, sql: str, *params) -> None:
+    import sqlite3
+    con = sqlite3.connect(machine.file)
+    con.execute(sql, params)
+    con.commit()
+    con.close()
+
+
+NEW_EVENT_2 = ("INSERT INTO event (id, receiver, name, totalamount, duedate, receivernocase) "
+               "VALUES (2, 'Р', 'Другое', '1', '2026-10-15', 'р')")
+
+
+def sync_both(machine_a, machine_b, channel, sql_a: str, sql_b: str, report=None):
+    run_sql(machine_a, sql_a)
+    run_sql(machine_b, sql_b)
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        return synchronize(dbh, channel, PARAMS, report, merge=True)
+
+
+def test_merge_keeps_my_edit_of_existing_event_and_their_new_event(shared_event, channel):
+    machine_a, machine_b = shared_event
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, NEW_EVENT_2, "UPDATE event SET totalamount = '99.00' WHERE id = 1", report)
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, "SELECT id, totalamount FROM event ORDER BY id") == [(1, "99.00"), (2, "1")]
+    assert [new["totalamount"] for _, new in report.my_changes.tables["event"].changed] == ["99.00"]
+    with machine_a as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    assert rows(machine_a, "SELECT id, totalamount FROM event ORDER BY id") == [(1, "99.00"), (2, "1")]
+
+
+def test_merge_combines_different_columns_of_same_event(shared_event, channel):
+    machine_a, machine_b = shared_event
+    action = sync_both(machine_a, machine_b, channel,
+                       "UPDATE event SET notes = 'заметка', receiver = 'Новый', receivernocase = 'новый' WHERE id = 1",
+                       "UPDATE event SET totalamount = '77.00' WHERE id = 1")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, "SELECT receiver, receivernocase, notes, totalamount FROM event WHERE id = 1") == [
+        ("Новый", "новый", "заметка", "77.00")]
+
+
+def test_merge_takes_my_receiver_with_lowercase_copy(shared_event, channel):
+    machine_a, machine_b = shared_event
+    action = sync_both(machine_a, machine_b, channel, "UPDATE event SET notes = 'чужая' WHERE id = 1",
+                       "UPDATE event SET receiver = 'ООО Мой', receivernocase = 'ооо мой' WHERE id = 1")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, "SELECT receiver, receivernocase, notes FROM event WHERE id = 1") == [("ООО Мой", "ооо мой", "чужая")]
+
+
+def test_merge_accepts_identical_change_of_same_column(shared_event, channel):
+    machine_a, machine_b = shared_event
+    action = sync_both(machine_a, machine_b, channel, "UPDATE event SET totalamount = '50.00' WHERE id = 1",
+                       "UPDATE event SET totalamount = '50.00', notes = 'моя' WHERE id = 1")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, "SELECT totalamount, notes FROM event WHERE id = 1") == [("50.00", "моя")]
+
+
+def test_conflict_when_same_column_changed_differently(shared_event, channel):
+    machine_a, machine_b = shared_event
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, "UPDATE event SET totalamount = '50.00' WHERE id = 1",
+                       "UPDATE event SET totalamount = '60.00' WHERE id = 1", report)
+    assert action == SyncAction.CONFLICT
+    assert len(report.conflicts) == 1 and "сумма — у вас 60.00, в общей базе 50.00" in report.conflicts[0]
+    assert rows(machine_b, "SELECT totalamount FROM event WHERE id = 1") == [("60.00",)]
+
+
+def test_conflict_report_contains_conflicts_for_dialog(shared_event, channel):
+    machine_a, machine_b = shared_event
+    run_sql(machine_a, "UPDATE event SET totalamount = '50.00' WHERE id = 1")
+    run_sql(machine_b, "UPDATE event SET totalamount = '60.00' WHERE id = 1")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    report = syncmod.SyncReport()
+    with machine_b as dbh:
+        syncmod.collect_conflict_report(dbh, channel, report)
+    assert len(report.conflicts) == 1
+
+
+def test_merge_applies_payment_edit_and_warns_about_overpayment(shared_event, channel):
+    machine_a, machine_b = shared_event
+    run_sql(machine_a, "INSERT INTO payment (id, eventid, paymentdate, sum) VALUES (1, 1, '2026-10-11', '5.00')")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, NEW_EVENT_2, "UPDATE payment SET sum = '15.00' WHERE id = 1", report)
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, "SELECT sum FROM payment WHERE id = 1") == [("15.00",)]
+    assert [row["name"] for row in report.warnings.overpaid_events] == ["Общее"]
+
+
+def test_merge_deletes_event_with_payments_removed_by_me(shared_event, channel):
+    machine_a, machine_b = shared_event
+    run_sql(machine_a, "INSERT INTO payment (id, eventid, paymentdate, sum) VALUES (1, 1, '2026-10-11', '5.00')")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    run_sql(machine_b, "DELETE FROM payment WHERE eventid = 1")
+    action = sync_both(machine_a, machine_b, channel, NEW_EVENT_2, "DELETE FROM event WHERE id = 1")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, "SELECT id FROM event ORDER BY id") == [(2,)]
+    assert rows(machine_b, "SELECT COUNT(*) FROM payment") == [(0,)]
+
+
+def test_conflict_when_deleted_event_got_payment_in_master(shared_event, channel):
+    machine_a, machine_b = shared_event
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel,
+                       "INSERT INTO payment (id, eventid, paymentdate, sum) VALUES (1, 1, '2026-10-11', '5.00')",
+                       "DELETE FROM event WHERE id = 1", report)
+    assert action == SyncAction.CONFLICT
+    assert "событие удалено у вас" in report.conflicts[0]
+
+
+def test_conflict_when_deleted_by_me_and_changed_by_other(shared_event, channel):
+    machine_a, machine_b = shared_event
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, "UPDATE event SET notes = 'правка' WHERE id = 1",
+                       "DELETE FROM event WHERE id = 1", report)
+    assert action == SyncAction.CONFLICT
+    assert "удалено у вас, изменено в общей базе" in report.conflicts[0]
+
+
+def test_conflict_when_changed_by_me_and_deleted_by_other(shared_event, channel):
+    machine_a, machine_b = shared_event
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, "DELETE FROM event WHERE id = 1",
+                       "UPDATE event SET notes = 'правка' WHERE id = 1", report)
+    assert action == SyncAction.CONFLICT
+    assert "изменено у вас, удалено в общей базе" in report.conflicts[0]
+
+
+def test_merge_ignores_event_deleted_on_both_sides(shared_event, channel):
+    machine_a, machine_b = shared_event
+    action = sync_both(machine_a, machine_b, channel, "DELETE FROM event WHERE id = 1", "DELETE FROM event WHERE id = 1")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, "SELECT COUNT(*) FROM event") == [(0,)]

@@ -19,7 +19,7 @@ from base.liability import LiabilityCategory, RowType
 from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
 from base.paths import db_path, backup_dir
 from base.payment import Payment, PaymentEntry
-from base.syncdiff import DbDiff, TableDiff, MergeWarnings, DETAILED_TABLES, IGNORED_COLUMNS, DERIVED_COLUMNS
+from base.syncdiff import DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, IGNORED_COLUMNS, DERIVED_COLUMNS
 from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
@@ -282,8 +282,8 @@ class DBHandler:
         main_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA main.table_info("{table}")')]
         return [column for column in main_columns if column in other_columns and not (skip_ignored and column in IGNORED_COLUMNS)]
 
-    def merge_added_rows(self, target_path: str, source_path: str, event_ids: list[int],
-                         payment_ids: list[int]) -> dict[str, dict[int, int]] | None:
+    def apply_merge(self, target_path: str, source_path: str, plan: MergePlan, event_ids: list[int],
+                    payment_ids: list[int]) -> dict[str, dict[int, int]] | None:
         try:
             with self._file_connection(target_path) as connection:
                 self._file_execute(connection, "ATTACH DATABASE ? AS mine", source_path)
@@ -291,6 +291,10 @@ class DBHandler:
                 if not database.transaction():
                     raise RuntimeError(f"Не удалось начать транзакцию: {database.lastError().text()}")
                 try:
+                    for table in ("payment", "event"):
+                        self._delete_rows(connection, table, plan.deletes.get(table, []))
+                    for table in DETAILED_TABLES:
+                        self._update_rows(connection, table, plan.updates.get(table, []))
                     event_map = self._copy_added_rows(connection, "event", event_ids, {})
                     payment_map = self._copy_added_rows(connection, "payment", payment_ids, {"eventid": event_map})
                     if not database.commit():
@@ -302,6 +306,20 @@ class DBHandler:
         except Exception as e:
             log.x(f"Не удалось добавить строки из {source_path} в {target_path}: {e}")
             return None
+
+    def _delete_rows(self, connection: str, table: str, ids: list[int]) -> None:
+        for row_id in ids:
+            self._file_execute(connection, f'DELETE FROM main."{table}" WHERE id = ?', row_id)
+        if table == "payment" or not ids:
+            return
+        removed = ", ".join(str(row_id) for row_id in ids)
+        if self._file_execute(connection, f"SELECT COUNT(*) FROM main.payment WHERE eventid IN ({removed})")[0][0]:
+            raise RuntimeError("К удалённым событиям остались привязаны платежи")
+
+    def _update_rows(self, connection: str, table: str, updates: list[tuple[int, list[str]]]) -> None:
+        for row_id, columns in updates:
+            assignments = ", ".join(f'"{column}" = (SELECT "{column}" FROM mine."{table}" WHERE id = ?)' for column in columns)
+            self._file_execute(connection, f'UPDATE main."{table}" SET {assignments} WHERE id = ?', *([row_id] * len(columns)), row_id)
 
     def _copy_added_rows(self, connection: str, table: str, ids: list[int], references: dict[str, dict[int, int]]) -> dict[int, int]:
         columns = self._common_columns(connection, table, "mine", skip_ignored=False)
@@ -327,10 +345,13 @@ class DBHandler:
             next_id += 1
         return id_map
 
-    def find_merge_warnings(self, path: str, event_ids: list[int], payment_ids: list[int]) -> MergeWarnings | None:
+    def find_merge_warnings(self, path: str, event_ids: list[int], payment_ids: list[int], touched_event_ids: list[int],
+                            touched_payment_ids: list[int]) -> MergeWarnings | None:
         warnings = MergeWarnings()
         events = ", ".join(str(event_id) for event_id in event_ids) or "NULL"
         payments = ", ".join(str(payment_id) for payment_id in payment_ids) or "NULL"
+        touched_events = ", ".join(str(event_id) for event_id in touched_event_ids) or "NULL"
+        touched_payments = ", ".join(str(payment_id) for payment_id in touched_payment_ids) or "NULL"
         title = "(SELECT e.receiver || ' — ' || e.name FROM event e WHERE e.id = n.eventid)"
         try:
             with self._file_connection(path) as connection:
@@ -348,7 +369,8 @@ class DBHandler:
                     connection, ["receiver", "name", "totalamount", "duedate", "paid"],
                     f"SELECT e.receiver, e.name, e.totalamount, e.duedate, ROUND(SUM(CAST(p.sum AS REAL)), 2) "
                     f"FROM event e JOIN payment p ON p.eventid = e.id "
-                    f"WHERE e.id IN (SELECT eventid FROM payment WHERE id IN ({payments})) GROUP BY e.id "
+                    f"WHERE e.id IN ({touched_events}) OR e.id IN (SELECT eventid FROM payment WHERE id IN ({touched_payments})) "
+                    f"GROUP BY e.id "
                     f"HAVING ROUND(SUM(CAST(p.sum AS REAL)), 2) > ROUND(CAST(e.totalamount AS REAL), 2) ORDER BY e.id")
             return warnings
         except Exception as e:

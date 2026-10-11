@@ -499,7 +499,7 @@ class MainWindow(QMainWindow):
         is_changed_by_other: bool = action in (SyncAction.PULL, SyncAction.MERGE)
         is_merged: bool = action == SyncAction.MERGE
         if interactive:
-            action = self._resolve_sync_action(action, channel, params)
+            action = self._resolve_sync_action(action, channel, params, report)
         self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
         if action in self.SYNC_SUCCESS_ACTIONS:
             self.sync_succeeded_at = QDateTime.currentDateTime()
@@ -522,7 +522,8 @@ class MainWindow(QMainWindow):
         elif self.sync_status_text != previous_status_text and action in (SyncAction.CONFLICT, SyncAction.CLIENT_OUTDATED):
             self.ui.statusBar.showMessage(f"Синхронизация: {self.sync_status_text}. Нажмите на кнопку синхронизации на панели инструментов", 15000)
 
-    def _resolve_sync_action(self, action: SyncAction | None, channel: SyncChannel, params: SyncParams) -> SyncAction | None:
+    def _resolve_sync_action(self, action: SyncAction | None, channel: SyncChannel, params: SyncParams,
+                             report: SyncReport) -> SyncAction | None:
         if action == SyncAction.NO_MASTER and YesNoMessagebox(
                 "В папке обмена нет общей базы. Создать её из вашей локальной копии?",
                 self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
@@ -533,8 +534,8 @@ class MainWindow(QMainWindow):
                 self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
             return self._run_sync_step(channel, lambda: connect_to_master(self.db_handler, channel))
         if action == SyncAction.CONFLICT and self.sync_master_info:
-            report = SyncReport()
-            self._run_sync_step(channel, lambda: compare_with_master(self.db_handler, channel, report))
+            if report.my_changes is None:
+                self._run_sync_step(channel, lambda: compare_with_master(self.db_handler, channel, report))
             conflict_dlg = SyncConflictDialog(describe_master(self.sync_master_info), self, conflict_summary(report),
                                               conflict_details(report))
             conflict_dlg.exec()

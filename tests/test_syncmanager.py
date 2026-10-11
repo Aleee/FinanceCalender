@@ -129,8 +129,17 @@ def test_merge_message_lists_changes_and_warnings():
         warnings=MergeWarnings(duplicate_events=[event] * 7), merge_pushed=True)
     text = merge_message(report)
     assert "11.10.2026 14:32, Иванов (PC-2)" in text and "отправлены в общую базу" in text
-    assert "Изменения другого пользователя:\nСобытия: добавлено 1" in text and "Добавлено вами:\nПлатежи: добавлено 1" in text
+    assert "Изменения другого пользователя:\nСобытия: добавлено 1" in text and "Ваши изменения:\nПлатежи: добавлено 1" in text
     assert text.count("• Возможный дубль события") == 5 and "… и ещё 2" in text
     assert merge_details(report).count("• Возможный дубль события") == 7
     report.merge_pushed = False
     assert "будут отправлены при следующей синхронизации" in merge_message(report)
+
+
+def test_conflict_summary_lists_conflicts():
+    from base.sync import SyncReport
+    from gui.syncmanager import conflict_details, conflict_summary
+    report = SyncReport(conflicts=[f"строка {number}" for number in range(7)])
+    assert conflict_summary(report).startswith("Автоматически объединить не удалось:\n• строка 0")
+    assert "… и ещё 2" in conflict_summary(report) and "• строка 6" not in conflict_summary(report)
+    assert "• строка 6" in conflict_details(report)

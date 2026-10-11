@@ -136,44 +136,58 @@ def pull_details(report: SyncReport) -> str:
     return "" if report.their_changes is None else format_diff(report.their_changes)
 
 
+def bullet_list(lines: list[str], limit: int | None = None) -> str:
+    shown: list[str] = [f"• {line}" for line in lines[:limit]]
+    if limit is not None and len(lines) > limit:
+        shown.append(f"… и ещё {len(lines) - limit}")
+    return "\n".join(shown)
+
+
 def diff_blocks(blocks: list[tuple[str, DbDiff | None]], describe: Callable[[DbDiff], str]) -> str:
     return "\n\n".join(f"{title}:\n{describe(diff)}" for title, diff in blocks if diff is not None and not diff.is_empty)
 
 
 def conflict_summary(report: SyncReport) -> str:
-    return diff_blocks([("Ваши изменения", report.my_changes), ("Изменения в общей базе", report.their_changes)], diff_summary)
+    text: str = diff_blocks([("Ваши изменения", report.my_changes), ("Изменения в общей базе", report.their_changes)], diff_summary)
+    if report.conflicts:
+        text += ("\n\n" if text else "") + "Автоматически объединить не удалось:\n" + bullet_list(report.conflicts, MAX_SHOWN_WARNINGS)
+    return text
 
 
 def conflict_details(report: SyncReport) -> str:
-    return diff_blocks([("Ваши изменения с последней синхронизации", report.my_changes),
-                        ("Изменения в общей базе с последней синхронизации", report.their_changes)], format_diff)
+    text: str = diff_blocks([("Ваши изменения с последней синхронизации", report.my_changes),
+                             ("Изменения в общей базе с последней синхронизации", report.their_changes)], format_diff)
+    if report.conflicts:
+        text += ("\n\n" if text else "") + "Автоматически объединить не удалось:\n" + bullet_list(report.conflicts)
+    return text
+
+
+def merge_warning_lines(report: SyncReport) -> list[str]:
+    return [] if report.warnings is None else format_warnings(report.warnings)
 
 
 def merge_message(report: SyncReport) -> str:
     text: str = "Пока вы работали, общая база была изменена другим пользователем"
     if report.master_info is not None:
         text += f" ({describe_master(report.master_info)})"
-    text += ". Ваши изменения добавлены к ним"
+    text += ". Ваши изменения объединены с ними"
     text += " и отправлены в общую базу." if report.merge_pushed else ". Они будут отправлены при следующей синхронизации."
-    summary: str = diff_blocks([("Изменения другого пользователя", report.their_changes), ("Добавлено вами", report.my_changes)],
+    summary: str = diff_blocks([("Изменения другого пользователя", report.their_changes), ("Ваши изменения", report.my_changes)],
                                diff_summary)
     if summary:
         text += f"\n\n{summary}"
-    warnings: list[str] = [] if report.warnings is None else format_warnings(report.warnings)
+    warnings: list[str] = merge_warning_lines(report)
     if warnings:
-        shown: list[str] = [f"• {warning}" for warning in warnings[:MAX_SHOWN_WARNINGS]]
-        if len(warnings) > MAX_SHOWN_WARNINGS:
-            shown.append(f"… и ещё {len(warnings) - MAX_SHOWN_WARNINGS}")
-        text += "\n\nПроверьте:\n" + "\n".join(shown)
+        text += "\n\nПроверьте:\n" + bullet_list(warnings, MAX_SHOWN_WARNINGS)
     return text
 
 
 def merge_details(report: SyncReport) -> str:
-    text: str = diff_blocks([("Изменения другого пользователя", report.their_changes), ("Добавлено вами", report.my_changes)],
+    text: str = diff_blocks([("Изменения другого пользователя", report.their_changes), ("Ваши изменения", report.my_changes)],
                             format_diff)
-    warnings: list[str] = [] if report.warnings is None else format_warnings(report.warnings)
+    warnings: list[str] = merge_warning_lines(report)
     if warnings:
-        text += "\n\nПроверьте:\n" + "\n".join(f"• {warning}" for warning in warnings)
+        text += "\n\nПроверьте:\n" + bullet_list(warnings)
     return text.strip()
 
 

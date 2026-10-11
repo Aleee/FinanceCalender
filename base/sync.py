@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
@@ -16,7 +16,7 @@ import lovely_logger as log
 
 from base.backup import replace_db_file
 from base.paths import backup_dir, sync_base_path
-from base.syncdiff import DbDiff, MergeWarnings
+from base.syncdiff import DbDiff, MergeWarnings, plan_merge
 
 if TYPE_CHECKING:
     from base.dbhandler import DBHandler
@@ -82,6 +82,7 @@ class SyncReport:
     my_changes: DbDiff | None = None
     master_info: "MasterInfo | None" = None
     warnings: MergeWarnings | None = None
+    conflicts: list[str] = field(default_factory=list)
     merge_pushed: bool = False
 
 
@@ -455,6 +456,8 @@ def collect_conflict_report(dbh: "DBHandler", channel: SyncChannel, report: Sync
         downloaded, _ = download_checked_master(dbh, channel, master, folder)
         report.their_changes = dbh.read_db_diff(str(base), str(downloaded))
         report.my_changes = dbh.read_db_diff(str(base), dbh.local_db_path())
+        if report.their_changes is not None and report.my_changes is not None:
+            report.conflicts = plan_merge(report.my_changes, report.their_changes).conflicts
 
 
 def merge_into_master(dbh: "DBHandler", channel: SyncChannel, master: MasterInfo, report: SyncReport) -> bool:
@@ -463,17 +466,29 @@ def merge_into_master(dbh: "DBHandler", channel: SyncChannel, master: MasterInfo
     if base is None or master.db_version != local.db_version:
         return False
     my_changes = dbh.read_db_diff(str(base), dbh.local_db_path())
-    if my_changes is None or not my_changes.only_additions:
+    if my_changes is None or my_changes.other_tables:
         return False
     with tempfile.TemporaryDirectory() as folder:
         downloaded, _ = download_checked_master(dbh, channel, master, folder)
         their_changes = dbh.read_db_diff(str(base), str(downloaded))
+        if their_changes is None:
+            return False
+        plan = plan_merge(my_changes, their_changes)
+        if plan.conflicts:
+            report.their_changes, report.my_changes = their_changes, my_changes
+            report.master_info, report.conflicts = master, plan.conflicts
+            return False
         merged = Path(folder) / "merged.db"
         shutil.copyfile(downloaded, merged)
-        id_maps = dbh.merge_added_rows(str(merged), dbh.local_db_path(), my_changes.added_ids("event"), my_changes.added_ids("payment"))
+        id_maps = dbh.apply_merge(str(merged), dbh.local_db_path(), plan, my_changes.added_ids("event"),
+                                  my_changes.added_ids("payment"))
         if id_maps is None or not dbh.check_file_integrity(str(merged)):
             return False
-        warnings = dbh.find_merge_warnings(str(merged), list(id_maps["event"].values()), list(id_maps["payment"].values()))
+        new_events, new_payments = list(id_maps["event"].values()), list(id_maps["payment"].values())
+        changed_events = [new_row["id"] for _, new_row in my_changes.tables["event"].changed]
+        changed_payments = [new_row["id"] for _, new_row in my_changes.tables["payment"].changed]
+        warnings = dbh.find_merge_warnings(str(merged), new_events, new_payments, new_events + changed_events,
+                                           new_payments + changed_payments)
         save_conflict_copy(dbh)
         if not replace_db_file(dbh, str(merged)):
             raise SyncError("Не удалось заменить локальную копию объединённой базой (подробности см. в логе)")
