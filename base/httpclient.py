@@ -10,7 +10,7 @@ from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequ
 from base.sync import NetworkError, SyncError
 
 CONNECT_TIMEOUT_MS = 1500
-RESPONSE_TIMEOUT_MS = 4000
+RESPONSE_TIMEOUT_MS = 8000
 UPLOAD_EXTRA_MS_PER_MB = 2000
 MAX_ATTEMPTS = 4
 RETRY_PAUSE_MS = 200
