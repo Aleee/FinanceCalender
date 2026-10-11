@@ -1,7 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+import sys
 
-openssl_dlls = [os.path.join('openssl', name) for name in ('libssl-3-x64.dll', 'libcrypto-3-x64.dll')]
+openssl_dlls = [os.path.join('openssl', name) for name in ('libssl-3-x64.dll', 'libcrypto-3-x64.dll')] if sys.platform == 'win32' else []
 missing = [path for path in openssl_dlls if not os.path.exists(path)]
 if missing:
     raise SystemExit(f'Не найдены библиотеки OpenSSL: {missing}. Положите их в папку openssl/ (см. объяснение в чате).')
