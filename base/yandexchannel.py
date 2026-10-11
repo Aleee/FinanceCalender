@@ -14,6 +14,7 @@ from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INF
 
 API_URL = "https://cloud-api.yandex.net/v1/disk"
 DEFAULT_DISK_FOLDER = "app:/"
+UPLOAD_ATTEMPTS = 3
 UPLOAD_CONFIRM_ATTEMPTS = 10
 UPLOAD_CONFIRM_PAUSE_MS = 1000
 OPERATION_ATTEMPTS = 60
@@ -160,8 +161,18 @@ class YandexDiskApiChannel(SyncChannel):
     def put_file(self, remote_path: str, expected_md5: str, expected_size: int, data: bytes = b"",
                  upload_file: Path | None = None) -> None:
         name = remote_path[len(self.folder):]
-        href = self.upload_link(remote_path)
-        response = self.http.send("PUT", href, data=data, upload_file=upload_file)
+        for attempt in range(1, UPLOAD_ATTEMPTS + 1):
+            href = self.upload_link(remote_path)
+            try:
+                response = self.http.send("PUT", href, data=data, upload_file=upload_file)
+            except NetworkError as e:
+                if attempt == UPLOAD_ATTEMPTS:
+                    raise
+                log.d(f"Загрузка {name}: попытка {attempt}/{UPLOAD_ATTEMPTS} не удалась ({e}), запрашиваем новую ссылку")
+                continue
+            if response.status != 400 or attempt == UPLOAD_ATTEMPTS:
+                break
+            log.d(f"Загрузка {name}: попытка {attempt}/{UPLOAD_ATTEMPTS} отклонена (400), запрашиваем новую ссылку")
         if response.status not in (201, 202):
             raise self.error_from(response)
         mismatch = False
