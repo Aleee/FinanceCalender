@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from base.syncdiff import describe_changes, diff_summary, format_diff
+from base.syncdiff import describe_other_table, describe_row, field_changes, format_value
 from tests.dbtools import create_db
 
 
@@ -42,7 +42,6 @@ def new_db(tmp_path, old_db) -> Path:
 def test_identical_files_have_empty_diff(dbh, old_db, new_db):
     diff = dbh.read_db_diff(str(old_db), str(new_db))
     assert diff is not None and diff.is_empty
-    assert diff_summary(diff) == "" and format_diff(diff) == ""
 
 
 def test_added_changed_removed_events_and_payments(dbh, old_db, new_db):
@@ -60,14 +59,37 @@ def test_added_changed_removed_events_and_payments(dbh, old_db, new_db):
     assert [row["id"] for row in events.removed] == [2]
     old_row, new_row = events.changed[0]
     assert (old_row["totalamount"], new_row["totalamount"]) == ("100.00", "120.00")
-    assert describe_changes(old_row, new_row) == "сумма: 100.00 → 120.00"
+    assert field_changes(old_row, new_row) == [("Сумма", "100,00", "120,00")]
     assert [(row["id"], row["event_title"]) for row in payments.added] == [(2, "ООО Лютик — Аренда"), (3, "ООО Ромашка — Поставка")]
     assert not payments.removed and not payments.changed
-    assert diff_summary(diff) == "Платежи: добавлено 1, изменено 1, удалено 1\nОплаты: добавлено 2"
-    text = format_diff(diff)
-    assert "+ ООО Лютик — Аренда, 900.00, срок 15.10.2026" in text
-    assert "~ ООО Ромашка — Поставка, 120.00, срок 15.10.2026 (сумма: 100.00 → 120.00)" in text
-    assert "− ИП Иванов — Поставка, 50.00, срок 15.10.2026" in text
+    assert describe_row("event", events.added[0]) == "ООО Лютик — Аренда, 900,00, срок 15.10.2026"
+    assert describe_row("event", events.removed[0]) == "ИП Иванов — Поставка, 50,00, срок 15.10.2026"
+    assert describe_row("payment", payments.added[0]) == "ООО Лютик — Аренда: 300,00 от 11.10.2026"
+
+
+def test_format_value_uses_readable_names():
+    assert format_value("1156.9", "sum") == "1 156,90"
+    assert format_value(1101, "category") == "1.1. Заработная плата с налогами на з/п"
+    assert format_value(2, "paymenttype") == "Предоплата"
+    assert (format_value(0, "hidden"), format_value(1, "featured")) == ("нет", "да")
+    assert format_value(20, "nds") == "20%"
+    assert format_value("", "sum") == "—" and format_value("2026-10-15") == "15.10.2026"
+    assert format_value("не число", "sum") == "не число" and format_value(9999, "category") == "9999"
+
+
+def test_responsible_is_shown_by_name(dbh, old_db, new_db):
+    for path in (old_db, new_db):
+        con = sqlite3.connect(path)
+        con.execute("INSERT INTO personal (id, name) VALUES (1, 'Иванов И.'), (2, 'Петров П.')")
+        con.execute("UPDATE event SET responsible = '1' WHERE id = 1")
+        con.commit()
+        con.close()
+    con = sqlite3.connect(new_db)
+    con.execute("UPDATE event SET responsible = '2' WHERE id = 1")
+    con.commit()
+    con.close()
+    old_row, new_row = dbh.read_db_diff(str(old_db), str(new_db)).tables["event"].changed[0]
+    assert field_changes(old_row, new_row) == [("Ответственный", "Иванов И.", "Петров П.")]
 
 
 def test_removed_payment_uses_old_event_title(dbh, old_db, new_db):
@@ -88,7 +110,7 @@ def test_other_tables_counted_and_service_meta_ignored(dbh, old_db, new_db):
     con.close()
     diff = dbh.read_db_diff(str(old_db), str(new_db))
     assert diff.other_tables == {"contractor": (1, 0)}
-    assert "Изменены также: контрагенты" in diff_summary(diff)
+    assert describe_other_table("contractor", diff.other_tables["contractor"]).startswith("Контрагенты:")
     con = sqlite3.connect(new_db)
     con.execute("INSERT INTO meta (key, value) VALUES ('Calendar/2028/holidays', '1')")
     con.commit()
@@ -109,10 +131,3 @@ def test_unreadable_file_gives_none(dbh, old_db, tmp_path):
     broken = tmp_path / "broken.db"
     broken.write_text("не база данных")
     assert dbh.read_db_diff(str(old_db), str(broken)) is None
-
-
-def test_long_lists_are_truncated(dbh, old_db, new_db):
-    for event_id in range(10, 50):
-        insert_event(new_db, event_id)
-    text = format_diff(dbh.read_db_diff(str(old_db), str(new_db)))
-    assert "… и ещё 10" in text

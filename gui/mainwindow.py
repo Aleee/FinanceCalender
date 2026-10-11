@@ -41,12 +41,13 @@ from gui.recoverydialog import RecoveryDialog
 from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
+from gui.syncchangesdialog import SyncChangesDialog
 from gui.syncconflictdialog import SyncConflictDialog
 from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS, SYNC_STATUS_TEXT,
-                             TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_details, conflict_summary,
-                             connect_to_master, create_master, create_sync_channel, create_sync_params, describe_master,
-                             failure_status_text, master_age_days, merge_details, merge_message, overwrite_master, pull_details,
-                             pull_message, take_master, token_days_left)
+                             TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_tabs, connect_to_master,
+                             create_master, create_sync_channel, create_sync_params, describe_master, failure_status_text,
+                             master_age_days, merge_message, merge_tabs, merge_warning_lines, overwrite_master, pull_message,
+                             pull_tabs, take_master, token_days_left)
 from gui.ui.syncicon import create_sync_icon
 from gui.syncprogressdialog import SyncProgressDialog
 from gui.syncsettingsdialog import SyncSettingsDialog
@@ -508,12 +509,11 @@ class MainWindow(QMainWindow):
             self.reload_after_sync_pull()
         self.update_sync_status()
         if is_changed_by_other:
-            message, details = (merge_message(report), merge_details(report)) if is_merged else (
-                pull_message(report.master_info or self.sync_master_info, report), pull_details(report))
-            changes_box = ErrorInfoMessageBox(message, is_info=True, parent=self)
-            if details:
-                changes_box.setDetailedText(details)
-            changes_box.exec()
+            if is_merged:
+                changes_dlg = SyncChangesDialog(merge_message(report), merge_tabs(report), self, warnings=merge_warning_lines(report))
+            else:
+                changes_dlg = SyncChangesDialog(pull_message(report.master_info or self.sync_master_info), pull_tabs(report), self)
+            changes_dlg.exec()
         if interactive:
             if action is None:
                 ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
@@ -536,8 +536,7 @@ class MainWindow(QMainWindow):
         if action == SyncAction.CONFLICT and self.sync_master_info:
             if report.my_changes is None:
                 self._run_sync_step(channel, lambda: compare_with_master(self.db_handler, channel, report))
-            conflict_dlg = SyncConflictDialog(describe_master(self.sync_master_info), self, conflict_summary(report),
-                                              conflict_details(report))
+            conflict_dlg = SyncConflictDialog(describe_master(self.sync_master_info), self, conflict_tabs(report), report.conflicts)
             conflict_dlg.exec()
             if conflict_dlg.take_master_chosen():
                 return self._run_sync_step(channel, lambda: take_master(self.db_handler, channel))

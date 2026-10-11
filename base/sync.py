@@ -16,7 +16,7 @@ import lovely_logger as log
 
 from base.backup import replace_db_file
 from base.paths import backup_dir, sync_base_path
-from base.syncdiff import DbDiff, MergeWarnings, plan_merge
+from base.syncdiff import Conflict, DbDiff, MergeWarnings, plan_merge
 
 if TYPE_CHECKING:
     from base.dbhandler import DBHandler
@@ -82,7 +82,7 @@ class SyncReport:
     my_changes: DbDiff | None = None
     master_info: "MasterInfo | None" = None
     warnings: MergeWarnings | None = None
-    conflicts: list[str] = field(default_factory=list)
+    conflicts: list[Conflict] = field(default_factory=list)
     merge_pushed: bool = False
 
 

@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from datetime import date, datetime
 from pathlib import Path
 from platform import node
@@ -10,7 +9,7 @@ from base.dbhandler import DBHandler
 from base.httpclient import QtHttpClient
 from base.sync import (AuthError, FolderChannel, MasterInfo, MasterUpdatingError, NetworkError, SyncAction, SyncChannel,
                        SyncError, SyncParams, SyncReport, collect_conflict_report, pull_master, push_master, save_conflict_copy)
-from base.syncdiff import DbDiff, diff_summary, format_diff, format_warnings
+from base.syncdiff import DbDiff, format_warnings
 from base.version import APP_VERSION
 from base.yandexchannel import YandexDiskApiChannel
 from gui.settings import SettingsHandler
@@ -19,7 +18,6 @@ SYNC_STALE_DAYS = 7
 SYNC_RETRY_DELAY_MS = 30000
 SYNC_RETRY_ATTEMPTS = 2
 TOKEN_WARNING_DAYS = 30
-MAX_SHOWN_WARNINGS = 5
 
 SYNC_STATUS_TEXT: dict[SyncAction, str] = {
     SyncAction.NOTHING: "данные актуальны",
@@ -127,39 +125,19 @@ def pull_message(info: MasterInfo | None, report: SyncReport) -> str:
     text: str = SYNC_PULL_MESSAGE
     if info is not None:
         text += f".\n\nОбщая база обновлена: {describe_master(info)}"
-    if report.their_changes is not None and not report.their_changes.is_empty:
-        text += f"\n\n{diff_summary(report.their_changes)}"
     return text
 
 
-def pull_details(report: SyncReport) -> str:
-    return "" if report.their_changes is None else format_diff(report.their_changes)
+def pull_tabs(report: SyncReport) -> list[tuple[str, DbDiff | None]]:
+    return [("Изменения другого пользователя", report.their_changes)]
 
 
-def bullet_list(lines: list[str], limit: int | None = None) -> str:
-    shown: list[str] = [f"• {line}" for line in lines[:limit]]
-    if limit is not None and len(lines) > limit:
-        shown.append(f"… и ещё {len(lines) - limit}")
-    return "\n".join(shown)
+def merge_tabs(report: SyncReport) -> list[tuple[str, DbDiff | None]]:
+    return pull_tabs(report) + [("Ваши изменения", report.my_changes)]
 
 
-def diff_blocks(blocks: list[tuple[str, DbDiff | None]], describe: Callable[[DbDiff], str]) -> str:
-    return "\n\n".join(f"{title}:\n{describe(diff)}" for title, diff in blocks if diff is not None and not diff.is_empty)
-
-
-def conflict_summary(report: SyncReport) -> str:
-    text: str = diff_blocks([("Ваши изменения", report.my_changes), ("Изменения в общей базе", report.their_changes)], diff_summary)
-    if report.conflicts:
-        text += ("\n\n" if text else "") + "Автоматически объединить не удалось:\n" + bullet_list(report.conflicts, MAX_SHOWN_WARNINGS)
-    return text
-
-
-def conflict_details(report: SyncReport) -> str:
-    text: str = diff_blocks([("Ваши изменения с последней синхронизации", report.my_changes),
-                             ("Изменения в общей базе с последней синхронизации", report.their_changes)], format_diff)
-    if report.conflicts:
-        text += ("\n\n" if text else "") + "Автоматически объединить не удалось:\n" + bullet_list(report.conflicts)
-    return text
+def conflict_tabs(report: SyncReport) -> list[tuple[str, DbDiff | None]]:
+    return [("Ваши изменения", report.my_changes), ("Изменения в общей базе", report.their_changes)]
 
 
 def merge_warning_lines(report: SyncReport) -> list[str]:
@@ -172,23 +150,7 @@ def merge_message(report: SyncReport) -> str:
         text += f" ({describe_master(report.master_info)})"
     text += ". Ваши изменения объединены с ними"
     text += " и отправлены в общую базу." if report.merge_pushed else ". Они будут отправлены при следующей синхронизации."
-    summary: str = diff_blocks([("Изменения другого пользователя", report.their_changes), ("Ваши изменения", report.my_changes)],
-                               diff_summary)
-    if summary:
-        text += f"\n\n{summary}"
-    warnings: list[str] = merge_warning_lines(report)
-    if warnings:
-        text += "\n\nПроверьте:\n" + bullet_list(warnings, MAX_SHOWN_WARNINGS)
     return text
-
-
-def merge_details(report: SyncReport) -> str:
-    text: str = diff_blocks([("Изменения другого пользователя", report.their_changes), ("Ваши изменения", report.my_changes)],
-                            format_diff)
-    warnings: list[str] = merge_warning_lines(report)
-    if warnings:
-        text += "\n\nПроверьте:\n" + bullet_list(warnings)
-    return text.strip()
 
 
 def describe_master(info: MasterInfo) -> str:

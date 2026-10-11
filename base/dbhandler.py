@@ -19,7 +19,7 @@ from base.liability import LiabilityCategory, RowType
 from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
 from base.paths import db_path, backup_dir
 from base.payment import Payment, PaymentEntry
-from base.syncdiff import DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, IGNORED_COLUMNS, DERIVED_COLUMNS
+from base.syncdiff import DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, IGNORED_COLUMNS, TABLE_DERIVED_COLUMNS
 from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
@@ -377,12 +377,14 @@ class DBHandler:
         columns = self._common_columns(connection, table)
         if "id" not in columns:
             return TableDiff()
-        names = columns + (list(DERIVED_COLUMNS) if table == "payment" else [])
+        names = columns + list(TABLE_DERIVED_COLUMNS.get(table, ()))
 
         def select(alias: str, schema: str) -> str:
             fields = [f'{alias}."{column}"' for column in columns]
             if table == "payment":
                 fields.append(f"(SELECT e.receiver || ' — ' || e.name FROM {schema}.event e WHERE e.id = {alias}.eventid)")
+            elif table == "event":
+                fields.append(f"(SELECT p.name FROM {schema}.personal p WHERE p.id = {alias}.responsible)")
             return ", ".join(fields)
 
         def read(sql: str) -> list[list]:

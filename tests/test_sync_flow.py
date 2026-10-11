@@ -724,7 +724,7 @@ def test_conflict_when_same_column_changed_differently(shared_event, channel):
     action = sync_both(machine_a, machine_b, channel, "UPDATE event SET totalamount = '50.00' WHERE id = 1",
                        "UPDATE event SET totalamount = '60.00' WHERE id = 1", report)
     assert action == SyncAction.CONFLICT
-    assert len(report.conflicts) == 1 and "сумма — у вас 60.00, в общей базе 50.00" in report.conflicts[0]
+    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Сумма", "60,00", "50,00")]
     assert rows(machine_b, "SELECT totalamount FROM event WHERE id = 1") == [("60.00",)]
 
 
@@ -775,7 +775,7 @@ def test_conflict_when_deleted_event_got_payment_in_master(shared_event, channel
                        "INSERT INTO payment (id, eventid, paymentdate, sum) VALUES (1, 1, '2026-10-11', '5.00')",
                        "DELETE FROM event WHERE id = 1", report)
     assert action == SyncAction.CONFLICT
-    assert "платёж удалён у вас" in report.conflicts[0]
+    assert [(c.topic, c.mine) for c in report.conflicts] == [("Оплата", "платёж удалён")]
 
 
 def test_conflict_when_deleted_by_me_and_changed_by_other(shared_event, channel):
@@ -784,7 +784,7 @@ def test_conflict_when_deleted_by_me_and_changed_by_other(shared_event, channel)
     action = sync_both(machine_a, machine_b, channel, "UPDATE event SET notes = 'правка' WHERE id = 1",
                        "DELETE FROM event WHERE id = 1", report)
     assert action == SyncAction.CONFLICT
-    assert "удалено у вас, изменено в общей базе" in report.conflicts[0]
+    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Платёж", "удаление", "правка")]
 
 
 def test_conflict_when_changed_by_me_and_deleted_by_other(shared_event, channel):
@@ -793,7 +793,7 @@ def test_conflict_when_changed_by_me_and_deleted_by_other(shared_event, channel)
     action = sync_both(machine_a, machine_b, channel, "DELETE FROM event WHERE id = 1",
                        "UPDATE event SET notes = 'правка' WHERE id = 1", report)
     assert action == SyncAction.CONFLICT
-    assert "изменено у вас, удалено в общей базе" in report.conflicts[0]
+    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Платёж", "правка", "удаление")]
 
 
 def test_merge_ignores_event_deleted_on_both_sides(shared_event, channel):
