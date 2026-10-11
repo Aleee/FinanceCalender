@@ -601,6 +601,7 @@ class MainWindow(QMainWindow):
             self.sync_error = str(e)
             self.sync_network_failed = isinstance(e, NetworkError)
             self.sync_failure_text = failure_status_text(e)
+            progress.fail()
             return None
         finally:
             set_stage_listener(None)

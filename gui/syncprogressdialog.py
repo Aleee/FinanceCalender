@@ -66,10 +66,30 @@ class CheckMarkWidget(QWidget):
         painter.drawPolyline([QPointF(2, 7.5), QPointF(5.5, 11), QPointF(12, 3.5)])
 
 
+class CrossMarkWidget(QWidget):
+    SIZE = 14
+    LINE_WIDTH = 2
+    COLOR = QColor("#d32f2f")
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(self.SIZE, self.SIZE)
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        pen = QPen(self.COLOR, self.LINE_WIDTH)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(pen)
+        painter.drawLine(QPointF(3, 3), QPointF(11, 11))
+        painter.drawLine(QPointF(11, 3), QPointF(3, 11))
+
+
 class StageState(IntEnum):
     PENDING = 0
     ACTIVE = 1
     DONE = 2
+    FAILED = 3
 
 
 class StageRow(QWidget):
@@ -82,6 +102,7 @@ class StageRow(QWidget):
         self.icons.addWidget(QWidget())
         self.icons.addWidget(self.spinner)
         self.icons.addWidget(CheckMarkWidget())
+        self.icons.addWidget(CrossMarkWidget())
         self.label = QLabel(text, self)
         font = self.label.font()
         font.setPointSize(max(font.pointSize() - 1, 7))
@@ -151,7 +172,7 @@ class SyncProgressDialog(QDialog):
         self.setFixedSize(self.sizeHint().expandedTo(self.minimumSize()))
 
     def set_stage(self, text: str) -> None:
-        if self.current_row is not None:
+        if self.current_row is not None and self.current_row.state == StageState.ACTIVE:
             self.current_row.set_state(StageState.DONE)
         row: StageRow | None = self.rows.get(text)
         if row is None or row.state != StageState.PENDING:
@@ -169,9 +190,16 @@ class SyncProgressDialog(QDialog):
         self.repaint()
 
     def complete(self, pause: bool) -> None:
-        if self.current_row is not None:
+        if self.current_row is not None and self.current_row.state == StageState.ACTIVE:
             self.current_row.set_state(StageState.DONE)
         if pause and self.isVisible():
+            self.repaint()
+            time.sleep(self.DONE_PAUSE_MS / 1000)
+
+    def fail(self) -> None:
+        if self.current_row is not None:
+            self.current_row.set_state(StageState.FAILED)
+        if self.isVisible():
             self.repaint()
             time.sleep(self.DONE_PAUSE_MS / 1000)
 

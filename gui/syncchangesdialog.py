@@ -18,10 +18,9 @@ class DiffTreeWidget(QTreeWidget):
         self.setUniformRowHeights(True)
         header = self.header()
         header.setStretchLastSection(False)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for column in (1, 2):
+        for column, width in enumerate((340, 180, 180)):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.Interactive)
-            self.setColumnWidth(column, 180)
+            self.setColumnWidth(column, width)
 
         for table, title in self.TABLE_TITLES:
             table_diff: TableDiff | None = diff.tables.get(table)
@@ -52,6 +51,8 @@ class DiffTreeWidget(QTreeWidget):
                 change_item = QTreeWidgetItem(item, [field_title, old_value, new_value])
                 change_item.setForeground(1, QBrush(QColor(COLOR_STATEMENT)))
                 change_item.setForeground(2, QBrush(QColor(COLOR_OK)))
+                for column, text in enumerate((field_title, old_value, new_value)):
+                    change_item.setToolTip(column, text)
         self.add_group(table_item, "Удалено", COLOR_STATEMENT, [describe_row(table, row) for row in table_diff.removed])
 
     def add_group(self, parent: QTreeWidgetItem, title: str, color: str, texts: list[str]) -> list[QTreeWidgetItem]:
@@ -60,7 +61,10 @@ class DiffTreeWidget(QTreeWidget):
         group_item = QTreeWidgetItem(parent, [f"{title} ({len(texts)})"])
         group_item.setForeground(0, QBrush(QColor(color)))
         self.make_bold(group_item)
-        return [QTreeWidgetItem(group_item, [text]) for text in texts]
+        items = [QTreeWidgetItem(group_item, [text]) for text in texts]
+        for item, text in zip(items, texts):
+            item.setToolTip(0, text)
+        return items
 
 
 class ConflictTableWidget(QTableWidget):
