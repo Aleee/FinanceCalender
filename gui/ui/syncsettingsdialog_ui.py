@@ -126,17 +126,40 @@ class Ui_SyncSettingsDialog(object):
 
         self.fl_main.setWidget(8, QFormLayout.ItemRole.FieldRole, self.spb_interval)
 
+        self.label_idle = QLabel(SyncSettingsDialog)
+        self.label_idle.setObjectName(u"label_idle")
+
+        self.fl_main.setWidget(9, QFormLayout.ItemRole.LabelRole, self.label_idle)
+
+        self.spb_idle = QSpinBox(SyncSettingsDialog)
+        self.spb_idle.setObjectName(u"spb_idle")
+        self.spb_idle.setMaximum(3600)
+        self.spb_idle.setSingleStep(10)
+
+        self.fl_main.setWidget(9, QFormLayout.ItemRole.FieldRole, self.spb_idle)
+
         self.label_keepdays = QLabel(SyncSettingsDialog)
         self.label_keepdays.setObjectName(u"label_keepdays")
 
-        self.fl_main.setWidget(9, QFormLayout.ItemRole.LabelRole, self.label_keepdays)
+        self.fl_main.setWidget(10, QFormLayout.ItemRole.LabelRole, self.label_keepdays)
 
         self.spb_keepdays = QSpinBox(SyncSettingsDialog)
         self.spb_keepdays.setObjectName(u"spb_keepdays")
         self.spb_keepdays.setMinimum(1)
         self.spb_keepdays.setMaximum(365)
 
-        self.fl_main.setWidget(9, QFormLayout.ItemRole.FieldRole, self.spb_keepdays)
+        self.fl_main.setWidget(10, QFormLayout.ItemRole.FieldRole, self.spb_keepdays)
+
+        self.label_backupinterval = QLabel(SyncSettingsDialog)
+        self.label_backupinterval.setObjectName(u"label_backupinterval")
+
+        self.fl_main.setWidget(11, QFormLayout.ItemRole.LabelRole, self.label_backupinterval)
+
+        self.spb_backupinterval = QSpinBox(SyncSettingsDialog)
+        self.spb_backupinterval.setObjectName(u"spb_backupinterval")
+        self.spb_backupinterval.setMaximum(1440)
+
+        self.fl_main.setWidget(11, QFormLayout.ItemRole.FieldRole, self.spb_backupinterval)
 
 
         self.verticalLayout.addLayout(self.fl_main)
@@ -184,8 +207,14 @@ class Ui_SyncSettingsDialog(object):
         self.label_author.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u0418\u043c\u044f \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f:", None))
         self.label_interval.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0442\u044c \u043e\u0431\u0449\u0443\u044e \u0431\u0430\u0437\u0443 \u043a\u0430\u0436\u0434\u044b\u0435:", None))
         self.spb_interval.setSuffix(QCoreApplication.translate("SyncSettingsDialog", u" \u043c\u0438\u043d", None))
+        self.label_idle.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u041e\u0442\u043f\u0440\u0430\u0432\u043b\u044f\u0442\u044c \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f \u043f\u043e\u0441\u043b\u0435 \u0431\u0435\u0437\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f:", None))
+        self.spb_idle.setSpecialValueText(QCoreApplication.translate("SyncSettingsDialog", u"\u0432\u044b\u043a\u043b", None))
+        self.spb_idle.setSuffix(QCoreApplication.translate("SyncSettingsDialog", u" \u0441", None))
         self.label_keepdays.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u0425\u0440\u0430\u043d\u0438\u0442\u044c \u0435\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u044b\u0435 \u043a\u043e\u043f\u0438\u0438 \u043e\u0431\u0449\u0435\u0439 \u0431\u0430\u0437\u044b:", None))
         self.spb_keepdays.setSuffix(QCoreApplication.translate("SyncSettingsDialog", u" \u0434\u043d", None))
+        self.label_backupinterval.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043e\u0431\u0449\u0443\u044e \u0431\u0430\u0437\u0443 \u043f\u0440\u0438 \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0435 \u043d\u0435 \u0447\u0430\u0449\u0435, \u0447\u0435\u043c \u0440\u0430\u0437 \u0432:", None))
+        self.spb_backupinterval.setSpecialValueText(QCoreApplication.translate("SyncSettingsDialog", u"\u043a\u0430\u0436\u0434\u044b\u0439 \u0440\u0430\u0437", None))
+        self.spb_backupinterval.setSuffix(QCoreApplication.translate("SyncSettingsDialog", u" \u043c\u0438\u043d", None))
         self.pb_ok.setText(QCoreApplication.translate("SyncSettingsDialog", u"OK", None))
         self.pb_cancel.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
     # retranslateUi

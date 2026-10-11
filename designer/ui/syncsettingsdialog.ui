@@ -154,13 +154,36 @@
       </widget>
      </item>
      <item row="9" column="0">
+      <widget class="QLabel" name="label_idle">
+       <property name="text">
+        <string>Отправлять изменения после бездействия:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QSpinBox" name="spb_idle">
+       <property name="specialValueText">
+        <string>выкл</string>
+       </property>
+       <property name="suffix">
+        <string> с</string>
+       </property>
+       <property name="maximum">
+        <number>3600</number>
+       </property>
+       <property name="singleStep">
+        <number>10</number>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="0">
       <widget class="QLabel" name="label_keepdays">
        <property name="text">
         <string>Хранить ежедневные копии общей базы:</string>
        </property>
       </widget>
      </item>
-     <item row="9" column="1">
+     <item row="10" column="1">
       <widget class="QSpinBox" name="spb_keepdays">
        <property name="suffix">
         <string> дн</string>
@@ -170,6 +193,26 @@
        </property>
        <property name="maximum">
         <number>365</number>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="0">
+      <widget class="QLabel" name="label_backupinterval">
+       <property name="text">
+        <string>Копировать общую базу при отправке не чаще, чем раз в:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="1">
+      <widget class="QSpinBox" name="spb_backupinterval">
+       <property name="specialValueText">
+        <string>каждый раз</string>
+       </property>
+       <property name="suffix">
+        <string> мин</string>
+       </property>
+       <property name="maximum">
+        <number>1440</number>
        </property>
       </widget>
      </item>

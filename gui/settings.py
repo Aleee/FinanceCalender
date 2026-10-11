@@ -61,8 +61,14 @@ class SettingsHandler:
     def sync_interval_minutes(self) -> int:
         return str_int(self.settings.value("Sync/interval"), 5)
 
+    def sync_idle_seconds(self) -> int:
+        return str_int(self.settings.value("Sync/idleseconds"), 60)
+
     def sync_long_backup_keep_days(self) -> int:
         return str_int(self.settings.value("Sync/backupkeepdays"), 60)
+
+    def sync_backup_interval_minutes(self) -> int:
+        return str_int(self.settings.value("Sync/backupintervalminutes"), 30)
 
     def paid_load_months(self) -> int:
         return str_int(self.settings.value("Common/paidloadperiod"), 999)

@@ -2,6 +2,9 @@ from datetime import date, datetime
 from pathlib import Path
 from platform import node
 
+from PySide6.QtCore import QEvent, QTimer
+from PySide6.QtWidgets import QApplication
+
 from base.dbhandler import DBHandler
 from base.httpclient import QtHttpClient
 from base.sync import (AuthError, FolderChannel, MasterInfo, MasterUpdatingError, NetworkError, SyncAction, SyncChannel,
@@ -32,6 +35,29 @@ SYNC_ACTION_MESSAGE: dict[SyncAction, str] = {
 SYNC_PULL_MESSAGE = "Данные были изменены другим пользователем. Программа обновлена по актуальной версии"
 
 
+class IdleSyncTimer(QTimer):
+    USER_INPUT_EVENTS = (QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonDblClick, QEvent.Type.MouseMove,
+                         QEvent.Type.Wheel, QEvent.Type.KeyPress)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSingleShot(True)
+        self.idle_enabled: bool = False
+        QApplication.instance().installEventFilter(self)
+
+    def set_idle_seconds(self, seconds: int) -> None:
+        self.stop()
+        self.setInterval(seconds * 1000)
+        self.idle_enabled = seconds > 0
+        if self.idle_enabled:
+            self.start()
+
+    def eventFilter(self, watched, event) -> bool:
+        if self.idle_enabled and event.type() in self.USER_INPUT_EVENTS:
+            self.start()
+        return False
+
+
 def create_yandex_channel(token: str, disk_folder: str) -> YandexDiskApiChannel:
     return YandexDiskApiChannel(token, QtHttpClient(), disk_folder)
 
@@ -43,7 +69,8 @@ def create_sync_channel(settings_handler: SettingsHandler) -> SyncChannel:
 
 
 def create_sync_params(settings_handler: SettingsHandler) -> SyncParams:
-    return SyncParams(settings_handler.sync_author(), node(), APP_VERSION, settings_handler.sync_long_backup_keep_days())
+    return SyncParams(settings_handler.sync_author(), node(), APP_VERSION, settings_handler.sync_long_backup_keep_days(),
+                      settings_handler.sync_backup_interval_minutes())
 
 
 def failure_status_text(error: SyncError) -> str:

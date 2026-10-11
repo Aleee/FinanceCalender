@@ -43,7 +43,7 @@ from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
 from gui.syncconflictdialog import SyncConflictDialog
 from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PULL_MESSAGE, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS,
-                             SYNC_STALE_DAYS, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, connect_to_master, create_master,
+                             SYNC_STALE_DAYS, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, IdleSyncTimer, connect_to_master, create_master,
                              create_sync_channel, create_sync_params, describe_master, failure_status_text,
                              master_age_days, overwrite_master, take_master, token_days_left)
 from gui.ui.syncicon import create_sync_icon
@@ -365,6 +365,8 @@ class MainWindow(QMainWindow):
         self.sync_channel_settings: tuple | None = None
         self.sync_timer = QTimer(self)
         self.sync_timer.timeout.connect(self.auto_sync)
+        self.idle_sync_timer = IdleSyncTimer(self)
+        self.idle_sync_timer.timeout.connect(self.idle_sync)
         self.apply_sync_timer()
         self.update_sync_status()
         self.sync_status_timer = QTimer(self)
@@ -456,6 +458,16 @@ class MainWindow(QMainWindow):
         self.sync_timer.stop()
         if self.settings_handler.sync_enabled():
             self.sync_timer.start(self.settings_handler.sync_interval_minutes() * 60 * 1000)
+        self.idle_sync_timer.set_idle_seconds(self.settings_handler.sync_idle_seconds() if self.settings_handler.sync_enabled() else 0)
+
+    def idle_sync(self) -> None:
+        try:
+            if not read_local_state(self.db_handler).has_changes:
+                return
+        except SyncError as e:
+            log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
+            return
+        self.auto_sync()
 
     def get_sync_channel(self) -> SyncChannel:
         current_settings = (self.settings_handler.sync_channel_type(), self.settings_handler.sync_token(),

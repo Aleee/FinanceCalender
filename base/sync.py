@@ -283,6 +283,7 @@ class SyncParams:
     machine: str
     app_version: str
     long_backup_keep_days: int = 30
+    backup_interval_minutes: int = 0
 
 
 def master_token(master: MasterInfo | None) -> str | None:
@@ -296,6 +297,16 @@ def backups_cleanup_due(previous_master: MasterInfo | None) -> bool:
         return datetime.fromisoformat(previous_master.uploaded_at).date() < datetime.now().date()
     except ValueError:
         return True
+
+
+def master_backup_due(previous_master: MasterInfo | None, interval_minutes: int) -> bool:
+    if previous_master is None or interval_minutes <= 0:
+        return True
+    try:
+        age: timedelta = datetime.now() - datetime.fromisoformat(previous_master.uploaded_at)
+    except ValueError:
+        return True
+    return not timedelta(0) <= age < timedelta(minutes=interval_minutes)
 
 
 def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, overwrite: bool = False,
@@ -318,8 +329,9 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
         info = MasterInfo(local.db_uuid, new_token, local.db_version, params.author, params.machine,
                           datetime.now().isoformat(timespec="seconds"), params.app_version)
         stage_started = time.monotonic()
-        channel.backup_master()
-        log.d(f"Отправка общей базы: копия прежней общей базы за {elapsed_ms(stage_started)} мс")
+        if overwrite or master_backup_due(master, params.backup_interval_minutes):
+            channel.backup_master()
+            log.d(f"Отправка общей базы: копия прежней общей базы за {elapsed_ms(stage_started)} мс")
         stage_started = time.monotonic()
         channel.upload_master(snapshot, info)
         log.d(f"Отправка общей базы: загрузка за {elapsed_ms(stage_started)} мс")

@@ -384,3 +384,43 @@ def test_fetch_master_refuses_newer_master(machine_a, channel, dbh, work_db_path
     with pytest.raises(SyncError):
         syncmod.fetch_master(dbh, channel)
     assert not work_db_path.exists()
+
+
+def master_info_aged(minutes: int) -> MasterInfo:
+    from datetime import datetime, timedelta
+    uploaded_at = (datetime.now() - timedelta(minutes=minutes)).isoformat(timespec="seconds")
+    return MasterInfo("uuid", "token", 5, "Автор", "PC", uploaded_at, "2026.10.04")
+
+
+def test_master_backup_due_by_interval():
+    due = syncmod.master_backup_due
+    assert due(None, 30)
+    assert due(master_info_aged(1), 0)
+    assert not due(master_info_aged(5), 30)
+    assert due(master_info_aged(31), 30)
+    assert due(master_info_aged(-10), 30)
+    assert due(MasterInfo("u", "t", 5, "a", "m", "не дата", "v"), 30)
+
+
+def test_push_skips_backup_within_interval(machine_a, channel):
+    params = SyncParams("Автор", "PC-1", "2026.10.04", backup_interval_minutes=30)
+    with machine_a as dbh:
+        push_master(dbh, channel, params)
+        edit(dbh, "second")
+        push_master(dbh, channel, params)
+        edit(dbh, "third")
+        push_master(dbh, channel, params)
+    assert not channel.backups_path.exists()
+    assert channel.read_master_info().sync_token == machine_a.meta()["sync_token"]
+
+
+def test_overwrite_makes_backup_within_interval(connected, channel):
+    machine_a, machine_b = connected
+    params = SyncParams("Автор", "PC-1", "2026.10.04", backup_interval_minutes=30)
+    with machine_a as dbh:
+        edit(dbh, "from a")
+        push_master(dbh, channel, params)
+    with machine_b as dbh:
+        edit(dbh, "from b")
+        push_master(dbh, channel, params, overwrite=True)
+    assert len(list(channel.backups_path.iterdir())) == 1
