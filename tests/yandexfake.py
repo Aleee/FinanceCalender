@@ -25,6 +25,7 @@ class FakeDisk(HttpClient):
         self.pending_uploads: int = 0
         self.corrupt_uploads: bool = False
         self.network_down: bool = False
+        self.move_lost_response: bool = False
         self.operation_polls: int = 0
         self.metadata_polls: int = 0
 
@@ -68,6 +69,9 @@ class FakeDisk(HttpClient):
     def upload_link(self, params: dict) -> HttpResponse:
         if params["path"] in self.files and params.get("overwrite") != "true":
             return json_response(409, {"message": "exists"})
+        parent = params["path"].rsplit("/", 1)[0]
+        if not parent.endswith(":") and parent not in self.folders:
+            return json_response(409, {"message": "parent missing", "error": "DiskPathDoesntExistsError"})
         return json_response(200, {"href": f"https://{UPLOAD_HOST}/file?{urlencode({'path': params['path']})}"})
 
     def store(self, path: str, content: bytes) -> HttpResponse:
@@ -107,7 +111,10 @@ class FakeDisk(HttpClient):
         return json_response(201, {"href": "x"})
 
     def move(self, params: dict) -> HttpResponse:
-        return self.relocate(params, keep_source=False)
+        response = self.relocate(params, keep_source=False)
+        if self.move_lost_response:
+            raise NetworkError("Нет связи с сервером: Operation timed out")
+        return response
 
     def copy(self, params: dict) -> HttpResponse:
         return self.relocate(params, keep_source=True)

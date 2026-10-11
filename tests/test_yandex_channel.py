@@ -4,7 +4,7 @@ import pytest
 
 from base.sync import AuthError, BACKUP_TIME_FORMAT, NetworkError, SyncAction, SyncError, pull_master, push_master, synchronize
 from base.yandexchannel import YandexDiskApiChannel
-from tests.test_sync_flow import PARAMS, edit, make_machine, patch_backup_dir  # noqa: F401
+from tests.test_sync_flow import PARAMS, add_event, add_payment, edit, make_machine, patch_backup_dir  # noqa: F401
 from tests.yandexfake import FakeDisk, json_response
 
 
@@ -274,3 +274,70 @@ def test_removed_master_info_is_noticed_with_cache(machine_a, channel, disk):
     channel.read_master_info()
     del disk.files["app:/master.json"]
     assert channel.read_master_info() is None
+
+
+def test_lost_move_response_is_not_a_failure_if_file_was_moved(machine_a, channel, disk):
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+        edit(dbh, "second")
+        disk.move_lost_response = True
+        push_master(dbh, channel, PARAMS)
+    assert channel.read_master_info().sync_token == machine_a.meta()["sync_token"]
+    assert not any(path.endswith(".tmp") for path in disk.files)
+
+
+def test_lost_move_response_is_failure_if_file_was_not_moved(machine_a, channel, disk):
+    original_send = disk.send
+
+    def send_failing_move(method, url, *args, **kwargs):
+        if method == "POST" and url.startswith("https://cloud-api.yandex.net/v1/disk/resources/move"):
+            raise NetworkError("Нет связи с сервером: Operation timed out")
+        return original_send(method, url, *args, **kwargs)
+
+    disk.send = send_failing_move
+    with machine_a as dbh:
+        with pytest.raises(NetworkError):
+            push_master(dbh, channel, PARAMS)
+    assert not any(path.endswith(".tmp") for path in disk.files)
+
+
+def test_existing_folder_is_not_created_again_on_push(machine_a, disk):
+    disk.folders.add("app:/sub")
+    channel = YandexDiskApiChannel("good-token", disk, "app:/sub")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    assert not any(request[0] == "PUT" and request[1].endswith("/resources") for request in disk.requests)
+
+
+def test_backup_of_missing_master_does_nothing(channel, disk):
+    channel.backup_master()
+    assert not disk.files
+    assert not disk.folders
+
+
+def test_backup_starts_with_copy_request(machine_a, channel, disk):
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    disk.requests.clear()
+    channel.backup_master()
+    assert disk.requests[0] == ("POST", "cloud-api.yandex.net/v1/disk/resources/copy")
+
+
+def test_merge_push_does_not_reread_master_info_again(machine_a, make_machine, channel, disk):
+    add_event(machine_a, 1, "От первого")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    machine_b = make_machine("b")
+    reader_b = YandexDiskApiChannel("good-token", disk)
+    with machine_b as dbh:
+        pull_master(dbh, reader_b, (SyncAction.FOREIGN_DB,))
+    add_event(machine_a, 2, "Ещё от первого")
+    add_payment(machine_a, 1, 1, "3.00")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    add_event(machine_b, 3, "От второго")
+    disk.requests.clear()
+    with machine_b as dbh:
+        assert synchronize(dbh, reader_b, PARAMS, merge=True) == SyncAction.MERGE
+    metadata_requests = [request for request in disk.requests if request == ("GET", "cloud-api.yandex.net/v1/disk/resources")]
+    assert len(metadata_requests) == 6

@@ -9,8 +9,8 @@ import lovely_logger as log
 
 from base.httpclient import HttpClient, HttpResponse
 from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INFO_NAME, MASTER_LONG_BACKUPS_DIR,
-                       MasterInfo, SHORT_BACKUPS_KEEP_DAYS, SyncChannel, SyncError, TEMP_SUFFIX, backup_time_from_name,
-                       file_md5, is_backup_of_today, master_backup_name)
+                       MasterInfo, NetworkError, SHORT_BACKUPS_KEEP_DAYS, SyncChannel, SyncError, TEMP_SUFFIX,
+                       backup_time_from_name, file_md5, is_backup_of_today, master_backup_name)
 
 API_URL = "https://cloud-api.yandex.net/v1/disk"
 DEFAULT_DISK_FOLDER = "app:/"
@@ -75,11 +75,11 @@ class YandexDiskApiChannel(SyncChannel):
 
     def upload_master(self, source: Path, info: MasterInfo) -> None:
         temp_db = self.remote_path(MASTER_DB_NAME + TEMP_SUFFIX)
-        self.ensure_folder_chain(self.folder)
         info_bytes = info.to_json().encode("utf-8")
+        source_md5 = file_md5(source)
         try:
-            self.put_file(temp_db, file_md5(source), source.stat().st_size, upload_file=source)
-            self.move(temp_db, self.remote_path(MASTER_DB_NAME))
+            self.put_file(temp_db, source_md5, source.stat().st_size, upload_file=source)
+            self.move(temp_db, self.remote_path(MASTER_DB_NAME), source_md5)
             self.put_file(self.remote_path(MASTER_INFO_NAME), hashlib.md5(info_bytes).hexdigest(), len(info_bytes),
                           data=info_bytes)
         except SyncError:
@@ -88,22 +88,24 @@ class YandexDiskApiChannel(SyncChannel):
         self.cached_info = (hashlib.md5(info_bytes).hexdigest(), replace(info))
 
     def backup_master(self) -> None:
-        if self.metadata(MASTER_DB_NAME) is None:
-            return
         backup_name = master_backup_name()
-        self.copy_master_to(MASTER_BACKUPS_DIR, backup_name)
+        if not self.copy_master_to(MASTER_BACKUPS_DIR, backup_name):
+            return
         if not any(is_backup_of_today(name) for name in self.backup_names(MASTER_LONG_BACKUPS_DIR)):
             self.copy_master_to(MASTER_LONG_BACKUPS_DIR, backup_name)
 
-    def copy_master_to(self, folder_name: str, backup_name: str) -> None:
+    def copy_master_to(self, folder_name: str, backup_name: str) -> bool:
         backups_folder = self.remote_path(folder_name)
         copy_params = {"from": self.remote_path(MASTER_DB_NAME), "path": f"{backups_folder}/{backup_name}",
                        "overwrite": "true"}
-        response = self.api("POST", "resources/copy", copy_params, (201, 202, 409))
+        response = self.api("POST", "resources/copy", copy_params, (201, 202, 404, 409))
         if response.status == 409:
             self.ensure_folder_chain(backups_folder)
-            response = self.api("POST", "resources/copy", copy_params, (201, 202))
+            response = self.api("POST", "resources/copy", copy_params, (201, 202, 404))
+        if response.status == 404:
+            return False
         self.wait_operation(response)
+        return True
 
     def backup_names(self, folder_name: str) -> list[str]:
         response = self.api("GET", "resources", {"path": self.remote_path(folder_name), "limit": BACKUPS_LIST_LIMIT,
@@ -158,9 +160,7 @@ class YandexDiskApiChannel(SyncChannel):
     def put_file(self, remote_path: str, expected_md5: str, expected_size: int, data: bytes = b"",
                  upload_file: Path | None = None) -> None:
         name = remote_path[len(self.folder):]
-        href = self.link("resources/upload", {"path": remote_path, "overwrite": "true"})
-        if href is None:
-            raise SyncError("Яндекс.Диск не выдал ссылку для загрузки")
+        href = self.upload_link(remote_path)
         response = self.http.send("PUT", href, data=data, upload_file=upload_file)
         if response.status not in (201, 202):
             raise self.error_from(response)
@@ -176,9 +176,29 @@ class YandexDiskApiChannel(SyncChannel):
             raise SyncError("Файл на Яндекс.Диске не совпадает с отправленным")
         raise SyncError("Не удалось подтвердить загрузку файла на Яндекс.Диск")
 
-    def move(self, source_path: str, target_path: str) -> None:
-        response = self.api("POST", "resources/move", {"from": source_path, "path": target_path, "overwrite": "true"}, (201, 202))
+    def upload_link(self, remote_path: str) -> str:
+        params = {"path": remote_path, "overwrite": "true"}
+        response = self.api("GET", "resources/upload", params, (200, 409))
+        if response.status == 409:
+            self.ensure_folder_chain(self.folder)
+            response = self.api("GET", "resources/upload", params, (200,))
+        return self.read_href(response)
+
+    def move(self, source_path: str, target_path: str, expected_md5: str) -> None:
+        try:
+            response = self.api("POST", "resources/move", {"from": source_path, "path": target_path, "overwrite": "true"}, (201, 202))
+        except NetworkError:
+            if not self.is_moved(source_path, target_path, expected_md5):
+                raise
+            return
         self.wait_operation(response)
+
+    def is_moved(self, source_path: str, target_path: str, expected_md5: str) -> bool:
+        source, target = source_path[len(self.folder):], target_path[len(self.folder):]
+        if self.metadata(source) is not None:
+            return False
+        metadata = self.metadata(target)
+        return metadata is not None and metadata.get("md5") == expected_md5
 
     def delete_quietly(self, remote_path: str) -> None:
         try:

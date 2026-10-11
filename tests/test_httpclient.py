@@ -1,5 +1,6 @@
 import socket
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
@@ -12,6 +13,7 @@ FILE_CONTENT = bytes(range(256)) * 1000
 
 class Handler(BaseHTTPRequestHandler):
     received: list[tuple[str, str, dict, bytes]] = []
+    stall_once: bool = False
 
     def log_message(self, format, *args):
         pass
@@ -28,6 +30,9 @@ class Handler(BaseHTTPRequestHandler):
     def handle_any(self) -> None:
         body = self.read_body()
         self.received.append((self.command, self.path, dict(self.headers), body))
+        if self.path.startswith("/stall") and Handler.stall_once:
+            Handler.stall_once = False
+            time.sleep(1)
         if self.path.startswith("/file"):
             self.answer(200, FILE_CONTENT)
         elif self.path.startswith("/missing"):
@@ -113,3 +118,15 @@ def test_unreachable_server_raises_network_error(client):
 
 def test_pause_returns(client):
     client.pause(10)
+
+
+def test_failed_attempts_are_logged_when_retry_succeeds(client, server, monkeypatch):
+    messages: list[str] = []
+    monkeypatch.setattr("base.httpclient.log.d", messages.append)
+    monkeypatch.setattr("base.httpclient.RESPONSE_TIMEOUT_MS", 300)
+    Handler.stall_once = True
+    response = client.send("GET", f"{server}/stall")
+    assert response.status == 200
+    assert len(messages) == 2
+    assert "попытка 1/4 не удалась" in messages[0]
+    assert "статус 200" in messages[1] and "попытка 2/4" in messages[1]

@@ -11,7 +11,7 @@ from base.sync import NetworkError, SyncError
 
 CONNECT_TIMEOUT_MS = 1500
 RESPONSE_TIMEOUT_MS = 4000
-UPLOAD_EXTRA_MS_PER_MB = 10000
+UPLOAD_EXTRA_MS_PER_MB = 2000
 MAX_ATTEMPTS = 4
 RETRY_PAUSE_MS = 200
 RETRY_METHODS = ("GET", "PUT")
@@ -65,6 +65,8 @@ class QtHttpClient(HttpClient):
                 self.manager.clearConnectionCache()
                 self.pause(RETRY_PAUSE_MS)
                 continue
+            for failure in failures:
+                log.d(failure)
             log.d(f"{target}: статус {response.status} за {elapsed_ms(started)} мс, попытка {attempt}/{MAX_ATTEMPTS}")
             return response
 

@@ -523,7 +523,7 @@ def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, repo
             action = SyncAction.MERGE
             try:
                 if read_local_state(dbh).has_changes:
-                    push_master(dbh, channel, params)
+                    push_master(dbh, channel, params, master=master)
                 report.merge_pushed = True
             except SyncError as e:
                 log.w(f"Объединённая база не отправлена, отправка будет повторена: {e}")
