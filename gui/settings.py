@@ -71,7 +71,7 @@ class SettingsHandler:
         return str_int(self.settings.value("Sync/backupintervalminutes"), 30)
 
     def paid_load_months(self) -> int:
-        return str_int(self.settings.value("Common/paidloadperiod"), 999)
+        return str_int(self.settings.value("Common/paidloadperiod"), 3)
 
     def apply_settings(self, apply_geometry: bool = False) -> None:
         # Отключение фильтра на время применения настроек
@@ -114,8 +114,8 @@ class SettingsHandler:
         ## Состояние боковой панели
         self.mw.ui.spb_term.set_switch_state(str_bool(self.settings.value("Sidepanel/termfilter"), True))
         self.mw.ui.spb_category.set_switch_state(str_bool(self.settings.value("Sidepanel/categoryfilter"), True))
-        self.mw.ui.spb_receiver.set_switch_state(str_bool(self.settings.value("Sidepanel/receiverfilter"), False))
-        self.mw.ui.spb_responsible.set_switch_state(str_bool(self.settings.value("Sidepanel/responsiblefilter"), False))
+        self.mw.ui.spb_receiver.set_switch_state(str_bool(self.settings.value("Sidepanel/receiverfilter"), True))
+        self.mw.ui.spb_responsible.set_switch_state(str_bool(self.settings.value("Sidepanel/responsiblefilter"), True))
 
         # Таблица
         ## Скрытие и отображение столбцов
@@ -157,8 +157,8 @@ class SettingsHandler:
             self.mw.base_model.set_row_formatting(RowFormatting())
 
         ## Отображение заголовков/футеров
-        self.mw.ui.act_toggleheaders.setChecked(str_bool(self.settings.value("Appearance/headersenabled"), False))
-        self.mw.ui.act_togglefooters.setChecked(str_bool(self.settings.value("Appearance/footersenabled"), False))
+        self.mw.ui.act_toggleheaders.setChecked(str_bool(self.settings.value("Appearance/headersenabled"), True))
+        self.mw.ui.act_togglefooters.setChecked(str_bool(self.settings.value("Appearance/footersenabled"), True))
 
         ## Перезагрузить список персонала
         self.mw.update_responsible_models(update_widgets=True)

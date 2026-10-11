@@ -649,7 +649,7 @@ class SettingsDialog(QDialog):
     def load_settings_values(self) -> None:
         # Основные
         ## Отображение оплаченных
-        self.ui.cmb_loadpaid.setCurrentIndex(1)
+        self.ui.cmb_loadpaid.setCurrentIndex(0)
         paidloadperiod: int = str_int(self.settings_handler.settings.value("Common/paidloadperiod"), -1)
         for loadpaid_option in self.LOADPAID_SET.items():
             if paidloadperiod == loadpaid_option[1]:
