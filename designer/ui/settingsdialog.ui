@@ -983,7 +983,7 @@
           <item row="2" column="1">
            <widget class="QCheckBox" name="chb_dataintable_responsible">
             <property name="text">
-             <string>Ответственное лицо</string>
+             <string>Ответственный</string>
             </property>
             <property name="checked">
              <bool>true</bool>
@@ -1003,7 +1003,7 @@
           <item row="0" column="1">
            <widget class="QCheckBox" name="chb_dataintable_createdate">
             <property name="text">
-             <string>Дата появления</string>
+             <string>Дата возникновения</string>
             </property>
            </widget>
           </item>

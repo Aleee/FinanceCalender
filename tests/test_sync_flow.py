@@ -328,29 +328,29 @@ def test_pull_refused_when_master_is_corrupted(connected, channel):
 def test_pull_of_older_master_migrates_and_marks_changed(machine_a, channel, make_machine, dbh, migrations):
     with machine_a as dbh_a:
         push_master(dbh_a, channel, PARAMS)
-    dbh.DB_VERSION = 6
-    migrations[6] = ["INSERT INTO meta (key, value) VALUES ('key6', 'z')"]
+    dbh.DB_VERSION = 7
+    migrations[7] = ["INSERT INTO meta (key, value) VALUES ('key7', 'z')"]
     machine_b = make_machine("b")
     with machine_b as dbh_b:
         pull_master(dbh_b, channel, (SyncAction.FOREIGN_DB,))
         assert dbh_b.get_setting("marker") == "a"
-        assert dbh_b.get_setting("key6") == "z"
-        assert dbh_b.get_setting("db_version") == "6"
+        assert dbh_b.get_setting("key7") == "z"
+        assert dbh_b.get_setting("db_version") == "7"
         assert dbh_b.get_setting("change_counter") != "0"
         assert synchronize(dbh_b, channel, PARAMS) == SyncAction.PUSH
-    assert channel.read_master_info().db_version == 6
+    assert channel.read_master_info().db_version == 7
     assert not (machine_b.work_db_path.parent / "db_restore_temp.db").exists()
 
 
 def test_outdated_client_neither_pushes_nor_pulls(connected, channel, dbh, migrations):
     machine_a, machine_b = connected
-    dbh.DB_VERSION = 6
-    migrations[6] = ["INSERT INTO meta (key, value) VALUES ('key6', 'z')"]
+    dbh.DB_VERSION = 7
+    migrations[7] = ["INSERT INTO meta (key, value) VALUES ('key7', 'z')"]
     with machine_b as dbh_b:
         assert dbh_b.migrate_db()
         dbh_b.open_db_connection()
         assert synchronize(dbh_b, channel, PARAMS) == SyncAction.PUSH
-    dbh.DB_VERSION = 5
+    dbh.DB_VERSION = 6
     with machine_a as dbh_a:
         assert synchronize(dbh_a, channel, PARAMS) == SyncAction.CLIENT_OUTDATED
         with pytest.raises(SyncError):
@@ -775,7 +775,7 @@ def test_conflict_when_deleted_event_got_payment_in_master(shared_event, channel
                        "INSERT INTO payment (id, eventid, paymentdate, sum) VALUES (1, 1, '2026-10-11', '5.00')",
                        "DELETE FROM event WHERE id = 1", report)
     assert action == SyncAction.CONFLICT
-    assert [(c.topic, c.mine) for c in report.conflicts] == [("Оплата", "платёж удалён")]
+    assert [(c.topic, c.mine) for c in report.conflicts] == [("Оплата", "платеж удалён")]
 
 
 def test_conflict_when_deleted_by_me_and_changed_by_other(shared_event, channel):
@@ -784,7 +784,7 @@ def test_conflict_when_deleted_by_me_and_changed_by_other(shared_event, channel)
     action = sync_both(machine_a, machine_b, channel, "UPDATE event SET notes = 'правка' WHERE id = 1",
                        "DELETE FROM event WHERE id = 1", report)
     assert action == SyncAction.CONFLICT
-    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Платёж", "удаление", "правка")]
+    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Платеж", "удаление", "правка")]
 
 
 def test_conflict_when_changed_by_me_and_deleted_by_other(shared_event, channel):
@@ -793,7 +793,7 @@ def test_conflict_when_changed_by_me_and_deleted_by_other(shared_event, channel)
     action = sync_both(machine_a, machine_b, channel, "DELETE FROM event WHERE id = 1",
                        "UPDATE event SET notes = 'правка' WHERE id = 1", report)
     assert action == SyncAction.CONFLICT
-    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Платёж", "правка", "удаление")]
+    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Платеж", "правка", "удаление")]
 
 
 def test_merge_ignores_event_deleted_on_both_sides(shared_event, channel):

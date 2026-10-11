@@ -45,10 +45,14 @@ def remove_settings_keys(settings, keys: list[str]) -> None:
     settings.sync()
 
 
+def table_change_counter_triggers(table: str) -> list[str]:
+    return [f'CREATE TRIGGER trg_{table}_{action.lower()} AFTER {action} ON "{table}" BEGIN {INCREASE_CHANGE_COUNTER}; END'
+            for action in ("INSERT", "UPDATE", "DELETE")]
+
+
 def change_counter_triggers() -> list[str]:
     service_keys = ", ".join(f"'{key}'" for key in SERVICE_META_KEYS)
-    triggers = [f'CREATE TRIGGER trg_{table}_{action.lower()} AFTER {action} ON "{table}" BEGIN {INCREASE_CHANGE_COUNTER}; END'
-                for table in DATA_TABLES for action in ("INSERT", "UPDATE", "DELETE")]
+    triggers = [trigger for table in DATA_TABLES for trigger in table_change_counter_triggers(table)]
     triggers += [
         f"CREATE TRIGGER trg_meta_insert AFTER INSERT ON meta WHEN NEW.key NOT IN ({service_keys}) BEGIN {INCREASE_CHANGE_COUNTER}; END",
         f"CREATE TRIGGER trg_meta_update AFTER UPDATE ON meta WHEN NEW.key NOT IN ({service_keys}) AND OLD.value IS NOT NEW.value "
@@ -69,4 +73,8 @@ MIGRATIONS: dict[int, list[Migration]] = {
         "INSERT OR IGNORE INTO meta (key, value) VALUES ('sync_token', lower(hex(randomblob(16))))",
         "INSERT OR IGNORE INTO meta (key, value) VALUES ('change_counter', '0')"]
        + change_counter_triggers(),
+    6: ["DROP TABLE contractsavedvalues",
+        'CREATE TABLE "contractsavedvalues" ("contractdocumentid" INTEGER PRIMARY KEY, "receiver" TEXT, "category" INTEGER, '
+        '"subcategory" INTEGER, "name" TEXT, "nds" INTEGER, "paymenttype" INTEGER, "descr" TEXT, "responsible" INTEGER, "hidden" INTEGER)']
+       + table_change_counter_triggers("contractsavedvalues"),
 }

@@ -51,7 +51,7 @@ def v5_db(dbh, v4_db: Path) -> Path:
 def test_migration_to_v5_adds_sync_keys(dbh, v4_db):
     assert dbh.migrate_db()
     meta = read_meta(v4_db)
-    assert read_version(v4_db) == 5
+    assert read_version(v4_db) == dbh.DB_VERSION
     assert re.fullmatch(r"[0-9a-f]{32}", meta["db_uuid"])
     assert re.fullmatch(r"[0-9a-f]{32}", meta["sync_token"])
     assert meta["db_uuid"] != meta["sync_token"]

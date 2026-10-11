@@ -122,7 +122,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
                </font>
               </property>
               <property name="text">
-               <string>НАЗНАЧЕНЫ К ОПЛАТЕ</string>
+               <string>ОПЛАТА СЕГОДНЯ</string>
               </property>
              </widget>
             </item>
@@ -281,7 +281,7 @@ QPushButton:disabled {color: #a0a0a0;}</string>
                <string notr="true">border-width: 0px; text-align: left;</string>
               </property>
               <property name="text">
-               <string>🡆 🡇 СРОК ПОГАШЕНИЯ</string>
+               <string>🡆 🡇 СРОК ОПЛАТЫ</string>
               </property>
              </widget>
             </item>
@@ -806,7 +806,7 @@ QPushButton:disabled {color: #a0a0a0;}</string>
              <string notr="true">color: #808080;</string>
             </property>
             <property name="text">
-             <string>Выберите платёж в таблице, чтобы увидеть подробности</string>
+             <string>Выберите платеж в таблице, чтобы увидеть подробности</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -1081,10 +1081,10 @@ QPushButton:disabled {color: #a0a0a0;}</string>
      <normaloff>:/icon-toolbar/designer/icons/fees.svg</normaloff>:/icon-toolbar/designer/icons/fees.svg</iconset>
    </property>
    <property name="text">
-    <string>Загрузить выписку</string>
+    <string>Учет комиссий</string>
    </property>
    <property name="toolTip">
-    <string>Загрузить выписку</string>
+    <string>Учет комиссий</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

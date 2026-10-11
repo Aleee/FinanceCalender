@@ -204,7 +204,7 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
 
 def _payments_word(count: int) -> str:
     if count % 10 == 1 and count % 100 != 11:
-        return "платёж"
+        return "платеж"
     if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14:
         return "платежа"
     return "платежей"

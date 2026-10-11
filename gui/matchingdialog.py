@@ -22,7 +22,7 @@ from gui.ui.matchingdialog_ui import Ui_matchingdialog
 
 class MatchingDialog(QDialog):
 
-    COLUMN_HEADERS = ("Дата", "В выписке", "Назначение платежа", "Разница", "В календаре", "Платёж в календаре", "", "")
+    COLUMN_HEADERS = ("Дата", "В выписке", "Назначение платежа", "Разница", "В календаре", "Платеж в календаре", "", "")
     DESCR_COLUMNS = (2, 5)
     CONFIDENCE_COLUMN = 6
     BUTTON_COLUMN = 7
@@ -157,7 +157,7 @@ class MatchingDialog(QDialog):
 
         if pair:
             button = QPushButton("Исправить")
-            button.setToolTip("Сумма платежа и сумма обязательства в календаре будут изменены на сумму из выписки")
+            button.setToolTip("Сумма оплаты и сумма платежа в календаре будут изменены на сумму из выписки")
             button.clicked.connect(partial(self.accept_statement_amount, pair))
             table.setCellWidget(row, self.BUTTON_COLUMN, button)
         elif statement_entry and not calendar_entry and not in_group:
@@ -166,7 +166,7 @@ class MatchingDialog(QDialog):
                 button.setToolTip("Открыть окно создания платежей по комиссиям из этой выписки")
                 button.clicked.connect(self.make_fee_payments)
             else:
-                button.setToolTip("Создать в календаре новый платёж с суммой из выписки")
+                button.setToolTip("Создать в календаре новый платеж с суммой из выписки")
                 button.clicked.connect(partial(self.create_event, statement_entry.amount, self))
             table.setCellWidget(row, self.BUTTON_COLUMN, button)
 

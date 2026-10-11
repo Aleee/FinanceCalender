@@ -217,7 +217,7 @@ class MainWindow(QMainWindow):
         self.proxy1_model.layoutChanged.connect(self.proxy2_model.recalculate_totals)
         # Секции боковой панели: кнопка-переключатель, сам фильтр, подпись и проверка активности фильтра
         self.filter_sections: tuple = (
-            (self.ui.spb_term, self.ui.lw_term, "СРОК ПОГАШЕНИЯ",
+            (self.ui.spb_term, self.ui.lw_term, "СРОК ОПЛАТЫ",
              lambda: self.ui.lw_term.currentRow() != 0),
             (self.ui.spb_category, self.ui.lw_category, "КАТЕГОРИЯ",
              lambda: self.ui.lw_category.currentRow() != 0),
@@ -1007,7 +1007,7 @@ class MainWindow(QMainWindow):
         msg.exec()
 
     def warn_personal_unavailable(self) -> None:
-        msg = ErrorInfoMessageBox("Не удалось получить список ответственных лиц (подробности см. в логе). "
+        msg = ErrorInfoMessageBox("Не удалось получить список ответственных (подробности см. в логе). "
                                   "Проверьте настройки и файл персонала.", parent=self)
         msg.exec()
 

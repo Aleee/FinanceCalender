@@ -596,13 +596,13 @@ class EventDialog(QDialog):
         elif self.non_editable_values["paidamount"] > Decimal(str(self.ui.dsb_totalamount.value())):
             text, focus_widget = "Новая общая сумма платежа превышает сумму уже сделанных по нему оплат", self.ui.dsb_totalamount
         elif self.ui.de_incurrencedate.date() > self.ui.de_duedate.date():
-            text, focus_widget = "Дата возникновения платежа не может быть больше даты оплаты", self.ui.de_incurrencedate
+            text, focus_widget = "Дата возникновения не может быть больше срока оплаты", self.ui.de_incurrencedate
         elif self.ui.rb_typerefund.isChecked() and self.ui.de_duedate.date() > QDate.currentDate():
             text, focus_widget = "Дата возврата не может быть больше сегодняшней даты", self.ui.de_duedate
         elif self.ui.cmb_subcategory.isVisible() and self.ui.cmb_subcategory.currentData() == 0:
             text, focus_widget = "Подкатегория платежа не выбрана", self.ui.cmb_subcategory
         elif self.ui.cmb_responsible.currentData() == 0:
-            text, focus_widget = "Ответственное лицо не назначено", self.ui.cmb_responsible
+            text, focus_widget = "Ответственный не назначен", self.ui.cmb_responsible
         if text:
             msg = ErrorInfoMessageBox(text, parent=self)
             msg.exec()
@@ -614,7 +614,7 @@ class EventDialog(QDialog):
         is_source_paid: bool = ((self.edit_mode or self.copy_mode) and
                                 FilterFlags.PAID in self.index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole))
         if self.ui.de_duedate.date() < QDate.currentDate() and not self.ui.rb_typerefund.isChecked() and not is_source_paid:
-            text += "Дата платежа меньше текущей даты. "
+            text += "Срок оплаты меньше текущей даты. "
         if self.ui.te_descr.toPlainText().strip() == "":
             text += "Основание платежа не указано. "
         if text:

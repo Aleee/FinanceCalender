@@ -16,15 +16,15 @@ NAME_COLUMNS = {"responsible": "responsible_name"}
 AMOUNT_COLUMNS = ("totalamount", "sum", "paid")
 BOOL_COLUMNS = ("featured", "hidden")
 VALUE_NAMES = {"category": CATEGORY_NAMES, "paymenttype": PAYMENTTYPE_NAMES}
-ROW_TITLES = {"event": "Платёж", "payment": "Оплата"}
+ROW_TITLES = {"event": "Платеж", "payment": "Оплата"}
 MAX_VALUE_LENGTH = 60
 
 COLUMN_TITLES: dict[str, str] = {
-    "receiver": "получатель", "name": "название", "totalamount": "сумма", "duedate": "срок", "descr": "описание",
+    "receiver": "получатель", "name": "наименование", "totalamount": "сумма", "duedate": "срок оплаты", "descr": "основание",
     "notes": "заметки", "category": "категория", "subcategory": "подкатегория", "nds": "НДС", "paymenttype": "вид платежа",
-    "responsible": "ответственный", "featured": "избранное", "hidden": "скрыто", "type": "тип",
+    "responsible": "ответственный", "featured": "на контроле", "hidden": "скрытый платеж", "type": "тип",
     "contractdocument_id": "документ договора", "createdate": "дата создания", "paymentdate": "дата оплаты", "sum": "сумма",
-    "eventid": "платёж",
+    "eventid": "платеж",
 }
 
 TABLE_TITLES: dict[str, str] = {
@@ -171,12 +171,12 @@ def plan_merge(my_changes: DbDiff, their_changes: DbDiff) -> MergePlan:
     their_payments = their_changes.tables.get("payment", empty).added + [new_row for _, new_row in their_changes.tables.get("payment", empty).changed]
     for row in their_payments:
         if row["eventid"] in plan.deletes["event"]:
-            plan.conflicts.append(Conflict(describe_row("payment", row), ROW_TITLES["payment"], "платёж удалён", "добавлена или изменена"))
+            plan.conflicts.append(Conflict(describe_row("payment", row), ROW_TITLES["payment"], "платеж удалён", "добавлена или изменена"))
     their_removed_events = {row["id"] for row in their_changes.tables.get("event", empty).removed}
     my_payments = my_changes.tables.get("payment", empty).added + [new_row for _, new_row in my_changes.tables.get("payment", empty).changed]
     for row in my_payments:
         if row["eventid"] in their_removed_events:
-            plan.conflicts.append(Conflict(describe_row("payment", row), ROW_TITLES["payment"], "добавлена или изменена", "платёж удалён"))
+            plan.conflicts.append(Conflict(describe_row("payment", row), ROW_TITLES["payment"], "добавлена или изменена", "платеж удалён"))
     return plan
 
 
