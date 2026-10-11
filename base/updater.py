@@ -125,9 +125,11 @@ def probe_host(host: str, proxy: QNetworkProxy, label: str) -> None:
 
 
 def run_command(label: str, args: list[str]) -> None:
+    windows = sys.platform == "win32"
     try:
         result = subprocess.run(args, capture_output=True, stdin=subprocess.DEVNULL, timeout=DIAG_COMMAND_TIMEOUT,
-                                creationflags=CREATE_NO_WINDOW, encoding="oem", errors="replace")
+                                creationflags=CREATE_NO_WINDOW if windows else 0,
+                                encoding="oem" if windows else "utf-8", errors="replace")
     except subprocess.TimeoutExpired:
         log.w(f"Диагностика, команда [{label}]: нет ответа за {DIAG_COMMAND_TIMEOUT} с")
         return
@@ -140,7 +142,8 @@ def run_command(label: str, args: list[str]) -> None:
 
 def run_command_diagnostics() -> None:
     api_link = f"{API_URL}?public_key={PUBLIC_KEY}&path=/{VERSION_FILE}"
-    curl = ["curl.exe", "-v", "-sS", "-m", "20", "-o", "NUL"]
+    windows = sys.platform == "win32"
+    curl = ["curl.exe" if windows else "curl", "-v", "-sS", "-m", "20", "-o", "NUL" if windows else "/dev/null"]
     settings = (f"Get-ItemProperty '{INTERNET_SETTINGS_KEY}' | "
                 f"Select-Object ProxyEnable,ProxyServer,ProxyOverride,AutoConfigURL | Format-List; "
                 f"'DefaultConnectionSettings flags: ' + "
@@ -154,6 +157,8 @@ def run_command_diagnostics() -> None:
     run_command("curl API без прокси", curl + ["--noproxy", "*", api_link])
     run_command("curl GitHub", curl + ["https://api.github.com"])
     run_command("nslookup", ["nslookup", DIAG_HOSTS[0]])
+    if not windows:
+        return
     run_command("netsh winhttp", ["netsh", "winhttp", "show", "proxy"])
     run_command("настройки прокси", ["powershell", "-NoProfile", "-NonInteractive", "-Command", settings])
     run_command("антивирус", ["powershell", "-NoProfile", "-NonInteractive", "-Command", antivirus])

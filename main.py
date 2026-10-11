@@ -4,7 +4,7 @@ import cProfile
 import lovely_logger as log
 from PySide6.QtNetwork import QNetworkProxyFactory
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from base.paths import logs_dir
 from base.updater import UpdateChecker
@@ -46,11 +46,18 @@ def main():
     # pr.enable()
 
     #TEMP
-    if not getattr(sys, 'frozen', False):
+    if sys.platform == 'win32' and not getattr(sys, 'frozen', False):
         os.environ['PATH'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'openssl') + os.pathsep + \
                              os.environ['PATH']
 
-    logs_folder = logs_dir()
+    try:
+        logs_folder = logs_dir()
+    except OSError as e:
+        QApplication(sys.argv)
+        QMessageBox.critical(None, "Платежный календарь",
+                             f"Не удалось создать папку с данными программы:\n{e}\n\n"
+                             f"Проверьте права на запись в эту папку.")
+        sys.exit(1)
     if sys.stderr is None or sys.stderr.name == '<stderr>':
         sys.stderr = open(os.path.join(logs_folder, "sys_errors.log"), "a", encoding="utf-8", buffering=1)
     if sys.stdout is None or sys.stdout.name == '<stdout>':
