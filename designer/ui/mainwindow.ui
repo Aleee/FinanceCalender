@@ -57,6 +57,37 @@
          <number>0</number>
         </property>
         <item row="0" column="0">
+         <widget class="QPushButton" name="pb_resetfilters">
+          <property name="toolTip">
+           <string>Сбросить все фильтры (Ctrl+R)</string>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; margin: 9px 9px 0px 9px;}
+QPushButton:hover {background-color: #e8eef4;}
+QPushButton:disabled {color: #a0a0a0;}</string>
+          </property>
+          <property name="text">
+           <string>Сбросить фильтры</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLineEdit" name="le_search">
+          <property name="toolTip">
+           <string>Поиск по наименованию (предмету) и основанию платежа (Ctrl+F)</string>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">border: 1px solid #cbcbcb; margin: 6px 9px 0px 9px</string>
+          </property>
+          <property name="placeholderText">
+           <string>Поиск (Ctrl+F)</string>
+          </property>
+          <property name="clearButtonEnabled">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
          <widget class="QScrollArea" name="scrollArea">
           <property name="styleSheet">
            <string notr="true">QPushButton {
@@ -219,21 +250,6 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
                </size>
               </property>
              </spacer>
-            </item>
-            <item row="2" column="0" colspan="2">
-             <widget class="QPushButton" name="pb_resetfilters">
-              <property name="toolTip">
-               <string>Сбросить все фильтры (Ctrl+R)</string>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4;}
-QPushButton:hover {background-color: #e8eef4;}
-QPushButton:disabled {color: #a0a0a0;}</string>
-              </property>
-              <property name="text">
-               <string>Сбросить фильтры</string>
-              </property>
-             </widget>
             </item>
             <item row="18" column="0" colspan="2">
              <spacer name="verticalSpacer">
@@ -843,19 +859,18 @@ QPushButton:disabled {color: #a0a0a0;}</string>
    <addaction name="act_edit"/>
    <addaction name="act_delete"/>
    <addaction name="separator"/>
-   <addaction name="act_featured"/>
-   <addaction name="act_toggleheaders"/>
-   <addaction name="act_togglefooters"/>
-   <addaction name="separator"/>
    <addaction name="act_finplan"/>
    <addaction name="act_fulfillment"/>
    <addaction name="act_chart"/>
+   <addaction name="act_export"/>
    <addaction name="separator"/>
+   <addaction name="act_contracts"/>
    <addaction name="act_fees"/>
    <addaction name="act_matching"/>
    <addaction name="separator"/>
-   <addaction name="act_export"/>
-   <addaction name="act_contracts"/>
+   <addaction name="act_featured"/>
+   <addaction name="act_toggleheaders"/>
+   <addaction name="act_togglefooters"/>
    <addaction name="act_settings"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>

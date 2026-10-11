@@ -1047,6 +1047,7 @@ class Ui_settingsdialog(object):
 
         self.retranslateUi(settingsdialog)
 
+        self.pb_ok.setDefault(True)
         self.stw.setCurrentIndex(6)
         self.tw_personal.setCurrentIndex(0)
         self.lw_menu.setCurrentRow(-1)

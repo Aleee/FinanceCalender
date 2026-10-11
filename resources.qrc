@@ -33,6 +33,8 @@
     <file alias="icon-toolbar/designer/icons/edit.svg">designer/icons/edit.svg</file>
     <file alias="icon-toolbar/designer/icons/itemtop.svg">designer/icons/itemtop.svg</file>
     <file alias="icon-toolbar/designer/icons/fees.svg">designer/icons/fees.svg</file>
+    <file alias="icon-toolbar/designer/icons/view.svg">designer/icons/view.svg</file>
+    <file alias="icon-toolbar/designer/icons/statement.svg">designer/icons/statement.svg</file>
     <file alias="icon-toolbar/designer/icons/settings.svg">designer/icons/settings.svg</file>
     <file alias="icon-toolbar/designer/icons/delete.svg">designer/icons/delete.svg</file>
     <file>designer/icons/calendar.svg</file>

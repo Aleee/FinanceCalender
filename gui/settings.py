@@ -4,12 +4,15 @@ from enum import IntEnum
 
 import lovely_logger as log
 
-from PySide6.QtCore import QSettings, QDir, QSize, QPoint, QRect, QCoreApplication
+from PySide6.QtCore import QSettings, QDir, QSize, QPoint, QRect, QCoreApplication, QTimer
 from PySide6.QtWidgets import QApplication, QWidget
 
 from base.casting import str_bool, str_int
 from base.paths import settings_path, backup_dir, to_stored_path, from_stored_path
 from gui.eventsqlmodel import Col, RowFormatting
+
+
+MIN_WINDOW_WIDTH = 1000
 
 
 class FontSize(IntEnum):
@@ -199,6 +202,7 @@ class SettingsHandler:
             widget.setFixedWidth(width)
         # Боковая панель только ограничивается снизу - её ширину пользователь задаёт разделителем
         self.mw.ui.wdg_eventfilter.setMinimumWidth((200, 245, 270)[setting_value])
+        QTimer.singleShot(0, self.update_min_window_width)
 
         # Виджеты с самостоятельной регулировкой
         for filterwdg in (self.mw.ui.lw_term, self.mw.ui.lw_category):
@@ -210,6 +214,12 @@ class SettingsHandler:
         # Вернуть исключениям свои стили
         for widget in exclusions:
             widget.setStyleSheet(saved_stylesheets[widget])
+
+    def update_min_window_width(self) -> None:
+        # Окно не должно быть уже, чем нужно содержимому при выбранном шрифте
+        self.mw.setMinimumWidth(MIN_WINDOW_WIDTH)
+        self.mw.centralWidget().layout().invalidate()
+        self.mw.setMinimumWidth(max(MIN_WINDOW_WIDTH, self.mw.minimumSizeHint().width()))
 
     def save_settings(self) -> None:
         # Отображение

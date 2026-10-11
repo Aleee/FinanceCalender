@@ -3,10 +3,10 @@ from decimal import Decimal
 from typing import Any, Callable
 import lovely_logger as log
 
-from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QSize, QTimer
-from PySide6.QtGui import QAction, QColor, QKeySequence, QPalette, QShortcut
+from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
+from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPalette, QShortcut
 from PySide6.QtSql import QSqlTableModel
-from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QWidget, QListView, QToolButton, QLineEdit, QSizePolicy
+from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QStyle, QWidget, QListView, QToolButton, QSizePolicy
 
 from base.backup import clean_backup_folder, save_backup
 from base.casting import str_int
@@ -22,7 +22,6 @@ from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
 from gui.common import map_to_source
 from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparator
-from gui.commonwidgets.eventfilter import RightClickFilter
 from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
 from gui.contractdialog import ContractDocumentDialog
@@ -40,7 +39,7 @@ from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
 from gui.recoverydialog import RecoveryDialog
 from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
-from gui.settings import SettingsHandler
+from gui.settings import FontSize, SettingsHandler
 from gui.settingsdialog import SettingsDialog
 from gui.syncchangesdialog import SyncChangesDialog
 from gui.syncconflictdialog import SyncConflictDialog
@@ -49,24 +48,11 @@ from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PLANNED_STAGES, SYNC_RETR
                              create_master, create_sync_channel, create_sync_params, describe_master, failure_status_text,
                              master_age_days, merge_message, merge_tabs, merge_warning_lines, overwrite_master, pull_message,
                              pull_tabs, take_master, token_days_left)
-from gui.ui.syncicon import create_sync_icon
+from gui.ui.syncicon import SyncToolButton, create_sync_icon
 from gui.syncprogressdialog import SyncProgressDialog
 from gui.syncsettingsdialog import SyncSettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
-from gui.ui.yearinputdialog_ui import Ui_YearInputDialog
 from gui.exportdialog import ExportDialog
-
-
-class YearInputDialog(QDialog):
-    def __init__(self, default_year: int, parent=None):
-        super(YearInputDialog, self).__init__(parent)
-        self.ui = Ui_YearInputDialog()
-        self.ui.setupUi(self)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.FramelessWindowHint)
-        self.setStyleSheet("background-color: #D5D6D8")
-        self.ui.spinBox.setValue(default_year)
-        self.ui.pushButton.clicked.connect(self.accept)
-        self.ui.pb_cancel.clicked.connect(self.reject)
 
 
 class MainWindow(QMainWindow):
@@ -104,8 +90,8 @@ class MainWindow(QMainWindow):
         # Создание моделей таблиц (обязательства/платежи) и экспортера
         self._init_models()
 
-        # Поле быстрого поиска в тулбаре
-        self._init_toolbar_search()
+        # Подписи кнопок и выпадающие группы в тулбаре
+        self._init_toolbar_groups()
 
         # Строка состояния
         self._init_statusbar()
@@ -200,17 +186,97 @@ class MainWindow(QMainWindow):
         # Инициализация экспортера
         self.xls_writer: LiabilityXlsWriter = LiabilityXlsWriter(self.proxy2_model, self.ui.tv_payment, self.settings_handler)
 
-    def _init_toolbar_search(self) -> None:
-        # QToolBar в Qt Designer принимает только действия, поэтому поле поиска создаётся здесь
-        self.toolbar_spacer = QWidget(self)
-        self.toolbar_spacer.setFixedWidth(20)
-        self.le_search = QLineEdit(self)
-        self.le_search.setFixedWidth(300)
-        self.le_search.setClearButtonEnabled(True)
-        self.le_search.setPlaceholderText("Поиск по платежам (Ctrl+F)")
-        self.le_search.setToolTip("Поиск по наименованию (предмету) и основанию платежа (Ctrl+F)")
-        self.ui.tlbr.addWidget(self.toolbar_spacer)
-        self.ui.tlbr.addWidget(self.le_search)
+    def _init_toolbar_groups(self) -> None:
+        short_labels: dict[QAction, str] = {
+            self.ui.act_new: "Новый",
+            self.ui.act_copy: "Копия",
+            self.ui.act_edit: "Изменить",
+            self.ui.act_delete: "Удалить",
+            self.ui.act_export: "Экспорт",
+            self.ui.act_contracts: "Договоры",
+            self.ui.act_settings: "Настройки",
+        }
+        for action, text in short_labels.items():
+            action.setIconText(text)
+        self.ui.tlbr.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+
+        view_actions: list[QAction] = [self.ui.act_featured, self.ui.act_toggleheaders, self.ui.act_togglefooters]
+        bank_actions: list[QAction] = [self.ui.act_matching, self.ui.act_fees]
+        tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions,
+                                              "На контроле, заголовки и итоги разделов")
+        tb_bank = self._make_toolbar_dropdown("Выписка", ":/icon-toolbar/designer/icons/statement.svg", bank_actions,
+                                              "Сверка банковской выписки и учет комиссий")
+        copy_actions: list[QAction] = [self.ui.act_copy, self.ui.act_copydoc]
+        tb_copy = self._make_toolbar_split_button(self.ui.act_copy, copy_actions)
+        planfact_actions: list[QAction] = [self.ui.act_finplan, self.ui.act_fulfillment, self.ui.act_chart]
+        self.tb_planfact = self._make_toolbar_split_button(
+            self.ui.act_fulfillment, planfact_actions, "План-факт", ":/icon-toolbar/designer/icons/fulfillment.svg",
+            "Исполнение финансового плана, финансовый план и графики")
+        self.ui.tlbr.insertWidget(self.ui.act_copy, tb_copy)
+        self.ui.tlbr.insertWidget(self.ui.act_finplan, self.tb_planfact)
+        self.ui.tlbr.insertWidget(self.ui.act_featured, tb_view)
+        self.ui.tlbr.insertWidget(self.ui.act_fees, tb_bank)
+        for action in copy_actions + planfact_actions + view_actions + bank_actions:
+            self.ui.tlbr.removeAction(action)
+
+        button_groups: list[list[QToolButton]] = [[]]
+        for action in self.ui.tlbr.actions():
+            if action.isSeparator():
+                button_groups.append([])
+                continue
+            button: QToolButton = self.ui.tlbr.widgetForAction(action)
+            button.setStyleSheet(f"font-size: {FontSize.LARGE - 1}pt;")
+            button.ensurePolished()
+            button_groups[-1].append(button)
+        for group in button_groups:
+            group_width: int = max(self._toolbar_button_width(button) for button in group)
+            for button in group:
+                button.setFixedWidth(group_width)
+
+    @staticmethod
+    def _toolbar_button_width(button: QToolButton) -> int:
+        text_width: int = button.fontMetrics().horizontalAdvance(button.text())
+        arrow_width: int = button.style().pixelMetric(QStyle.PixelMetric.PM_MenuButtonIndicator, None, button)
+        if button.popupMode() == QToolButton.ToolButtonPopupMode.MenuButtonPopup:
+            return text_width + arrow_width + 8
+        return text_width + 14
+
+    def _make_toolbar_dropdown(self, text: str, icon_path: str, actions: list[QAction], tooltip: str) -> QToolButton:
+        menu = QMenu(self)
+        for action in actions:
+            action.setIconVisibleInMenu(True)
+            menu.addAction(action)
+        button = QToolButton()
+        button.setObjectName("tb_dropdown")
+        button.setText(text)
+        button.setIcon(QIcon(icon_path))
+        button.setIconSize(self.ui.tlbr.iconSize())
+        button.setToolTip(tooltip)
+        button.setAutoRaise(True)
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        button.setMenu(menu)
+        return button
+
+    def _make_toolbar_split_button(self, default_action: QAction, actions: list[QAction], text: str = "",
+                                   icon_path: str = "", tooltip: str = "") -> QToolButton:
+        menu = QMenu(self)
+        for action in actions:
+            action.setIconVisibleInMenu(True)
+            menu.addAction(action)
+        button = QToolButton()
+        button.setObjectName("tb_dropdown")
+        button.setDefaultAction(default_action)
+        if text:
+            button.setText(text)
+            button.setIcon(QIcon(icon_path))
+            button.setToolTip(tooltip)
+        button.setIconSize(self.ui.tlbr.iconSize())
+        button.setAutoRaise(True)
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        button.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        button.setMenu(menu)
+        return button
 
     def _connect_signals(self) -> None:
         # Пересчет итоговых строк
@@ -250,8 +316,9 @@ class MainWindow(QMainWindow):
         self.search_timer.setSingleShot(True)
         self.search_timer.setInterval(250)
         self.search_timer.timeout.connect(self.apply_search_filter)
-        self.le_search.textChanged.connect(lambda: self.search_timer.start())
+        self.ui.le_search.textChanged.connect(lambda: self.search_timer.start())
         self.ui.pb_resetfilters.clicked.connect(self.reset_filters)
+        self.ui.scrollArea.verticalScrollBar().rangeChanged.connect(self.update_search_margin)
 
         # Действия при переключении избранного
         self.ui.act_featured.triggered.connect(self.update_filters_and_select)
@@ -290,9 +357,6 @@ class MainWindow(QMainWindow):
         self.ui.act_edit.triggered.connect(lambda: self.open_event_dialog(edit=True))
         self.ui.act_delete.triggered.connect(self.delete_event)
         self.ui.act_finplan.triggered.connect(self.open_finplan_dialog)
-        self.rmb_finplan_filter = RightClickFilter(self)
-        self.rmb_finplan_filter.rightmousebutton_clicked.connect(lambda: self.open_finplan_dialog(ask_year=True))
-        self.ui.tlbr.widgetForAction(self.ui.act_finplan).installEventFilter(self.rmb_finplan_filter)
         self.ui.act_fulfillment.triggered.connect(self.open_fulfillment_dialog)
         self.ui.act_chart.triggered.connect(self.open_chart_dialog)
         self.ui.act_fees.triggered.connect(lambda: self.open_fees_dialog())
@@ -355,11 +419,10 @@ class MainWindow(QMainWindow):
         sync_menu = QMenu(self)
         sync_menu.addAction(self.act_sync_now)
         sync_menu.addAction(self.act_sync_settings)
-        self.tb_sync = QToolButton()
+        self.tb_sync = SyncToolButton()
         self.tb_sync.setAutoRaise(True)
         self.tb_sync.setObjectName("tb_sync")
-        self.tb_sync.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.tb_sync.setIconSize(QSize(14, 14))
+        self.tb_sync.setFixedHeight(self.ui.tlbr.widgetForAction(self.ui.act_new).sizeHint().height())
         self.tb_sync.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
         self.tb_sync.setMenu(sync_menu)
         self.tb_sync.clicked.connect(self.on_sync_button_clicked)
@@ -392,7 +455,7 @@ class MainWindow(QMainWindow):
             self.open_sync_settings_dialog()
 
     def set_sync_button_state(self, text: str, color: QColor | None = None, icon_color: QColor | None = None) -> None:
-        self.tb_sync.setText("  " + text)
+        self.tb_sync.setText(text)
         palette: QPalette = QApplication.palette(self.tb_sync)
         if color is not None:
             palette.setColor(QPalette.ColorRole.ButtonText, color)
@@ -403,7 +466,7 @@ class MainWindow(QMainWindow):
     def update_sync_status(self) -> None:
         self.update_sync_statusbar()
         if not self.settings_handler.sync_enabled():
-            self.set_sync_button_state("Синхронизация выключена", self.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText))
+            self.set_sync_button_state("Синхронизация:\nвыключена",self.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText))
             self.tb_sync.setToolTip("Синхронизация выключена. Нажмите, чтобы открыть настройки синхронизации")
             self.act_sync_now.setEnabled(False)
             return
@@ -425,7 +488,7 @@ class MainWindow(QMainWindow):
             except SyncError as e:
                 log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
         is_warning: bool = is_master_stale or bool(token_warning) or has_unsent_changes
-        status_text: str = f"Синхронизация: {'есть неотправленные изменения' if has_unsent_changes else self.sync_status_text}"
+        status_text: str = f"Синхронизация:\n{'есть неотправленные' if has_unsent_changes else self.sync_status_text}"
         if not is_problem and is_warning and not has_unsent_changes:
             status_text += " ⚠"
         color: QColor | None = None
@@ -646,7 +709,7 @@ class MainWindow(QMainWindow):
         self.ui.act_copydoc.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.ui.act_copydoc.setToolTip(f"{self.ui.act_copydoc.toolTip()} (Ctrl+Shift+D)")
         # Горячие клавиши, которым не соответствует кнопка тулбара
-        for key, slot in (("Ctrl+F", self.le_search.setFocus),
+        for key, slot in (("Ctrl+F", self.ui.le_search.setFocus),
                           ("Ctrl+R", self.reset_filters),
                           ("Ctrl+S", self.save_note)):
             QShortcut(QKeySequence(key), self).activated.connect(slot)
@@ -823,16 +886,26 @@ class MainWindow(QMainWindow):
         return (any(is_active() for *_, is_active in self.filter_sections)
                 or self.ui.chb_paytoday.isChecked()
                 or self.ui.act_featured.isChecked()
-                or bool(self.le_search.text()))
+                or bool(self.ui.le_search.text()))
+
+    def update_search_margin(self, _minimum: int, maximum: int) -> None:
+        scrollbar_width: int = self.ui.scrollArea.verticalScrollBar().sizeHint().width() if maximum > 0 else 0
+        right_margin: int = 9 + scrollbar_width
+        self.ui.pb_resetfilters.setStyleSheet(
+            "QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; "
+            f"margin: 9px {right_margin}px 0px 9px;}}\n"
+            "QPushButton:hover {background-color: #e8eef4;}\n"
+            "QPushButton:disabled {color: #a0a0a0;}")
+        self.ui.le_search.setStyleSheet(f"border: 1px solid #cbcbcb; margin: 6px {right_margin}px 0px 9px")
 
     def apply_search_filter(self) -> None:
-        self.proxy1_model.set_filter(Filter.SEARCH, self.le_search.text())
+        self.proxy1_model.set_filter(Filter.SEARCH, self.ui.le_search.text())
         self.ui.pb_resetfilters.setEnabled(self.any_filter_active())
 
     def reset_filters(self) -> None:
         blocked_widgets: tuple = (self.ui.lw_term, self.ui.lw_category, self.ui.le_receiverfilter,
                                   self.ui.cmb_responsiblefilter, self.ui.chb_paytoday,
-                                  self.le_search, self.ui.act_featured)
+                                  self.ui.le_search, self.ui.act_featured)
         for widget in blocked_widgets:
             widget.blockSignals(True)
         self.ui.lw_term.setCurrentRow(0)
@@ -840,7 +913,7 @@ class MainWindow(QMainWindow):
         self.ui.le_receiverfilter.clear()
         self.ui.cmb_responsiblefilter.setCurrentIndex(0)
         self.ui.chb_paytoday.setChecked(False)
-        self.le_search.clear()
+        self.ui.le_search.clear()
         self.ui.act_featured.setChecked(False)
         for widget in blocked_widgets:
             widget.blockSignals(False)
@@ -1073,13 +1146,8 @@ class MainWindow(QMainWindow):
         dlg: ExportDialog = ExportDialog(self.xls_writer, self.ui.trw_event.get_columnvisibility_list(), self)
         return dlg.exec() == QDialog.DialogCode.Accepted
 
-    def open_finplan_dialog(self, ask_year: bool = False) -> None:
+    def open_finplan_dialog(self) -> None:
         year: int = QDate().currentDate().year()
-        if ask_year:
-            tdlg: YearInputDialog = YearInputDialog(year, self)
-            if not tdlg.exec():
-                return
-            year = tdlg.ui.spinBox.value()
         dlg: FinPlanDialog = FinPlanDialog(self.db_handler, self.settings_handler, year, self)
         dlg.exec()
 

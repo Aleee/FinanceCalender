@@ -21,16 +21,15 @@ class FinPlanDialog(QDialog):
         self.sh: SettingsHandler = sh
         self.year: int = year
         self._load_failed: bool = False
+        self._saved_values: dict = {}
 
         self.model = FinPlanTableModel()
-        values = self.db_handler.load_finplan_from_db(year, self.model.FINPLAN_STRUCTURE)
-        if not values:
-            log.e(f"Не удалось загрузить данные финансового плана (выбранный год - {year})")
-            msg_box = ErrorInfoMessageBox("Не удалось загрузить данные финансового плана из базы данных")
-            msg_box.exec()
+        if not self.load_year(year):
             self._load_failed = True
             return
-        self.model.load_values(values)
+
+        self.ui.sb_year.setValue(year)
+        self.ui.sb_year.valueChanged.connect(self.on_year_changed)
 
         self.ui.tv_finplan.setModel(self.model)
         self.ui.tv_finplan.adjust_columns(self.sh)
@@ -42,6 +41,35 @@ class FinPlanDialog(QDialog):
 
         self.ui.pb_cancel.clicked.connect(self.reject)
         self.ui.pb_save.clicked.connect(self.accept)
+
+    def load_year(self, year: int) -> bool:
+        values = self.db_handler.load_finplan_from_db(year, self.model.FINPLAN_STRUCTURE)
+        if not values:
+            log.e(f"Не удалось загрузить данные финансового плана (выбранный год - {year})")
+            msg_box = ErrorInfoMessageBox("Не удалось загрузить данные финансового плана из базы данных")
+            msg_box.exec()
+            return False
+        self.model.load_values(values)
+        self.year = year
+        self._saved_values = {category: list(row) for category, row in self.model.values.items()}
+        return True
+
+    def has_changes(self) -> bool:
+        return self.model.values != self._saved_values
+
+    def on_year_changed(self, year: int) -> None:
+        if self.has_changes():
+            msg_box = YesNoMessagebox("Изменения за текущий год не сохранены. Перейти к другому году без сохранения?")
+            if msg_box.exec() != YesNoMessagebox.YES_RETURN_VALUE:
+                self.set_year_spinbox(self.year)
+                return
+        if not self.load_year(year):
+            self.set_year_spinbox(self.year)
+
+    def set_year_spinbox(self, year: int) -> None:
+        self.ui.sb_year.blockSignals(True)
+        self.ui.sb_year.setValue(year)
+        self.ui.sb_year.blockSignals(False)
 
     def exec(self):
         if self._load_failed:
@@ -87,6 +115,9 @@ class FinPlanDialog(QDialog):
         QDialog.accept(self)
 
     def reject(self, /):
+        if not self.has_changes():
+            QDialog.reject(self)
+            return
         msg_box = YesNoMessagebox("Вы уверены, что хотите выйти без сохранения изменений?")
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
             QDialog.reject(self)

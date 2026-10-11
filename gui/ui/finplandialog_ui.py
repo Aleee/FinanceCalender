@@ -16,8 +16,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QGridLayout,
-    QHBoxLayout, QHeaderView, QPushButton, QSizePolicy,
-    QSpacerItem, QWidget)
+    QHBoxLayout, QHeaderView, QLabel, QPushButton,
+    QSizePolicy, QSpacerItem, QSpinBox, QWidget)
 
 from gui.finplanwidget import FinPlanTableView
 
@@ -37,6 +37,19 @@ class Ui_FinPlanDialog(object):
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.lbl_year = QLabel(FinPlanDialog)
+        self.lbl_year.setObjectName(u"lbl_year")
+
+        self.horizontalLayout.addWidget(self.lbl_year)
+
+        self.sb_year = QSpinBox(FinPlanDialog)
+        self.sb_year.setObjectName(u"sb_year")
+        self.sb_year.setMinimumSize(QSize(80, 0))
+        self.sb_year.setMinimum(2025)
+        self.sb_year.setMaximum(2099)
+
+        self.horizontalLayout.addWidget(self.sb_year)
+
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
@@ -71,6 +84,7 @@ class Ui_FinPlanDialog(object):
 
     def retranslateUi(self, FinPlanDialog):
         FinPlanDialog.setWindowTitle(QCoreApplication.translate("FinPlanDialog", u"\u0424\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u044b\u0439 \u043f\u043b\u0430\u043d", None))
+        self.lbl_year.setText(QCoreApplication.translate("FinPlanDialog", u"\u0413\u043e\u0434:", None))
         self.pb_cancel.setText(QCoreApplication.translate("FinPlanDialog", u" \u041e\u0442\u043c\u0435\u043d\u0430 ", None))
         self.pb_save.setText(QCoreApplication.translate("FinPlanDialog", u" \u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c ", None))
     # retranslateUi

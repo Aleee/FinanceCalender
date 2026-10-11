@@ -186,6 +186,9 @@ class Ui_SyncSettingsDialog(object):
 
         self.retranslateUi(SyncSettingsDialog)
 
+        self.pb_ok.setDefault(True)
+
+
         QMetaObject.connectSlotsByName(SyncSettingsDialog)
     # setupUi
 

@@ -167,6 +167,21 @@ class Ui_MainWindow(object):
         self.gridLayout_2 = QGridLayout(self.wdg_eventfilter)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.gridLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.pb_resetfilters = QPushButton(self.wdg_eventfilter)
+        self.pb_resetfilters.setObjectName(u"pb_resetfilters")
+        self.pb_resetfilters.setStyleSheet(u"QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; margin: 9px 9px 0px 9px;}\n"
+"QPushButton:hover {background-color: #e8eef4;}\n"
+"QPushButton:disabled {color: #a0a0a0;}")
+
+        self.gridLayout_2.addWidget(self.pb_resetfilters, 0, 0, 1, 1)
+
+        self.le_search = QLineEdit(self.wdg_eventfilter)
+        self.le_search.setObjectName(u"le_search")
+        self.le_search.setStyleSheet(u"border: 1px solid #cbcbcb; margin: 6px 9px 0px 9px")
+        self.le_search.setClearButtonEnabled(True)
+
+        self.gridLayout_2.addWidget(self.le_search, 1, 0, 1, 1)
+
         self.scrollArea = QScrollArea(self.wdg_eventfilter)
         self.scrollArea.setObjectName(u"scrollArea")
         self.scrollArea.setStyleSheet(u"QPushButton {\n"
@@ -246,14 +261,6 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addItem(self.verticalSpacer_8, 16, 0, 1, 1)
 
-        self.pb_resetfilters = QPushButton(self.scrollAreaWidgetContents)
-        self.pb_resetfilters.setObjectName(u"pb_resetfilters")
-        self.pb_resetfilters.setStyleSheet(u"QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4;}\n"
-"QPushButton:hover {background-color: #e8eef4;}\n"
-"QPushButton:disabled {color: #a0a0a0;}")
-
-        self.gridLayout_3.addWidget(self.pb_resetfilters, 2, 0, 1, 2)
-
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_3.addItem(self.verticalSpacer, 18, 0, 1, 2)
@@ -284,7 +291,7 @@ class Ui_MainWindow(object):
 
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
 
-        self.gridLayout_2.addWidget(self.scrollArea, 0, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.scrollArea, 2, 0, 1, 1)
 
         self.spl_main.addWidget(self.wdg_eventfilter)
         self.spl_workarea = QSplitter(self.spl_main)
@@ -559,19 +566,18 @@ class Ui_MainWindow(object):
         self.tlbr.addAction(self.act_edit)
         self.tlbr.addAction(self.act_delete)
         self.tlbr.addSeparator()
-        self.tlbr.addAction(self.act_featured)
-        self.tlbr.addAction(self.act_toggleheaders)
-        self.tlbr.addAction(self.act_togglefooters)
-        self.tlbr.addSeparator()
         self.tlbr.addAction(self.act_finplan)
         self.tlbr.addAction(self.act_fulfillment)
         self.tlbr.addAction(self.act_chart)
+        self.tlbr.addAction(self.act_export)
         self.tlbr.addSeparator()
+        self.tlbr.addAction(self.act_contracts)
         self.tlbr.addAction(self.act_fees)
         self.tlbr.addAction(self.act_matching)
         self.tlbr.addSeparator()
-        self.tlbr.addAction(self.act_export)
-        self.tlbr.addAction(self.act_contracts)
+        self.tlbr.addAction(self.act_featured)
+        self.tlbr.addAction(self.act_toggleheaders)
+        self.tlbr.addAction(self.act_togglefooters)
         self.tlbr.addAction(self.act_settings)
 
         self.retranslateUi(MainWindow)
@@ -653,14 +659,18 @@ class Ui_MainWindow(object):
         self.act_matching.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0432\u0435\u0440\u0438\u0442\u044c \u0432\u044b\u043f\u0438\u0441\u043a\u0443", None))
         self.act_contracts.setText(QCoreApplication.translate("MainWindow", u"\u041a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u044b \u0438 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u044b", None))
         self.act_gotocontract.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u043a \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0443", None))
-        self.spb_responsible.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041e\U00000422\U00000412\U00000415\U00000422\U00000421\U00000422\U00000412\U00000415\U0000041d\U0000041d\U0000042b\U00000419", None))
-        self.chb_paytoday.setText(QCoreApplication.translate("MainWindow", u"\u041e\u041f\u041b\u0410\u0422\u0410 \u0421\u0415\u0413\u041e\u0414\u041d\u042f", None))
-        self.spb_receiver.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041f\U0000041e\U0000041b\U00000423\U00000427\U00000410\U00000422\U00000415\U0000041b\U0000042c", None))
-        self.spb_category.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041a\U00000410\U00000422\U00000415\U00000413\U0000041e\U00000420\U00000418\U0000042f", None))
 #if QT_CONFIG(tooltip)
         self.pb_resetfilters.setToolTip(QCoreApplication.translate("MainWindow", u"\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0432\u0441\u0435 \u0444\u0438\u043b\u044c\u0442\u0440\u044b (Ctrl+R)", None))
 #endif // QT_CONFIG(tooltip)
         self.pb_resetfilters.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0444\u0438\u043b\u044c\u0442\u0440\u044b", None))
+#if QT_CONFIG(tooltip)
+        self.le_search.setToolTip(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u043d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u044e (\u043f\u0440\u0435\u0434\u043c\u0435\u0442\u0443) \u0438 \u043e\u0441\u043d\u043e\u0432\u0430\u043d\u0438\u044e \u043f\u043b\u0430\u0442\u0435\u0436\u0430 (Ctrl+F)", None))
+#endif // QT_CONFIG(tooltip)
+        self.le_search.setPlaceholderText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0438\u0441\u043a (Ctrl+F)", None))
+        self.spb_responsible.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041e\U00000422\U00000412\U00000415\U00000422\U00000421\U00000422\U00000412\U00000415\U0000041d\U0000041d\U0000042b\U00000419", None))
+        self.chb_paytoday.setText(QCoreApplication.translate("MainWindow", u"\u041e\u041f\u041b\u0410\u0422\u0410 \u0421\u0415\u0413\u041e\u0414\u041d\u042f", None))
+        self.spb_receiver.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041f\U0000041e\U0000041b\U00000423\U00000427\U00000410\U00000422\U00000415\U0000041b\U0000042c", None))
+        self.spb_category.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041a\U00000410\U00000422\U00000415\U00000413\U0000041e\U00000420\U00000418\U0000042f", None))
         self.spb_term.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U00000421\U00000420\U0000041e\U0000041a \U0000041e\U0000041f\U0000041b\U00000410\U00000422\U0000042b", None))
         self.pb_deletepayment.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c", None))
         self.pb_addpayment.setText(QCoreApplication.translate("MainWindow", u"\u041e\u043f\u043b\u0430\u0442\u0438\u0442\u044c", None))
