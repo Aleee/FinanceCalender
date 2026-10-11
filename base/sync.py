@@ -326,6 +326,13 @@ def master_token(master: MasterInfo | None) -> str | None:
     return None if master is None else master.sync_token
 
 
+def master_has_token(channel: SyncChannel, token: str) -> bool:
+    try:
+        return master_token(channel.read_master_info()) == token
+    except SyncError:
+        return False
+
+
 def backups_cleanup_due(previous_master: MasterInfo | None) -> bool:
     if previous_master is None:
         return True
@@ -394,7 +401,12 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
             log.d(f"Отправка общей базы: копия прежней общей базы за {elapsed_ms(stage_started)} мс")
         stage_started = time.monotonic()
         report_stage(STAGE_UPLOAD)
-        channel.upload_master(snapshot, info)
+        try:
+            channel.upload_master(snapshot, info)
+        except SyncError as e:
+            if not master_has_token(channel, new_token):
+                raise
+            log.w(f"Отправка завершилась ошибкой ({e}), но общая база уже обновлена")
         log.d(f"Отправка общей базы: загрузка за {elapsed_ms(stage_started)} мс")
         save_sync_base(snapshot)
     if backups_cleanup_due(master):

@@ -341,3 +341,52 @@ def test_merge_push_does_not_reread_master_info_again(machine_a, make_machine, c
         assert synchronize(dbh, reader_b, PARAMS, merge=True) == SyncAction.MERGE
     metadata_requests = [request for request in disk.requests if request == ("GET", "cloud-api.yandex.net/v1/disk/resources")]
     assert len(metadata_requests) == 6
+
+
+def test_push_is_finished_if_master_was_updated_despite_lost_info_response(machine_a, channel, disk):
+    original_send = disk.send
+
+    def send_losing_info_response(method, url, *args, **kwargs):
+        response = original_send(method, url, *args, **kwargs)
+        if method == "PUT" and "upload.fake" in url and "master.json" in url:
+            raise NetworkError("Нет связи с сервером: Operation timed out")
+        return response
+
+    disk.send = send_losing_info_response
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+        assert dbh.get_setting("change_counter", None) == "0"
+    assert channel.read_master_info().sync_token == machine_a.meta()["sync_token"]
+
+
+def test_upload_confirmation_survives_server_errors(machine_a, channel, disk):
+    original_send = disk.send
+    failures = []
+
+    def send_failing_info_metadata(method, url, *args, **kwargs):
+        if method == "GET" and "/v1/disk/resources?" in url and "master.json" in url and len(failures) < 3:
+            failures.append(url)
+            return json_response(500, {"message": "Internal Server Error"})
+        return original_send(method, url, *args, **kwargs)
+
+    disk.send = send_failing_info_metadata
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    assert len(failures) == 3
+    assert channel.read_master_info().sync_token == machine_a.meta()["sync_token"]
+
+
+def test_upload_confirmation_does_not_retry_auth_errors(channel, disk):
+    original_send = disk.send
+    calls = []
+
+    def send_forbidden_info_metadata(method, url, *args, **kwargs):
+        if method == "GET" and "/v1/disk/resources?" in url and "master.json" in url:
+            calls.append(url)
+            return json_response(403, {"message": "Forbidden"})
+        return original_send(method, url, *args, **kwargs)
+
+    disk.send = send_forbidden_info_metadata
+    with pytest.raises(AuthError):
+        channel.put_file("app:/master.json", "0" * 32, 1, data=b"x")
+    assert len(calls) == 1

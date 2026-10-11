@@ -177,7 +177,13 @@ class YandexDiskApiChannel(SyncChannel):
             raise self.error_from(response)
         mismatch = False
         for _ in range(UPLOAD_CONFIRM_ATTEMPTS):
-            metadata = self.metadata(name)
+            try:
+                metadata = self.metadata(name)
+            except (AuthError, NetworkError):
+                raise
+            except SyncError as e:
+                log.d(f"Загрузка {name}: не удалось проверить файл ({e}), повторяем")
+                metadata = None
             if metadata is not None and metadata.get("md5"):
                 if metadata["md5"] == expected_md5 and metadata.get("size") == expected_size:
                     return

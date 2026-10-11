@@ -127,7 +127,7 @@ class MainWindow(QMainWindow):
         self.ui.stw_eventinfo.setCurrentIndex(1)
 
         # Первая синхронизация после запуска
-        QTimer.singleShot(100, self.auto_sync)
+        QTimer.singleShot(100, lambda: self.auto_sync(is_first=True))
 
 
     def _load_database(self) -> None:
@@ -481,17 +481,17 @@ class MainWindow(QMainWindow):
             self.sync_channel_settings = current_settings
         return self.sync_channel
 
-    def auto_sync(self, retries_left: int = SYNC_RETRY_ATTEMPTS) -> None:
+    def auto_sync(self, retries_left: int = SYNC_RETRY_ATTEMPTS, is_first: bool = False) -> None:
         if (not self.settings_handler.sync_enabled() or not self.tb_sync.isEnabled()
                 or self.sync_progress is not None or QApplication.activeModalWidget() is not None
                 or self.ui.tb_savenote.isEnabled()):
             return
-        self.run_sync(interactive=False)
+        self.run_sync(interactive=False, pause_when_done=is_first)
         if self.sync_network_failed and retries_left > 0:
             log.i(f"Повтор синхронизации через {SYNC_RETRY_DELAY_MS // 1000} с, осталось попыток: {retries_left}")
             QTimer.singleShot(SYNC_RETRY_DELAY_MS, lambda: self.auto_sync(retries_left - 1))
 
-    def run_sync(self, interactive: bool = True) -> None:
+    def run_sync(self, interactive: bool = True, pause_when_done: bool = True) -> None:
         if not self.settings_handler.sync_enabled():
             return
         self.save_note()
@@ -523,7 +523,7 @@ class MainWindow(QMainWindow):
                 self.sync_progress.show_stage_now(SYNC_STAGE_CHANGES_NOTICE)
                 changes_dlg.exec()
         finally:
-            self._close_sync_progress(pause=interactive and action is not None)
+            self._close_sync_progress(pause=pause_when_done and action is not None)
         if interactive:
             if action is None:
                 ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
