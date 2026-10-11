@@ -15,7 +15,8 @@ from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
 from base.payment import PaymentField
-from base.sync import MasterInfo, NetworkError, SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, read_local_state, synchronize
+from base.sync import (MasterInfo, NetworkError, SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, read_local_state,
+                       set_stage_listener, synchronize)
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
@@ -43,8 +44,8 @@ from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
 from gui.syncchangesdialog import SyncChangesDialog
 from gui.syncconflictdialog import SyncConflictDialog
-from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS, SYNC_STATUS_TEXT,
-                             TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_tabs, connect_to_master,
+from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PLANNED_STAGES, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS,
+                             SYNC_STAGE_CHANGES_NOTICE, SYNC_STAGE_CONFLICT_RESOLUTION, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_tabs, connect_to_master,
                              create_master, create_sync_channel, create_sync_params, describe_master, failure_status_text,
                              master_age_days, merge_message, merge_tabs, merge_warning_lines, overwrite_master, pull_message,
                              pull_tabs, take_master, token_days_left)
@@ -89,6 +90,7 @@ class MainWindow(QMainWindow):
         self.nosave_exit: bool = False
         self.bound_document_id: int = 0
         self.sync_status_text: str = "не выполнялась"
+        self.sync_progress: SyncProgressDialog | None = None
         self.sync_error: str = ""
         self.sync_network_failed: bool = False
         self.sync_failure_text: str = "ОШИБКА"
@@ -481,7 +483,8 @@ class MainWindow(QMainWindow):
 
     def auto_sync(self, retries_left: int = SYNC_RETRY_ATTEMPTS) -> None:
         if (not self.settings_handler.sync_enabled() or not self.tb_sync.isEnabled()
-                or QApplication.activeModalWidget() is not None or self.ui.tb_savenote.isEnabled()):
+                or self.sync_progress is not None or QApplication.activeModalWidget() is not None
+                or self.ui.tb_savenote.isEnabled()):
             return
         self.run_sync(interactive=False)
         if self.sync_network_failed and retries_left > 0:
@@ -496,24 +499,31 @@ class MainWindow(QMainWindow):
         params = create_sync_params(self.settings_handler)
         previous_status_text: str = self.sync_status_text
         report = SyncReport()
-        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True))
-        is_changed_by_other: bool = action in (SyncAction.PULL, SyncAction.MERGE)
-        is_merged: bool = action == SyncAction.MERGE
-        if interactive or action == SyncAction.CONFLICT:
-            action = self._resolve_sync_action(action, channel, params, report)
-        self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
-        if action in self.SYNC_SUCCESS_ACTIONS:
-            self.sync_succeeded_at = QDateTime.currentDateTime()
-        self.sync_status_text = self.sync_failure_text if action is None else SYNC_STATUS_TEXT[action]
-        if action in (SyncAction.PULL, SyncAction.MERGE):
-            self.reload_after_sync_pull()
-        self.update_sync_status()
-        if is_changed_by_other:
-            if is_merged:
-                changes_dlg = SyncChangesDialog(merge_message(report), merge_tabs(report), self, warnings=merge_warning_lines(report))
-            else:
-                changes_dlg = SyncChangesDialog(pull_message(report.master_info or self.sync_master_info), pull_tabs(report), self)
-            changes_dlg.exec()
+        action: SyncAction | None = None
+        self.sync_progress = SyncProgressDialog(self, planned_stages=SYNC_PLANNED_STAGES)
+        self.sync_progress.start()
+        try:
+            action = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True))
+            is_changed_by_other: bool = action in (SyncAction.PULL, SyncAction.MERGE)
+            is_merged: bool = action == SyncAction.MERGE
+            if interactive or action == SyncAction.CONFLICT:
+                action = self._resolve_sync_action(action, channel, params, report)
+            self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
+            if action in self.SYNC_SUCCESS_ACTIONS:
+                self.sync_succeeded_at = QDateTime.currentDateTime()
+            self.sync_status_text = self.sync_failure_text if action is None else SYNC_STATUS_TEXT[action]
+            if action in (SyncAction.PULL, SyncAction.MERGE):
+                self.reload_after_sync_pull()
+            self.update_sync_status()
+            if is_changed_by_other:
+                if is_merged:
+                    changes_dlg = SyncChangesDialog(merge_message(report), merge_tabs(report), self, warnings=merge_warning_lines(report))
+                else:
+                    changes_dlg = SyncChangesDialog(pull_message(report.master_info or self.sync_master_info), pull_tabs(report), self)
+                self.sync_progress.show_stage_now(SYNC_STAGE_CHANGES_NOTICE)
+                changes_dlg.exec()
+        finally:
+            self._close_sync_progress(pause=interactive and action is not None)
         if interactive:
             if action is None:
                 ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
@@ -537,6 +547,7 @@ class MainWindow(QMainWindow):
             if report.my_changes is None:
                 self._run_sync_step(channel, lambda: compare_with_master(self.db_handler, channel, report))
             conflict_dlg = SyncConflictDialog(describe_master(self.sync_master_info), self, conflict_tabs(report), report.conflicts)
+            self.sync_progress.show_stage_now(SYNC_STAGE_CONFLICT_RESOLUTION)
             conflict_dlg.exec()
             if conflict_dlg.take_master_chosen():
                 return self._run_sync_step(channel, lambda: take_master(self.db_handler, channel))
@@ -555,20 +566,32 @@ class MainWindow(QMainWindow):
             return True
         channel = self.get_sync_channel()
         params = create_sync_params(self.settings_handler)
-        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params))
+        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params),
+                                                        SYNC_PLANNED_STAGES)
         if action == SyncAction.PUSH:
             return True
         reason: str = self.sync_error if action is None else SYNC_STATUS_TEXT[action]
         return YesNoMessagebox(f"Изменения не отправлены в общую базу ({reason}). Закрыть программу без отправки?",
                                self).exec() == YesNoMessagebox.YES_RETURN_VALUE
 
-    def _run_sync_step(self, channel: SyncChannel, step: Callable[[], SyncAction]) -> SyncAction | None:
+    def _close_sync_progress(self, pause: bool) -> None:
+        progress: SyncProgressDialog = self.sync_progress
+        self.sync_progress = None
+        progress.complete(pause)
+        progress.finish()
+
+    def _run_sync_step(self, channel: SyncChannel, step: Callable[[], SyncAction],
+                       planned_stages: tuple[str, ...] = ()) -> SyncAction | None:
         self.tb_sync.setEnabled(False)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        progress = SyncProgressDialog(self)
-        progress.start()
+        owns_progress: bool = self.sync_progress is None
+        progress: SyncProgressDialog = SyncProgressDialog(self, planned_stages=planned_stages) if owns_progress else self.sync_progress
+        set_stage_listener(progress.set_stage)
+        if owns_progress:
+            progress.start()
         try:
             action: SyncAction = step()
+            progress.complete(owns_progress)
             self.sync_error = ""
             self.sync_network_failed = False
             self.sync_master_info = channel.last_master_info()
@@ -580,7 +603,9 @@ class MainWindow(QMainWindow):
             self.sync_failure_text = failure_status_text(e)
             return None
         finally:
-            progress.finish()
+            set_stage_listener(None)
+            if owns_progress:
+                progress.finish()
             QApplication.restoreOverrideCursor()
             self.tb_sync.setEnabled(True)
 

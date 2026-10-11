@@ -9,7 +9,7 @@ from dataclasses import dataclass, asdict, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 from uuid import uuid4
 
 import lovely_logger as log
@@ -31,6 +31,30 @@ PRECISE_BACKUP_TIME_FORMAT = BACKUP_TIME_FORMAT + "-%f"
 BACKUP_PREFIX = "master_"
 TEMP_SUFFIX = ".tmp"
 STATE_KEYS = ("db_uuid", "sync_token", "db_version", "change_counter")
+
+STAGE_CONNECT = "Подключение к общей базе"
+STAGE_COMPARE = "Сверка версий"
+STAGE_DOWNLOAD = "Скачивание общей базы"
+STAGE_CHECK = "Проверка скачанной базы"
+STAGE_APPLY = "Обновление локальной базы"
+STAGE_SNAPSHOT = "Подготовка базы к отправке"
+STAGE_BACKUP = "Копия прежней общей базы"
+STAGE_UPLOAD = "Отправка базы"
+STAGE_ANALYZE = "Анализ ваших изменений"
+STAGE_COMPARE_CHANGES = "Сравнение изменений"
+STAGE_MERGE = "Объединение изменений"
+
+stage_listener: Callable[[str], None] | None = None
+
+
+def set_stage_listener(listener: Callable[[str], None] | None) -> None:
+    global stage_listener
+    stage_listener = listener
+
+
+def report_stage(text: str) -> None:
+    if stage_listener is not None:
+        stage_listener(text)
 
 
 class SyncError(Exception):
@@ -346,11 +370,13 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
                 master: MasterInfo | None = None) -> None:
     local = read_local_state(dbh)
     if master is None:
+        report_stage(STAGE_CONNECT)
         master = channel.read_master_info()
     action = decide_action(local, master)
     allowed = {SyncAction.PUSH, SyncAction.NO_MASTER} | ({SyncAction.CONFLICT} if overwrite else set())
     if action not in allowed:
         raise SyncError(f"Отправка невозможна в состоянии «{action.value}»")
+    report_stage(STAGE_SNAPSHOT)
     new_token = uuid4().hex
     with tempfile.TemporaryDirectory() as folder:
         snapshot = Path(folder) / MASTER_DB_NAME
@@ -363,9 +389,11 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
                           datetime.now().isoformat(timespec="seconds"), params.app_version)
         stage_started = time.monotonic()
         if overwrite or master_backup_due(master, params.backup_interval_minutes):
+            report_stage(STAGE_BACKUP)
             channel.backup_master()
             log.d(f"Отправка общей базы: копия прежней общей базы за {elapsed_ms(stage_started)} мс")
         stage_started = time.monotonic()
+        report_stage(STAGE_UPLOAD)
         channel.upload_master(snapshot, info)
         log.d(f"Отправка общей базы: загрузка за {elapsed_ms(stage_started)} мс")
         save_sync_base(snapshot)
@@ -380,7 +408,9 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
 
 def download_checked_master(dbh: "DBHandler", channel: SyncChannel, master: MasterInfo, folder: str) -> tuple[Path, LocalState]:
     downloaded = Path(folder) / MASTER_DB_NAME
+    report_stage(STAGE_DOWNLOAD)
     channel.download_master(downloaded)
+    report_stage(STAGE_CHECK)
     downloaded_state = read_file_state(dbh, downloaded)
     if downloaded_state.sync_token != master.sync_token:
         raise MasterUpdatingError("Общая база обновляется: файл базы данных и master.json не совпадают, повторите позже")
@@ -418,12 +448,14 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
                 master: MasterInfo | None = None, report: SyncReport | None = None) -> None:
     local = read_local_state(dbh)
     if master is None:
+        report_stage(STAGE_CONNECT)
         master = channel.read_master_info()
     action = decide_action(local, master)
     if action not in allowed:
         raise SyncError(f"Подтягивание невозможно в состоянии «{action.value}»")
     with tempfile.TemporaryDirectory() as folder:
         downloaded, downloaded_state = download_checked_master(dbh, channel, master, folder)
+        report_stage(STAGE_APPLY)
         new_file = downloaded
         migrated_path: str | None = None
         if downloaded_state.db_version < dbh.DB_VERSION:
@@ -448,12 +480,14 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
 
 def collect_conflict_report(dbh: "DBHandler", channel: SyncChannel, report: SyncReport) -> None:
     local = read_local_state(dbh)
+    report_stage(STAGE_CONNECT)
     master = channel.read_master_info()
     base = find_sync_base(dbh, local)
     if base is None or decide_action(local, master) != SyncAction.CONFLICT:
         return
     with tempfile.TemporaryDirectory() as folder:
         downloaded, _ = download_checked_master(dbh, channel, master, folder)
+        report_stage(STAGE_COMPARE_CHANGES)
         report.their_changes = dbh.read_db_diff(str(base), str(downloaded))
         report.my_changes = dbh.read_db_diff(str(base), dbh.local_db_path())
         if report.their_changes is not None and report.my_changes is not None:
@@ -465,11 +499,13 @@ def merge_into_master(dbh: "DBHandler", channel: SyncChannel, master: MasterInfo
     base = find_sync_base(dbh, local)
     if base is None or master.db_version != local.db_version:
         return False
+    report_stage(STAGE_ANALYZE)
     my_changes = dbh.read_db_diff(str(base), dbh.local_db_path())
     if my_changes is None or my_changes.other_tables:
         return False
     with tempfile.TemporaryDirectory() as folder:
         downloaded, _ = download_checked_master(dbh, channel, master, folder)
+        report_stage(STAGE_MERGE)
         their_changes = dbh.read_db_diff(str(base), str(downloaded))
         if their_changes is None:
             return False
@@ -510,8 +546,10 @@ def elapsed_ms(started: float) -> int:
 def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, report: SyncReport | None = None,
                 merge: bool = False) -> SyncAction:
     started = time.monotonic()
+    report_stage(STAGE_CONNECT)
     master = channel.read_master_info()
     log.d(f"Синхронизация: чтение master.json за {elapsed_ms(started)} мс")
+    report_stage(STAGE_COMPARE)
     action = decide_action(read_local_state(dbh), master)
     if action == SyncAction.PULL:
         pull_master(dbh, channel, master=master, report=report)

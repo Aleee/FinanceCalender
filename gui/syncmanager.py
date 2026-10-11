@@ -7,8 +7,9 @@ from PySide6.QtWidgets import QApplication
 
 from base.dbhandler import DBHandler
 from base.httpclient import QtHttpClient
-from base.sync import (AuthError, FolderChannel, MasterInfo, MasterUpdatingError, NetworkError, SyncAction, SyncChannel,
-                       SyncError, SyncParams, SyncReport, collect_conflict_report, pull_master, push_master, save_conflict_copy)
+from base.sync import (STAGE_COMPARE, STAGE_CONNECT, AuthError, FolderChannel, MasterInfo, MasterUpdatingError, NetworkError,
+                       SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, collect_conflict_report, pull_master,
+                       push_master, save_conflict_copy)
 from base.syncdiff import DbDiff, format_warnings
 from base.version import APP_VERSION
 from base.yandexchannel import YandexDiskApiChannel
@@ -18,6 +19,9 @@ SYNC_STALE_DAYS = 7
 SYNC_RETRY_DELAY_MS = 30000
 SYNC_RETRY_ATTEMPTS = 2
 TOKEN_WARNING_DAYS = 30
+SYNC_PLANNED_STAGES = (STAGE_CONNECT, STAGE_COMPARE)
+SYNC_STAGE_CHANGES_NOTICE = "Уведомление об изменениях"
+SYNC_STAGE_CONFLICT_RESOLUTION = "Решение конфликта"
 
 SYNC_STATUS_TEXT: dict[SyncAction, str] = {
     SyncAction.NOTHING: "данные актуальны",
