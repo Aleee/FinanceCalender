@@ -15,7 +15,7 @@ from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
 from base.payment import PaymentField
-from base.sync import MasterInfo, NetworkError, SyncAction, SyncChannel, SyncError, SyncParams, read_local_state, synchronize
+from base.sync import MasterInfo, NetworkError, SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, read_local_state, synchronize
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
@@ -42,10 +42,11 @@ from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
 from gui.settingsdialog import SettingsDialog
 from gui.syncconflictdialog import SyncConflictDialog
-from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PULL_MESSAGE, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS,
-                             SYNC_STALE_DAYS, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, IdleSyncTimer, connect_to_master, create_master,
-                             create_sync_channel, create_sync_params, describe_master, failure_status_text,
-                             master_age_days, overwrite_master, take_master, token_days_left)
+from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS, SYNC_STATUS_TEXT,
+                             TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_details, conflict_summary,
+                             connect_to_master, create_master, create_sync_channel, create_sync_params, describe_master,
+                             failure_status_text, master_age_days, overwrite_master, pull_details, pull_message, take_master,
+                             token_days_left)
 from gui.ui.syncicon import create_sync_icon
 from gui.syncprogressdialog import SyncProgressDialog
 from gui.syncsettingsdialog import SyncSettingsDialog
@@ -493,7 +494,8 @@ class MainWindow(QMainWindow):
         channel = self.get_sync_channel()
         params = create_sync_params(self.settings_handler)
         previous_status_text: str = self.sync_status_text
-        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params))
+        report = SyncReport()
+        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report))
         is_changed_by_other: bool = action == SyncAction.PULL
         if interactive:
             action = self._resolve_sync_action(action, channel, params)
@@ -505,7 +507,10 @@ class MainWindow(QMainWindow):
             self.reload_after_sync_pull()
         self.update_sync_status()
         if is_changed_by_other:
-            ErrorInfoMessageBox(SYNC_PULL_MESSAGE, is_info=True, parent=self).exec()
+            pull_box = ErrorInfoMessageBox(pull_message(self.sync_master_info, report), is_info=True, parent=self)
+            if pull_details(report):
+                pull_box.setDetailedText(pull_details(report))
+            pull_box.exec()
         if interactive:
             if action is None:
                 ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
@@ -525,7 +530,10 @@ class MainWindow(QMainWindow):
                 self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
             return self._run_sync_step(channel, lambda: connect_to_master(self.db_handler, channel))
         if action == SyncAction.CONFLICT and self.sync_master_info:
-            conflict_dlg = SyncConflictDialog(describe_master(self.sync_master_info), self)
+            report = SyncReport()
+            self._run_sync_step(channel, lambda: compare_with_master(self.db_handler, channel, report))
+            conflict_dlg = SyncConflictDialog(describe_master(self.sync_master_info), self, conflict_summary(report),
+                                              conflict_details(report))
             conflict_dlg.exec()
             if conflict_dlg.take_master_chosen():
                 return self._run_sync_step(channel, lambda: take_master(self.db_handler, channel))

@@ -15,7 +15,8 @@ from uuid import uuid4
 import lovely_logger as log
 
 from base.backup import replace_db_file
-from base.paths import backup_dir
+from base.paths import backup_dir, sync_base_path
+from base.syncdiff import DbDiff
 
 if TYPE_CHECKING:
     from base.dbhandler import DBHandler
@@ -72,6 +73,12 @@ class LocalState:
     @property
     def has_changes(self) -> bool:
         return self.change_counter > 0
+
+
+@dataclass
+class SyncReport:
+    their_changes: DbDiff | None = None
+    my_changes: DbDiff | None = None
 
 
 @dataclass
@@ -309,6 +316,27 @@ def master_backup_due(previous_master: MasterInfo | None, interval_minutes: int)
     return not timedelta(0) <= age < timedelta(minutes=interval_minutes)
 
 
+def save_sync_base(source: Path) -> None:
+    target = Path(sync_base_path())
+    temp = target.with_name(target.name + TEMP_SUFFIX)
+    try:
+        shutil.copyfile(source, temp)
+        os.replace(temp, target)
+    except OSError as e:
+        temp.unlink(missing_ok=True)
+        log.w(f"Не удалось сохранить базу для сравнения при конфликтах: {e}")
+
+
+def find_sync_base(dbh: "DBHandler", local: LocalState) -> Path | None:
+    path = Path(sync_base_path())
+    if not path.is_file():
+        return None
+    values = dbh.read_file_settings(str(path), ("db_uuid", "sync_token"))
+    if values is None or values["db_uuid"] != local.db_uuid or values["sync_token"] != local.sync_token:
+        return None
+    return path
+
+
 def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, overwrite: bool = False,
                 master: MasterInfo | None = None) -> None:
     local = read_local_state(dbh)
@@ -335,6 +363,7 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
         stage_started = time.monotonic()
         channel.upload_master(snapshot, info)
         log.d(f"Отправка общей базы: загрузка за {elapsed_ms(stage_started)} мс")
+        save_sync_base(snapshot)
     if backups_cleanup_due(master):
         try:
             channel.remove_old_backups(params.long_backup_keep_days)
@@ -381,7 +410,7 @@ def fetch_master(dbh: "DBHandler", channel: SyncChannel) -> None:
 
 
 def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncAction, ...] = (SyncAction.PULL,),
-                master: MasterInfo | None = None) -> None:
+                master: MasterInfo | None = None, report: SyncReport | None = None) -> None:
     local = read_local_state(dbh)
     if master is None:
         master = channel.read_master_info()
@@ -401,11 +430,26 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
         try:
             if not dbh.copy_db_file(str(local_copy)):
                 raise SyncError("Не удалось сохранить локальную копию перед заменой")
+            if report is not None and action == SyncAction.PULL:
+                report.their_changes = dbh.read_db_diff(dbh.local_db_path(), str(new_file))
             if not replace_db_file(dbh, str(new_file)):
                 raise SyncError("Не удалось заменить локальную копию общей базой (подробности см. в логе)")
+            save_sync_base(new_file)
         finally:
             if migrated_path is not None:
                 Path(migrated_path).unlink(missing_ok=True)
+
+
+def collect_conflict_report(dbh: "DBHandler", channel: SyncChannel, report: SyncReport) -> None:
+    local = read_local_state(dbh)
+    master = channel.read_master_info()
+    base = find_sync_base(dbh, local)
+    if base is None or decide_action(local, master) != SyncAction.CONFLICT:
+        return
+    with tempfile.TemporaryDirectory() as folder:
+        downloaded, _ = download_checked_master(dbh, channel, master, folder)
+        report.their_changes = dbh.read_db_diff(str(base), str(downloaded))
+        report.my_changes = dbh.read_db_diff(str(base), dbh.local_db_path())
 
 
 def save_conflict_copy(dbh: "DBHandler") -> None:
@@ -418,13 +462,13 @@ def elapsed_ms(started: float) -> int:
     return int((time.monotonic() - started) * 1000)
 
 
-def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams) -> SyncAction:
+def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, report: SyncReport | None = None) -> SyncAction:
     started = time.monotonic()
     master = channel.read_master_info()
     log.d(f"Синхронизация: чтение master.json за {elapsed_ms(started)} мс")
     action = decide_action(read_local_state(dbh), master)
     if action == SyncAction.PULL:
-        pull_master(dbh, channel, master=master)
+        pull_master(dbh, channel, master=master, report=report)
     elif action == SyncAction.PUSH:
         push_master(dbh, channel, params, master=master)
     log.d(f"Синхронизация: действие «{action.value}», всего {elapsed_ms(started)} мс")

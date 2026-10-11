@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import date, datetime
 from pathlib import Path
 from platform import node
@@ -8,7 +9,8 @@ from PySide6.QtWidgets import QApplication
 from base.dbhandler import DBHandler
 from base.httpclient import QtHttpClient
 from base.sync import (AuthError, FolderChannel, MasterInfo, MasterUpdatingError, NetworkError, SyncAction, SyncChannel,
-                       SyncError, SyncParams, pull_master, push_master, save_conflict_copy)
+                       SyncError, SyncParams, SyncReport, collect_conflict_report, pull_master, push_master, save_conflict_copy)
+from base.syncdiff import DbDiff, diff_summary, format_diff
 from base.version import APP_VERSION
 from base.yandexchannel import YandexDiskApiChannel
 from gui.settings import SettingsHandler
@@ -112,6 +114,41 @@ def overwrite_master(dbh: DBHandler, channel: SyncChannel, params: SyncParams) -
     save_conflict_copy(dbh)
     push_master(dbh, channel, params, overwrite=True)
     return SyncAction.PUSH
+
+
+def compare_with_master(dbh: DBHandler, channel: SyncChannel, report: SyncReport) -> SyncAction:
+    collect_conflict_report(dbh, channel, report)
+    return SyncAction.CONFLICT
+
+
+def pull_message(info: MasterInfo | None, report: SyncReport) -> str:
+    text: str = SYNC_PULL_MESSAGE
+    if info is not None:
+        text += f".\n\nОбщая база обновлена: {describe_master(info)}"
+    if report.their_changes is not None and not report.their_changes.is_empty:
+        text += f"\n\n{diff_summary(report.their_changes)}"
+    return text
+
+
+def pull_details(report: SyncReport) -> str:
+    return "" if report.their_changes is None else format_diff(report.their_changes)
+
+
+def conflict_texts(report: SyncReport, describe: Callable[[DbDiff], str], my_title: str, their_title: str) -> str:
+    parts: list[str] = []
+    for title, diff in ((my_title, report.my_changes), (their_title, report.their_changes)):
+        if diff is not None and not diff.is_empty:
+            parts.append(f"{title}:\n{describe(diff)}")
+    return "\n\n".join(parts)
+
+
+def conflict_summary(report: SyncReport) -> str:
+    return conflict_texts(report, diff_summary, "Ваши изменения", "Изменения в общей базе")
+
+
+def conflict_details(report: SyncReport) -> str:
+    return conflict_texts(report, format_diff, "Ваши изменения с последней синхронизации",
+                          "Изменения в общей базе с последней синхронизации")
 
 
 def describe_master(info: MasterInfo) -> str:

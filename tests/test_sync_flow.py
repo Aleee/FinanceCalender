@@ -17,14 +17,18 @@ class Machine:
         self.dbh = dbh
         self.work_db_path = work_db_path
         self.file = file
+        self.base_file = file.with_name(file.stem + "_base.db")
 
     def __enter__(self):
         self.dbh.db.close()
         shutil.copy(self.file, self.work_db_path)
         self.dbh.open_db_connection()
+        self.saved_base_path = syncmod.sync_base_path
+        syncmod.sync_base_path = lambda: str(self.base_file)
         return self.dbh
 
     def __exit__(self, *exc):
+        syncmod.sync_base_path = self.saved_base_path
         self.dbh.db.close()
         shutil.copy(self.work_db_path, self.file)
 
@@ -424,3 +428,81 @@ def test_overwrite_makes_backup_within_interval(connected, channel):
         edit(dbh, "from b")
         push_master(dbh, channel, params, overwrite=True)
     assert len(list(channel.backups_path.iterdir())) == 1
+
+
+def add_event(machine: Machine, event_id: int, name: str) -> None:
+    import sqlite3
+    con = sqlite3.connect(machine.file)
+    con.execute("INSERT INTO event (id, receiver, name, totalamount, duedate, receivernocase) VALUES (?, 'Получатель', ?, '10.00', '2026-10-15', 'получатель')",
+                (event_id, name))
+    con.commit()
+    con.close()
+
+
+def test_base_saved_after_push_and_pull(machine_a, make_machine, channel):
+    with machine_a as dbh:
+        assert syncmod.find_sync_base(dbh, syncmod.read_local_state(dbh)) is None
+        push_master(dbh, channel, PARAMS)
+        base = syncmod.find_sync_base(dbh, syncmod.read_local_state(dbh))
+        assert base is not None and read_meta(base)["sync_token"] == channel.read_master_info().sync_token
+        edit(dbh, "newer")
+        assert syncmod.find_sync_base(dbh, syncmod.read_local_state(dbh)) is not None
+    machine_b = make_machine("b")
+    with machine_b as dbh:
+        assert syncmod.find_sync_base(dbh, syncmod.read_local_state(dbh)) is None
+        pull_master(dbh, channel, (SyncAction.FOREIGN_DB,))
+        assert syncmod.find_sync_base(dbh, syncmod.read_local_state(dbh)) is not None
+
+
+@pytest.mark.parametrize("key", ["sync_token", "db_uuid"])
+def test_base_ignored_when_state_differs(machine_a, channel, key):
+    import sqlite3
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+        local = syncmod.read_local_state(dbh)
+        assert syncmod.find_sync_base(dbh, local) is not None
+        con = sqlite3.connect(machine_a.base_file)
+        con.execute("UPDATE meta SET value = 'other' WHERE key = ?", (key,))
+        con.commit()
+        con.close()
+        assert syncmod.find_sync_base(dbh, local) is None
+
+
+def test_pull_report_lists_other_users_changes(connected, channel):
+    machine_a, machine_b = connected
+    add_event(machine_a, 1, "Аренда")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    report = syncmod.SyncReport()
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, report) == SyncAction.PULL
+    assert [row["name"] for row in report.their_changes.tables["event"].added] == ["Аренда"]
+    assert report.my_changes is None
+
+
+def test_conflict_report_separates_my_and_their_changes(connected, channel):
+    machine_a, machine_b = connected
+    add_event(machine_a, 1, "От первого")
+    add_event(machine_b, 1, "От второго")
+    add_event(machine_b, 2, "Ещё от второго")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    report = syncmod.SyncReport()
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.CONFLICT
+        syncmod.collect_conflict_report(dbh, channel, report)
+    assert [row["name"] for row in report.their_changes.tables["event"].added] == ["От первого"]
+    assert [row["name"] for row in report.my_changes.tables["event"].added] == ["От второго", "Ещё от второго"]
+
+
+def test_conflict_report_empty_without_base(connected, channel):
+    machine_a, machine_b = connected
+    add_event(machine_a, 1, "От первого")
+    add_event(machine_b, 1, "От второго")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    machine_b.base_file.unlink()
+    report = syncmod.SyncReport()
+    with machine_b as dbh:
+        syncmod.collect_conflict_report(dbh, channel, report)
+    assert report.their_changes is None and report.my_changes is None

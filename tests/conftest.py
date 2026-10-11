@@ -9,6 +9,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 import base.backup as backupmod
 import base.dbhandler as dbmod
+import base.sync as syncmod
 from base.migrations import MIGRATIONS
 
 
@@ -55,3 +56,9 @@ def dbh(shared_dbh, tmp_path: Path, work_db_path: Path, backup_folder: Path, mon
 @pytest.fixture
 def migrations(dbh) -> dict:
     return dbmod.MIGRATIONS
+
+
+@pytest.fixture(autouse=True)
+def patch_sync_base_path(tmp_path: Path, monkeypatch):
+    (tmp_path / "sync").mkdir()
+    monkeypatch.setattr(syncmod, "sync_base_path", lambda: str(tmp_path / "sync" / "base.db"))

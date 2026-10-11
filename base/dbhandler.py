@@ -16,9 +16,10 @@ import lovely_logger as log
 from base.date import str_date, date_str, date_displstr
 from base.formatting import str_decimal
 from base.liability import LiabilityCategory, RowType
-from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER
+from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
 from base.paths import db_path, backup_dir
 from base.payment import Payment, PaymentEntry
+from base.syncdiff import DbDiff, TableDiff, DETAILED_TABLES, IGNORED_COLUMNS, DERIVED_COLUMNS
 from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
@@ -258,6 +259,74 @@ class DBHandler:
         except Exception as e:
             log.x(f"Не удалось проверить целостность файла {path}: {e}")
             return False
+
+    @staticmethod
+    def local_db_path() -> str:
+        return db_path()
+
+    def read_db_diff(self, old_path: str, new_path: str) -> DbDiff | None:
+        try:
+            with self._file_connection(new_path) as connection:
+                self._file_execute(connection, "ATTACH DATABASE ? AS old", old_path)
+                diff = DbDiff()
+                for table in DETAILED_TABLES:
+                    diff.tables[table] = self._read_table_diff(connection, table)
+                diff.other_tables = self._read_other_tables_diff(connection)
+                return diff
+        except Exception as e:
+            log.x(f"Не удалось сравнить файлы базы данных {old_path} и {new_path}: {e}")
+            return None
+
+    def _common_columns(self, connection: str, table: str) -> list[str]:
+        old_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA old.table_info("{table}")')]
+        new_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA main.table_info("{table}")')]
+        return [column for column in new_columns if column in old_columns and column not in IGNORED_COLUMNS]
+
+    def _read_table_diff(self, connection: str, table: str) -> TableDiff:
+        columns = self._common_columns(connection, table)
+        if "id" not in columns:
+            return TableDiff()
+        names = columns + (list(DERIVED_COLUMNS) if table == "payment" else [])
+
+        def select(alias: str, schema: str) -> str:
+            fields = [f'{alias}."{column}"' for column in columns]
+            if table == "payment":
+                fields.append(f"(SELECT e.receiver || ' — ' || e.name FROM {schema}.event e WHERE e.id = {alias}.eventid)")
+            return ", ".join(fields)
+
+        def read(sql: str) -> list[list]:
+            return self._file_execute(connection, sql)
+
+        added = read(f'SELECT {select("n", "main")} FROM main."{table}" n '
+                     f'WHERE n.id NOT IN (SELECT id FROM old."{table}") ORDER BY n.id')
+        removed = read(f'SELECT {select("o", "old")} FROM old."{table}" o '
+                       f'WHERE o.id NOT IN (SELECT id FROM main."{table}") ORDER BY o.id')
+        differs = " OR ".join(f'n."{column}" IS NOT o."{column}"' for column in columns)
+        changed = read(f'SELECT {select("n", "main")}, {select("o", "old")} FROM main."{table}" n '
+                       f'JOIN old."{table}" o ON n.id = o.id WHERE {differs} ORDER BY n.id')
+        width = len(names)
+        return TableDiff([dict(zip(names, row)) for row in added],
+                         [dict(zip(names, row)) for row in removed],
+                         [(dict(zip(names, row[width:])), dict(zip(names, row[:width]))) for row in changed])
+
+    def _read_other_tables_diff(self, connection: str) -> dict[str, tuple[int, int]]:
+        tables = [row[0] for row in self._file_execute(
+            connection, "SELECT name FROM main.sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")]
+        service_keys = ", ".join(f"'{key}'" for key in SERVICE_META_KEYS)
+        result: dict[str, tuple[int, int]] = {}
+        for table in tables:
+            columns = self._common_columns(connection, table)
+            if table in DETAILED_TABLES or not columns:
+                continue
+            fields = ", ".join(f'"{column}"' for column in columns)
+            condition = f" WHERE key NOT IN ({service_keys})" if table == "meta" else ""
+            new_rows = f'SELECT {fields} FROM main."{table}"{condition}'
+            old_rows = f'SELECT {fields} FROM old."{table}"{condition}'
+            only_new = int(self._file_execute(connection, f"SELECT COUNT(*) FROM ({new_rows} EXCEPT {old_rows})")[0][0])
+            only_old = int(self._file_execute(connection, f"SELECT COUNT(*) FROM ({old_rows} EXCEPT {new_rows})")[0][0])
+            if only_new or only_old:
+                result[table] = (only_new, only_old)
+        return result
 
     def copy_db_file(self, target_path: str) -> bool:
         try:

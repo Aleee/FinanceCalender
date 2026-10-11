@@ -2,14 +2,17 @@ from PySide6.QtWidgets import QMessageBox, QPushButton, QWidget
 
 
 class SyncConflictDialog(QMessageBox):
-    def __init__(self, master_description: str, parent: QWidget | None = None):
+    def __init__(self, master_description: str, parent: QWidget | None = None, summary: str = "", details: str = ""):
         super().__init__(parent)
 
         self.setWindowTitle("Конфликт синхронизации")
         self.setIcon(QMessageBox.Icon.Warning)
         self.setText("Изменения есть и в вашей локальной копии, и в общей базе. Автоматически объединить их нельзя.")
         self.setInformativeText(f"Общая база обновлена: {master_description}.\n\n"
-                                "Перед любым выбором ваша версия будет сохранена в папке резервных копий.")
+                                + (f"{summary}\n\n" if summary else "")
+                                + "Перед любым выбором ваша версия будет сохранена в папке резервных копий.")
+        if details:
+            self.setDetailedText(details)
 
         self.take_master_button: QPushButton = QPushButton("Взять общую базу", self)
         self.overwrite_button: QPushButton = QPushButton("Перезаписать общую базу моей версией", self)

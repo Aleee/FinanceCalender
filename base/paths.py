@@ -44,6 +44,10 @@ def backup_dir() -> str:
     return _data_subdir("backup")
 
 
+def sync_base_path() -> str:
+    return os.path.join(_data_subdir("sync"), "base.db")
+
+
 def export_dir() -> str:
     return _data_subdir("export")
 
