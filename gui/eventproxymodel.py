@@ -22,7 +22,6 @@ class Filter(IntEnum):
     HEADER = auto()
     FOOTER = auto()
     PAYTODAY = auto()
-    SEARCH = auto()
 
 
 class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
@@ -49,7 +48,6 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
         self.footer_filter: bool = False
         self.paytoday_filter: bool = False
         self.search_filter: str = ""
-        self.receiver_filter: str = ""
         self.responsible_filter: int = 0
         self.featured_filter: bool = False
         self.paid_months_filter: int = 3
@@ -158,7 +156,7 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
         for event_id, liability in self.sourceModel().liability_rows().items():
             if self.exclude_hidden and liability.hidden:
                 continue
-            if not matches_filters(liability, self.term_filter, self.category_filter, self.receiver_filter,
+            if not matches_filters(liability, self.term_filter, self.category_filter, self.search_filter,
                                    self.responsible_filter, self.paytoday_filter, self.featured_filter, threshold):
                 continue
             accepted_ids.add(event_id)
@@ -173,11 +171,11 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
             self.build_accepted()
         return self.cache.get(category, 0)
 
-    def set_filters(self, term: TermCategory, category: int, receiver: str, responsible: int, paid_today: bool,
+    def set_filters(self, term: TermCategory, category: int, search: str, responsible: int, paid_today: bool,
                     paid_months_toshow: int, featured: bool) -> None:
         self.term_filter = term
         self.category_filter = category
-        self.receiver_filter = receiver.lower()
+        self.search_filter = search.strip().lower()
         self.responsible_filter = responsible
         self.paytoday_filter = paid_today
         self.paid_months_filter = paid_months_toshow
@@ -210,8 +208,6 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
             self.footer_filter = condition
         elif filter_type == Filter.PAYTODAY:
             self.paytoday_filter = condition
-        elif filter_type == Filter.SEARCH:
-            self.search_filter = str(condition).strip().lower()
         if filter_type in (Filter.TERM, Filter.CATEGORY, Filter.PAYTODAY):
             self.invalidate_accepted()
         if self.sortfilter_enabled and invalidate:
@@ -244,14 +240,8 @@ class LiabilitySortFilterProxyModel(QSortFilterProxyModel):
 
         row_type: RowType = source_model.raw_value(source_row, Col.TYPE)
 
-        ### Быстрый поиск по наименованию и основанию платежа
-        if self.search_filter:
-            if row_type == RowType.LIABILITY:
-                haystack: str = f"{data_from_row(Col.NAME)} {data_from_row(Col.DESCR)}".lower()
-                if self.search_filter not in haystack:
-                    return False
-            elif row_type in (RowType.HEADER, RowType.FOOTER):
-                return False
+        if self.search_filter and row_type in (RowType.HEADER, RowType.FOOTER):
+            return False
 
         ### Фильтрация заголовков и футеров
         if row_type != RowType.LIABILITY:

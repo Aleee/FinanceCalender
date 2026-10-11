@@ -117,7 +117,6 @@ class SettingsHandler:
         ## Состояние боковой панели
         self.mw.ui.spb_term.set_switch_state(str_bool(self.settings.value("Sidepanel/termfilter"), True))
         self.mw.ui.spb_category.set_switch_state(str_bool(self.settings.value("Sidepanel/categoryfilter"), True))
-        self.mw.ui.spb_receiver.set_switch_state(str_bool(self.settings.value("Sidepanel/receiverfilter"), True))
         self.mw.ui.spb_responsible.set_switch_state(str_bool(self.settings.value("Sidepanel/responsiblefilter"), True))
 
         # Таблица
@@ -237,7 +236,6 @@ class SettingsHandler:
         ## Состояние боковой панели
         self.settings.setValue("Sidepanel/termfilter", int(self.mw.ui.spb_term.switch_state()))
         self.settings.setValue("Sidepanel/categoryfilter", int(self.mw.ui.spb_category.switch_state()))
-        self.settings.setValue("Sidepanel/receiverfilter", int(self.mw.ui.spb_receiver.switch_state()))
         self.settings.setValue("Sidepanel/responsiblefilter", int(self.mw.ui.spb_responsible.switch_state()))
         ## Положение разделителей
         self.settings.setValue("Mainwindow/splittermain", self.mw.ui.spl_main.saveState())

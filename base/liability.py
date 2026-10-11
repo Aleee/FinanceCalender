@@ -157,7 +157,7 @@ def calculate_filterflags(remainamount: Decimal, duedate: QDate, are_today_payme
 
 class LiabilityRow(NamedTuple):
     category: int
-    receiver: str
+    search_text: str
     responsible: int
     featured: bool
     hidden: bool
@@ -192,8 +192,8 @@ def matches_category(category: int, liability: LiabilityRow) -> bool:
     return category % 1000 == 0 or liability.category == category
 
 
-def matches_details(liability: LiabilityRow, receiver: str, responsible: int, paid_today: bool, featured: bool) -> bool:
-    if receiver and receiver not in liability.receiver:
+def matches_details(liability: LiabilityRow, search: str, responsible: int, paid_today: bool, featured: bool) -> bool:
+    if search and search not in liability.search_text:
         return False
     if responsible and liability.responsible != int(responsible):
         return False
@@ -204,8 +204,8 @@ def matches_details(liability: LiabilityRow, receiver: str, responsible: int, pa
     return True
 
 
-def matches_filters(liability: LiabilityRow, term: TermCategory, category: int, receiver: str, responsible: int,
+def matches_filters(liability: LiabilityRow, term: TermCategory, category: int, search: str, responsible: int,
                     paid_today: bool, featured: bool, threshold: str) -> bool:
     return (matches_term(term, liability, threshold)
             and matches_category(category, liability)
-            and matches_details(liability, receiver, responsible, paid_today, featured))
+            and matches_details(liability, search, responsible, paid_today, featured))

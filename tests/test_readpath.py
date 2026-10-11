@@ -82,9 +82,9 @@ class Models:
         self.proxy1.layoutChanged.connect(self.proxy2.recalculate_totals)
         self.apply()
 
-    def apply(self, term=TermCategory.UNPAID, category=0, receiver="", responsible=0, paid_today=False,
+    def apply(self, term=TermCategory.UNPAID, category=0, search="", responsible=0, paid_today=False,
               featured=False, months=3) -> None:
-        args = (term, category, receiver, responsible, paid_today, months, featured)
+        args = (term, category, search, responsible, paid_today, months, featured)
         self.proxy1.set_filters(*args)
         self.base.send_filterwidget_labeldata(*args)
 
@@ -348,25 +348,65 @@ def test_category_filter(db_file, open_models):
     assert models.visible() == sorted([first, second])
 
 
-def test_receiver_filter_is_case_insensitive_substring(db_file, open_models):
+def test_search_by_receiver_is_case_insensitive_substring(db_file, open_models):
     first = add_event(db_file, receiver="ООО Ромашка")
     second = add_event(db_file, receiver="ИП Иванов")
     models = open_models(db_file)
-    models.apply(receiver="РОМАШ")
+    models.apply(search="РОМАШ")
     assert models.visible() == [first]
-    models.apply(receiver="иванов")
+    models.apply(search="иванов")
     assert models.visible() == [second]
-    models.apply(receiver="нет такого")
+    models.apply(search="нет такого")
     assert models.visible() == []
 
 
 @pytest.mark.parametrize("text", ["%", "_", "'", "\"", "ромаш'ка"])
-def test_receiver_filter_special_characters_are_literal(db_file, open_models, text):
+def test_search_special_characters_are_literal(db_file, open_models, text):
     add_event(db_file, receiver="ООО Ромашка")
     special = add_event(db_file, receiver=f"Ромаш{text}ка")
     models = open_models(db_file)
-    models.apply(receiver=f"ромаш{text}")
+    models.apply(search=f"ромаш{text}")
     assert models.visible() == [special]
+
+
+def test_search_covers_name_descr_and_receiver_without_crossing_fields(db_file, open_models):
+    by_name = add_event(db_file, receiver="Один")
+    by_descr = add_event(db_file, receiver="Два")
+    by_receiver = add_event(db_file, receiver="Склад Альфа")
+    run_sql(db_file, "UPDATE event SET name = 'Аренда офиса', descr = 'описание' WHERE id = ?", by_name)
+    run_sql(db_file, "UPDATE event SET name = 'прочее', descr = 'Договор 15' WHERE id = ?", by_descr)
+    run_sql(db_file, "UPDATE event SET name = 'прочее', descr = 'описание' WHERE id = ?", by_receiver)
+    models = open_models(db_file)
+    models.apply(search="аренда")
+    assert models.visible() == [by_name]
+    models.apply(search=" ДОГОВОР 15 ")
+    assert models.visible() == [by_descr]
+    models.apply(search="альфа")
+    assert models.visible() == [by_receiver]
+    models.apply(search="офиса описание")
+    assert models.visible() == []
+
+
+def test_search_changes_term_and_category_counts(db_file, open_models):
+    due = add_event(db_file, category=1101, due=day(-1), receiver="ООО Ромашка")
+    add_event(db_file, category=1102, due=day(-1), receiver="ИП Иванов")
+    add_event(db_file, category=1102, due=day(5), receiver="ИП Иванов")
+    models = open_models(db_file)
+    models.apply()
+    term_counts, category_counts = models.labels
+    assert (term_counts[TermCategory.UNPAID], term_counts[TermCategory.DUE]) == (3, 2)
+    assert (category_counts[1101], category_counts[1102]) == (1, 2)
+
+    models.apply(search="иванов")
+    term_counts, category_counts = models.labels
+    assert (term_counts[TermCategory.UNPAID], term_counts[TermCategory.DUE]) == (2, 1)
+    assert (category_counts[1101], category_counts[1102]) == (0, 2)
+
+    models.apply(search="ромашка")
+    term_counts, category_counts = models.labels
+    assert term_counts[TermCategory.UNPAID] == 1
+    assert category_counts[1102] == 0
+    assert models.visible() == [due]
 
 
 def test_responsible_featured_and_hidden_filters(db_file, open_models):
@@ -462,7 +502,7 @@ def test_sidebar_counters(db_file, open_models):
     assert category_labels[1102] == 1
     assert category_labels[1000] == 2
 
-    models.apply(TermCategory.UNPAID, receiver="иванов")
+    models.apply(TermCategory.UNPAID, search="иванов")
     term_labels, category_labels = models.labels
     assert term_labels[TermCategory.UNPAID] == 1
     assert category_labels[1000] == 1
@@ -496,7 +536,7 @@ def exercise_read_path(models: Models) -> None:
     for term in TermCategory:
         models.apply(term)
         models.visible()
-    models.apply(TermCategory.UNPAID, category=1101, receiver="ромаш", responsible=1, paid_today=True, featured=True)
+    models.apply(TermCategory.UNPAID, category=1101, search="ромаш", responsible=1, paid_today=True, featured=True)
     models.base.load_payment_totals()
     models.base.select()
     models.proxy1.set_hidden_filter(True)
@@ -846,10 +886,9 @@ def test_totals_match_cell_by_cell_calculation(db_file, open_models):
 
     checked = 0
     for search in ("", "special", "name", "nothing-matches"):
-        models.proxy1.set_filter(Filter.SEARCH, search)
         for term in TermCategory:
             for paytoday in (False, True):
-                models.apply(term, paid_today=paytoday)
+                models.apply(term, search=search, paid_today=paytoday)
                 assert (models.proxy2.stored_count, models.proxy2.stored_total, models.proxy2.stored_remain,
                         models.proxy2.stored_today) == totals_by_cells(models.proxy2), (search, term, paytoday)
                 checked += 1
@@ -898,19 +937,18 @@ def test_span_columns_spans_exactly_the_visible_header_rows(db_file, open_models
 
     checked_with_headers = 0
     for search in ("", "special"):
-        models.proxy1.set_filter(Filter.SEARCH, search)
         for header_flag in (True, False):
             models.proxy1.set_filter(Filter.HEADER, header_flag)
             for term in TermCategory:
                 for category in (0, 1101):
-                    models.apply(term, category=category)
+                    models.apply(term, category=category, search=search)
                     view.span_columns()
                     expected = header_proxy_rows(models)
                     assert spanned_rows(view) == expected, (search, header_flag, term, category)
                     checked_with_headers += bool(expected)
     assert checked_with_headers > 0
 
-    models.proxy1.set_filter(Filter.SEARCH, "")
+    models.apply()
     models.proxy1.set_filter(Filter.HEADER, True)
     new_header = add_event(db_file, row_type=RowType.HEADER, category=1102, total=None, subcategory=HeaderFooterSubtype.ORDINARY)
     reload(models)

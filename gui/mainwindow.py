@@ -287,8 +287,6 @@ class MainWindow(QMainWindow):
              lambda: self.ui.lw_term.currentRow() != 0),
             (self.ui.spb_category, self.ui.lw_category, "КАТЕГОРИЯ",
              lambda: self.ui.lw_category.currentRow() != 0),
-            (self.ui.spb_receiver, self.ui.le_receiverfilter, "ПОЛУЧАТЕЛЬ",
-             lambda: bool(self.ui.le_receiverfilter.text())),
             (self.ui.spb_responsible, self.ui.cmb_responsiblefilter, "ОТВЕТСТВЕННЫЙ",
              lambda: self.ui.cmb_responsiblefilter.currentData(Qt.ItemDataRole.UserRole) != 0),
         )
@@ -307,7 +305,6 @@ class MainWindow(QMainWindow):
 
         self.ui.lw_term.currentRowChanged.connect(self.update_filters_and_select)
         self.ui.lw_category.currentRowChanged.connect(self.update_filters_and_select)
-        self.ui.le_receiverfilter.textChanged.connect(self.update_filters_and_select)
         self.ui.cmb_responsiblefilter.currentIndexChanged.connect(self.update_filters_and_select)
         self.ui.chb_paytoday.checkStateChanged.connect(self.update_filters_and_select)
 
@@ -315,7 +312,7 @@ class MainWindow(QMainWindow):
         self.search_timer: QTimer = QTimer(self)
         self.search_timer.setSingleShot(True)
         self.search_timer.setInterval(250)
-        self.search_timer.timeout.connect(self.apply_search_filter)
+        self.search_timer.timeout.connect(self.update_filters_and_select)
         self.ui.le_search.textChanged.connect(lambda: self.search_timer.start())
         self.ui.pb_resetfilters.clicked.connect(self.reset_filters)
         self.ui.scrollArea.verticalScrollBar().rangeChanged.connect(self.update_search_margin)
@@ -869,7 +866,7 @@ class MainWindow(QMainWindow):
     def _current_filter_args(self) -> tuple:
         return (self.ui.lw_term.current_term(),
                 self.ui.lw_category.current_category(),
-                self.ui.le_receiverfilter.text(),
+                self.ui.le_search.text(),
                 self.ui.cmb_responsiblefilter.currentData(),
                 self.ui.chb_paytoday.isChecked(),
                 str_int(self.settings_handler.settings.value("Common/paidloadperiod", 3), 3),
@@ -898,19 +895,14 @@ class MainWindow(QMainWindow):
             "QPushButton:disabled {color: #a0a0a0;}")
         self.ui.le_search.setStyleSheet(f"border: 1px solid #cbcbcb; margin: 6px {right_margin}px 0px 9px")
 
-    def apply_search_filter(self) -> None:
-        self.proxy1_model.set_filter(Filter.SEARCH, self.ui.le_search.text())
-        self.ui.pb_resetfilters.setEnabled(self.any_filter_active())
-
     def reset_filters(self) -> None:
-        blocked_widgets: tuple = (self.ui.lw_term, self.ui.lw_category, self.ui.le_receiverfilter,
+        blocked_widgets: tuple = (self.ui.lw_term, self.ui.lw_category,
                                   self.ui.cmb_responsiblefilter, self.ui.chb_paytoday,
                                   self.ui.le_search, self.ui.act_featured)
         for widget in blocked_widgets:
             widget.blockSignals(True)
         self.ui.lw_term.setCurrentRow(0)
         self.ui.lw_category.setCurrentRow(0)
-        self.ui.le_receiverfilter.clear()
         self.ui.cmb_responsiblefilter.setCurrentIndex(0)
         self.ui.chb_paytoday.setChecked(False)
         self.ui.le_search.clear()
@@ -921,7 +913,6 @@ class MainWindow(QMainWindow):
         self.proxy1_model.set_filter(Filter.TERM, list(TermCategory)[0], invalidate=False)
         self.proxy1_model.set_filter(Filter.CATEGORY, 0, invalidate=False)
         self.proxy1_model.set_filter(Filter.PAYTODAY, False, invalidate=False)
-        self.proxy1_model.set_filter(Filter.SEARCH, "")
         # Заголовки свёрнутых секций могли остаться подкрашенными как активные
         for switch_button, filter_widget, label, is_active in self.filter_sections:
             switch_button.change_style_on_hiding_activefilter(switch_button.switch_state(), is_active())

@@ -227,24 +227,6 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addWidget(self.lw_term, 5, 0, 1, 2)
 
-        self.spb_receiver = SwitchPushButton(self.scrollAreaWidgetContents)
-        self.spb_receiver.setObjectName(u"spb_receiver")
-        self.spb_receiver.setFont(font)
-        self.spb_receiver.setStyleSheet(u"border-width: 0px; text-align: left;")
-
-        self.gridLayout_3.addWidget(self.spb_receiver, 11, 0, 1, 2)
-
-        self.verticalSpacer_6 = QSpacerItem(20, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-
-        self.gridLayout_3.addItem(self.verticalSpacer_6, 10, 0, 1, 1)
-
-        self.le_receiverfilter = QLineEdit(self.scrollAreaWidgetContents)
-        self.le_receiverfilter.setObjectName(u"le_receiverfilter")
-        self.le_receiverfilter.setStyleSheet(u"border: 1px solid #cbcbcb")
-        self.le_receiverfilter.setClearButtonEnabled(True)
-
-        self.gridLayout_3.addWidget(self.le_receiverfilter, 12, 0, 1, 2)
-
         self.spb_category = SwitchPushButton(self.scrollAreaWidgetContents)
         self.spb_category.setObjectName(u"spb_category")
         self.spb_category.setFont(font)
@@ -669,7 +651,6 @@ class Ui_MainWindow(object):
         self.le_search.setPlaceholderText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0438\u0441\u043a (Ctrl+F)", None))
         self.spb_responsible.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041e\U00000422\U00000412\U00000415\U00000422\U00000421\U00000422\U00000412\U00000415\U0000041d\U0000041d\U0000042b\U00000419", None))
         self.chb_paytoday.setText(QCoreApplication.translate("MainWindow", u"\u041e\u041f\u041b\u0410\u0422\u0410 \u0421\u0415\u0413\u041e\u0414\u041d\u042f", None))
-        self.spb_receiver.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041f\U0000041e\U0000041b\U00000423\U00000427\U00000410\U00000422\U00000415\U0000041b\U0000042c", None))
         self.spb_category.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041a\U00000410\U00000422\U00000415\U00000413\U0000041e\U00000420\U00000418\U0000042f", None))
         self.spb_term.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U00000421\U00000420\U0000041e\U0000041a \U0000041e\U0000041f\U0000041b\U00000410\U00000422\U0000042b", None))
         self.pb_deletepayment.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c", None))
