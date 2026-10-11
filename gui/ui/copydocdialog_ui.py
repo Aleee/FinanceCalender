@@ -25,7 +25,7 @@ class Ui_CopyDocDialog(object):
     def setupUi(self, CopyDocDialog):
         if not CopyDocDialog.objectName():
             CopyDocDialog.setObjectName(u"CopyDocDialog")
-        CopyDocDialog.resize(580, 433)
+        CopyDocDialog.resize(580, 300)
         self.verticalLayout = QVBoxLayout(CopyDocDialog)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.formLayout = QFormLayout()
