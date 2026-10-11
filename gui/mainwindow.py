@@ -133,8 +133,8 @@ class MainWindow(QMainWindow):
         if not self.db_handler.check_db_files_exists():
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,
                                          text="К сожалению, найти файл базы данных в стандартном расположении не удалось. "
-                                              "Выберите файл для восстановления",
-                                         cancel_available=False, parent=self)
+                                              "Выберите файл для восстановления или загрузите базу с сервера синхронизации",
+                                         cancel_available=False, offer_sync=True, parent=self)
             if recover_dlg.exec() != QDialog.DialogCode.Accepted:
                 sys.exit()
         ## База данных новее программы - ничего не трогаем

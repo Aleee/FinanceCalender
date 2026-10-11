@@ -1,15 +1,19 @@
 from pathlib import Path
 
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QFileDialog, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QDialog, QVBoxLayout, QLabel, QPushButton, QFileDialog, QWidget
 
 from base.dbhandler import DBHandler
+from base.sync import SyncError, fetch_master
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.settings import SettingsHandler
+from gui.syncmanager import create_sync_channel
+from gui.syncsettingsdialog import SyncSettingsDialog
 
 
 class RecoveryDialog(QDialog):
     def __init__(self, settings_handler: SettingsHandler, db_handler: DBHandler, text: str = "Ошибка", cancel_available: bool = False,
-                 parent: QWidget | None = None):
+                 offer_sync: bool = False, parent: QWidget | None = None):
         super().__init__(parent)
 
         self.settings_handler: SettingsHandler = settings_handler
@@ -23,6 +27,10 @@ class RecoveryDialog(QDialog):
         self.button: QPushButton = QPushButton("Выбрать")
         layout.addWidget(self.button)
         self.button.clicked.connect(self.try_recover)
+        if offer_sync:
+            self.sync_button: QPushButton = QPushButton("Загрузить с сервера синхронизации")
+            layout.addWidget(self.sync_button)
+            self.sync_button.clicked.connect(self.try_fetch_from_server)
         if not cancel_available:
             self.exit_button: QPushButton = QPushButton("Выйти")
             layout.addWidget(self.exit_button)
@@ -43,6 +51,27 @@ class RecoveryDialog(QDialog):
             self.accept()
         else:
             self._fail("При попытке заменить файл базы данных произошла ошибка (для подробностей см. лог)")
+
+    def try_fetch_from_server(self) -> None:
+        if SyncSettingsDialog(self.settings_handler, self).exec() != QDialog.DialogCode.Accepted:
+            return
+        if not self.settings_handler.sync_enabled():
+            self._fail("Включите синхронизацию в настройках, чтобы загрузить базу с сервера")
+            return
+        channel = create_sync_channel(self.settings_handler)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            fetch_master(self.db_handler, channel)
+        except SyncError as e:
+            error: str = str(e)
+        else:
+            error = ""
+        finally:
+            QApplication.restoreOverrideCursor()
+        if error:
+            self._fail(f"Не удалось загрузить базу данных с сервера: {error}")
+            return
+        self.accept()
 
     def _fail(self, message: str) -> None:
         msg_box: ErrorInfoMessageBox = ErrorInfoMessageBox(message, parent=self)

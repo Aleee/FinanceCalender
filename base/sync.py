@@ -332,6 +332,42 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
         raise SyncError("Общая база обновлена, но не удалось записать результат в локальную копию (подробности см. в логе)")
 
 
+def download_checked_master(dbh: "DBHandler", channel: SyncChannel, master: MasterInfo, folder: str) -> tuple[Path, LocalState]:
+    downloaded = Path(folder) / MASTER_DB_NAME
+    channel.download_master(downloaded)
+    downloaded_state = read_file_state(dbh, downloaded)
+    if downloaded_state.sync_token != master.sync_token:
+        raise MasterUpdatingError("Общая база обновляется: файл базы данных и master.json не совпадают, повторите позже")
+    if downloaded_state.db_uuid != master.db_uuid or downloaded_state.db_version != master.db_version:
+        raise SyncError("Скачанная общая база не соответствует master.json")
+    if not dbh.check_file_integrity(str(downloaded)):
+        raise SyncError("Скачанная общая база не прошла проверку целостности")
+    return downloaded, downloaded_state
+
+
+def fetch_master(dbh: "DBHandler", channel: SyncChannel) -> None:
+    master = channel.read_master_info()
+    if master is None:
+        raise SyncError("В общем хранилище нет базы данных")
+    if master.db_version > dbh.DB_VERSION:
+        raise SyncError("Общая база создана более новой версией программы. Обновите программу")
+    with tempfile.TemporaryDirectory() as folder:
+        downloaded, downloaded_state = download_checked_master(dbh, channel, master, folder)
+        new_file = downloaded
+        migrated_path: str | None = None
+        if downloaded_state.db_version < dbh.DB_VERSION:
+            migrated_path = dbh.make_migrated_copy(str(downloaded))
+            if migrated_path is None:
+                raise SyncError("Не удалось обновить структуру скачанной общей базы (подробности см. в логе)")
+            new_file = Path(migrated_path)
+        try:
+            if not dbh.switch_db_files(str(new_file), close_current_connection=True):
+                raise SyncError("Не удалось сохранить скачанную общую базу (подробности см. в логе)")
+        finally:
+            if migrated_path is not None:
+                Path(migrated_path).unlink(missing_ok=True)
+
+
 def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncAction, ...] = (SyncAction.PULL,),
                 master: MasterInfo | None = None) -> None:
     local = read_local_state(dbh)
@@ -341,15 +377,7 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
     if action not in allowed:
         raise SyncError(f"Подтягивание невозможно в состоянии «{action.value}»")
     with tempfile.TemporaryDirectory() as folder:
-        downloaded = Path(folder) / MASTER_DB_NAME
-        channel.download_master(downloaded)
-        downloaded_state = read_file_state(dbh, downloaded)
-        if downloaded_state.sync_token != master.sync_token:
-            raise MasterUpdatingError("Общая база обновляется: файл базы данных и master.json не совпадают, повторите позже")
-        if downloaded_state.db_uuid != master.db_uuid or downloaded_state.db_version != master.db_version:
-            raise SyncError("Скачанная общая база не соответствует master.json")
-        if not dbh.check_file_integrity(str(downloaded)):
-            raise SyncError("Скачанная общая база не прошла проверку целостности")
+        downloaded, downloaded_state = download_checked_master(dbh, channel, master, folder)
         new_file = downloaded
         migrated_path: str | None = None
         if downloaded_state.db_version < dbh.DB_VERSION:

@@ -352,3 +352,35 @@ def test_outdated_client_neither_pushes_nor_pulls(connected, channel, dbh, migra
         with pytest.raises(SyncError):
             pull_master(dbh_a, channel)
         assert dbh_a.get_setting("marker") == "a"
+
+
+def test_fetch_master_creates_local_db(machine_a, channel, dbh, work_db_path):
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    dbh.db.close()
+    work_db_path.unlink()
+    syncmod.fetch_master(dbh, channel)
+    assert dbh.open_db_connection()
+    assert dbh.get_setting("marker") == "a"
+    assert syncmod.decide_action(syncmod.read_local_state(dbh), channel.read_master_info()) == SyncAction.NOTHING
+
+
+def test_fetch_master_without_master_creates_nothing(channel, dbh, work_db_path):
+    work_db_path.parent.mkdir(parents=True, exist_ok=True)
+    work_db_path.unlink(missing_ok=True)
+    with pytest.raises(SyncError):
+        syncmod.fetch_master(dbh, channel)
+    assert not work_db_path.exists()
+
+
+def test_fetch_master_refuses_newer_master(machine_a, channel, dbh, work_db_path):
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    info = channel.read_master_info()
+    info.db_version = dbh.DB_VERSION + 1
+    channel.master_info_path.write_text(info.to_json(), encoding="utf-8")
+    dbh.db.close()
+    work_db_path.unlink()
+    with pytest.raises(SyncError):
+        syncmod.fetch_master(dbh, channel)
+    assert not work_db_path.exists()
