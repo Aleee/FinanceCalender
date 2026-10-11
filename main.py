@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from base.paths import logs_dir
 from base.updater import UpdateChecker
 from base.version import APP_VERSION
+from gui.commonwidgets.neutralarrowstyle import NeutralArrowStyle
 from gui.mainwindow import MainWindow
 from gui.updatedialog import UpdateController
 
@@ -24,7 +25,7 @@ class App(QApplication):
 
         self.app_version = APP_VERSION
 
-        self.setStyle('fusion')
+        self.setStyle(NeutralArrowStyle())
 
         self.window: MainWindow = MainWindow()
         self.window.show()
