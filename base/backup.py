@@ -34,7 +34,7 @@ def clean_backup_folder(sh: SettingsHandler) -> bool:
         log.e("Не удалось очистить папку с резервными копиями: путь не указан или не существует")
         return False
     try:
-        cleanup_period: int = int(sh.settings.value("Backup/cleanupperiod"))
+        cleanup_period: int = int(sh.settings.value("Backup/cleanupperiod", 30))
     except (ValueError, TypeError):
         log.e("Не удалось очистить папку с резервными копиями: не удалось получить настройки хранения")
         return False
