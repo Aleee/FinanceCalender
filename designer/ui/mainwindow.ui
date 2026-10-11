@@ -997,10 +997,10 @@ QPushButton:disabled {color: #a0a0a0;}</string>
      <normaloff>:/icon-toolbar/designer/icons/copydoc.svg</normaloff>:/icon-toolbar/designer/icons/copydoc.svg</iconset>
    </property>
    <property name="text">
-    <string>Копировать платеж с новым документом</string>
+    <string>Копировать платеж с новым основанием</string>
    </property>
    <property name="toolTip">
-    <string>Копировать платеж с новым документом</string>
+    <string>Копировать платеж с новым основанием</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

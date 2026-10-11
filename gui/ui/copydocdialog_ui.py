@@ -233,7 +233,7 @@ class Ui_CopyDocDialog(object):
     # setupUi
 
     def retranslateUi(self, CopyDocDialog):
-        CopyDocDialog.setWindowTitle(QCoreApplication.translate("CopyDocDialog", u"\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0430 \u0441 \u043d\u043e\u0432\u044b\u043c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u043e\u043c", None))
+        CopyDocDialog.setWindowTitle(QCoreApplication.translate("CopyDocDialog", u"\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0430 \u0441 \u043d\u043e\u0432\u044b\u043c \u043e\u0441\u043d\u043e\u0432\u0430\u043d\u0438\u0435\u043c", None))
         self.label.setText(QCoreApplication.translate("CopyDocDialog", u"\u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442:", None))
         self.la_document.setText(QCoreApplication.translate("CopyDocDialog", u"-", None))
         self.label_2.setText(QCoreApplication.translate("CopyDocDialog", u"&\u0421\u0443\u043c\u043c\u0430:", None))

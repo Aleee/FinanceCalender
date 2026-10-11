@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Копирование платежа с новым документом</string>
+   <string>Копирование платежа с новым основанием</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
