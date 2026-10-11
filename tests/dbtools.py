@@ -20,10 +20,11 @@ CREATE TABLE "event" (
     "notes"  TEXT,
     "featured"  INTEGER,
     "hidden"  INTEGER,
-    "receivernocase"  TEXT,
     PRIMARY KEY("id" AUTOINCREMENT)
 )
 """
+
+PRE_V7_EVENT_DDL = EVENT_DDL.replace('"hidden"  INTEGER,', '"hidden"  INTEGER,\n    "receivernocase"  TEXT,')
 
 LEGACY_EVENT_DDL = """
 CREATE TABLE "event" (
@@ -87,7 +88,8 @@ def create_db(path: Path, version: int, meta: dict[str, str] | None = None, lega
     path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(path)
     try:
-        for ddl in (LEGACY_EVENT_DDL if legacy_event else EVENT_DDL, PAYMENT_DDL, META_DDL, *OTHER_TABLES_DDL):
+        event_ddl = LEGACY_EVENT_DDL if legacy_event else PRE_V7_EVENT_DDL if 4 <= version < 7 else EVENT_DDL
+        for ddl in (event_ddl, PAYMENT_DDL, META_DDL, *OTHER_TABLES_DDL):
             con.execute(ddl)
         rows = {"db_version": str(version), **(meta or {})}
         con.executemany("INSERT INTO meta (key, value) VALUES (?, ?)", rows.items())

@@ -77,4 +77,5 @@ MIGRATIONS: dict[int, list[Migration]] = {
         'CREATE TABLE "contractsavedvalues" ("contractdocumentid" INTEGER PRIMARY KEY, "receiver" TEXT, "category" INTEGER, '
         '"subcategory" INTEGER, "name" TEXT, "nds" INTEGER, "paymenttype" INTEGER, "descr" TEXT, "responsible" INTEGER, "hidden" INTEGER)']
        + table_change_counter_triggers("contractsavedvalues"),
+    7: ["ALTER TABLE event DROP COLUMN receivernocase"],
 }

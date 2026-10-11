@@ -63,7 +63,7 @@ def test_migration_to_v5_marks_db_as_changed(dbh, v4_db):
 
 
 def test_migration_to_v5_keeps_data(dbh, v4_db):
-    event_before = fetch_all(v4_db, "SELECT * FROM event")
+    event_before = [row[:-1] for row in fetch_all(v4_db, "SELECT * FROM event")]
     payment_before = fetch_all(v4_db, "SELECT * FROM payment")
     assert dbh.migrate_db()
     assert fetch_all(v4_db, "SELECT * FROM event") == event_before

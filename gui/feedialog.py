@@ -321,7 +321,6 @@ class FeeDialog(QDialog):
             comment,
             0,
             0,
-            str.lower(FEE_RECEIVER),
         ]
 
         new_event_row = self.base_model.insert_row(event_data)

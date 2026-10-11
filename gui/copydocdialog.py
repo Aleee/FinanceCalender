@@ -216,7 +216,6 @@ class CopyDocDialog(QDialog):
             self.source_value(Col.NOTES),
             0,
             int(bool(self.source_value(Col.HIDDEN))),
-            receiver.lower(),
         ]
 
         if original_model.insert_row(data) is None:

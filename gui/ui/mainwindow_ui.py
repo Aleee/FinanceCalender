@@ -175,12 +175,20 @@ class Ui_MainWindow(object):
 
         self.gridLayout_2.addWidget(self.pb_resetfilters, 0, 0, 1, 1)
 
-        self.le_search = QLineEdit(self.wdg_eventfilter)
+        self.wdg_search = QWidget(self.wdg_eventfilter)
+        self.wdg_search.setObjectName(u"wdg_search")
+        self.horizontalLayout_search = QHBoxLayout(self.wdg_search)
+        self.horizontalLayout_search.setObjectName(u"horizontalLayout_search")
+        self.horizontalLayout_search.setContentsMargins(9, 3, 9, 3)
+        self.le_search = QLineEdit(self.wdg_search)
         self.le_search.setObjectName(u"le_search")
-        self.le_search.setStyleSheet(u"border: 1px solid #cbcbcb; margin: 6px 9px 0px 9px")
+        self.le_search.setStyleSheet(u"border: 1px solid #cbcbcb;")
         self.le_search.setClearButtonEnabled(True)
 
-        self.gridLayout_2.addWidget(self.le_search, 1, 0, 1, 1)
+        self.horizontalLayout_search.addWidget(self.le_search)
+
+
+        self.gridLayout_2.addWidget(self.wdg_search, 1, 0, 1, 1)
 
         self.scrollArea = QScrollArea(self.wdg_eventfilter)
         self.scrollArea.setObjectName(u"scrollArea")

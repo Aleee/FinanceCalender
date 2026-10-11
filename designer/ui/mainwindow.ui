@@ -72,19 +72,37 @@ QPushButton:disabled {color: #a0a0a0;}</string>
          </widget>
         </item>
         <item row="1" column="0">
-         <widget class="QLineEdit" name="le_search">
-          <property name="toolTip">
-           <string>Поиск по наименованию (предмету) и основанию платежа (Ctrl+F)</string>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">border: 1px solid #cbcbcb; margin: 6px 9px 0px 9px</string>
-          </property>
-          <property name="placeholderText">
-           <string>Поиск (Ctrl+F)</string>
-          </property>
-          <property name="clearButtonEnabled">
-           <bool>true</bool>
-          </property>
+         <widget class="QWidget" name="wdg_search" native="true">
+          <layout class="QHBoxLayout" name="horizontalLayout_search">
+           <property name="leftMargin">
+            <number>9</number>
+           </property>
+           <property name="topMargin">
+            <number>3</number>
+           </property>
+           <property name="rightMargin">
+            <number>9</number>
+           </property>
+           <property name="bottomMargin">
+            <number>3</number>
+           </property>
+           <item>
+            <widget class="QLineEdit" name="le_search">
+             <property name="toolTip">
+              <string>Поиск по наименованию (предмету) и основанию платежа (Ctrl+F)</string>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">border: 1px solid #cbcbcb;</string>
+             </property>
+             <property name="placeholderText">
+              <string>Поиск (Ctrl+F)</string>
+             </property>
+             <property name="clearButtonEnabled">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
         <item row="2" column="0">

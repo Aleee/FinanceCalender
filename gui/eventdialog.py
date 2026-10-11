@@ -681,8 +681,6 @@ class EventDialog(QDialog):
             data.append(self.non_editable_values["featured"])
         # hidden
         data.append(int(self.ui.chb_hidden.isChecked()))
-        # receivernocase
-        data.append(self._stripped(self.ui.le_receiver.text()).lower())
 
         original_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
         if not self.edit_mode:

@@ -19,7 +19,7 @@ from base.liability import LiabilityCategory, RowType
 from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
 from base.paths import db_path, backup_dir
 from base.payment import Payment, PaymentEntry
-from base.syncdiff import DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, IGNORED_COLUMNS, TABLE_DERIVED_COLUMNS
+from base.syncdiff import DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, TABLE_DERIVED_COLUMNS
 from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
@@ -30,7 +30,7 @@ from gui.finplanmodel import FinPlanTableModel
 class DBHandler:
 
     DB_VERSION: int = _DB_VERSION
-    EVENT_TABLE_COLUMNUM: int = 18
+    EVENT_TABLE_COLUMNUM: int = 17
     PAYMENT_TABLE_COLUMNUM: int = 5
 
     DATE_FORMAT = "yyyy-MM-dd"
@@ -277,10 +277,10 @@ class DBHandler:
             log.x(f"Не удалось сравнить файлы базы данных {old_path} и {new_path}: {e}")
             return None
 
-    def _common_columns(self, connection: str, table: str, other_schema: str = "old", skip_ignored: bool = True) -> list[str]:
+    def _common_columns(self, connection: str, table: str, other_schema: str = "old") -> list[str]:
         other_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA {other_schema}.table_info("{table}")')]
         main_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA main.table_info("{table}")')]
-        return [column for column in main_columns if column in other_columns and not (skip_ignored and column in IGNORED_COLUMNS)]
+        return [column for column in main_columns if column in other_columns]
 
     def apply_merge(self, target_path: str, source_path: str, plan: MergePlan, event_ids: list[int],
                     payment_ids: list[int]) -> dict[str, dict[int, int]] | None:
@@ -315,7 +315,7 @@ class DBHandler:
             self._file_execute(connection, f'UPDATE main."{table}" SET {assignments} WHERE id = ?', *([row_id] * len(columns)), row_id)
 
     def _copy_added_rows(self, connection: str, table: str, ids: list[int], references: dict[str, dict[int, int]]) -> dict[int, int]:
-        columns = self._common_columns(connection, table, "mine", skip_ignored=False)
+        columns = self._common_columns(connection, table, "mine")
         sequence = self._file_execute(connection, "SELECT seq FROM main.sqlite_sequence WHERE name = ?", table)
         last_id = self._file_execute(connection, f'SELECT MAX(id) FROM main."{table}"')[0][0]
         next_id = max(int(sequence[0][0]) if sequence else 0, int(last_id or 0)) + 1

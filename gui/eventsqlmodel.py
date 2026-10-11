@@ -65,7 +65,6 @@ class Col(IntEnum):
     FILTERFLAGS = 18
     FEATURED = 19
     HIDDEN = 20
-    RECEIVERNOCASE = 21
 
 
 class LiabilitySqlTableModel(QSqlTableModel):
@@ -97,7 +96,6 @@ class LiabilitySqlTableModel(QSqlTableModel):
         Col.FILTERFLAGS: ("", False),
         Col.FEATURED: ("", True),
         Col.HIDDEN: ("", True),
-        Col.RECEIVERNOCASE: ("", False),
     }
 
     DECIMAL_COLUMNS = [

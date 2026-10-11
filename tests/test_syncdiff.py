@@ -10,8 +10,8 @@ from tests.dbtools import create_db
 def insert_event(path: Path, event_id: int, receiver: str = "ООО Ромашка", name: str = "Поставка", amount: str = "100.00",
                  duedate: str = "2026-10-15") -> None:
     con = sqlite3.connect(path)
-    con.execute("INSERT INTO event (id, receiver, name, totalamount, duedate, receivernocase) VALUES (?, ?, ?, ?, ?, ?)",
-                (event_id, receiver, name, amount, duedate, receiver.lower()))
+    con.execute("INSERT INTO event (id, receiver, name, totalamount, duedate) VALUES (?, ?, ?, ?, ?)",
+                (event_id, receiver, name, amount, duedate))
     con.commit()
     con.close()
 

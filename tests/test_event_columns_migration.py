@@ -7,7 +7,7 @@ from tests.dbtools import create_db, fetch_all, read_version, table_columns
 
 DROPPED_COLUMNS = ["remainamount", "todayshare", "lastpaymentdate", "filterflags"]
 KEPT_COLUMNS = ["receiver", "id", "type", "contractdocument_id", "category", "subcategory", "name", "totalamount", "nds",
-                "duedate", "createdate", "paymenttype", "descr", "responsible", "notes", "featured", "hidden", "receivernocase"]
+                "duedate", "createdate", "paymenttype", "descr", "responsible", "notes", "featured", "hidden"]
 
 
 @pytest.fixture

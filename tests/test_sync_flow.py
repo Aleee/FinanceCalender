@@ -328,29 +328,29 @@ def test_pull_refused_when_master_is_corrupted(connected, channel):
 def test_pull_of_older_master_migrates_and_marks_changed(machine_a, channel, make_machine, dbh, migrations):
     with machine_a as dbh_a:
         push_master(dbh_a, channel, PARAMS)
-    dbh.DB_VERSION = 7
-    migrations[7] = ["INSERT INTO meta (key, value) VALUES ('key7', 'z')"]
+    dbh.DB_VERSION = 8
+    migrations[8] = ["INSERT INTO meta (key, value) VALUES ('key8', 'z')"]
     machine_b = make_machine("b")
     with machine_b as dbh_b:
         pull_master(dbh_b, channel, (SyncAction.FOREIGN_DB,))
         assert dbh_b.get_setting("marker") == "a"
-        assert dbh_b.get_setting("key7") == "z"
-        assert dbh_b.get_setting("db_version") == "7"
+        assert dbh_b.get_setting("key8") == "z"
+        assert dbh_b.get_setting("db_version") == "8"
         assert dbh_b.get_setting("change_counter") != "0"
         assert synchronize(dbh_b, channel, PARAMS) == SyncAction.PUSH
-    assert channel.read_master_info().db_version == 7
+    assert channel.read_master_info().db_version == 8
     assert not (machine_b.work_db_path.parent / "db_restore_temp.db").exists()
 
 
 def test_outdated_client_neither_pushes_nor_pulls(connected, channel, dbh, migrations):
     machine_a, machine_b = connected
-    dbh.DB_VERSION = 7
-    migrations[7] = ["INSERT INTO meta (key, value) VALUES ('key7', 'z')"]
+    dbh.DB_VERSION = 8
+    migrations[8] = ["INSERT INTO meta (key, value) VALUES ('key8', 'z')"]
     with machine_b as dbh_b:
         assert dbh_b.migrate_db()
         dbh_b.open_db_connection()
         assert synchronize(dbh_b, channel, PARAMS) == SyncAction.PUSH
-    dbh.DB_VERSION = 6
+    dbh.DB_VERSION = 7
     with machine_a as dbh_a:
         assert synchronize(dbh_a, channel, PARAMS) == SyncAction.CLIENT_OUTDATED
         with pytest.raises(SyncError):
@@ -433,7 +433,7 @@ def test_overwrite_makes_backup_within_interval(connected, channel):
 def add_event(machine: Machine, event_id: int, name: str) -> None:
     import sqlite3
     con = sqlite3.connect(machine.file)
-    con.execute("INSERT INTO event (id, receiver, name, totalamount, duedate, receivernocase) VALUES (?, 'Получатель', ?, '10.00', '2026-10-15', 'получатель')",
+    con.execute("INSERT INTO event (id, receiver, name, totalamount, duedate) VALUES (?, 'Получатель', ?, '10.00', '2026-10-15')",
                 (event_id, name))
     con.commit()
     con.close()
@@ -667,8 +667,8 @@ def run_sql(machine: Machine, sql: str, *params) -> None:
     con.close()
 
 
-NEW_EVENT_2 = ("INSERT INTO event (id, receiver, name, totalamount, duedate, receivernocase) "
-               "VALUES (2, 'Р', 'Другое', '1', '2026-10-15', 'р')")
+NEW_EVENT_2 = ("INSERT INTO event (id, receiver, name, totalamount, duedate) "
+               "VALUES (2, 'Р', 'Другое', '1', '2026-10-15')")
 
 
 def sync_both(machine_a, machine_b, channel, sql_a: str, sql_b: str, report=None):
@@ -695,19 +695,19 @@ def test_merge_keeps_my_edit_of_existing_event_and_their_new_event(shared_event,
 def test_merge_combines_different_columns_of_same_event(shared_event, channel):
     machine_a, machine_b = shared_event
     action = sync_both(machine_a, machine_b, channel,
-                       "UPDATE event SET notes = 'заметка', receiver = 'Новый', receivernocase = 'новый' WHERE id = 1",
+                       "UPDATE event SET notes = 'заметка', receiver = 'Новый' WHERE id = 1",
                        "UPDATE event SET totalamount = '77.00' WHERE id = 1")
     assert action == SyncAction.MERGE
-    assert rows(machine_b, "SELECT receiver, receivernocase, notes, totalamount FROM event WHERE id = 1") == [
-        ("Новый", "новый", "заметка", "77.00")]
+    assert rows(machine_b, "SELECT receiver, notes, totalamount FROM event WHERE id = 1") == [
+        ("Новый", "заметка", "77.00")]
 
 
-def test_merge_takes_my_receiver_with_lowercase_copy(shared_event, channel):
+def test_merge_takes_my_receiver(shared_event, channel):
     machine_a, machine_b = shared_event
     action = sync_both(machine_a, machine_b, channel, "UPDATE event SET notes = 'чужая' WHERE id = 1",
-                       "UPDATE event SET receiver = 'ООО Мой', receivernocase = 'ооо мой' WHERE id = 1")
+                       "UPDATE event SET receiver = 'ООО Мой' WHERE id = 1")
     assert action == SyncAction.MERGE
-    assert rows(machine_b, "SELECT receiver, receivernocase, notes FROM event WHERE id = 1") == [("ООО Мой", "ооо мой", "чужая")]
+    assert rows(machine_b, "SELECT receiver, notes FROM event WHERE id = 1") == [("ООО Мой", "чужая")]
 
 
 def test_merge_accepts_identical_change_of_same_column(shared_event, channel):

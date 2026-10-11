@@ -893,7 +893,7 @@ class MainWindow(QMainWindow):
             f"margin: 9px {right_margin}px 0px 9px;}}\n"
             "QPushButton:hover {background-color: #e8eef4;}\n"
             "QPushButton:disabled {color: #a0a0a0;}")
-        self.ui.le_search.setStyleSheet(f"border: 1px solid #cbcbcb; margin: 6px {right_margin}px 0px 9px")
+        self.ui.horizontalLayout_search.setContentsMargins(9, 3, right_margin, 3)
 
     def reset_filters(self) -> None:
         blocked_widgets: tuple = (self.ui.lw_term, self.ui.lw_category,

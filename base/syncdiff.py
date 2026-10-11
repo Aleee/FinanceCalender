@@ -8,8 +8,6 @@ from base.liability import CATEGORY_NAMES, PAYMENTTYPE_NAMES
 Row = dict[str, Any]
 
 DETAILED_TABLES = ("event", "payment")
-IGNORED_COLUMNS = ("receivernocase",)
-COMPANION_COLUMNS = {"receiver": "receivernocase"}
 TABLE_DERIVED_COLUMNS = {"event": ("responsible_name",), "payment": ("event_title",)}
 DERIVED_COLUMNS = ("responsible_name", "event_title")
 NAME_COLUMNS = {"responsible": "responsible_name"}
@@ -158,7 +156,6 @@ def plan_merge(my_changes: DbDiff, their_changes: DbDiff) -> MergePlan:
                     Conflict(title, column_title(column), display_value(new_row, column), display_value(their_new, column))
                     for column in columns if column in their_columns and their_new[column] != new_row[column])
                 columns = [column for column in columns if column not in their_columns]
-            columns += [COMPANION_COLUMNS[column] for column in columns if column in COMPANION_COLUMNS and table == "event"]
             if columns:
                 plan.updates[table].append((row_id, columns))
         for row in mine.removed:

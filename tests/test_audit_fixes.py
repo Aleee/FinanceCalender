@@ -11,7 +11,7 @@ from tests.test_readpath import add_event, add_payment, day, db_file, models, op
 
 
 def new_event_data(receiver: str = "ООО Новое") -> list:
-    return [receiver, 0, 1, 0, 1101, 0, "n", "100.00", 0, day(5), day(0), 0, "d", 1, "", 0, 0, receiver.lower()]
+    return [receiver, 0, 1, 0, 1101, 0, "n", "100.00", 0, day(5), day(0), 0, "d", 1, "", 0, 0]
 
 
 def make_payment_model() -> PaymentHistoryTableModel:

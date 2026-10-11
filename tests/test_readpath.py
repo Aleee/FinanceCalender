@@ -32,7 +32,7 @@ def add_event(path: Path, *, row_type: int = RowType.LIABILITY, category: int = 
     values = {"receiver": receiver, "type": int(row_type), "category": category, "subcategory": subcategory,
               "name": "name", "totalamount": total, "duedate": due if due is not None else day(10),
               "paymenttype": int(paymenttype), "descr": "descr", "responsible": responsible, "featured": featured,
-              "hidden": hidden, "receivernocase": receiver.lower()}
+              "hidden": hidden}
     con = sqlite3.connect(path)
     try:
         cur = con.execute(f"INSERT INTO event ({', '.join(values)}) VALUES ({', '.join('?' * len(values))})",
@@ -649,7 +649,7 @@ def test_virtual_columns_are_read_only_and_selectable(models):
 
 def test_insert_row_takes_only_stored_columns(models):
     data = ["ООО Ромашка", 0, int(RowType.LIABILITY), 0, 1101, 0, "name", "100.00", 0, day(5), day(0),
-            int(PaymentType.NORMAL), "descr", "1", "", 0, 0, "ооо ромашка"]
+            int(PaymentType.NORMAL), "descr", "1", "", 0, 0]
     assert models.base.insert_row(data) is not None
     assert models.base.submitAll()
     reload(models)
@@ -664,13 +664,13 @@ def test_edit_row_writes_every_stored_column(models):
     event_id = add_event(models.path, total="100.00")
     reload(models)
     data = ["ИП Иванов", event_id, int(RowType.LIABILITY), 5, 1102, 0, "new name", "250.00", 1, day(7), day(1),
-            int(PaymentType.ADVANCE), "new descr", "3", "note", 1, 1, "ип иванов"]
+            int(PaymentType.ADVANCE), "new descr", "3", "note", 1, 1]
     assert models.base.edit_row(models.source_row(event_id), data) is not None
     reload(models)
     con = sqlite3.connect(models.path)
     try:
         stored = con.execute("SELECT receiver, id, type, contractdocument_id, category, subcategory, name, totalamount, nds, "
-                             "duedate, createdate, paymenttype, descr, responsible, notes, featured, hidden, receivernocase "
+                             "duedate, createdate, paymenttype, descr, responsible, notes, featured, hidden "
                              "FROM event WHERE id = ?", (event_id,)).fetchone()
     finally:
         con.close()

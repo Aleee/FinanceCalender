@@ -27,7 +27,7 @@ def values(doc_id: int = 7, name: str = "Услуги") -> SavedContractValues:
 
 def test_migration_to_v6_recreates_savedvalues_table(dbh, old_db):
     assert dbh.migrate_db()
-    assert read_version(old_db) == 6
+    assert read_version(old_db) == dbh.DB_VERSION
     assert table_columns(old_db, "contractsavedvalues") == COLUMNS
 
 
