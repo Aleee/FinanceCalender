@@ -34,6 +34,7 @@ from base.yandexchannel import DEFAULT_DISK_FOLDER, YandexDiskApiChannel
 YANDEX_HOSTS = DIAG_HOSTS[:2]
 CONTROL_HOSTS = ("ya.ru", "www.google.com", "www.cloudflare.com")
 PROBE_TIMEOUT_MS = 8000
+LONG_PROBE_TIMEOUT_MS = 30000
 PING_TIMEOUT_MS = 1000
 GATEWAY_PING_COUNT = 20
 PATHPING_QUERIES = 25
@@ -48,6 +49,7 @@ SOAK_INTERVAL_S = 5
 SOAK_API_EVERY = 6
 SOAK_UPLOAD_EVERY = 60
 SOAK_UPLOAD_SIZE = 1024 * 1024
+SOAK_PAUSE_S = 300
 COMMAND_TIMEOUT_S = 30
 LONG_COMMAND_TIMEOUT_S = 120
 MTU_PAYLOADS = (1472, 1400, 1280)
@@ -81,11 +83,11 @@ def resolve_host(host: str) -> tuple[list[str], list[str], int, str]:
     return ipv4, ipv6, elapsed_ms(started), error
 
 
-def read_http_head(socket: QSslSocket, host: str, result: dict) -> None:
+def read_http_head(socket: QSslSocket, host: str, result: dict, timeout_ms: int = PROBE_TIMEOUT_MS) -> None:
     request = f"HEAD / HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\nUser-Agent: netdiag\r\n\r\n"
     sent = time.monotonic()
     socket.write(request.encode("ascii"))
-    if not socket.waitForReadyRead(PROBE_TIMEOUT_MS):
+    if not socket.waitForReadyRead(timeout_ms):
         result["stage"] = "response"
         result["qt_error"] = socket.error().name
         result["detail"] = socket.errorString()
@@ -106,7 +108,8 @@ def read_http_head(socket: QSslSocket, host: str, result: dict) -> None:
     result["stage"] = "ok"
 
 
-def probe_https(host: str, address: str = "", proxy: QNetworkProxy | None = None) -> dict:
+def probe_https(host: str, address: str = "", proxy: QNetworkProxy | None = None,
+                timeout_ms: int = PROBE_TIMEOUT_MS) -> dict:
     result = {"kind": "probe", "host": host, "address": address or "auto", "ok": False, "stage": "tcp"}
     socket = QSslSocket()
     socket.setProxy(proxy if proxy is not None else QNetworkProxy(QNetworkProxy.ProxyType.NoProxy))
@@ -116,14 +119,14 @@ def probe_https(host: str, address: str = "", proxy: QNetworkProxy | None = None
         socket.connectToHost(QHostAddress(address), 443)
     else:
         socket.connectToHost(host, 443)
-    if not socket.waitForConnected(PROBE_TIMEOUT_MS):
+    if not socket.waitForConnected(timeout_ms):
         result.update(qt_error=socket.error().name, detail=socket.errorString(), total_ms=elapsed_ms(started))
         socket.abort()
         return result
     result["tcp_ms"] = elapsed_ms(started)
     result["stage"] = "tls"
     socket.startClientEncryption()
-    if not socket.waitForEncrypted(PROBE_TIMEOUT_MS):
+    if not socket.waitForEncrypted(timeout_ms):
         result.update(qt_error=socket.error().name, detail=socket.errorString(), total_ms=elapsed_ms(started),
                       ssl_errors=[error.errorString() for error in socket.sslHandshakeErrors()])
         socket.abort()
@@ -132,7 +135,7 @@ def probe_https(host: str, address: str = "", proxy: QNetworkProxy | None = None
     certificate = socket.peerCertificate()
     result["cert"] = (f"{certificate.subjectDisplayName()}; выдан: {certificate.issuerDisplayName()}; "
                       f"до {certificate.expiryDate().toString('yyyy-MM-dd')}")
-    read_http_head(socket, host, result)
+    read_http_head(socket, host, result, timeout_ms)
     result["total_ms"] = elapsed_ms(started)
     socket.abort()
     return result
@@ -227,10 +230,11 @@ def trace_command(host: str) -> list[str]:
 
 class NetDiag:
     def __init__(self, config: DiagConfig, progress: Callable[[str], None] = lambda text: None,
-                 cancelled: Callable[[], bool] = lambda: False):
+                 cancelled: Callable[[], bool] = lambda: False, stop_reason: Callable[[], str] = lambda: ""):
         self.config: DiagConfig = config
         self.progress: Callable[[str], None] = progress
         self.cancelled: Callable[[], bool] = cancelled
+        self.stop_reason: Callable[[], str] = stop_reason
         self.report: DiagReport = DiagReport((config.token,))
         self.errors: list[str] = []
         self.client: QtHttpClient | None = None
@@ -251,20 +255,38 @@ class NetDiag:
             steps.append(("Наблюдение во времени", self.soak))
         for title, step in steps:
             self.run_step(title, step)
-        log.i("Диагностика сети: завершена")
+        self.report.outcome = self.describe_outcome()
+        log.i(f"Диагностика сети: завершена, {self.report.outcome}")
         return self.report
+
+    def describe_outcome(self) -> str:
+        if self.cancelled():
+            seconds = int(time.monotonic() - self.report.started)
+            return f"остановлено на {seconds}-й секунде: {self.stop_reason() or 'причина не указана'}"
+        failed = [title for title, status, _ in self.report.steps if status == "ошибка"]
+        text = "все запланированные шаги выполнены"
+        return text + (f", но с ошибками: {', '.join(failed)}" if failed else "")
 
     def run_step(self, title: str, step: Callable[[], None]) -> None:
         if self.cancelled():
+            self.report.steps.append((title, "пропущен", 0))
             return
         self.progress(f"{title}…")
         self.report.section(title)
+        started = time.monotonic()
+        status = "выполнен"
         try:
             step()
         except Exception:
+            status = "ошибка"
             self.errors.append(f"[{title}]\n{traceback.format_exc()}")
             self.report.line("Шаг завершился ошибкой, подробности в sys_errors.txt")
             log.w(f"Диагностика сети: шаг «{title}» завершился ошибкой")
+        if status == "выполнен" and self.cancelled():
+            status = "прерван остановкой"
+        seconds = int(time.monotonic() - started)
+        self.report.steps.append((title, status, seconds))
+        log.i(f"Диагностика сети: шаг «{title}»: {status}, {seconds} с")
 
     def record_attempt(self, info: AttemptInfo) -> None:
         self.report.sample("attempt", label=info.target, attempt=info.attempt, ms=info.elapsed_ms, status=info.status,
@@ -340,7 +362,7 @@ class NetDiag:
         for host in YANDEX_HOSTS:
             ipv4, ipv6, _, _ = resolve_host(host)
             for address in ipv4[:MAX_ADDRESSES_PER_FAMILY] + ipv6[:MAX_ADDRESSES_PER_FAMILY]:
-                self.report_probe(probe_https(host, address))
+                self.report_probe(probe_https(host, address, timeout_ms=LONG_PROBE_TIMEOUT_MS))
 
     def report_probe(self, probe: dict) -> None:
         self.report.samples.append({"t": round(time.monotonic() - self.report.started, 1), **probe})
@@ -348,6 +370,11 @@ class NetDiag:
 
     def create_channel(self, folder: str) -> YandexDiskApiChannel:
         return YandexDiskApiChannel(self.config.token, self.client, folder)
+
+    def create_new_connection_channel(self) -> YandexDiskApiChannel:
+        client = QtHttpClient()
+        client.on_attempt = self.record_attempt
+        return YandexDiskApiChannel(self.config.token, client, self.config.disk_folder)
 
     def check_api(self) -> None:
         public_link = f"{API_URL}?public_key={PUBLIC_KEY}&path=/{VERSION_FILE}"
@@ -442,10 +469,17 @@ class NetDiag:
         gateway = self.get_gateway()
         channel = self.create_channel(self.config.disk_folder) if self.config.token else None
         upload_channel = self.create_channel(UPLOAD_TEST_FOLDER) if channel and self.config.send_test else None
-        deadline = time.monotonic() + self.config.soak_seconds
+        soak_started = time.monotonic()
+        deadline = soak_started + self.config.soak_seconds
         cycle = 0
+        previous_start = time.time()
         while time.monotonic() < deadline and not self.cancelled():
             cycle_started = time.monotonic()
+            pause = int(time.time() - previous_start)
+            previous_start = time.time()
+            if pause > SOAK_PAUSE_S:
+                self.report.sample("pause", seconds=pause)
+                self.report.line(f"Между циклами наблюдения прошло {pause} с (сон компьютера или зависание)")
             if gateway:
                 reachable, ping_ms = ping_once(gateway)
                 self.report.sample("soak", host=f"шлюз {gateway}", group="gateway", cycle=cycle, ok=reachable,
@@ -460,7 +494,9 @@ class NetDiag:
             if cycle % SOAK_API_EVERY == 0:
                 self.sample_wifi()
             if channel is not None and cycle % SOAK_API_EVERY == 0:
-                self.timed_op("Наблюдение: API, проверка папки", channel.check_connection)
+                self.timed_op("Наблюдение: API, проверка папки (соединение уже открыто)", channel.check_connection)
+                self.timed_op("Наблюдение: API, проверка папки (новое соединение, как при синхронизации)",
+                              self.create_new_connection_channel().check_connection)
             if upload_channel is not None and cycle % SOAK_UPLOAD_EVERY == SOAK_UPLOAD_EVERY - 1:
                 self.upload_test_file(upload_channel, "soak.bin", SOAK_UPLOAD_SIZE)
             cycle += 1
@@ -470,7 +506,8 @@ class NetDiag:
                 time.sleep(0.1)
         if upload_channel is not None:
             upload_channel.delete_quietly(UPLOAD_TEST_FOLDER)
-        self.report.line(f"Циклов наблюдения: {cycle}, подробности в samples.jsonl")
+        self.report.line(f"Наблюдение длилось {int(time.monotonic() - soak_started)} с из запланированных "
+                         f"{self.config.soak_seconds} с, циклов {cycle}, подробности в samples.jsonl")
 
 
 class DiagThread(QThread):
@@ -480,11 +517,25 @@ class DiagThread(QThread):
     def __init__(self, config: DiagConfig, parent=None):
         super().__init__(parent)
         self.config: DiagConfig = config
+        self.stop_reason: str = ""
+        self.outcome: str = ""
+
+    def request_stop(self, reason: str) -> None:
+        if not self.stop_reason:
+            self.stop_reason = reason
+            log.i(f"Диагностика сети: запрошена остановка: {reason}")
+        self.requestInterruption()
 
     def run(self) -> None:
-        diag = NetDiag(self.config, self.progress.emit, self.isInterruptionRequested)
-        report = diag.run()
-        logs_folder = Path(logs_dir())
-        errors_text = "\n".join(diag.errors) + "\n" + read_tail(logs_folder / "sys_errors.log", LOG_TAIL_BYTES)
-        path = save_report(report, Path(diag_dir()), collect_log_text(logs_folder, LOG_TAIL_BYTES), errors_text)
+        diag = NetDiag(self.config, self.progress.emit, self.isInterruptionRequested, lambda: self.stop_reason)
+        try:
+            report = diag.run()
+            self.outcome = report.outcome
+            logs_folder = Path(logs_dir())
+            errors_text = "\n".join(diag.errors) + "\n" + read_tail(logs_folder / "sys_errors.log", LOG_TAIL_BYTES)
+            path = save_report(report, Path(diag_dir()), collect_log_text(logs_folder, LOG_TAIL_BYTES), errors_text)
+        except Exception:
+            log.exception("Диагностика сети: аварийное завершение")
+            self.outcome = "аварийное завершение из-за внутренней ошибки, подробности в журнале программы"
+            return
         self.report_ready.emit(str(path))

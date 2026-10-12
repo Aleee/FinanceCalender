@@ -9,7 +9,7 @@ from base.httpclient import AttemptInfo, QtHttpClient
 from base.netdiag import DiagConfig, NetDiag, probe_https, resolve_host
 from base.netdiagreport import (DiagReport, collect_log_text, describe_timings, drop_private_lines, drop_wifi_identity,
                                 sanitize_text, save_report, summarize_attempts, summarize_correlation,
-                                summarize_probes)
+                                summarize_operations, summarize_probes)
 from tests.yandexfake import FakeDisk
 
 TOKEN = "y0_AgAAAAAtestsecrettokenvalue1234567890"
@@ -126,6 +126,60 @@ def test_cancelled_run_skips_steps(diag):
     visited: list[str] = []
     diag.run_step("Шаг", lambda: visited.append("x"))
     assert not visited
+
+
+def test_step_journal_and_outcome_explain_why_run_ended(diag):
+    diag.run_step("Первый", lambda: None)
+    state = {"stop": False}
+    diag.cancelled = lambda: state["stop"]
+    diag.stop_reason = lambda: "нажата кнопка «Остановить»"
+    diag.run_step("Второй", lambda: state.update(stop=True))
+    diag.run_step("Третий", lambda: None)
+    assert [(title, status) for title, status, _ in diag.report.steps] == [
+        ("Первый", "выполнен"), ("Второй", "прерван остановкой"), ("Третий", "пропущен")]
+    diag.report.outcome = diag.describe_outcome()
+    text = diag.report.text()
+    assert "Завершение: остановлено на" in text and "нажата кнопка «Остановить»" in text
+    assert "Третий: пропущен" in text
+
+
+def test_outcome_of_complete_run_lists_failed_steps(diag):
+    diag.run_step("Хороший", lambda: None)
+    assert diag.describe_outcome() == "все запланированные шаги выполнены"
+    diag.run_step("Сломанный", lambda: 1 / 0)
+    assert diag.describe_outcome().endswith("с ошибками: Сломанный")
+
+
+def test_thread_keeps_first_stop_reason(qapp):
+    thread = netdiagmod.DiagThread(DiagConfig())
+    thread.request_stop("первая")
+    thread.request_stop("вторая")
+    assert thread.stop_reason == "первая"
+
+
+def test_operations_summary_groups_repeated_labels():
+    samples = [{"kind": "op", "label": "A", "ok": True, "ms": 100, "error": ""},
+               {"kind": "op", "label": "A", "ok": False, "ms": 5000, "error": "таймаут"},
+               {"kind": "op", "label": "B", "ok": True, "ms": 10, "error": ""}]
+    lines = "\n".join(summarize_operations(samples))
+    assert "A: 2 раз, с ошибкой 1; успешные: p50 100" in lines
+    assert "B:" not in lines
+
+
+def test_soak_pause_and_new_connection_check_are_recorded(diag, monkeypatch):
+    monkeypatch.setattr(netdiagmod, "probe_https", lambda host, *args, **kwargs: {"ok": True, "stage": "ok", "total_ms": 1})
+    monkeypatch.setattr(netdiagmod, "SOAK_INTERVAL_S", 0)
+    monkeypatch.setattr(netdiagmod, "SOAK_PAUSE_S", -1)
+    monkeypatch.setattr(diag, "sample_wifi", lambda: None)
+    diag.gateway = ""
+    diag.config.soak_seconds = 1
+    diag.config.send_test = False
+    monkeypatch.setattr(diag, "cancelled", iter([False, True, True]).__next__)
+    diag.soak()
+    assert any(sample["kind"] == "pause" for sample in diag.report.samples)
+    labels = {sample["label"] for sample in diag.report.samples if sample["kind"] == "op"}
+    assert any("новое соединение" in label for label in labels)
+    assert any("соединение уже открыто" in label for label in labels)
 
 
 def test_soak_probes_hosts_and_uploads_periodically(diag, monkeypatch):

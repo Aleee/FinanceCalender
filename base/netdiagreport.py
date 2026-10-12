@@ -120,7 +120,20 @@ def summarize_operations(samples: list[dict]) -> list[str]:
     failed = [sample for sample in operations if not sample["ok"]]
     lines = [f"Операции целиком: {len(operations)}, с ошибкой {len(failed)}"]
     lines.extend(f"    {sample['label']}: {sample['error']}" for sample in failed)
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for sample in operations:
+        groups[sample["label"]].append(sample)
+    for label, items in groups.items():
+        if len(items) > 1:
+            lines.append(f"{label}: {len(items)} раз, с ошибкой {sum(1 for item in items if not item['ok'])}; "
+                         f"успешные: {describe_timings([item['ms'] for item in items if item['ok']])}")
     return lines
+
+
+def describe_steps(steps: list[tuple[str, str, int]]) -> list[str]:
+    if not steps:
+        return []
+    return ["Шаги:"] + [f"    {title}: {status}, {seconds} с" for title, status, seconds in steps]
 
 
 class DiagReport:
@@ -129,6 +142,8 @@ class DiagReport:
         self.started_at: datetime = datetime.now()
         self.lines: list[str] = []
         self.samples: list[dict] = []
+        self.steps: list[tuple[str, str, int]] = []
+        self.outcome: str = ""
         self.secrets: tuple[str, ...] = tuple(secret for secret in secrets if secret)
 
     def section(self, title: str) -> None:
@@ -148,6 +163,7 @@ class DiagReport:
         duration = int(time.monotonic() - self.started)
         header = ["Диагностика сети «Платежного календаря»",
                   f"Начало: {self.started_at:%Y-%m-%d %H:%M:%S}, длительность {duration} с",
+                  f"Завершение: {self.outcome or 'не зафиксировано'}"] + describe_steps(self.steps) + [
                   "", "=== СВОДКА ==="]
         summary = self.summary_lines() or ["нет данных для сводки"]
         return sanitize_text("\n".join(header + summary + self.lines), self.secrets)

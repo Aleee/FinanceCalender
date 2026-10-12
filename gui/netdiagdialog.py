@@ -1,9 +1,11 @@
+import time
+from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QPlainTextEdit,
-                               QPushButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel, QMessageBox,
+                               QPlainTextEdit, QPushButton, QVBoxLayout, QWidget)
 
 from base.netdiag import DiagConfig, DiagThread
 
@@ -22,10 +24,13 @@ class NetDiagDialog(QDialog):
         self.disk_folder: str = disk_folder
         self.thread: DiagThread | None = None
         self.report_path: str = ""
+        self.started: float = 0.0
+        self.current_step: str = ""
 
         self.lbl_info = QLabel("Программа проверит связь с серверами Яндекса и сохранит отчёт в архив. "
                                "В отчёте есть внешний IP-адрес и название провайдера, токен скрывается. "
-                               "Пришлите архив разработчику.", self)
+                               "Окно можно свернуть, проверка продолжится; не закрывайте его и не отправляйте "
+                               "компьютер в сон до конца. Пришлите архив разработчику.", self)
         self.lbl_info.setWordWrap(True)
         self.cmb_profile = QComboBox(self)
         for text, seconds in self.PROFILES:
@@ -33,6 +38,8 @@ class NetDiagDialog(QDialog):
         self.chb_send = QCheckBox("Проверить отправку тестовых файлов на Диск (нужен токен)", self)
         self.chb_send.setChecked(bool(token))
         self.chb_send.setEnabled(bool(token))
+        self.lbl_status = QLabel(self)
+        self.lbl_status.setWordWrap(True)
         self.te_log = QPlainTextEdit(self)
         self.te_log.setReadOnly(True)
         self.pb_start = QPushButton("Запустить", self)
@@ -41,6 +48,8 @@ class NetDiagDialog(QDialog):
         self.pb_folder = QPushButton("Показать отчёт", self)
         self.pb_folder.setEnabled(False)
         self.pb_close = QPushButton("Закрыть", self)
+        for button in (self.pb_start, self.pb_stop, self.pb_folder, self.pb_close):
+            button.setAutoDefault(False)
 
         form = QFormLayout()
         form.addRow("Режим:", self.cmb_profile)
@@ -54,11 +63,15 @@ class NetDiagDialog(QDialog):
         layout.addWidget(self.lbl_info)
         layout.addLayout(form)
         layout.addWidget(self.chb_send)
+        layout.addWidget(self.lbl_status)
         layout.addWidget(self.te_log)
         layout.addLayout(buttons)
 
+        self.timer = QTimer(self)
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.update_status)
         self.pb_start.clicked.connect(self.start)
-        self.pb_stop.clicked.connect(self.stop)
+        self.pb_stop.clicked.connect(lambda: self.stop("нажата кнопка «Остановить»"))
         self.pb_folder.clicked.connect(self.show_report)
         self.pb_close.clicked.connect(self.reject)
 
@@ -66,17 +79,28 @@ class NetDiagDialog(QDialog):
         config = DiagConfig(self.token, self.disk_folder, self.chb_send.isChecked(), self.cmb_profile.currentData())
         self.report_path = ""
         self.te_log.clear()
+        self.started = time.monotonic()
+        self.current_step = ""
         self.set_running(True)
         self.thread = DiagThread(config, self)
-        self.thread.progress.connect(self.te_log.appendPlainText)
+        self.thread.progress.connect(self.on_progress)
         self.thread.report_ready.connect(self.on_report_ready)
         self.thread.finished.connect(self.on_finished)
         self.thread.start()
+        self.timer.start()
+        self.update_status()
 
-    def stop(self) -> None:
+    def stop(self, reason: str) -> None:
         self.pb_stop.setEnabled(False)
-        self.te_log.appendPlainText("Останавливаем, дождитесь завершения текущей проверки…")
-        self.thread.requestInterruption()
+        self.add_log_line(f"Остановка запрошена ({reason}), дождитесь завершения текущей проверки…")
+        self.thread.request_stop(reason)
+
+    def add_log_line(self, text: str) -> None:
+        self.te_log.appendPlainText(f"{datetime.now():%H:%M:%S}  {text}")
+
+    def update_status(self) -> None:
+        elapsed = int(time.monotonic() - self.started)
+        self.lbl_status.setText(f"Идёт {elapsed // 60}:{elapsed % 60:02d}. Сейчас: {self.current_step or 'запуск'}")
 
     def set_running(self, running: bool) -> None:
         self.pb_start.setEnabled(not running)
@@ -85,18 +109,30 @@ class NetDiagDialog(QDialog):
         self.chb_send.setEnabled(not running and bool(self.token))
         self.pb_folder.setEnabled(not running and bool(self.report_path))
 
+    def on_progress(self, text: str) -> None:
+        self.current_step = text
+        self.add_log_line(text)
+
     def on_report_ready(self, path: str) -> None:
         self.report_path = path
-        self.te_log.appendPlainText(f"Готово. Отчёт сохранён: {path}")
+        self.add_log_line(f"Готово. Отчёт сохранён: {path}")
 
     def on_finished(self) -> None:
+        self.timer.stop()
         self.set_running(False)
+        if self.thread is not None:
+            self.lbl_status.setText(f"Завершено: {self.thread.outcome}")
+            self.add_log_line(f"Завершено: {self.thread.outcome}")
 
     def show_report(self) -> None:
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(self.report_path).parent)))
 
     def reject(self) -> None:
         if self.thread is not None and self.thread.isRunning():
-            self.stop()
+            if not self.thread.stop_reason and QMessageBox.question(
+                    self, "Диагностика сети",
+                    "Диагностика ещё идёт. Остановить её и сохранить отчёт на этом месте?"
+            ) == QMessageBox.StandardButton.Yes:
+                self.stop("закрыто окно (Esc, крестик или «Закрыть»)")
             return
         super().reject()
