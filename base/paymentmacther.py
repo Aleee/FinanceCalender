@@ -38,22 +38,34 @@ CONTRACT_TAX_DESCRIPTION: str = "Налоги и взносы по догово�
 CALENDAR_TAX_KEYWORDS: tuple[str, ...] = ("фсзн", "подоходный налог")
 GROUP_MIN_NAME_SIMILARITY: float = 0.7
 
-PAIR_MAX_DIFF_SHARE: Decimal = Decimal("0.10")
+PAIR_MAX_DIFF_SHARE: Decimal = Decimal("0.15")
+PAIR_MAX_DIFF_SHARE_WITH_DOCUMENT: Decimal = Decimal("0.30")
 PAIR_MIN_CONFIDENCE: float = 0.35
-AMOUNT_PENALTY: float = 0.7
+AMOUNT_PENALTY: float = 0.5
+EXTENDED_AMOUNT_PENALTY: float = 0.4
 NAME_NOISE_LEVEL: float = 0.4
 WORD_MIN_RATIO: float = 0.75
-TEXT_EVIDENCE_WEIGHT: float = 0.35
+TEXT_EVIDENCE_WEIGHT: float = 0.7
+TEXT_EVIDENCE_DECAY: float = 0.6
 EVIDENCE_NUMBER: float = 0.85
 EVIDENCE_NUMBER_AND_DATE: float = 0.95
 EVIDENCE_DATE: float = 0.3
 DOCUMENT_NUMBER_MIN_DIGITS: int = 3
 DOCUMENT_NUMBER_PATTERN = re.compile(r"\d+(?:[/-]\d+)*")
+YEAR_PATTERN = re.compile(r"(?:19|20)\d\d")
 DATE_IN_TEXT_PATTERN = re.compile(r"\b(\d{1,2})[./](\d{1,2})[./](\d{4}|\d{2})\b")
 LEGAL_FORMS: frozenset[str] = frozenset(
     ("ооо", "зао", "оао", "ао", "чуп", "уп", "ип", "одо", "иооо", "тчуп", "чтуп", "пуп", "руп", "унп"))
 COMMON_WORDS: frozenset[str] = frozenset(
-    ("ттн", "акт", "счет", "счёт", "оплата", "платеж", "договор", "фактура", "накладная", "согласно", "ндс", "сумма"))
+    ("ттн", "акт", "счет", "счёт", "оплата", "платеж", "договор", "фактура", "накладная", "согласно", "ндс", "сумма",
+     "для", "при", "под", "про", "без", "над", "из", "по", "за", "на", "от", "до",
+     "январь", "января", "февраль", "февраля", "март", "марта", "апрель", "апреля", "май", "мая", "июнь", "июня",
+     "июль", "июля", "август", "августа", "сентябрь", "сентября", "октябрь", "октября", "ноябрь", "ноября",
+     "декабрь", "декабря", "год", "года", "г"))
+COMMON_WORD_PREFIXES: tuple[str, ...] = (
+    "договор", "дог", "услуг", "оказан", "выполнен", "работ", "согл", "солгас", "сдач", "приемк", "приёмк",
+    "оплат", "платеж", "перевод", "погашен", "основн", "долг", "кредит", "процент", "вознагражд", "комисси",
+    "расход", "период", "назначен", "документ", "накладн", "фактур")
 
 
 # ---------------------------------------------------------------------------
@@ -237,7 +249,8 @@ def _name_words(text: str) -> list[str]:
 
 
 def _text_words(text: str) -> list[str]:
-    return [word for word in _name_words(text) if len(word) > 2 and word not in COMMON_WORDS]
+    return [word for word in _name_words(text)
+            if len(word) > 2 and word not in COMMON_WORDS and not word.startswith(COMMON_WORD_PREFIXES)]
 
 
 def _word_closeness(words_a: list[str], words_b: list[str]) -> float:
@@ -249,6 +262,11 @@ def _word_closeness(words_a: list[str], words_b: list[str]) -> float:
         best = max(SequenceMatcher(None, word, other).ratio() for other in longer)
         total += best if best >= WORD_MIN_RATIO else 0.0
     return total / len(shorter)
+
+
+def _text_evidence(words_a: list[str], words_b: list[str]) -> float:
+    matched = _word_closeness(words_a, words_b) * min(len(words_a), len(words_b))
+    return TEXT_EVIDENCE_WEIGHT * (1 - TEXT_EVIDENCE_DECAY ** matched)
 
 
 def _name_similarity(name_a: str, name_b: str) -> float:
@@ -263,8 +281,8 @@ def _document_marks(text: str) -> tuple[set[str], set[tuple[int, int, int]]]:
     dates: set[tuple[int, int, int]] = set()
     for day, month, year in DATE_IN_TEXT_PATTERN.findall(text):
         dates.add((int(day), int(month), int(year) + 2000 if len(year) == 2 else int(year)))
-    numbers = {number for number in DOCUMENT_NUMBER_PATTERN.findall(DATE_IN_TEXT_PATTERN.sub(" ", text))
-               if len(re.sub(r"\D", "", number)) >= DOCUMENT_NUMBER_MIN_DIGITS}
+    numbers = {number.replace("-", "/") for number in DOCUMENT_NUMBER_PATTERN.findall(DATE_IN_TEXT_PATTERN.sub(" ", text))
+               if len(re.sub(r"\D", "", number)) >= DOCUMENT_NUMBER_MIN_DIGITS and not YEAR_PATTERN.fullmatch(number)}
     return numbers, dates
 
 
@@ -281,21 +299,28 @@ def pair_confidence(statement_entry: PaymentEntry, calendar_entry: PaymentEntry)
     if biggest <= 0:
         return 0.0
     diff_share = abs(statement_entry.amount - calendar_entry.amount) / biggest
-    if diff_share > PAIR_MAX_DIFF_SHARE:
+    if diff_share > PAIR_MAX_DIFF_SHARE_WITH_DOCUMENT:
+        return 0.0
+    document_evidence = _document_evidence(statement_entry.details, calendar_entry.details)
+    if diff_share > PAIR_MAX_DIFF_SHARE and document_evidence < EVIDENCE_NUMBER:
         return 0.0
 
     name_closeness = max(0.0, (_name_similarity(statement_entry.receiver, calendar_entry.receiver)
                                - NAME_NOISE_LEVEL) / (1 - NAME_NOISE_LEVEL))
-    text_closeness = _word_closeness(_text_words(statement_entry.details), _text_words(calendar_entry.details))
+    text_evidence = _text_evidence(_text_words(statement_entry.details), _text_words(calendar_entry.details))
     evidences = (name_closeness,
-                 _document_evidence(statement_entry.details, calendar_entry.details),
-                 TEXT_EVIDENCE_WEIGHT * text_closeness)
+                 document_evidence,
+                 text_evidence)
     identity = 1.0
     for evidence in evidences:
         identity *= 1 - evidence
     identity = 1 - identity
 
-    amount_factor = 1 - AMOUNT_PENALTY * float(diff_share / PAIR_MAX_DIFF_SHARE)
+    normal_part = min(diff_share, PAIR_MAX_DIFF_SHARE)
+    extended_part = diff_share - normal_part
+    extended_range = PAIR_MAX_DIFF_SHARE_WITH_DOCUMENT - PAIR_MAX_DIFF_SHARE
+    amount_factor = (1 - AMOUNT_PENALTY * float(normal_part / PAIR_MAX_DIFF_SHARE)
+                     - EXTENDED_AMOUNT_PENALTY * float(extended_part / extended_range))
     return identity * amount_factor
 
 
@@ -384,10 +409,9 @@ class RegroupedPayments:
     contracts: list[tuple[PaymentEntry, PaymentEntry]]
 
     @property
-    def key(self) -> tuple:
-        return (self.fee_date,
-                tuple(sorted(e.amount for e in self.statement)),
-                tuple(sorted(e.amount for e in self.calendar)))
+    def key(self) -> str:
+        return (f"g|{self.fee_date.isoformat()}|{','.join(str(a) for a in sorted(e.amount for e in self.statement))}"
+                f"|{','.join(str(a) for a in sorted(e.amount for e in self.calendar))}")
 
     @property
     def explanation(self) -> str:
@@ -432,7 +456,7 @@ class ReconciliationResult:
     period: tuple[date, date]
     discrepancies: list[DateDiscrepancy]
     fee_totals: dict[tuple[date, LiabilityCategory], Decimal] = field(default_factory=dict)
-    confirmed_groups_count: int = 0
+    hidden_count: int = 0
 
     @property
     def only_in_statement_count(self) -> int:
@@ -470,12 +494,11 @@ class ReconciliationResult:
         period_from = self.period[0].strftime("%d.%m.%Y")
         period_to = self.period[1].strftime("%d.%m.%Y")
         header = f"<h3>Сверка выписки за период {period_from} – {period_to}</h3>"
-        confirmed = (f"<p>Подтверждено вручную групп платежей: {self.confirmed_groups_count}</p>"
-                     if self.confirmed_groups_count else "")
+        hidden = f"<p>Скрыто вручную: {self.hidden_count}</p>" if self.hidden_count else ""
 
         if not self.discrepancies:
             return (f"{header}<p style='color:{COLOR_OK};'>"
-                    f"Расхождений не найдено: все платежи из выписки учтены в календаре.</p>{confirmed}")
+                    f"Расхождений не найдено: все платежи из выписки учтены в календаре.</p>{hidden}")
 
         return "\n".join([
             header,
@@ -485,20 +508,31 @@ class ReconciliationResult:
             _summary_row("Только в календаре:", self.only_in_calendar_count,
                          self.only_in_calendar_sum, COLOR_CALENDAR),
             "</table>",
-            confirmed,
+            hidden,
         ])
 
 
+def _assign_statement_keys(statement: StatementPayments) -> None:
+    for fee_date, entries in statement.by_date.items():
+        occurrences: dict[tuple, int] = {}
+        for entry in entries:
+            signature = (entry.amount, entry.descr)
+            number = occurrences.get(signature, 0)
+            occurrences[signature] = number + 1
+            entry.key = f"s|{fee_date.isoformat()}|{entry.amount}|{entry.descr}|{number}"
+
+
 def reconcile_statement_with_calendar(csv_filename: str, dbh: DBHandler,
-                                       confirmed_groups: frozenset = frozenset()) -> ReconciliationResult | None:
+                                       hidden: frozenset = frozenset()) -> ReconciliationResult | None:
     statement = extract_statement_payments(csv_filename, dbh)
+    _assign_statement_keys(statement)
     calendar_by_date = dbh.get_paymentsum_for_period(statement.period[0], statement.period[1])
     if calendar_by_date is None:
         return None
 
     all_dates = sorted(set(statement.by_date) | set(calendar_by_date))
     discrepancies: list[DateDiscrepancy] = []
-    confirmed_groups_count: int = 0
+    hidden_count: int = 0
 
     for fee_date in all_dates:
         only_statement, only_calendar = _diff_amounts(
@@ -507,11 +541,15 @@ def reconcile_statement_with_calendar(csv_filename: str, dbh: DBHandler,
         if only_statement or only_calendar:
             pairs, only_statement, only_calendar = _pair_probable_matches(only_statement, only_calendar)
             groups, only_statement, only_calendar = _regroup_contract_payments(fee_date, only_statement, only_calendar)
-            confirmed_groups_count += sum(1 for g in groups if g.key in confirmed_groups)
-            groups = [g for g in groups if g.key not in confirmed_groups]
-            if only_statement or only_calendar or pairs or groups:
-                discrepancies.append(DateDiscrepancy(fee_date, only_statement, only_calendar, pairs, groups))
+            shown_pairs = [p for p in pairs if not (p.statement.key in hidden and p.calendar.key in hidden)]
+            shown_groups = [g for g in groups if g.key not in hidden]
+            shown_statement = [e for e in only_statement if e.key not in hidden]
+            shown_calendar = [e for e in only_calendar if e.key not in hidden]
+            hidden_count += (len(pairs) - len(shown_pairs) + len(groups) - len(shown_groups)
+                             + len(only_statement) - len(shown_statement) + len(only_calendar) - len(shown_calendar))
+            if shown_statement or shown_calendar or shown_pairs or shown_groups:
+                discrepancies.append(DateDiscrepancy(fee_date, shown_statement, shown_calendar, shown_pairs, shown_groups))
 
     fee_totals = {(fee_date, entry.fee_category): entry.amount
                   for fee_date, entries in statement.by_date.items() for entry in entries if entry.fee_category}
-    return ReconciliationResult(statement.period, discrepancies, fee_totals, confirmed_groups_count)
+    return ReconciliationResult(statement.period, discrepancies, fee_totals, hidden_count)

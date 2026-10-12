@@ -33,3 +33,4 @@ class PaymentEntry:
     event_id: int | None = None
     details: str = ""
     fee_category: LiabilityCategory | None = None
+    key: str = ""

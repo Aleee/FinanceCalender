@@ -1,3 +1,5 @@
+import hashlib
+import json
 from datetime import date
 from decimal import Decimal
 from functools import partial
@@ -7,7 +9,7 @@ from typing import Callable
 import lovely_logger as log
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor, QFont
+from PySide6.QtGui import QBrush, QColor, QFont, QIcon
 from PySide6.QtWidgets import QDialog, QFileDialog, QHeaderView, QPushButton, QTableWidgetItem
 
 from base.dbhandler import DBHandler
@@ -22,13 +24,15 @@ from gui.ui.matchingdialog_ui import Ui_matchingdialog
 
 class MatchingDialog(QDialog):
 
-    COLUMN_HEADERS = ("Дата", "В выписке", "Назначение платежа", "Разница", "В календаре", "Платеж в календаре", "", "")
+    COLUMN_HEADERS = ("Дата", "В выписке", "Назначение платежа", "Разница", "В календаре", "Платеж в календаре", "", "", "")
     DESCR_COLUMNS = (2, 5)
     CONFIDENCE_COLUMN = 6
     BUTTON_COLUMN = 7
+    IGNORE_COLUMN = 8
     DIFFERENCE_COLUMN = 3
 
-    def __init__(self, settings_handler, db_handler, create_event: Callable[[Decimal, QDialog], bool],
+    def __init__(self, settings_handler, db_handler, create_event: Callable[[Decimal, date, QDialog], bool],
+                 edit_event: Callable[[PaymentEntry, date, QDialog], bool],
                  create_fees: Callable[[str, dict, QDialog], None], parent=None):
         super(MatchingDialog, self).__init__(parent)
         self.ui = Ui_matchingdialog()
@@ -36,12 +40,13 @@ class MatchingDialog(QDialog):
 
         self.sh: SettingsHandler = settings_handler
         self.dbh: DBHandler = db_handler
-        self.create_event: Callable[[Decimal, QDialog], bool] = create_event
+        self.create_event: Callable[[Decimal, date, QDialog], bool] = create_event
+        self.edit_event: Callable[[PaymentEntry, date, QDialog], bool] = edit_event
         self.create_fees: Callable[[str, dict, QDialog], None] = create_fees
 
         self.match_result: ReconciliationResult | None = None
         self.csv_path: str = ""
-        self.confirmed_groups: set[tuple] = set()
+        self.hidden: set[str] = set()
 
         self.difference_font: QFont = QFont(self.font())
         self.difference_font.setBold(True)
@@ -57,6 +62,14 @@ class MatchingDialog(QDialog):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(self.BUTTON_COLUMN, QHeaderView.ResizeMode.Fixed)
         header.resizeSection(self.BUTTON_COLUMN, 90)
+        header.setSectionResizeMode(self.IGNORE_COLUMN, QHeaderView.ResizeMode.Fixed)
+        header.resizeSection(self.IGNORE_COLUMN, 36)
+
+        self.pb_restorehidden = QPushButton("Вернуть скрытые")
+        self.pb_restorehidden.setToolTip("Снова показать все платежи, скрытые вручную")
+        self.pb_restorehidden.setEnabled(False)
+        self.pb_restorehidden.clicked.connect(self.restore_hidden)
+        self.ui.gridLayout.addWidget(self.pb_restorehidden, 3, 0)
 
         self.ui.pb_close.clicked.connect(self.close)
         self.ui.pb_opencsv.clicked.connect(self.open_csv)
@@ -73,11 +86,39 @@ class MatchingDialog(QDialog):
 
         self.sh.settings.setValue("CSVparser/lastloadpath", str(Path(file_path).parent))
         self.csv_path = file_path
+        self.load_hidden()
+        self.reconcile()
+
+    def load_hidden(self):
+        try:
+            csv_hash = hashlib.sha1(Path(self.csv_path).read_bytes()).hexdigest()
+        except OSError as exc:
+            log.w(f"Не удалось прочитать CSV-файл для проверки скрытых платежей: {exc}")
+            self.hidden = set()
+            return
+        if self.sh.settings.value("Matching/csvhash") == csv_hash:
+            self.hidden = set(json.loads(self.sh.settings.value("Matching/hidden") or "[]"))
+        else:
+            self.hidden = set()
+            self.sh.settings.setValue("Matching/csvhash", csv_hash)
+            self.save_hidden()
+
+    def save_hidden(self):
+        self.sh.settings.setValue("Matching/hidden", json.dumps(sorted(self.hidden)))
+
+    def hide_entries(self, keys: tuple[str, ...]):
+        self.hidden.update(keys)
+        self.save_hidden()
+        self.reconcile()
+
+    def restore_hidden(self):
+        self.hidden.clear()
+        self.save_hidden()
         self.reconcile()
 
     def reconcile(self):
         try:
-            self.match_result = reconcile_statement_with_calendar(self.csv_path, self.dbh, frozenset(self.confirmed_groups))
+            self.match_result = reconcile_statement_with_calendar(self.csv_path, self.dbh, frozenset(self.hidden))
         except CSVParseError as exc:
             log.w(f"Не удалось прочитать CSV-файл выписки: {exc}")
             ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}").exec()
@@ -101,8 +142,10 @@ class MatchingDialog(QDialog):
         table.setRowCount(0)
         if self.match_result is None:
             self.ui.lb_summary.clear()
+            self.pb_restorehidden.setEnabled(False)
             return
         self.ui.lb_summary.setText(self.match_result.format_summary())
+        self.pb_restorehidden.setEnabled(bool(self.hidden))
 
         for d in self.match_result.discrepancies:
             for pair in d.probable_pairs:
@@ -160,6 +203,7 @@ class MatchingDialog(QDialog):
             button.setToolTip("Сумма оплаты и сумма платежа в календаре будут изменены на сумму из выписки")
             button.clicked.connect(partial(self.accept_statement_amount, pair))
             table.setCellWidget(row, self.BUTTON_COLUMN, button)
+            self.add_ignore_button(row, (pair.statement.key, pair.calendar.key))
         elif statement_entry and not calendar_entry and not in_group:
             button = QPushButton("Создать")
             if statement_entry.fee_category:
@@ -167,8 +211,31 @@ class MatchingDialog(QDialog):
                 button.clicked.connect(self.make_fee_payments)
             else:
                 button.setToolTip("Создать в календаре новый платеж с суммой из выписки")
-                button.clicked.connect(partial(self.create_event, statement_entry.amount, self))
+                button.clicked.connect(partial(self.create_payment, statement_entry.amount, fee_date))
             table.setCellWidget(row, self.BUTTON_COLUMN, button)
+        elif calendar_entry and not statement_entry and not in_group and calendar_entry.event_id is not None:
+            button = QPushButton("Исправить")
+            button.setToolTip("Открыть окно редактирования этого платежа из календаря")
+            button.clicked.connect(partial(self.edit_calendar_payment, calendar_entry, fee_date))
+            table.setCellWidget(row, self.BUTTON_COLUMN, button)
+
+        if not pair and not in_group:
+            self.add_ignore_button(row, ((statement_entry or calendar_entry).key,))
+
+    def add_ignore_button(self, row: int, keys: tuple[str, ...]):
+        button = QPushButton()
+        button.setIcon(QIcon(":/designer/icons/remove.svg"))
+        button.setToolTip("Игнорировать: скрыть это расхождение (запоминается для этой выписки)")
+        button.clicked.connect(partial(self.hide_entries, keys))
+        self.ui.tw_discrepancies.setCellWidget(row, self.IGNORE_COLUMN, button)
+
+    def create_payment(self, amount: Decimal, fee_date: date):
+        self.create_event(amount, fee_date, self)
+        self.reconcile()
+
+    def edit_calendar_payment(self, entry: PaymentEntry, fee_date: date):
+        self.edit_event(entry, fee_date, self)
+        self.reconcile()
 
     def make_fee_payments(self):
         self.create_fees(self.csv_path, self.match_result.fee_totals, self)
@@ -190,13 +257,9 @@ class MatchingDialog(QDialog):
         item.setBackground(QBrush(QColor(COLOR_PAIR_BG)))
         table.setItem(row, 0, item)
         button = QPushButton("Подтвердить")
-        button.setToolTip("Считать эти платежи сверенными: группа исчезнет из расхождений до закрытия окна")
-        button.clicked.connect(partial(self.confirm_group, group))
+        button.setToolTip("Считать эти платежи сверенными: группа исчезнет из расхождений (запоминается для этой выписки)")
+        button.clicked.connect(partial(self.hide_entries, (group.key,)))
         table.setCellWidget(row, self.BUTTON_COLUMN, button)
-
-    def confirm_group(self, group: RegroupedPayments):
-        self.confirmed_groups.add(group.key)
-        self.reconcile()
 
     def accept_statement_amount(self, pair: ProbablePair):
         if not self.dbh.correct_payment_sum(pair.calendar.payment_id, pair.statement.amount):

@@ -1,4 +1,5 @@
 import sys
+from datetime import date
 from decimal import Decimal
 from typing import Any, Callable
 import lovely_logger as log
@@ -14,7 +15,7 @@ from base.contract import ContractInfo
 from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
-from base.payment import PaymentField
+from base.payment import PaymentEntry, PaymentField
 from base.sync import (MasterInfo, NetworkError, SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, read_local_state,
                        set_stage_listener, synchronize)
 from base.workcalendar import clear_calendar_cache
@@ -985,14 +986,18 @@ class MainWindow(QMainWindow):
             return False
 
     def open_event_dialog(self, edit: bool = False, copy: bool = False, initial_amount: Decimal | None = None,
-                          parent: QWidget | None = None) -> bool:
+                          parent: QWidget | None = None, from_statement: bool = False,
+                          payment_entry: PaymentEntry | None = None, payment_date: date | None = None) -> bool:
         curr_index: QModelIndex = self.get_current_event_index()
+        if payment_entry is not None:
+            curr_index = self.find_event_index(payment_entry.event_id)
 
         if edit or copy:
             if not curr_index.isValid():
                 self.warn_selection_lost()
                 return False
-            selection_not_visible: bool = is_selection_filteredout(self.proxy2_model, self.ui.trw_event, two_proxies=True, current_instead=True)
+            selection_not_visible: bool = (payment_entry is None and is_selection_filteredout(
+                self.proxy2_model, self.ui.trw_event, two_proxies=True, current_instead=True))
             if selection_not_visible:
                 self.warn_selection_lost()
                 return False
@@ -1005,7 +1010,7 @@ class MainWindow(QMainWindow):
             if not self.responsible_partial_model:
                 self.warn_personal_unavailable()
                 return False
-            responsible_id = self.current_data(Col.RESPONSIBLE, LiabilitySqlTableModel.qtValueRole)
+            responsible_id = curr_index.siblingAtColumn(Col.RESPONSIBLE).data(LiabilitySqlTableModel.qtValueRole)
             matches = self.responsible_partial_model.match(self.responsible_partial_model.index(0, 0), Qt.ItemDataRole.UserRole,
                                                            responsible_id, hits=1, flags=Qt.MatchFlag.MatchExactly)
             if not matches:
@@ -1015,7 +1020,8 @@ class MainWindow(QMainWindow):
             return False
 
         event_dialog: EventDialog = EventDialog(final_proxy_model=self.proxy2_model, responsible_model=responsible_model, payment_model= self.payment_model,
-                                                settings_handler=self.settings_handler, db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, initial_amount=initial_amount, parent=parent or self)
+                                                settings_handler=self.settings_handler, db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, initial_amount=initial_amount,
+                                                from_statement=from_statement, payment_date=payment_date, parent=parent or self)
         if event_dialog.exec():
             if not edit:
                 set_due_filter = False
@@ -1029,6 +1035,13 @@ class MainWindow(QMainWindow):
             return True
         else:
             return False
+
+    def find_event_index(self, event_id: int | None) -> QModelIndex:
+        self.base_model.select()
+        for row in range(self.base_model.rowCount()):
+            if self.base_model.index(row, Col.ID).data(LiabilitySqlTableModel.qtValueRole) == event_id:
+                return self.base_model.index(row, 0)
+        return QModelIndex()
 
     def select_new_event(self, set_due_filter: bool) -> None:
         self.base_model.submitAll()
@@ -1125,7 +1138,10 @@ class MainWindow(QMainWindow):
     def open_matching_dialog(self) -> None:
         matching_dialog: MatchingDialog = MatchingDialog(
             self.settings_handler, self.db_handler,
-            lambda amount, dialog: self.open_event_dialog(initial_amount=amount, parent=dialog),
+            lambda amount, fee_date, dialog: self.open_event_dialog(initial_amount=amount, parent=dialog, from_statement=True,
+                                                                    payment_date=fee_date),
+            lambda entry, fee_date, dialog: self.open_event_dialog(edit=True, parent=dialog, from_statement=True,
+                                                                   payment_entry=entry, payment_date=fee_date),
             self.open_fees_dialog, self)
         matching_dialog.exec()
         self.base_model.select()

@@ -856,9 +856,36 @@ class DBHandler:
             basis = "" if self._is_null(query.value(6)) else query.value(6)
             descr = query.value(2) + f" ({receiver})"
             by_date.setdefault(paymentdate, []).append(
-                PaymentEntry(amount, descr, receiver, query.value(4), query.value(5), f"{query.value(2)} {basis}"))
+                PaymentEntry(amount, descr, receiver, query.value(4), query.value(5), f"{query.value(2)} {basis}",
+                             key=f"c|{query.value(4)}"))
 
         return by_date
+
+    def get_payment_of_day(self, event_id: int, day: date) -> tuple[int, Decimal] | None:
+        if not self.is_db_connected():
+            return None
+        query: QSqlQuery = QSqlQuery()
+        query.prepare("SELECT id, sum FROM payment WHERE eventid = ? AND paymentdate = ? ORDER BY id DESC LIMIT 1")
+        query.addBindValue(event_id)
+        query.addBindValue(day.isoformat())
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке найти оплату платежа {event_id} за {day}: {query.lastError().text()}")
+            return None
+        if not query.next():
+            return None
+        return query.value(0), str_decimal(query.value(1))
+
+    def set_payment_sum(self, payment_id: int, new_sum: Decimal) -> bool:
+        if not self.is_db_connected():
+            return False
+        query: QSqlQuery = QSqlQuery()
+        query.prepare("UPDATE payment SET sum = ? WHERE id = ?")
+        query.addBindValue(str(new_sum))
+        query.addBindValue(payment_id)
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке изменить сумму оплаты {payment_id}: {query.lastError().text()}")
+            return False
+        return True
 
     def correct_payment_sum(self, payment_id: int, new_sum: Decimal) -> bool:
         if not self.is_db_connected():

@@ -48,16 +48,27 @@ def test_close_but_not_identical_names_still_pair():
     assert pair_confidence(entry("1000.00", "ООО Ромошка"), entry("980.00", "ООО Ромашка")) > 0.5
 
 
-def test_confidence_decreases_with_amount_difference_up_to_ten_percent():
+def test_confidence_decreases_with_amount_difference_up_to_fifteen_percent():
     statement = entry("1000.00", "ООО Ромашка")
     confidences = [pair_confidence(statement, entry(amount, "ООО Ромашка")) for amount in ("1000.01", "980.00", "915.00")]
     assert confidences[0] > confidences[1] > confidences[2] > 0
-    assert pair_confidence(statement, entry("890.00", "ООО Ромашка")) == 0
+    assert pair_confidence(statement, entry("840.00", "ООО Ромашка")) == 0
 
 
-def test_only_similar_text_is_not_enough():
-    assert pair_confidence(entry("1000.00", "ООО Ромашка", "бахилы полиэтиленовые"),
-                           entry("990.00", "ООО Василёк", "Бахилы полиэтиленовые")) < 0.35
+def test_document_number_allows_bigger_difference_with_stronger_penalty():
+    statement = entry("891.25", "Ромашка-Торг", "договор 2026/080 от 01.12.2025")
+    close = entry("782.00", "ООО Василёк", "договор 2026/080 от 01.12.2025")
+    far = entry("700.00", "ООО Василёк", "договор 2026/080 от 01.12.2025")
+    assert pair_confidence(statement, close) >= 0.35
+    assert pair_confidence(statement, close) > pair_confidence(statement, far) > 0
+    assert pair_confidence(statement, entry("700.00", "ООО Ромашка-Торг")) == 0
+    assert pair_confidence(statement, entry("500.00", "ООО Василёк", "договор 2026/080 от 01.12.2025")) == 0
+
+
+def test_one_similar_word_is_not_enough_but_several_are():
+    statement = entry("1000.00", "ООО Ромашка", "бахилы полиэтиленовые одноразовые")
+    assert pair_confidence(statement, entry("990.00", "ООО Василёк", "Бахилы")) < 0.35
+    assert pair_confidence(statement, entry("990.00", "ООО Василёк", "Бахилы полиэтиленовые одноразовые")) >= 0.35
 
 
 def test_big_difference_is_not_paired():
@@ -246,3 +257,30 @@ def test_group_key_does_not_depend_on_entry_order():
     first = _regroup_contract_payments(date(2026, 10, 6), statement, calendar)[0][0]
     second = _regroup_contract_payments(date(2026, 10, 6), statement[::-1], calendar[::-1])[0][0]
     assert first.key == second.key
+
+
+def test_year_is_not_a_document_number():
+    statement = entry("1000.00", "Ромашка-Торг", "за октябрь 2026")
+    calendar = entry("990.00", "ООО Василёк", "услуги 2026")
+    assert pair_confidence(statement, calendar) == 0
+
+
+def test_several_matching_words_are_strong_evidence_even_in_long_statement_text():
+    statement = entry("891.25", "Банк", "лицензия помощник сайт mrt оплата по договору поставки согласно приложению "
+                                      "дополнительному соглашению реквизитам контрагента")
+    calendar = entry("890.00", "ИП Иванов", "Лицензия помощник на сайт mrt")
+    two_words = entry("890.00", "ИП Иванов", "Лицензия помощник")
+    assert pair_confidence(statement, calendar) > pair_confidence(statement, two_words) > 0
+    assert pair_confidence(statement, calendar) >= 0.35
+
+
+def test_generic_words_and_months_are_not_evidence():
+    statement = entry("1000.00", "Банк", "перевод по договору за услуги сентябрь оказанные согласно акту")
+    calendar = entry("1000.00", "ООО Василёк", "Услуги за сентябрь по договору")
+    assert pair_confidence(statement, calendar) == 0
+
+
+def test_document_number_with_other_separators_is_the_same():
+    statement = entry("1000.00", "Банк", "по договору № 24-06/01/136 от 27.06.2025")
+    calendar = entry("1000.00", "ООО Василёк", "Кредитный договор № 24-06-01/136 от 27.06.2025")
+    assert pair_confidence(statement, calendar) >= 0.9
