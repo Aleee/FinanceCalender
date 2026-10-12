@@ -5,7 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from base.httpclient import QtHttpClient
+from base.httpclient import AttemptInfo, QtHttpClient
 from base.sync import NetworkError
 
 FILE_CONTENT = bytes(range(256)) * 1000
@@ -130,3 +130,21 @@ def test_failed_attempts_are_logged_when_retry_succeeds(client, server, monkeypa
     assert len(messages) == 2
     assert "попытка 1/4 не удалась" in messages[0]
     assert "статус 200" in messages[1] and "попытка 2/4" in messages[1]
+
+
+def test_attempts_are_reported_with_stages(client, server, monkeypatch):
+    attempts: list[AttemptInfo] = []
+    client.on_attempt = attempts.append
+    monkeypatch.setattr("base.httpclient.RESPONSE_TIMEOUT_MS", 300)
+    Handler.stall_once = True
+    client.send("GET", f"{server}/stall")
+    assert [(item.attempt, item.status) for item in attempts] == [(1, None), (2, 200)]
+    assert attempts[0].qt_error and attempts[0].error
+    assert "headers" in attempts[1].marks
+
+
+def test_log_line_contains_stage_marks(client, server, monkeypatch):
+    messages: list[str] = []
+    monkeypatch.setattr("base.httpclient.log.d", messages.append)
+    client.send("GET", f"{server}/json")
+    assert "headers=" in messages[-1]

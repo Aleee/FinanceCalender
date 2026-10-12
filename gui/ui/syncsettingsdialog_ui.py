@@ -166,6 +166,12 @@ class Ui_SyncSettingsDialog(object):
 
         self.hl_buttons = QHBoxLayout()
         self.hl_buttons.setObjectName(u"hl_buttons")
+        self.pb_netdiag = QPushButton(SyncSettingsDialog)
+        self.pb_netdiag.setObjectName(u"pb_netdiag")
+        self.pb_netdiag.setAutoDefault(False)
+
+        self.hl_buttons.addWidget(self.pb_netdiag)
+
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.hl_buttons.addItem(self.horizontalSpacer)
@@ -218,6 +224,7 @@ class Ui_SyncSettingsDialog(object):
         self.label_backupinterval.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043e\u0431\u0449\u0443\u044e \u0431\u0430\u0437\u0443 \u043f\u0440\u0438 \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0435 \u043d\u0435 \u0447\u0430\u0449\u0435, \u0447\u0435\u043c \u0440\u0430\u0437 \u0432:", None))
         self.spb_backupinterval.setSpecialValueText(QCoreApplication.translate("SyncSettingsDialog", u"\u043a\u0430\u0436\u0434\u044b\u0439 \u0440\u0430\u0437", None))
         self.spb_backupinterval.setSuffix(QCoreApplication.translate("SyncSettingsDialog", u" \u043c\u0438\u043d", None))
+        self.pb_netdiag.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u0414\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0441\u0435\u0442\u0438\u2026", None))
         self.pb_ok.setText(QCoreApplication.translate("SyncSettingsDialog", u"OK", None))
         self.pb_cancel.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
     # retranslateUi

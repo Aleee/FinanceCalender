@@ -182,3 +182,21 @@ def test_check_connection_without_token_does_not_call_channel(settings_handler, 
     monkeypatch.setattr(dialogmod, "create_yandex_channel", lambda token, folder: pytest.fail("channel must not be created"))
     dialog.check_connection()
     assert len(messages) == 1
+
+
+def test_netdiag_button_opens_dialog_with_entered_token(settings_handler, monkeypatch):
+    opened: list[tuple[str, str]] = []
+
+    class FakeNetDiagDialog:
+        def __init__(self, token, disk_folder, parent=None):
+            opened.append((token, disk_folder))
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr(dialogmod, "NetDiagDialog", FakeNetDiagDialog)
+    dialog = SyncSettingsDialog(settings_handler)
+    dialog.ui.le_token.setText(" abc ")
+    dialog.ui.le_diskfolder.setText("")
+    dialog.ui.pb_netdiag.click()
+    assert opened == [("abc", "app:/")]

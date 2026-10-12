@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QFileDialog, QLayout, QWidg
 
 from base.sync import SyncError
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
+from gui.netdiagdialog import NetDiagDialog
 from gui.settings import SettingsHandler
 from gui.syncmanager import create_yandex_channel
 from gui.ui.syncsettingsdialog_ui import Ui_SyncSettingsDialog
@@ -39,6 +40,7 @@ class SyncSettingsDialog(QDialog):
         self.ui.cmb_channel.currentIndexChanged.connect(self.update_channel_rows)
         self.ui.pb_folder.clicked.connect(self.choose_folder)
         self.ui.pb_check.clicked.connect(self.check_connection)
+        self.ui.pb_netdiag.clicked.connect(self.open_netdiag)
         self.ui.pb_ok.clicked.connect(self.save_and_accept)
         self.ui.pb_cancel.clicked.connect(self.reject)
         self.update_channel_rows()
@@ -87,6 +89,9 @@ class SyncSettingsDialog(QDialog):
             ErrorInfoMessageBox(f"Подключиться не удалось: {error}", parent=self).exec()
         else:
             ErrorInfoMessageBox("Подключение работает", is_info=True, parent=self).exec()
+
+    def open_netdiag(self) -> None:
+        NetDiagDialog(self.ui.le_token.text().strip(), self.ui.le_diskfolder.text().strip() or "app:/", self).exec()
 
     def save_and_accept(self) -> None:
         if self.ui.chb_enabled.isChecked():

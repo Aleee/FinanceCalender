@@ -52,6 +52,10 @@ def export_dir() -> str:
     return _data_subdir("export")
 
 
+def diag_dir() -> str:
+    return _data_subdir("diag")
+
+
 def to_stored_path(path: str) -> str:
     if not path:
         return ""

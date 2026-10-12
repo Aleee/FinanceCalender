@@ -35,6 +35,12 @@ DIAG_HOSTS = ("cloud-api.yandex.net", "downloader.disk.yandex.ru", "api.github.c
 DIAG_TIMEOUT_MS = 8000
 DIAG_COMMAND_TIMEOUT = 30
 INTERNET_SETTINGS_KEY = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+PROXY_SETTINGS_SCRIPT = (f"Get-ItemProperty '{INTERNET_SETTINGS_KEY}' | "
+                         f"Select-Object ProxyEnable,ProxyServer,ProxyOverride,AutoConfigURL | Format-List; "
+                         f"'DefaultConnectionSettings flags: ' + "
+                         f"(Get-ItemProperty '{INTERNET_SETTINGS_KEY}\\Connections').DefaultConnectionSettings[8]")
+ANTIVIRUS_SCRIPT = ("Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct | "
+                    "Select-Object displayName,productState | Format-List")
 
 
 class UpdateError(Exception):
@@ -157,12 +163,6 @@ def run_command_diagnostics() -> None:
     api_link = f"{API_URL}?public_key={PUBLIC_KEY}&path=/{VERSION_FILE}"
     windows = sys.platform == "win32"
     curl = ["curl.exe" if windows else "curl", "-v", "-sS", "-m", "20", "-o", "NUL" if windows else "/dev/null"]
-    settings = (f"Get-ItemProperty '{INTERNET_SETTINGS_KEY}' | "
-                f"Select-Object ProxyEnable,ProxyServer,ProxyOverride,AutoConfigURL | Format-List; "
-                f"'DefaultConnectionSettings flags: ' + "
-                f"(Get-ItemProperty '{INTERNET_SETTINGS_KEY}\\Connections').DefaultConnectionSettings[8]")
-    antivirus = ("Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct | "
-                 "Select-Object displayName,productState | Format-List")
     proxy_vars = {name: os.environ[name] for name in ("HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY")
                   if name in os.environ}
     log.i(f"Диагностика, переменные прокси: {proxy_vars}")
@@ -173,8 +173,8 @@ def run_command_diagnostics() -> None:
     if not windows:
         return
     run_command("netsh winhttp", ["netsh", "winhttp", "show", "proxy"])
-    run_command("настройки прокси", ["powershell", "-NoProfile", "-NonInteractive", "-Command", settings])
-    run_command("антивирус", ["powershell", "-NoProfile", "-NonInteractive", "-Command", antivirus])
+    run_command("настройки прокси", ["powershell", "-NoProfile", "-NonInteractive", "-Command", PROXY_SETTINGS_SCRIPT])
+    run_command("антивирус", ["powershell", "-NoProfile", "-NonInteractive", "-Command", ANTIVIRUS_SCRIPT])
 
 
 def run_network_diagnostics() -> None:
