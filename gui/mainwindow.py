@@ -594,14 +594,18 @@ class MainWindow(QMainWindow):
 
     def _resolve_sync_action(self, action: SyncAction | None, channel: SyncChannel, params: SyncParams,
                              report: SyncReport) -> SyncAction | None:
+        if action in (SyncAction.NO_MASTER, SyncAction.FOREIGN_DB):
+            self.sync_progress.hide_for_question()
         if action == SyncAction.NO_MASTER and YesNoMessagebox(
                 "В папке обмена нет общей базы. Создать её из вашей локальной копии?",
                 self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
+            self.sync_progress.start()
             return self._run_sync_step(channel, lambda: create_master(self.db_handler, channel, params))
         if action == SyncAction.FOREIGN_DB and YesNoMessagebox(
                 "В папке обмена лежит общая база с другими данными. Заменить ею вашу локальную копию? "
                 "Текущая локальная копия будет сохранена в папке резервных копий.",
                 self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
+            self.sync_progress.start()
             return self._run_sync_step(channel, lambda: connect_to_master(self.db_handler, channel))
         if action == SyncAction.CONFLICT and self.sync_master_info:
             if report.my_changes is None:

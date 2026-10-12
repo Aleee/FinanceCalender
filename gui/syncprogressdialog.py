@@ -206,6 +206,10 @@ class SyncProgressDialog(QDialog):
     def start(self) -> None:
         self.delay_timer.start(self.SHOW_DELAY_MS)
 
+    def hide_for_question(self) -> None:
+        self.delay_timer.stop()
+        self.hide()
+
     def finish(self) -> None:
         self.delay_timer.stop()
         self.close()
