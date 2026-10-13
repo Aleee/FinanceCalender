@@ -34,6 +34,7 @@ CONTRACT_TAX_KEYWORDS: tuple[str, ...] = (
     "по договору подряда",
     "по договорам подряда",
     "налог по ип ",
+    "по займу",
 )
 CONTRACT_TAX_DESCRIPTION: str = "Налоги и взносы по договорам подряда"
 CALENDAR_TAX_KEYWORDS: tuple[str, ...] = ("фсзн", "подоходный налог")
