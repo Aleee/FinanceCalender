@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1200</width>
-    <height>840</height>
+    <height>480</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,7 +25,7 @@
         <sizepolicy hsizetype="Expanding" vsizetype="Preferred"/>
        </property>
        <property name="text">
-        <string>Файл выписки не выбран: выберите CSV-файл или перетащите его в это окно</string>
+        <string>Файл выписки не выбран</string>
        </property>
       </widget>
      </item>
@@ -74,7 +74,7 @@
      </property>
      <widget class="QGroupBox" name="gb_proposals">
       <property name="title">
-       <string>Несовпадения с предложением программы</string>
+       <string>Предложения по сопоставлению</string>
       </property>
       <layout class="QVBoxLayout" name="vl_proposals">
        <item>
@@ -233,9 +233,6 @@
                <property name="enabled">
                 <bool>false</bool>
                </property>
-               <property name="toolTip">
-                <string>Открыть окно редактирования выбранного платежа из календаря</string>
-               </property>
                <property name="text">
                 <string>Открыть платеж</string>
                </property>
@@ -285,9 +282,6 @@
              <bold>true</bold>
             </font>
            </property>
-           <property name="toolTip">
-            <string>Считать выбранные записи выписки и календаря одним и тем же платежом (можно с разными датами)</string>
-           </property>
            <property name="text">
             <string>Связать выбранные</string>
            </property>
@@ -297,9 +291,6 @@
           <widget class="QPushButton" name="pb_hide">
            <property name="enabled">
             <bool>false</bool>
-           </property>
-           <property name="toolTip">
-            <string>Убрать выбранные записи из списков (запоминается для этой выписки)</string>
            </property>
            <property name="text">
             <string>Скрыть выбранные</string>

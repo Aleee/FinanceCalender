@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import gui.feedialog as feedialog
 from base.feeparser import DailyFees
+from base.formatting import records_word
 from base.liability import LiabilityCategory
 from base.payment import PaymentEntry
 from base.paymentmacther import (CONTRACT_TAX_DESCRIPTION, DateDiscrepancy, ProbablePair, ReconciliationMarks,
@@ -109,6 +110,22 @@ def test_summary_counts_paired_entries_as_discrepancies():
     assert result.only_in_statement_sum == Decimal("1851.00")
     assert result.only_in_calendar_count == 1
     assert result.only_in_calendar_sum == Decimal("1828.00")
+
+
+def test_proposal_entries_count_includes_pairs_and_groups():
+    pair_statement, pair_calendar = entry("1846.00", "ООО Ромашка"), entry("1828.00", "ООО Ромашка")
+    pairs, _, _ = _pair_probable_matches([pair_statement], [pair_calendar])
+    statement, calendar = contract_case()
+    groups, _, _ = _regroup_contract_payments(date(2026, 10, 6), statement, calendar)
+    result = ReconciliationResult((date(2026, 10, 6),) * 2,
+                                  [DateDiscrepancy(date(2026, 10, 6), [], [], pairs, groups)])
+    assert result.proposal_entries_count == 2 + len(statement) + len(calendar)
+
+
+def test_records_word_agrees_with_number():
+    words = {1: "запись", 2: "записи", 4: "записи", 5: "записей", 11: "записей", 12: "записей", 21: "запись",
+             22: "записи", 25: "записей", 111: "записей"}
+    assert {count: records_word(count) for count in words} == words
 
 
 def test_calendar_entries_carry_ids_for_correction(db_file, shared_dbh, open_models):

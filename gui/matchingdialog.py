@@ -16,12 +16,12 @@ from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QHBoxLayout, 
 
 from base.dbhandler import DBHandler
 from base.feeparser import CSVParseError
-from base.formatting import (dec_html, dec_strcommaspace, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_HEADER_BG, COLOR_OK,
-                             COLOR_WARNING)
+from base.formatting import (dec_html, dec_strcommaspace, records_word, COLOR_STATEMENT, COLOR_CALENDAR,
+                             COLOR_HEADER_BG, COLOR_OK, COLOR_WARNING)
 from base.payment import PaymentEntry
 from base.paymentmacther import (reconcile_statement_with_calendar, ReconciliationMarks, ReconciliationResult,
                                  ProbablePair, RegroupedPayments, ManualLink)
-from gui.commonwidgets.messagebox import ErrorInfoMessageBox
+from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.settings import SettingsHandler
 from gui.ui.matchingdialog_ui import Ui_matchingdialog
 
@@ -34,6 +34,8 @@ CONFIDENCE_HIGH = 0.75
 CONFIDENCE_MEDIUM = 0.5
 SAVED_FILES_LIMIT = 10
 MAX_DESCR_LENGTH = 200
+MAX_PROPOSALS_TABLE_HEIGHT = 300
+EMPTY_HINT = "<p align='center' style='font-size:14pt;'>Выберите CSV-файл выписки или перетащите его в это окно</p>"
 
 
 class SortItem(QTableWidgetItem):
@@ -79,6 +81,7 @@ class MatchingDialog(QDialog):
         self.entries_by_key: dict[str, PaymentEntry] = {}
         self.refilling: bool = False
         self.refreshed_at: datetime = datetime.now()
+        self.proposals_extra_height: int = 0
 
         self.difference_font: QFont = QFont(self.font())
         self.difference_font.setBold(True)
@@ -121,6 +124,8 @@ class MatchingDialog(QDialog):
         for button in self.findChildren(QPushButton):
             button.setAutoDefault(False)
         self.set_data_available(False)
+        self.ui.lb_summary.setText(EMPTY_HINT)
+        self.update_selection_state()
         self.ui.lb_file.setMinimumWidth(50)
 
         self.restore_layout()
@@ -128,7 +133,9 @@ class MatchingDialog(QDialog):
 
     def set_data_available(self, available: bool):
         self.ui.spl_main.setEnabled(available)
-        self.ui.tb_resolved.setEnabled(available)
+        if not available:
+            self.ui.gb_proposals.hide()
+            self.ui.tb_resolved.hide()
         self.ui.pb_refresh.setEnabled(available)
         font = self.ui.pb_opencsv.font()
         font.setBold(not available)
@@ -179,21 +186,50 @@ class MatchingDialog(QDialog):
         geometry = self.sh.settings.value("Matching/geometry")
         if geometry:
             self.restoreGeometry(geometry)
-        self.ui.spl_main.setSizes([300, 400])
         self.ui.spl_lists.setSizes([1, 1])
-        for splitter, key in ((self.ui.spl_main, "Matching/splitter"), (self.ui.spl_lists, "Matching/listssplitter")):
-            state = self.sh.settings.value(key)
-            if state:
-                splitter.restoreState(state)
+        state = self.sh.settings.value("Matching/listssplitter")
+        if state:
+            self.ui.spl_lists.restoreState(state)
 
     def toggle_resolved(self, checked: bool):
         self.ui.tab_resolved.setVisible(checked)
         self.ui.tb_resolved.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
 
     def save_layout(self):
+        self.resize_height(-self.proposals_extra_height)
+        self.proposals_extra_height = 0
         self.sh.settings.setValue("Matching/geometry", self.saveGeometry())
-        self.sh.settings.setValue("Matching/splitter", self.ui.spl_main.saveState())
         self.sh.settings.setValue("Matching/listssplitter", self.ui.spl_lists.saveState())
+
+    def resize_height(self, delta: int) -> int:
+        if delta == 0 or self.isMaximized() or self.isFullScreen():
+            return 0
+        available = self.screen().availableGeometry().height()
+        height_before = self.height()
+        self.resize(self.width(), max(min(height_before + delta, available), 0))
+        return self.height() - height_before
+
+    def proposals_height(self) -> int:
+        table = self.ui.tw_proposals
+        content = table.horizontalHeader().height() + table.verticalHeader().length() + 2 * table.frameWidth()
+        group = self.ui.gb_proposals
+        return min(content, MAX_PROPOSALS_TABLE_HEIGHT) + group.sizeHint().height() - table.sizeHint().height()
+
+    def update_proposals_visibility(self):
+        group, splitter = self.ui.gb_proposals, self.ui.spl_main
+        if self.ui.tw_proposals.rowCount() == 0:
+            group.hide()
+            self.proposals_extra_height += self.resize_height(-self.proposals_extra_height)
+            return
+        self.layout().activate()
+        lists_height = splitter.sizes()[1]
+        group.show()
+        self.layout().activate()
+        self.ui.tw_proposals.resizeRowsToContents()
+        needed = max(self.proposals_height(), self.proposals_extra_height - splitter.handleWidth())
+        self.proposals_extra_height += self.resize_height(needed + splitter.handleWidth() - self.proposals_extra_height)
+        self.layout().activate()
+        splitter.setSizes([needed, lists_height])
 
     @staticmethod
     def dropped_csv(event) -> str:
@@ -292,25 +328,32 @@ class MatchingDialog(QDialog):
         scroll_positions = [table.verticalScrollBar().value() for table in tables]
 
         self.refilling = True
-        self.entries_by_key.clear()
-        self.ui.lb_summary.setText(result.format_summary())
-        self.fill_proposals(result)
-        self.fill_entry_list(self.ui.tw_statement, result.unmatched_statement, COLOR_STATEMENT)
-        self.fill_entry_list(self.ui.tw_calendar, result.unmatched_calendar, COLOR_CALENDAR)
-        self.fill_linked(result.links)
-        self.fill_hidden(result)
-        self.apply_search(self.ui.tw_statement, self.ui.le_searchstatement.text())
-        self.apply_search(self.ui.tw_calendar, self.ui.le_searchcalendar.text())
-        self.refilling = False
+        try:
+            self.entries_by_key.clear()
+            self.ui.lb_summary.setText(result.format_summary())
+            self.fill_proposals(result)
+            self.fill_entry_list(self.ui.tw_statement, result.unmatched_statement, COLOR_STATEMENT)
+            self.fill_entry_list(self.ui.tw_calendar, result.unmatched_calendar, COLOR_CALENDAR)
+            self.fill_linked(result.links)
+            self.fill_hidden(result)
+            self.apply_search(self.ui.tw_statement, self.ui.le_searchstatement.text())
+            self.apply_search(self.ui.tw_calendar, self.ui.le_searchcalendar.text())
+        finally:
+            self.refilling = False
 
-        proposals_count = self.ui.tw_proposals.rowCount()
-        self.ui.gb_proposals.setTitle(f"Несовпадения с предложением программы ({proposals_count})")
+        entries_count = result.proposal_entries_count
+        self.update_proposals_visibility()
+        self.ui.gb_proposals.setTitle(f"Предложения по сопоставлению ({self.ui.tw_proposals.rowCount()} — "
+                                      f"{entries_count} {records_word(entries_count)})")
         self.ui.gb_statement.setTitle(f"Только в выписке ({self.ui.tw_statement.rowCount()})")
         self.ui.gb_calendar.setTitle(f"Только в календаре ({self.ui.tw_calendar.rowCount()})")
         self.ui.tab_resolved.setTabText(0, f"Связано вручную ({len(result.links)})")
         self.ui.tab_resolved.setTabText(1, f"Скрытые ({len(result.hidden_entries)})")
         self.ui.tb_resolved.setText(f"Связано вручную: {len(result.links)}, скрыто: {len(result.hidden_entries)}")
         self.ui.pb_restoreall.setEnabled(bool(self.marks.hidden))
+        has_resolved = bool(result.links or result.hidden_entries)
+        self.ui.tb_resolved.setVisible(has_resolved)
+        self.ui.tab_resolved.setVisible(has_resolved and self.ui.tb_resolved.isChecked())
         self.update_selection_state()
         self.update_resolved_buttons()
 
@@ -530,16 +573,30 @@ class MatchingDialog(QDialog):
         else:
             self.ui.lb_selection.clear()
 
-        self.ui.pb_link.setEnabled(bool(statement_entries and calendar_entries))
-        self.ui.pb_hide.setEnabled(bool(statement_entries or calendar_entries))
+        self.set_button_state(
+            self.ui.pb_link, bool(statement_entries and calendar_entries),
+            "Считать выбранные записи выписки и календаря одним и тем же платежом (можно с разными датами)",
+            "Выберите записи и в списке «Только в выписке», и в списке «Только в календаре»")
+        self.set_button_state(
+            self.ui.pb_hide, bool(statement_entries or calendar_entries),
+            "Убрать выбранные записи из списков (запоминается для этой выписки)",
+            "Выберите записи в списках «Только в выписке» или «Только в календаре»")
         can_create = len(statement_entries) == 1 and not calendar_entries
-        self.ui.pb_create.setEnabled(can_create)
-        self.ui.pb_create.setToolTip(
-            "" if not can_create else
-            "Открыть окно создания платежей по комиссиям из этой выписки" if statement_entries[0].fee_category else
-            "Создать в календаре новый платеж с суммой из выписки")
-        self.ui.pb_open.setEnabled(len(calendar_entries) == 1 and not statement_entries
-                                   and calendar_entries[0].event_id is not None)
+        self.set_button_state(
+            self.ui.pb_create, can_create,
+            "Открыть окно создания платежей по комиссиям из этой выписки" if can_create
+            and statement_entries[0].fee_category else "Создать в календаре новый платеж с суммой из выписки",
+            "Выберите одну запись в списке «Только в выписке» (в списке календаря ничего выбранного быть не должно)")
+        self.set_button_state(
+            self.ui.pb_open, len(calendar_entries) == 1 and not statement_entries
+            and calendar_entries[0].event_id is not None,
+            "Открыть окно редактирования выбранного платежа из календаря",
+            "Выберите один платеж в списке «Только в календаре» (в списке выписки ничего выбранного быть не должно)")
+
+    @staticmethod
+    def set_button_state(button: QPushButton, enabled: bool, enabled_tooltip: str, disabled_tooltip: str):
+        button.setEnabled(enabled)
+        button.setToolTip(enabled_tooltip if enabled else disabled_tooltip)
 
     def update_resolved_buttons(self):
         if self.refilling:
@@ -658,5 +715,11 @@ class MatchingDialog(QDialog):
         self.reconcile()
 
     def accept_statement_amount(self, pair: ProbablePair):
+        text = (f"Сумма платежа в календаре будет изменена: {dec_strcommaspace(pair.calendar.amount, add_rub=True)} → "
+                f"{dec_strcommaspace(pair.statement.amount, add_rub=True)}")
+        if pair.calendar.event_id is not None:
+            text += " Сумма связанного обязательства изменится на ту же разницу."
+        if YesNoMessagebox(f"{text}\nПродолжить?", self).exec() != YesNoMessagebox.YES_RETURN_VALUE:
+            return
         if self.correct_amount(pair.calendar, pair.statement.amount):
             self.reconcile()
