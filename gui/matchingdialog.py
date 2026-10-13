@@ -1,6 +1,7 @@
 import hashlib
+import html
 import json
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from functools import partial
 from pathlib import Path
@@ -77,6 +78,7 @@ class MatchingDialog(QDialog):
         self.marks: ReconciliationMarks = ReconciliationMarks()
         self.entries_by_key: dict[str, PaymentEntry] = {}
         self.refilling: bool = False
+        self.refreshed_at: datetime = datetime.now()
 
         self.difference_font: QFont = QFont(self.font())
         self.difference_font.setBold(True)
@@ -114,8 +116,44 @@ class MatchingDialog(QDialog):
         self.ui.le_searchstatement.textChanged.connect(partial(self.apply_search, self.ui.tw_statement))
         self.ui.le_searchcalendar.textChanged.connect(partial(self.apply_search, self.ui.tw_calendar))
 
+        self.ui.lb_summary.linkActivated.connect(self.show_resolved_tab)
+
+        for button in self.findChildren(QPushButton):
+            button.setAutoDefault(False)
+        self.set_data_available(False)
+        self.ui.lb_file.setMinimumWidth(50)
+
         self.restore_layout()
         self.finished.connect(self.save_layout)
+
+    def set_data_available(self, available: bool):
+        self.ui.spl_main.setEnabled(available)
+        self.ui.tb_resolved.setEnabled(available)
+        self.ui.pb_refresh.setEnabled(available)
+        font = self.ui.pb_opencsv.font()
+        font.setBold(not available)
+        self.ui.pb_opencsv.setFont(font)
+
+    def show_resolved_tab(self, target: str):
+        self.ui.tb_resolved.setChecked(True)
+        self.ui.tab_resolved.setCurrentWidget(self.ui.tab_linked if target == "linked" else self.ui.tab_hidden)
+
+    def update_file_label(self):
+        if not self.csv_path:
+            return
+        prefix = "Файл выписки: "
+        period = self.match_result.period if self.match_result else None
+        suffix = (f", период {period[0]:%d.%m.%Y} – {period[1]:%d.%m.%Y}" if period else "") + \
+                 f", обновлено {self.refreshed_at:%H:%M}"
+        metrics = self.ui.lb_file.fontMetrics()
+        free = self.ui.lb_file.width() - metrics.horizontalAdvance(prefix + suffix) - 30
+        name = metrics.elidedText(Path(self.csv_path).name, Qt.TextElideMode.ElideMiddle, max(free, 100))
+        self.ui.lb_file.setText(f"{prefix}<b>{html.escape(name)}</b>{suffix}")
+        self.ui.lb_file.setToolTip(self.csv_path)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_file_label()
 
     def setup_table(self, table: QTableWidget, headers: tuple[str, ...], stretch_columns: tuple[int, ...],
                     colors: dict[int, str] | None = None):
@@ -124,6 +162,9 @@ class MatchingDialog(QDialog):
         table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         header = table.horizontalHeader()
         header.setStretchLastSection(False)
+        header_font = header.font()
+        header_font.setBold(True)
+        header.setFont(header_font)
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         for column in stretch_columns:
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
@@ -196,9 +237,7 @@ class MatchingDialog(QDialog):
             self.csv_path, self.csv_hash, self.marks = previous
             return
         self.sh.settings.setValue("CSVparser/lastloadpath", str(Path(file_path).parent))
-        self.ui.lb_file.setText(f"Файл выписки: <b>{Path(file_path).name}</b>")
-        self.ui.lb_file.setToolTip(file_path)
-        self.ui.pb_refresh.setEnabled(True)
+        self.set_data_available(True)
 
     def read_saved_marks(self) -> dict:
         try:
@@ -241,6 +280,8 @@ class MatchingDialog(QDialog):
             return False
 
         self.match_result = result
+        self.refreshed_at = datetime.now()
+        self.update_file_label()
         self.print_report()
         return True
 
@@ -263,7 +304,7 @@ class MatchingDialog(QDialog):
         self.refilling = False
 
         proposals_count = self.ui.tw_proposals.rowCount()
-        self.ui.gb_proposals.setTitle(f"Найденные совпадения ({proposals_count})")
+        self.ui.gb_proposals.setTitle(f"Несовпадения с предложением программы ({proposals_count})")
         self.ui.gb_statement.setTitle(f"Только в выписке ({self.ui.tw_statement.rowCount()})")
         self.ui.gb_calendar.setTitle(f"Только в календаре ({self.ui.tw_calendar.rowCount()})")
         self.ui.tab_resolved.setTabText(0, f"Связано вручную ({len(result.links)})")
@@ -382,6 +423,7 @@ class MatchingDialog(QDialog):
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(2)
         primary = QPushButton(primary_text)
+        primary.setAutoDefault(False)
         primary.setToolTip(primary_tooltip)
         primary.clicked.connect(primary_slot)
         layout.addWidget(primary, 1)

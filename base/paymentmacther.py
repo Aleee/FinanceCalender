@@ -16,7 +16,7 @@ from base.dbhandler import DBHandler
 from base.feeparser import (CODE_COLUMNINDEX, DATE_COLUMNINDEX, DESCR_COLUMNINDEX, SUM_COLUMNINDEX,
                             RECEIVER_COLUMNINDEX, UNP_COLUMNINDEX, FEE_IN_TEXT_PATTERN, CSVParseError,
                             FeeKind, classify_fee, read_bank_unp, parse_date, parse_period)
-from base.formatting import str_decimal, dec_html, dec_strcommaspace, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_OK
+from base.formatting import str_decimal, dec_html, dec_strcommaspace, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_OK, COLOR_WARNING
 from base.liability import LiabilityCategory
 from base.payment import PaymentEntry
 
@@ -218,20 +218,22 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
 # 2. Сравнение (только по суммам, мультимножество) и отчёт
 # ---------------------------------------------------------------------------
 
-def _payments_word(count: int) -> str:
-    if count % 10 == 1 and count % 100 != 11:
-        return "платеж"
-    if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14:
-        return "платежа"
-    return "платежей"
+SUMMARY_PADDING = "padding-left:18px;"
 
 
-def _summary_row(title: str, total_count: int, matched_count: int, count: int, total: Decimal, color: str) -> str:
+def _summary_row(title: str, total_count: int, matched_count: int, linked_count: int, hidden_count: int,
+                 count: int, total: Decimal, color: str) -> str:
     return (f"<tr><td style='color:{color};'><b>{title}</b></td>"
-            f"<td align='right'>{total_count}</td>"
-            f"<td align='right'>{matched_count}</td>"
-            f"<td align='right'>{count} {_payments_word(count)}</td>"
-            f"<td align='right'><b>{dec_html(total)}</b></td></tr>")
+            f"<td align='right' style='{SUMMARY_PADDING}'>{total_count}</td>"
+            f"<td align='right' style='{SUMMARY_PADDING}'>{matched_count}</td>"
+            f"<td align='right' style='{SUMMARY_PADDING}'>{_summary_link('linked', linked_count)}</td>"
+            f"<td align='right' style='{SUMMARY_PADDING}'>{_summary_link('hidden', hidden_count)}</td>"
+            f"<td align='right' style='{SUMMARY_PADDING}'><b>{count}</b></td>"
+            f"<td align='right' style='{SUMMARY_PADDING}color:{color};'><b>{dec_html(total)}</b></td></tr>")
+
+
+def _summary_link(target: str, count: int) -> str:
+    return f"<a href='{target}'>{count}</a>" if count else str(count)
 
 
 def _diff_amounts(statement_entries: list[PaymentEntry], calendar_entries: list[PaymentEntry]) \
@@ -574,31 +576,29 @@ class ReconciliationResult:
         return bool(self.discrepancies)
 
     def format_summary(self) -> str:
-        period_from = self.period[0].strftime("%d.%m.%Y")
-        period_to = self.period[1].strftime("%d.%m.%Y")
-        header = f"<b>Период выписки: {period_from} – {period_to}</b>"
-        manual_parts = []
-        if self.links:
-            manual_parts.append(f"связано вручную: {len(self.links)}")
-        if self.hidden_entries:
-            manual_parts.append(f"скрыто: {len(self.hidden_entries)}")
-        manual = f"<p>{', '.join(manual_parts).capitalize()}</p>" if manual_parts else ""
-
-        if not self.discrepancies:
-            return (f"{header}<p style='color:{COLOR_OK};'><b>"
-                    f"Расхождений не найдено: все платежи из выписки учтены в календаре.</b></p>{manual}")
-
+        statement_hidden = sum(1 for e in self.hidden_entries if e.from_statement)
+        difference = self.only_in_statement_sum - self.only_in_calendar_sum
+        difference_color = COLOR_OK if difference == 0 else COLOR_WARNING
+        verdict = (f"<p style='color:{COLOR_OK};'><b>Несовпадений не найдено: платежи выписки и календаря "
+                   f"сошлись.</b></p>" if not self.discrepancies else "")
         return "\n".join([
-            header,
-            "<table cellspacing='4' cellpadding='2'>",
-            "<tr><th></th><th align='right'>Всего</th><th align='right'>Совпало</th>"
-            "<th align='right'>Не сопоставлено</th><th align='right'>На сумму</th></tr>",
-            _summary_row("Выписка", self.statement_total, self.statement_matched, self.only_in_statement_count,
-                         self.only_in_statement_sum, COLOR_STATEMENT),
-            _summary_row("Календарь", self.calendar_total, self.calendar_matched, self.only_in_calendar_count,
-                         self.only_in_calendar_sum, COLOR_CALENDAR),
+            "<table cellspacing='0' cellpadding='3'>",
+            "<tr><th></th>" + "".join(f"<th align='right' style='{SUMMARY_PADDING}'>{title}</th>" for title in
+                                      ("Всего", "Совпало", "Связано", "Скрыто", "Несовпадения",
+                                       "Сумма несовпадений")) + "</tr>",
+            "<tr><td colspan='7'><hr></td></tr>",
+            _summary_row("Выписка", self.statement_total, self.statement_matched,
+                         sum(len(link.statement) for link in self.links), statement_hidden,
+                         self.only_in_statement_count, self.only_in_statement_sum, COLOR_STATEMENT),
+            _summary_row("Календарь", self.calendar_total, self.calendar_matched,
+                         sum(len(link.calendar) for link in self.links),
+                         len(self.hidden_entries) - statement_hidden,
+                         self.only_in_calendar_count, self.only_in_calendar_sum, COLOR_CALENDAR),
+            "<tr><td colspan='7'><hr></td></tr>",
+            "<tr><td colspan='6' align='right'>Разница несовпадений (выписка − календарь)</td>"
+            f"<td align='right' style='color:{difference_color};'><b>{dec_html(difference)}</b></td></tr>",
             "</table>",
-            manual,
+            verdict,
         ])
 
 

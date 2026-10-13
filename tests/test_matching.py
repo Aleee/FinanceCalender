@@ -1,3 +1,4 @@
+import re
 from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
@@ -344,7 +345,13 @@ def test_manual_link_between_different_dates_removes_both_entries(tmp_path):
     assert linked.links[0].difference == 0
     assert [e.fee_date for e in linked.links[0].statement + linked.links[0].calendar] == [date(2026, 10, 5),
                                                                                          date(2026, 10, 3)]
-    assert "связано вручную: 1" in linked.format_summary().lower()
+    assert summary_cells(linked, "Выписка")[2:4] == ["1", "0"]
+    assert summary_cells(linked, "Календарь")[2:4] == ["1", "0"]
+
+
+def summary_cells(result, title):
+    row = re.search(rf"<b>{title}</b></td>(.*?)</tr>", result.format_summary()).group(1)
+    return [re.sub(r"<[^>]+>", "", cell) for cell in re.findall(r"<td[^>]*>(.*?)</td>", row)]
 
 
 def test_link_with_missing_entry_is_ignored(tmp_path):
@@ -366,7 +373,8 @@ def test_hidden_entries_leave_the_lists_but_stay_available(tmp_path):
     hidden = reconcile_case(tmp_path, STATEMENT_ROWS, CALENDAR_ROWS, ReconciliationMarks(hidden={hidden_key}))
     assert [e.key for e in hidden.hidden_entries] == [hidden_key]
     assert hidden_key not in [e.key for e in hidden.unmatched_calendar]
-    assert "скрыто: 1" in hidden.format_summary().lower()
+    assert summary_cells(hidden, "Выписка")[2:4] == ["0", "0"]
+    assert summary_cells(hidden, "Календарь")[2:4] == ["0", "1"]
 
 
 def test_rejected_pair_returns_entries_to_the_lists(tmp_path):
