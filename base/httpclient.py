@@ -14,6 +14,7 @@ CONNECT_TIMEOUT_MS = 1500
 RESPONSE_TIMEOUT_MS = 8000
 UPLOAD_EXTRA_MS_PER_MB = 2000
 MAX_ATTEMPTS = 4
+IDLE_RECONNECT_S = 5
 RETRY_PAUSE_MS = 200
 RETRY_METHODS = ("GET",)
 OWN_CONNECT_TIMEOUT = "ConnectTimeout"
@@ -74,12 +75,15 @@ class QtHttpClient(HttpClient):
         self.manager.setRedirectPolicy(QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy)
         self.marks: dict[str, int] = {}
         self.on_attempt: Callable[[AttemptInfo], None] | None = None
+        self.last_request_at: float = time.monotonic()
 
     def send(self, method: str, url: str, headers: dict[str, str] | None = None, data: bytes = b"",
              upload_file: Path | None = None, download_file: Path | None = None) -> HttpResponse:
         qurl = QUrl(url)
         target = f"{method} {qurl.host()}{qurl.path()}"
         failures: list[str] = []
+        if time.monotonic() - self.last_request_at > IDLE_RECONNECT_S:
+            self.manager.clearConnectionCache()
         for attempt in range(1, MAX_ATTEMPTS + 1):
             started = time.monotonic()
             try:
@@ -137,6 +141,7 @@ class QtHttpClient(HttpClient):
                 connect_error.qt_error = OWN_CONNECT_TIMEOUT if stage == "timeout" else getattr(e, "qt_error", "")
                 raise connect_error from e
         finally:
+            self.last_request_at = time.monotonic()
             if upload is not None:
                 upload.close()
         if download_file is not None and response.status == 200:

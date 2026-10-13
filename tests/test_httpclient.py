@@ -148,3 +148,13 @@ def test_log_line_contains_stage_marks(client, server, monkeypatch):
     monkeypatch.setattr("base.httpclient.log.d", messages.append)
     client.send("GET", f"{server}/json")
     assert "headers=" in messages[-1]
+
+
+def test_connections_are_dropped_after_idle(client, server, monkeypatch):
+    calls: list[int] = []
+    monkeypatch.setattr(client.manager, "clearConnectionCache", lambda: calls.append(1))
+    client.send("GET", f"{server}/json")
+    assert calls == []
+    monkeypatch.setattr("base.httpclient.IDLE_RECONNECT_S", -1)
+    client.send("GET", f"{server}/json")
+    assert calls == [1]

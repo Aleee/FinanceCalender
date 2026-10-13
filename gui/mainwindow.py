@@ -80,6 +80,7 @@ class MainWindow(QMainWindow):
         self.sync_progress: SyncProgressDialog | None = None
         self.sync_error: str = ""
         self.sync_network_failed: bool = False
+        self.sync_retry_text: str = ""
         self.sync_failure_text: str = "ОШИБКА"
         self.sync_master_info: MasterInfo | None = None
         self.sync_checked_at: str = ""
@@ -512,6 +513,8 @@ class MainWindow(QMainWindow):
             tooltip_lines.append(f"Внимание: общая база не обновлялась {master_age} дн., возможно, второй пользователь не отправляет изменения")
         if self.sync_error:
             tooltip_lines.append(f"Последняя ошибка: {self.sync_error}")
+        if self.sync_retry_text:
+            tooltip_lines.append(self.sync_retry_text)
         tooltip_lines.append("Нажмите, чтобы синхронизировать; стрелка справа — меню")
         self.tb_sync.setToolTip("\n".join(tooltip_lines))
 
@@ -549,7 +552,13 @@ class MainWindow(QMainWindow):
             return
         self.run_sync(interactive=False, pause_when_done=is_first)
         if self.sync_network_failed and retries_left > 0:
-            log.i(f"Повтор синхронизации через {SYNC_RETRY_DELAY_MS // 1000} с, осталось попыток: {retries_left}")
+            delay_seconds: int = SYNC_RETRY_DELAY_MS // 1000
+            log.i(f"Повтор синхронизации через {delay_seconds} с, осталось попыток: {retries_left}")
+            self.sync_retry_text = f"Автоматический повтор через {delay_seconds} с (осталось попыток: {retries_left})"
+            self.update_sync_status()
+            self.ui.statusBar.showMessage(f"Не удалось связаться с сервером синхронизации. "
+                                          f"Повторим попытку через {delay_seconds} с (осталось попыток: {retries_left})",
+                                          SYNC_RETRY_DELAY_MS)
             QTimer.singleShot(SYNC_RETRY_DELAY_MS, lambda: self.auto_sync(retries_left - 1))
 
     def run_sync(self, interactive: bool = True, pause_when_done: bool = True) -> None:
@@ -648,6 +657,7 @@ class MainWindow(QMainWindow):
     def _run_sync_step(self, channel: SyncChannel, step: Callable[[], SyncAction],
                        planned_stages: tuple[str, ...] = ()) -> SyncAction | None:
         self.tb_sync.setEnabled(False)
+        self.sync_retry_text = ""
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         owns_progress: bool = self.sync_progress is None
         progress: SyncProgressDialog = SyncProgressDialog(self, planned_stages=planned_stages) if owns_progress else self.sync_progress
