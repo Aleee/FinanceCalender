@@ -1040,7 +1040,9 @@ class MainWindow(QMainWindow):
                         set_due_filter = True
                 self.select_new_event(set_due_filter)
             else:
+                self.base_model.load_payment_totals()
                 self.update_filters_and_select()
+                self.update_eventinfo()
             self.proxy1_model.invalidate()
             return True
         else:
