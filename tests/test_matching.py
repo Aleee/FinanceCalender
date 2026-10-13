@@ -209,6 +209,16 @@ def test_contract_taxes_are_not_included_in_payroll(tmp_path):
     assert amounts["ВЫПЛАТЫ ПО ДОГОВОРАМ ПОДРЯДА НА СЧЕТ ИВАНОВ"] == Decimal("700.90")
 
 
+def test_sole_proprietor_tax_is_not_included_in_payroll(tmp_path):
+    entries = statement_with(tmp_path,
+                             ("ПОДОХОДНЫЙ НАЛОГ ПО ИП ЛЕМЕНКОВУ С.А. ПО ДОГОВОРУ АИ003 ОТ 01.12.2026 ПО СРОКУ 12.10.2026", "98,72"),
+                             ("ПОДОХОДНЫЙ НАЛОГ ИЗ ОКОНЧ.РАСЧЕТА И ОТПУСКНЫХ ЗА ОКТЯБРЬ 2026", "1 224,14"),
+                             ("ОТПУСКНЫЕ ЗА ОКТЯБРЬ, 2026", "6 763,26"))
+    amounts = {entry.descr.removesuffix(" (Контрагент)"): entry.amount for entry in entries}
+    assert amounts["Налоги и взносы по договорам подряда"] == Decimal("98.72")
+    assert amounts["Выплаты работникам (зарплата/отпускные/ФСЗН/налог)"] == Decimal("7987.40")
+
+
 def test_material_aid_is_included_in_payroll(tmp_path):
     entries = statement_with(tmp_path, ("МАТЕРИАЛЬНАЯ ПОМОЩЬ К ОТПУСКУ ЗА ОКТЯБРЬ", "1 000,00"),
                              ("ОТПУСКНЫЕ ЗА ОКТЯБРЬ 2026", "6 430,44"))

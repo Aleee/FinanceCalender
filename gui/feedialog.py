@@ -90,8 +90,8 @@ class FeeDialog(QDialog):
         render_category = self._render_category_full if self.ui.chb_fullreport.isChecked() \
             else self._render_category_report
         text = f"<h3>Выписка за период {period_from} – {period_to}</h3>"
-        text += render_category("Комиссии, относящиеся к банковским расходам", result.income_fees)
-        text += render_category("<br>Комиссии, относящиеся к комиссионным расходам", result.outgoing_fees)
+        text += render_category("Комиссии, относимые на банковские расходы", result.income_fees)
+        text += render_category("<br>Комиссии, относимые на комиссионные расходы", result.outgoing_fees)
 
         has_any_fees = bool(result.income_fees.daily or result.outgoing_fees.daily)
         self.ui.pb_createfeeliabilities.setEnabled(has_any_fees)

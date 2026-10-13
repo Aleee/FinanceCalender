@@ -33,6 +33,7 @@ PAYROLL_DESCRIPTION: str = "Выплаты работникам (зарплат�
 CONTRACT_TAX_KEYWORDS: tuple[str, ...] = (
     "по договору подряда",
     "по договорам подряда",
+    "налог по ип ",
 )
 CONTRACT_TAX_DESCRIPTION: str = "Налоги и взносы по договорам подряда"
 CALENDAR_TAX_KEYWORDS: tuple[str, ...] = ("фсзн", "подоходный налог")
