@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from enum import IntEnum
 
@@ -34,3 +35,8 @@ class PaymentEntry:
     details: str = ""
     fee_category: LiabilityCategory | None = None
     key: str = ""
+    fee_date: date | None = None
+
+    @property
+    def from_statement(self) -> bool:
+        return self.key.startswith("s|")

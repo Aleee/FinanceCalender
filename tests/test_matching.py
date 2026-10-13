@@ -6,8 +6,10 @@ import gui.feedialog as feedialog
 from base.feeparser import DailyFees
 from base.liability import LiabilityCategory
 from base.payment import PaymentEntry
-from base.paymentmacther import (CONTRACT_TAX_DESCRIPTION, DateDiscrepancy, ReconciliationResult, _pair_probable_matches,
-                                  _regroup_contract_payments, extract_statement_payments, pair_confidence)
+from base.paymentmacther import (CONTRACT_TAX_DESCRIPTION, DateDiscrepancy, ProbablePair, ReconciliationMarks,
+                                  ReconciliationResult, _pair_probable_matches, _regroup_contract_payments,
+                                  extract_statement_payments, pair_confidence, pair_reasons,
+                                  reconcile_statement_with_calendar)
 from tests.test_audit_fixes import query_all
 from tests.test_readpath import add_event, add_payment, db_file, models, open_models  # noqa: F401
 
@@ -284,3 +286,126 @@ def test_document_number_with_other_separators_is_the_same():
     statement = entry("1000.00", "Банк", "по договору № 24-06/01/136 от 27.06.2025")
     calendar = entry("1000.00", "ООО Василёк", "Кредитный договор № 24-06-01/136 от 27.06.2025")
     assert pair_confidence(statement, calendar) >= 0.9
+
+
+def reconcile_case(tmp_path, statement_rows, calendar_rows, marks=None):
+    rows = [[""] * 10 for _ in range(8)]
+    rows[0][0] = "ВЫПИСКА ПО СЧЕТУ С 01.10.2026 ПО 10.10.2026"
+    for number, (day, debit, receiver, descr) in enumerate(statement_rows):
+        rows.append([f"{day:02d}.10.2026", str(number), "1", "", "", "100", receiver, debit, "0,00", descr])
+    path = tmp_path / "statement.csv"
+    path.write_text("\n".join(";".join(row) for row in rows) + "\n", encoding="windows-1251")
+    settings = {"CSVparser/columnstoparse": "0,2,5,8,7,9,6", "CSVparser/rowperiod": "1",
+                "CSVparser/rowtransactionstart": "9", "CSVparser/knownunp": "", "CSVparser/patterns": "",
+                "CSVparser/nomatchpatterns": ""}
+    calendar: dict[date, list[PaymentEntry]] = {}
+    for number, (day, amount, receiver, name) in enumerate(calendar_rows):
+        calendar.setdefault(date(2026, 10, day), []).append(
+            PaymentEntry(Decimal(amount), f"{name} ({receiver})", receiver, number, number, name, key=f"c|{number}"))
+    dbh = SimpleNamespace(get_setting=lambda key, default="": settings.get(key, default),
+                          get_paymentsum_for_period=lambda start, end: calendar)
+    return reconcile_statement_with_calendar(str(path), dbh, marks)
+
+
+STATEMENT_ROWS = [(5, "750,00", "ИП Петров", "ЗА РЕМОНТ"), (6, "99,99", "ООО Гамма", "КАНЦТОВАРЫ"),
+                  (6, "200,00", "ООО Омега", "УСЛУГИ")]
+CALENDAR_ROWS = [(3, "750.00", "Сервис-Принт", "Оргтехника"), (7, "450.00", "ЧУП Дельта", "Уборка"),
+                 (6, "200.00", "ООО Омега", "Услуги")]
+
+
+def test_exact_amounts_on_same_date_are_counted_as_matched(tmp_path):
+    result = reconcile_case(tmp_path, STATEMENT_ROWS, CALENDAR_ROWS)
+    assert (result.statement_total, result.statement_matched) == (3, 1)
+    assert (result.calendar_total, result.calendar_matched) == (3, 1)
+    assert [e.amount for e in result.unmatched_statement] == [Decimal("750.00"), Decimal("99.99")]
+    assert all(e.fee_date for e in result.unmatched_statement + result.unmatched_calendar)
+
+
+def test_manual_link_between_different_dates_removes_both_entries(tmp_path):
+    result = reconcile_case(tmp_path, STATEMENT_ROWS, CALENDAR_ROWS)
+    statement_key = result.unmatched_statement[0].key
+    calendar_key = result.unmatched_calendar[0].key
+    marks = ReconciliationMarks(links=[(statement_key, calendar_key)])
+
+    linked = reconcile_case(tmp_path, STATEMENT_ROWS, CALENDAR_ROWS, marks)
+    assert [e.amount for e in linked.unmatched_statement] == [Decimal("99.99")]
+    assert [e.amount for e in linked.unmatched_calendar] == [Decimal("450.00")]
+    assert len(linked.links) == 1
+    assert linked.links[0].difference == 0
+    assert [e.fee_date for e in linked.links[0].statement + linked.links[0].calendar] == [date(2026, 10, 5),
+                                                                                         date(2026, 10, 3)]
+    assert "связано вручную: 1" in linked.format_summary().lower()
+
+
+def test_link_with_missing_entry_is_ignored(tmp_path):
+    result = reconcile_case(tmp_path, STATEMENT_ROWS, CALENDAR_ROWS)
+    marks = ReconciliationMarks(links=[(result.unmatched_statement[0].key, "c|9999")])
+    linked = reconcile_case(tmp_path, STATEMENT_ROWS, CALENDAR_ROWS, marks)
+    assert linked.links == [] and len(linked.unmatched_statement) == 2
+
+
+def test_link_with_already_matched_entry_is_ignored(tmp_path):
+    result = reconcile_case(tmp_path, STATEMENT_ROWS, CALENDAR_ROWS)
+    marks = ReconciliationMarks(links=[(result.unmatched_statement[0].key, "c|2")])
+    assert reconcile_case(tmp_path, STATEMENT_ROWS, CALENDAR_ROWS, marks).links == []
+
+
+def test_hidden_entries_leave_the_lists_but_stay_available(tmp_path):
+    result = reconcile_case(tmp_path, STATEMENT_ROWS, CALENDAR_ROWS)
+    hidden_key = result.unmatched_calendar[1].key
+    hidden = reconcile_case(tmp_path, STATEMENT_ROWS, CALENDAR_ROWS, ReconciliationMarks(hidden={hidden_key}))
+    assert [e.key for e in hidden.hidden_entries] == [hidden_key]
+    assert hidden_key not in [e.key for e in hidden.unmatched_calendar]
+    assert "скрыто: 1" in hidden.format_summary().lower()
+
+
+def test_rejected_pair_returns_entries_to_the_lists(tmp_path):
+    statement_rows = [(5, "1846,00", "САНИТАРНАЯ ОБОРОНА ЗАО", "ТТН 2156811 СРЕДСТВО ДЕЗИНФИЦИРУЮЩЕЕ")]
+    calendar_rows = [(5, "1828.00", "ЗАО Санитарная оборона", "Средство дезинфицирующее")]
+    paired = reconcile_case(tmp_path, statement_rows, calendar_rows)
+    pair = paired.discrepancies[0].probable_pairs[0]
+    assert pair.reasons
+
+    rejected = reconcile_case(tmp_path, statement_rows, calendar_rows, ReconciliationMarks(rejected={pair.key}))
+    assert rejected.discrepancies[0].probable_pairs == []
+    assert len(rejected.unmatched_statement) == 1 and len(rejected.unmatched_calendar) == 1
+
+
+def test_rejected_group_returns_entries_to_the_lists():
+    statement, calendar = contract_case()
+    group = _regroup_contract_payments(date(2026, 10, 6), statement, calendar)[0][0]
+    groups, rest_statement, rest_calendar = _regroup_contract_payments(
+        date(2026, 10, 6), statement, calendar, rejected={group.key})
+    assert groups == [] and rest_statement == statement and rest_calendar == calendar
+
+
+def test_pair_key_depends_on_both_entries():
+    first, second = entry("100.00", "ООО Ромашка"), entry("100.00", "ООО Ромашка")
+    first.key, second.key = "s|1", "c|2"
+    assert ProbablePair(first, second, 0.5).key == "p|s|1|c|2"
+    assert first.from_statement and not second.from_statement
+
+
+def test_pair_reasons_name_the_evidence():
+    statement = entry("1000.00", "Ромашка-Торг", "ТТН 123456 ОТ 01.09.2026 бахилы")
+    calendar = entry("970.00", "ООО Василёк", "бахилы ТТН № 123456 от 01.09.2026")
+    assert "номер документа" in pair_reasons(statement, calendar)
+    assert pair_reasons(entry("1000.00", "ООО Ромашка"), entry("990.00", "ООО Василёк")) == []
+
+
+def test_transposed_digits_with_a_matching_word_make_a_pair():
+    statement = entry("984.08", "РАСЧЕТЫ ПО ОПЕРАЦИЯМ С ЧЕКАМИ, БПК И ЭЛ.ДЕНЬГАМИ (ЗАЧИСЛЕНИЯ)",
+                      "КОМАНДИРОВОЧНЫЕ РАСХОДЫ ЗА СЕНТЯБРЬ, 2026 СОГЛ. СПИСКУ N 162 ОТ 07.09.2026 Г.")
+    calendar = entry("948.08", "Работники", "Командировочные расходы в С.Петербург Расчёт")
+    assert pair_confidence(statement, calendar) >= 0.35
+    assert "цифры суммы переставлены" in pair_reasons(statement, calendar)
+    other_amount = entry("940.08", "Работники", "Командировочные расходы в С.Петербург Расчёт")
+    assert pair_confidence(statement, other_amount) < 0.35
+
+
+def test_transposed_digits_alone_are_not_enough():
+    assert pair_confidence(entry("984.08", "ООО Ромашка"), entry("948.08", "ООО Василёк")) < 0.35
+
+
+def test_equal_amounts_are_not_transposed_digits():
+    assert "цифры суммы переставлены" not in pair_reasons(entry("984.08", "ООО Ромашка"), entry("984.08", "ООО Ромашка"))

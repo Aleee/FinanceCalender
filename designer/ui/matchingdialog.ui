@@ -6,69 +6,475 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1100</width>
-    <height>560</height>
+    <width>1200</width>
+    <height>840</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Сверка выписки</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="3" column="1">
-    <spacer name="horizontalSpacer">
-     <property name="orientation">
-      <enum>Qt::Orientation::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>40</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="hl_file">
+     <item>
+      <widget class="QLabel" name="lb_file">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Preferred"/>
+       </property>
+       <property name="text">
+        <string>Файл выписки не выбран</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pb_opencsv">
+       <property name="text">
+        <string>Выбрать выписку (CSV-файл)…</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pb_refresh">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="toolTip">
+        <string>Заново прочитать файл выписки и платежи календаря</string>
+       </property>
+       <property name="text">
+        <string>Обновить</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
-   <item row="3" column="2">
-    <widget class="QPushButton" name="pb_close">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="text">
-      <string>Закрыть</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0" colspan="3">
+   <item>
     <widget class="QLabel" name="lb_summary">
      <property name="text">
       <string/>
      </property>
     </widget>
    </item>
-   <item row="2" column="0" colspan="3">
-    <widget class="QTableWidget" name="tw_discrepancies">
-     <property name="editTriggers">
-      <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+   <item>
+    <widget class="QSplitter" name="spl_main">
+     <property name="orientation">
+      <enum>Qt::Orientation::Vertical</enum>
      </property>
-     <property name="selectionMode">
-      <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
-     </property>
-     <property name="verticalScrollMode">
-      <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
-     </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
-     <attribute name="verticalHeaderVisible">
+     <property name="childrenCollapsible">
       <bool>false</bool>
-     </attribute>
+     </property>
+     <widget class="QGroupBox" name="gb_proposals">
+      <property name="title">
+       <string>Найденные совпадения</string>
+      </property>
+      <layout class="QVBoxLayout" name="vl_proposals">
+       <item>
+        <widget class="QTableWidget" name="tw_proposals">
+         <property name="editTriggers">
+          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+         </property>
+         <property name="verticalScrollMode">
+          <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+         <attribute name="verticalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="w_unmatched">
+      <layout class="QVBoxLayout" name="vl_unmatched">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="hl_actions">
+         <item>
+          <widget class="QPushButton" name="pb_link">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="toolTip">
+            <string>Считать выбранные записи выписки и календаря одним и тем же платежом (можно с разными датами)</string>
+           </property>
+           <property name="text">
+            <string>Связать выбранные</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pb_hide">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="toolTip">
+            <string>Убрать выбранные записи из списков (запоминается для этой выписки)</string>
+           </property>
+           <property name="text">
+            <string>Скрыть выбранные</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pb_create">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Добавить в календарь</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pb_open">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="toolTip">
+            <string>Открыть окно редактирования выбранного платежа из календаря</string>
+           </property>
+           <property name="text">
+            <string>Открыть платеж</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_actions">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QSplitter" name="spl_lists">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="childrenCollapsible">
+          <bool>false</bool>
+         </property>
+         <widget class="QGroupBox" name="gb_statement">
+          <property name="title">
+           <string>Только в выписке</string>
+          </property>
+          <layout class="QVBoxLayout" name="vl_statement">
+           <item>
+            <widget class="QLineEdit" name="le_searchstatement">
+             <property name="placeholderText">
+              <string>Поиск по дате, сумме, тексту…</string>
+             </property>
+             <property name="clearButtonEnabled">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QTableWidget" name="tw_statement">
+             <property name="editTriggers">
+              <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+             </property>
+             <property name="selectionMode">
+              <enum>QAbstractItemView::SelectionMode::MultiSelection</enum>
+             </property>
+             <property name="selectionBehavior">
+              <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+             </property>
+             <property name="verticalScrollMode">
+              <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+             <attribute name="verticalHeaderVisible">
+              <bool>false</bool>
+             </attribute>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QGroupBox" name="gb_calendar">
+          <property name="title">
+           <string>Только в календаре</string>
+          </property>
+          <layout class="QVBoxLayout" name="vl_calendar">
+           <item>
+            <widget class="QLineEdit" name="le_searchcalendar">
+             <property name="placeholderText">
+              <string>Поиск по дате, сумме, тексту…</string>
+             </property>
+             <property name="clearButtonEnabled">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QTableWidget" name="tw_calendar">
+             <property name="editTriggers">
+              <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+             </property>
+             <property name="selectionMode">
+              <enum>QAbstractItemView::SelectionMode::MultiSelection</enum>
+             </property>
+             <property name="selectionBehavior">
+              <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+             </property>
+             <property name="verticalScrollMode">
+              <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+             <attribute name="verticalHeaderVisible">
+              <bool>false</bool>
+             </attribute>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+       <item>
+         <widget class="QLabel" name="lb_selection">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed"/>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="wordWrap">
+           <bool>false</bool>
+          </property>
+         </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
-   <item row="0" column="0" colspan="3">
-    <widget class="QPushButton" name="pb_opencsv">
+   <item>
+    <widget class="QToolButton" name="tb_resolved">
+     <property name="toolTip">
+      <string>Показать или скрыть записи, связанные или скрытые вручную</string>
+     </property>
      <property name="text">
-      <string>Загрузить выписку (CSV-файл)</string>
+      <string>Связано вручную: 0, скрыто: 0</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="autoRaise">
+      <bool>true</bool>
+     </property>
+     <property name="toolButtonStyle">
+      <enum>Qt::ToolButtonStyle::ToolButtonTextBesideIcon</enum>
+     </property>
+     <property name="arrowType">
+      <enum>Qt::ArrowType::RightArrow</enum>
      </property>
     </widget>
+   </item>
+   <item>
+     <widget class="QTabWidget" name="tab_resolved">
+     <property name="visible">
+      <bool>false</bool>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>180</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>180</height>
+      </size>
+     </property>
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab_linked">
+      <attribute name="title">
+       <string>Связано вручную</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="hl_linked">
+       <item>
+        <widget class="QTableWidget" name="tw_linked">
+         <property name="editTriggers">
+          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+         </property>
+         <property name="verticalScrollMode">
+          <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+         <attribute name="verticalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
+        </widget>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="vl_linkedbuttons">
+         <item>
+          <widget class="QPushButton" name="pb_unlink">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="toolTip">
+            <string>Разорвать связь: записи вернутся в списки выше</string>
+           </property>
+           <property name="text">
+            <string>Разорвать связь</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_linked">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_hidden">
+      <attribute name="title">
+       <string>Скрытые</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="hl_hidden">
+       <item>
+        <widget class="QTableWidget" name="tw_hidden">
+         <property name="editTriggers">
+          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SelectionMode::MultiSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+         </property>
+         <property name="verticalScrollMode">
+          <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+         <attribute name="verticalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
+        </widget>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="vl_hiddenbuttons">
+         <item>
+          <widget class="QPushButton" name="pb_restore">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="toolTip">
+            <string>Вернуть выбранные записи в списки выше</string>
+           </property>
+           <property name="text">
+            <string>Вернуть выбранные</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pb_restoreall">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="toolTip">
+            <string>Снова показать все скрытые вручную записи</string>
+           </property>
+           <property name="text">
+            <string>Вернуть все</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_hidden">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="hl_bottom">
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pb_close">
+       <property name="text">
+        <string>Закрыть</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>

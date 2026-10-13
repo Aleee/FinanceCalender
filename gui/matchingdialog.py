@@ -8,28 +8,54 @@ from typing import Callable
 
 import lovely_logger as log
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor, QFont, QIcon
-from PySide6.QtWidgets import QDialog, QFileDialog, QHeaderView, QPushButton, QTableWidgetItem
+from PySide6.QtCore import QItemSelectionModel, Qt
+from PySide6.QtGui import QBrush, QColor, QFont, QKeySequence, QPalette, QShortcut
+from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QHBoxLayout, QHeaderView, QMenu, QMessageBox,
+                               QPushButton, QTableWidget, QTableWidgetItem, QToolButton, QWidget)
 
 from base.dbhandler import DBHandler
 from base.feeparser import CSVParseError
-from base.formatting import dec_strcommaspace, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_HEADER_BG, COLOR_PAIR_BG
+from base.formatting import (dec_html, dec_strcommaspace, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_HEADER_BG, COLOR_OK,
+                             COLOR_WARNING)
 from base.payment import PaymentEntry
-from base.paymentmacther import reconcile_statement_with_calendar, ReconciliationResult, ProbablePair, RegroupedPayments
+from base.paymentmacther import (reconcile_statement_with_calendar, ReconciliationMarks, ReconciliationResult,
+                                 ProbablePair, RegroupedPayments, ManualLink)
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.settings import SettingsHandler
 from gui.ui.matchingdialog_ui import Ui_matchingdialog
 
 
+SORT_ROLE = Qt.ItemDataRole.UserRole
+KEY_ROLE = Qt.ItemDataRole.UserRole + 1
+RIGHT_ALIGN = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+CENTER_ALIGN = Qt.AlignmentFlag.AlignCenter
+CONFIDENCE_HIGH = 0.75
+CONFIDENCE_MEDIUM = 0.5
+SAVED_FILES_LIMIT = 10
+MAX_DESCR_LENGTH = 200
+
+
+class SortItem(QTableWidgetItem):
+
+    def __lt__(self, other):
+        return self.data(SORT_ROLE) < other.data(SORT_ROLE)
+
+
+def shorten(text: str) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= MAX_DESCR_LENGTH else text[:MAX_DESCR_LENGTH].rstrip() + "…"
+
+
 class MatchingDialog(QDialog):
 
-    COLUMN_HEADERS = ("Дата", "В выписке", "Назначение платежа", "Разница", "В календаре", "Платеж в календаре", "", "", "")
-    DESCR_COLUMNS = (2, 5)
-    CONFIDENCE_COLUMN = 6
-    BUTTON_COLUMN = 7
-    IGNORE_COLUMN = 8
+    PROPOSAL_HEADERS = ("Дата", "В выписке", "Назначение платежа", "Разница", "В календаре", "Платеж в календаре",
+                        "Совпадение", "Действие")
+    LIST_HEADERS = ("Дата", "Сумма", "Назначение платежа")
+    HIDDEN_HEADERS = ("Где", "Дата", "Сумма", "Назначение платежа")
+    LINKED_HEADERS = ("В выписке", "Назначение платежа", "Разница", "В календаре", "Платеж в календаре")
     DIFFERENCE_COLUMN = 3
+    CONFIDENCE_COLUMN = 6
+    ACTION_COLUMN = 7
 
     def __init__(self, settings_handler, db_handler, create_event: Callable[[Decimal, date, QDialog], bool],
                  edit_event: Callable[[PaymentEntry, date, QDialog], bool],
@@ -37,6 +63,7 @@ class MatchingDialog(QDialog):
         super(MatchingDialog, self).__init__(parent)
         self.ui = Ui_matchingdialog()
         self.ui.setupUi(self)
+        self.setAcceptDrops(True)
 
         self.sh: SettingsHandler = settings_handler
         self.dbh: DBHandler = db_handler
@@ -46,33 +73,103 @@ class MatchingDialog(QDialog):
 
         self.match_result: ReconciliationResult | None = None
         self.csv_path: str = ""
-        self.hidden: set[str] = set()
+        self.csv_hash: str = ""
+        self.marks: ReconciliationMarks = ReconciliationMarks()
+        self.entries_by_key: dict[str, PaymentEntry] = {}
+        self.refilling: bool = False
 
         self.difference_font: QFont = QFont(self.font())
         self.difference_font.setBold(True)
 
-        self.ui.tw_discrepancies.setColumnCount(len(self.COLUMN_HEADERS))
-        self.ui.tw_discrepancies.setHorizontalHeaderLabels(self.COLUMN_HEADERS)
-        self.ui.tw_discrepancies.horizontalHeaderItem(self.CONFIDENCE_COLUMN).setToolTip("Вероятность совпадения")
-        self.ui.tw_discrepancies.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        header = self.ui.tw_discrepancies.horizontalHeader()
-        header.setStretchLastSection(False)
-        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        for column in self.DESCR_COLUMNS:
-            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(self.BUTTON_COLUMN, QHeaderView.ResizeMode.Fixed)
-        header.resizeSection(self.BUTTON_COLUMN, 90)
-        header.setSectionResizeMode(self.IGNORE_COLUMN, QHeaderView.ResizeMode.Fixed)
-        header.resizeSection(self.IGNORE_COLUMN, 36)
-
-        self.pb_restorehidden = QPushButton("Вернуть скрытые")
-        self.pb_restorehidden.setToolTip("Снова показать все платежи, скрытые вручную")
-        self.pb_restorehidden.setEnabled(False)
-        self.pb_restorehidden.clicked.connect(self.restore_hidden)
-        self.ui.gridLayout.addWidget(self.pb_restorehidden, 3, 0)
+        self.setup_table(self.ui.tw_proposals, self.PROPOSAL_HEADERS, (2, 5), {1: COLOR_STATEMENT, 2: COLOR_STATEMENT,
+                                                                                4: COLOR_CALENDAR, 5: COLOR_CALENDAR})
+        self.setup_table(self.ui.tw_statement, self.LIST_HEADERS, (2,), {1: COLOR_STATEMENT, 2: COLOR_STATEMENT})
+        self.setup_table(self.ui.tw_calendar, self.LIST_HEADERS, (2,), {1: COLOR_CALENDAR, 2: COLOR_CALENDAR})
+        self.setup_table(self.ui.tw_hidden, self.HIDDEN_HEADERS, (3,))
+        self.setup_table(self.ui.tw_linked, self.LINKED_HEADERS, (1, 4), {0: COLOR_STATEMENT, 1: COLOR_STATEMENT,
+                                                                          3: COLOR_CALENDAR, 4: COLOR_CALENDAR})
+        self.ui.tw_proposals.horizontalHeader().setSectionResizeMode(self.ACTION_COLUMN, QHeaderView.ResizeMode.Fixed)
+        self.ui.tw_proposals.horizontalHeader().resizeSection(self.ACTION_COLUMN, 190)
+        for table in (self.ui.tw_proposals, self.ui.tw_statement, self.ui.tw_calendar, self.ui.tw_hidden,
+                      self.ui.tw_linked):
+            copy_shortcut = QShortcut(QKeySequence(QKeySequence.StandardKey.Copy), table)
+            copy_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+            copy_shortcut.activated.connect(partial(self.copy_rows, table))
 
         self.ui.pb_close.clicked.connect(self.close)
         self.ui.pb_opencsv.clicked.connect(self.open_csv)
+        self.ui.pb_refresh.clicked.connect(self.reconcile)
+        self.ui.pb_link.clicked.connect(self.link_selected)
+        self.ui.pb_hide.clicked.connect(self.hide_selected)
+        self.ui.pb_create.clicked.connect(self.create_selected)
+        self.ui.pb_open.clicked.connect(self.open_selected)
+        self.ui.tb_resolved.toggled.connect(self.toggle_resolved)
+        self.ui.pb_unlink.clicked.connect(self.unlink_selected)
+        self.ui.pb_restore.clicked.connect(self.restore_selected)
+        self.ui.pb_restoreall.clicked.connect(self.restore_hidden)
+        self.ui.tw_statement.itemSelectionChanged.connect(self.update_selection_state)
+        self.ui.tw_calendar.itemSelectionChanged.connect(self.update_selection_state)
+        self.ui.tw_linked.itemSelectionChanged.connect(self.update_resolved_buttons)
+        self.ui.tw_hidden.itemSelectionChanged.connect(self.update_resolved_buttons)
+        self.ui.le_searchstatement.textChanged.connect(partial(self.apply_search, self.ui.tw_statement))
+        self.ui.le_searchcalendar.textChanged.connect(partial(self.apply_search, self.ui.tw_calendar))
+
+        self.restore_layout()
+        self.finished.connect(self.save_layout)
+
+    def setup_table(self, table: QTableWidget, headers: tuple[str, ...], stretch_columns: tuple[int, ...],
+                    colors: dict[int, str] | None = None):
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        header = table.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        for column in stretch_columns:
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
+        for column, color in (colors or {}).items():
+            table.horizontalHeaderItem(column).setForeground(QBrush(QColor(color)))
+        palette = table.palette()
+        for role in (QPalette.ColorRole.Highlight, QPalette.ColorRole.HighlightedText):
+            palette.setColor(QPalette.ColorGroup.Inactive, role, palette.color(QPalette.ColorGroup.Active, role))
+        table.setPalette(palette)
+
+    def restore_layout(self):
+        geometry = self.sh.settings.value("Matching/geometry")
+        if geometry:
+            self.restoreGeometry(geometry)
+        self.ui.spl_main.setSizes([300, 400])
+        self.ui.spl_lists.setSizes([1, 1])
+        for splitter, key in ((self.ui.spl_main, "Matching/splitter"), (self.ui.spl_lists, "Matching/listssplitter")):
+            state = self.sh.settings.value(key)
+            if state:
+                splitter.restoreState(state)
+
+    def toggle_resolved(self, checked: bool):
+        self.ui.tab_resolved.setVisible(checked)
+        self.ui.tb_resolved.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
+
+    def save_layout(self):
+        self.sh.settings.setValue("Matching/geometry", self.saveGeometry())
+        self.sh.settings.setValue("Matching/splitter", self.ui.spl_main.saveState())
+        self.sh.settings.setValue("Matching/listssplitter", self.ui.spl_lists.saveState())
+
+    @staticmethod
+    def dropped_csv(event) -> str:
+        for url in event.mimeData().urls():
+            if url.isLocalFile() and url.toLocalFile().lower().endswith(".csv"):
+                return url.toLocalFile()
+        return ""
+
+    def dragEnterEvent(self, event):
+        if self.dropped_csv(event):
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        file_path = self.dropped_csv(event)
+        if file_path:
+            event.acceptProposedAction()
+            self.load_csv(file_path)
 
     def open_csv(self):
         last_path = self.sh.settings.value("CSVparser/lastloadpath")
@@ -81,153 +178,430 @@ class MatchingDialog(QDialog):
             caption="Выберите выписку",
             dir=last_path if last_path and Path(last_path).is_dir() else "",
             filter="Файл выписки в формате CSV (*.csv)", )[0]
-        if not file_path:
-            return
+        if file_path:
+            self.load_csv(file_path)
 
-        self.sh.settings.setValue("CSVparser/lastloadpath", str(Path(file_path).parent))
-        self.csv_path = file_path
-        self.load_hidden()
-        self.reconcile()
-
-    def load_hidden(self):
+    def load_csv(self, file_path: str):
         try:
-            csv_hash = hashlib.sha1(Path(self.csv_path).read_bytes()).hexdigest()
+            csv_hash = hashlib.sha1(Path(file_path).read_bytes()).hexdigest()
         except OSError as exc:
-            log.w(f"Не удалось прочитать CSV-файл для проверки скрытых платежей: {exc}")
-            self.hidden = set()
+            log.w(f"Не удалось прочитать CSV-файл выписки: {exc}")
+            ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}").exec()
             return
-        if self.sh.settings.value("Matching/csvhash") == csv_hash:
-            self.hidden = set(json.loads(self.sh.settings.value("Matching/hidden") or "[]"))
-        else:
-            self.hidden = set()
-            self.sh.settings.setValue("Matching/csvhash", csv_hash)
-            self.save_hidden()
 
-    def save_hidden(self):
-        self.sh.settings.setValue("Matching/hidden", json.dumps(sorted(self.hidden)))
+        previous = self.csv_path, self.csv_hash, self.marks
+        self.csv_path, self.csv_hash = file_path, csv_hash
+        self.marks = self.load_marks()
+        if not self.reconcile():
+            self.csv_path, self.csv_hash, self.marks = previous
+            return
+        self.sh.settings.setValue("CSVparser/lastloadpath", str(Path(file_path).parent))
+        self.ui.lb_file.setText(f"Файл выписки: <b>{Path(file_path).name}</b>")
+        self.ui.lb_file.setToolTip(file_path)
+        self.ui.pb_refresh.setEnabled(True)
 
-    def hide_entries(self, keys: tuple[str, ...]):
-        self.hidden.update(keys)
-        self.save_hidden()
-        self.reconcile()
-
-    def restore_hidden(self):
-        self.hidden.clear()
-        self.save_hidden()
-        self.reconcile()
-
-    def reconcile(self):
+    def read_saved_marks(self) -> dict:
         try:
-            self.match_result = reconcile_statement_with_calendar(self.csv_path, self.dbh, frozenset(self.hidden))
+            saved = json.loads(self.sh.settings.value("Matching/state") or "{}")
+        except ValueError:
+            return {}
+        return saved if isinstance(saved, dict) else {}
+
+    def load_marks(self) -> ReconciliationMarks:
+        saved = self.read_saved_marks().get(self.csv_hash, {})
+        return ReconciliationMarks(set(saved.get("hidden", [])), [tuple(keys) for keys in saved.get("links", [])],
+                                   set(saved.get("rejected", [])))
+
+    def save_marks(self):
+        state = self.read_saved_marks()
+        state.pop(self.csv_hash, None)
+        state[self.csv_hash] = {"hidden": sorted(self.marks.hidden), "links": [list(keys) for keys in self.marks.links],
+                                "rejected": sorted(self.marks.rejected)}
+        while len(state) > SAVED_FILES_LIMIT:
+            del state[next(iter(state))]
+        self.sh.settings.setValue("Matching/state", json.dumps(state))
+
+    def marks_changed(self):
+        self.save_marks()
+        self.reconcile()
+
+    def reconcile(self) -> bool:
+        try:
+            result = reconcile_statement_with_calendar(self.csv_path, self.dbh, self.marks)
         except CSVParseError as exc:
             log.w(f"Не удалось прочитать CSV-файл выписки: {exc}")
             ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}").exec()
-            self.match_result = None
-            return
+            return False
         except Exception as exc:
             log.x(f"Не удалось обработать CSV-файл: {exc}")
             ErrorInfoMessageBox(f"Не удалось обработать CSV-файл: {exc}").exec()
-            self.match_result = None
-            return
-        if self.match_result is None:
+            return False
+        if result is None:
             ErrorInfoMessageBox("В процессе обработки CSV-файла произошла ошибка (см. лог)").exec()
-            self.match_result = None
-            return
+            return False
 
+        self.match_result = result
         self.print_report()
+        return True
 
     def print_report(self):
-        table = self.ui.tw_discrepancies
-        scroll_position = table.verticalScrollBar().value()
+        result = self.match_result
+        tables = (self.ui.tw_proposals, self.ui.tw_statement, self.ui.tw_calendar, self.ui.tw_linked,
+                  self.ui.tw_hidden)
+        scroll_positions = [table.verticalScrollBar().value() for table in tables]
+
+        self.refilling = True
+        self.entries_by_key.clear()
+        self.ui.lb_summary.setText(result.format_summary())
+        self.fill_proposals(result)
+        self.fill_entry_list(self.ui.tw_statement, result.unmatched_statement, COLOR_STATEMENT)
+        self.fill_entry_list(self.ui.tw_calendar, result.unmatched_calendar, COLOR_CALENDAR)
+        self.fill_linked(result.links)
+        self.fill_hidden(result)
+        self.apply_search(self.ui.tw_statement, self.ui.le_searchstatement.text())
+        self.apply_search(self.ui.tw_calendar, self.ui.le_searchcalendar.text())
+        self.refilling = False
+
+        proposals_count = self.ui.tw_proposals.rowCount()
+        self.ui.gb_proposals.setTitle(f"Найденные совпадения ({proposals_count})")
+        self.ui.gb_statement.setTitle(f"Только в выписке ({self.ui.tw_statement.rowCount()})")
+        self.ui.gb_calendar.setTitle(f"Только в календаре ({self.ui.tw_calendar.rowCount()})")
+        self.ui.tab_resolved.setTabText(0, f"Связано вручную ({len(result.links)})")
+        self.ui.tab_resolved.setTabText(1, f"Скрытые ({len(result.hidden_entries)})")
+        self.ui.tb_resolved.setText(f"Связано вручную: {len(result.links)}, скрыто: {len(result.hidden_entries)}")
+        self.ui.pb_restoreall.setEnabled(bool(self.marks.hidden))
+        self.update_selection_state()
+        self.update_resolved_buttons()
+
+        for table, position in zip(tables, scroll_positions):
+            table.verticalScrollBar().setValue(position)
+
+    def set_cell(self, table: QTableWidget, row: int, column: int, text: str, color: str | None = None,
+                 align: Qt.AlignmentFlag | None = None, tooltip: str = "", sort_value=None, key: str | None = None,
+                 background: str | None = None, bold: bool = False):
+        item = QTableWidgetItem(text) if sort_value is None else SortItem(text)
+        if sort_value is not None:
+            item.setData(SORT_ROLE, sort_value)
+        if key is not None:
+            item.setData(KEY_ROLE, key)
+        if tooltip:
+            item.setToolTip(tooltip)
+        if color:
+            item.setForeground(QBrush(QColor(color)))
+        if align:
+            item.setTextAlignment(align)
+        if background:
+            item.setBackground(QBrush(QColor(background)))
+        if bold:
+            item.setFont(self.difference_font)
+        table.setItem(row, column, item)
+
+    def set_descr_cell(self, table: QTableWidget, row: int, column: int, text: str, color: str):
+        shown = shorten(text)
+        self.set_cell(table, row, column, shown, color, tooltip=text if shown != text else "")
+
+    def fill_proposals(self, result: ReconciliationResult):
+        table = self.ui.tw_proposals
         table.setRowCount(0)
-        if self.match_result is None:
-            self.ui.lb_summary.clear()
-            self.pb_restorehidden.setEnabled(False)
-            return
-        self.ui.lb_summary.setText(self.match_result.format_summary())
-        self.pb_restorehidden.setEnabled(bool(self.hidden))
-
-        for d in self.match_result.discrepancies:
+        for d in result.discrepancies:
             for pair in d.probable_pairs:
-                self.add_row(d.fee_date, pair.statement, pair.calendar, pair)
+                self.add_pair_row(pair)
             for group in d.groups:
-                self.add_group(group)
-            for entry in d.only_in_statement:
-                self.add_row(d.fee_date, entry, None)
-            for entry in d.only_in_calendar:
-                self.add_row(d.fee_date, None, entry)
-        table.verticalScrollBar().setValue(scroll_position)
+                self.add_group_row(group)
 
-    def add_row(self, fee_date: date, statement_entry: PaymentEntry | None, calendar_entry: PaymentEntry | None,
-                pair: ProbablePair | None = None, in_group: bool = False):
-        table = self.ui.tw_discrepancies
+    @staticmethod
+    def confidence_text(confidence: float) -> tuple[str, str | None]:
+        if confidence >= CONFIDENCE_HIGH:
+            return "Высокое", COLOR_OK
+        if confidence >= CONFIDENCE_MEDIUM:
+            return "Среднее", COLOR_WARNING
+        return "Низкое", None
+
+    def add_pair_row(self, pair: ProbablePair):
+        table = self.ui.tw_proposals
         row = table.rowCount()
         table.insertRow(row)
+        statement_entry, calendar_entry = pair.statement, pair.calendar
+        sign = "+" if pair.difference > 0 else ""
+        level, level_color = self.confidence_text(pair.confidence)
+        reasons = ", ".join(pair.reasons) or "слабые признаки"
 
-        cells: list[tuple[int, str, str, str | None]] = [(0, fee_date.strftime("%d.%m.%Y"), "", None)]
-        if statement_entry:
-            cells += [(1, dec_strcommaspace(statement_entry.amount), "", COLOR_STATEMENT),
-                      (2, statement_entry.descr, "", COLOR_STATEMENT)]
-        if calendar_entry:
-            cells += [(4, dec_strcommaspace(calendar_entry.amount), "", COLOR_CALENDAR),
-                      (5, calendar_entry.descr, "", COLOR_CALENDAR)]
-        if pair:
-            sign = "+" if pair.difference > 0 else ""
-            cells += [(self.DIFFERENCE_COLUMN, sign + dec_strcommaspace(pair.difference), "", None),
-                      (self.CONFIDENCE_COLUMN, f"{pair.confidence:.0%}", "", None)]
+        self.set_cell(table, row, 0, statement_entry.fee_date.strftime("%d.%m.%Y"))
+        self.set_cell(table, row, 1, dec_strcommaspace(statement_entry.amount), COLOR_STATEMENT, RIGHT_ALIGN)
+        self.set_descr_cell(table, row, 2, statement_entry.descr, COLOR_STATEMENT)
+        self.set_cell(table, row, self.DIFFERENCE_COLUMN, sign + dec_strcommaspace(pair.difference), None, CENTER_ALIGN,
+                      background=COLOR_HEADER_BG, bold=True)
+        self.set_cell(table, row, 4, dec_strcommaspace(calendar_entry.amount), COLOR_CALENDAR, RIGHT_ALIGN)
+        self.set_descr_cell(table, row, 5, calendar_entry.descr, COLOR_CALENDAR)
+        self.set_cell(table, row, self.CONFIDENCE_COLUMN, f"{level}\n{pair.confidence:.0%}", level_color, CENTER_ALIGN,
+                      tooltip=f"Совпало: {reasons}")
+
+        table.setCellWidget(row, self.ACTION_COLUMN, self.make_actions(
+            "Принять сумму",
+            f"Сумма платежа в календаре будет изменена: {dec_strcommaspace(calendar_entry.amount)} → "
+            f"{dec_strcommaspace(statement_entry.amount)}",
+            partial(self.accept_statement_amount, pair),
+            [("Сверено, суммы не менять", partial(self.link_keys, (statement_entry.key, calendar_entry.key))),
+             ("Это не пара", partial(self.reject_proposal, pair.key)),
+             ("Скрыть", partial(self.hide_keys, (statement_entry.key, calendar_entry.key)))]))
+
+    def add_group_row(self, group: RegroupedPayments):
+        table = self.ui.tw_proposals
+        row = table.rowCount()
+        table.insertRow(row)
+        tooltip = "Суммы группы равны, но платежи разбиты по-разному. Проверьте расчёт:\n" + group.explanation
+
+        def lines(entries: list[PaymentEntry]) -> str:
+            return "\n".join(f"{dec_strcommaspace(e.amount)} — {shorten(e.descr)}" for e in entries)
+
+        zero = Decimal("0")
+        self.set_cell(table, row, 0, group.fee_date.strftime("%d.%m.%Y"), tooltip=tooltip)
+        self.set_cell(table, row, 1, dec_strcommaspace(sum((e.amount for e in group.statement), zero)), COLOR_STATEMENT,
+                      RIGHT_ALIGN, tooltip)
+        self.set_cell(table, row, 2, lines(group.statement), COLOR_STATEMENT, tooltip=tooltip)
+        self.set_cell(table, row, self.DIFFERENCE_COLUMN, dec_strcommaspace(zero), None, CENTER_ALIGN, tooltip,
+                      background=COLOR_HEADER_BG, bold=True)
+        self.set_cell(table, row, 4, dec_strcommaspace(sum((e.amount for e in group.calendar), zero)), COLOR_CALENDAR,
+                      RIGHT_ALIGN, tooltip)
+        self.set_cell(table, row, 5, lines(group.calendar), COLOR_CALENDAR, tooltip=tooltip)
+        self.set_cell(table, row, self.CONFIDENCE_COLUMN, "Группа\nсуммы равны", COLOR_OK, CENTER_ALIGN, tooltip)
+
+        keys = tuple(e.key for e in group.statement + group.calendar)
+        table.setCellWidget(row, self.ACTION_COLUMN, self.make_actions(
+            "Сверено",
+            "Считать эти платежи сверенными: группа исчезнет из расхождений (запоминается для этой выписки)",
+            partial(self.link_keys, keys),
+            [("Показать расчёт", partial(self.show_explanation, group.explanation)),
+             ("Это не группа", partial(self.reject_proposal, group.key))]))
+
+    @staticmethod
+    def make_actions(primary_text: str, primary_tooltip: str, primary_slot: Callable,
+                     extra: list[tuple[str, Callable]]) -> QWidget:
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(2)
+        primary = QPushButton(primary_text)
+        primary.setToolTip(primary_tooltip)
+        primary.clicked.connect(primary_slot)
+        layout.addWidget(primary, 1)
+        menu = QMenu(widget)
+        for text, slot in extra:
+            menu.addAction(text).triggered.connect(slot)
+        more = QToolButton()
+        more.setText("Ещё")
+        more.setToolTip("Другие действия с этим совпадением")
+        more.setMenu(menu)
+        more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        more.setMinimumWidth(56)
+        layout.addWidget(more)
+        return widget
+
+    def fill_entry_list(self, table: QTableWidget, entries: list[PaymentEntry], color: str):
+        table.setSortingEnabled(False)
+        table.setRowCount(0)
+        for entry in entries:
+            self.entries_by_key[entry.key] = entry
+            row = table.rowCount()
+            table.insertRow(row)
+            self.set_cell(table, row, 0, entry.fee_date.strftime("%d.%m.%Y"), sort_value=entry.fee_date.toordinal(),
+                          key=entry.key)
+            self.set_cell(table, row, 1, dec_strcommaspace(entry.amount), color, RIGHT_ALIGN,
+                          sort_value=float(entry.amount))
+            self.set_descr_cell(table, row, 2, entry.descr, color)
+        table.setSortingEnabled(True)
+        table.sortByColumn(0, Qt.SortOrder.AscendingOrder)
+
+    def fill_hidden(self, result: ReconciliationResult):
+        table = self.ui.tw_hidden
+        table.setRowCount(0)
+        for entry in result.hidden_entries:
+            self.entries_by_key[entry.key] = entry
+            color = COLOR_STATEMENT if entry.from_statement else COLOR_CALENDAR
+            row = table.rowCount()
+            table.insertRow(row)
+            self.set_cell(table, row, 0, "Выписка" if entry.from_statement else "Календарь", color, key=entry.key)
+            self.set_cell(table, row, 1, entry.fee_date.strftime("%d.%m.%Y"))
+            self.set_cell(table, row, 2, dec_strcommaspace(entry.amount), color, RIGHT_ALIGN)
+            self.set_descr_cell(table, row, 3, entry.descr, color)
+
+    def fill_linked(self, links: list[ManualLink]):
+        table = self.ui.tw_linked
+        table.setRowCount(0)
+
+        def lines(entries: list[PaymentEntry]) -> str:
+            return "\n".join(f"{e.fee_date.strftime('%d.%m.%Y')}  {shorten(e.descr)}" for e in entries)
+
+        def amounts(entries: list[PaymentEntry]) -> str:
+            return "\n".join(dec_strcommaspace(e.amount) for e in entries)
+
+        for link in sorted(links, key=lambda l: min(e.fee_date for e in l.statement + l.calendar)):
+            row = table.rowCount()
+            table.insertRow(row)
+            sign = "+" if link.difference > 0 else ""
+            self.set_cell(table, row, 0, amounts(link.statement), COLOR_STATEMENT, RIGHT_ALIGN,
+                          key=json.dumps(list(link.keys)))
+            self.set_cell(table, row, 1, lines(link.statement), COLOR_STATEMENT)
+            self.set_cell(table, row, 2, sign + dec_strcommaspace(link.difference), None, CENTER_ALIGN,
+                          background=COLOR_HEADER_BG, bold=True)
+            self.set_cell(table, row, 3, amounts(link.calendar), COLOR_CALENDAR, RIGHT_ALIGN)
+            self.set_cell(table, row, 4, lines(link.calendar), COLOR_CALENDAR)
+
+    @staticmethod
+    def search_text(entry: PaymentEntry) -> str:
+        plain = f"{entry.amount:.2f}"
+        return " ".join((entry.fee_date.strftime("%d.%m.%Y"), dec_strcommaspace(entry.amount), plain,
+                         plain.replace(".", ","), entry.descr)).lower()
+
+    def apply_search(self, table: QTableWidget, text: str):
+        query = text.strip().lower()
+        for row in range(table.rowCount()):
+            entry = self.entries_by_key[table.item(row, 0).data(KEY_ROLE)]
+            matches = query in self.search_text(entry)
+            table.setRowHidden(row, not matches)
+            if not matches:
+                table.selectionModel().select(table.model().index(row, 0),
+                                              QItemSelectionModel.SelectionFlag.Deselect
+                                              | QItemSelectionModel.SelectionFlag.Rows)
+        self.update_selection_state()
+
+    def selected_entries(self, table: QTableWidget) -> list[PaymentEntry]:
+        rows = sorted({index.row() for index in table.selectionModel().selectedRows()})
+        return [self.entries_by_key[table.item(row, 0).data(KEY_ROLE)] for row in rows if not table.isRowHidden(row)]
+
+    def update_selection_state(self):
+        if self.refilling:
+            return
+        statement_entries = self.selected_entries(self.ui.tw_statement)
+        calendar_entries = self.selected_entries(self.ui.tw_calendar)
+        zero = Decimal("0")
+        statement_sum = sum((e.amount for e in statement_entries), zero)
+        calendar_sum = sum((e.amount for e in calendar_entries), zero)
+        difference = statement_sum - calendar_sum
+
+        if statement_entries or calendar_entries:
+            difference_color = COLOR_OK if difference == 0 else COLOR_WARNING
+            self.ui.lb_selection.setText(
+                f"Выбрано: в выписке <b>{len(statement_entries)}</b> на <b>{dec_html(statement_sum)}</b>, "
+                f"в календаре <b>{len(calendar_entries)}</b> на <b>{dec_html(calendar_sum)}</b>, "
+                f"разница <b style='color:{difference_color};'>{dec_html(difference)}</b>")
         else:
-            cells.append((self.DIFFERENCE_COLUMN, "", "", None))
+            self.ui.lb_selection.clear()
 
-        for column, text, tooltip, color in cells:
-            item = QTableWidgetItem(text)
-            item.setToolTip(tooltip)
-            if color:
-                item.setForeground(QBrush(QColor(color)))
-            if column in (1, 4, self.CONFIDENCE_COLUMN):
-                item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            elif column == self.DIFFERENCE_COLUMN:
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                item.setBackground(QBrush(QColor(COLOR_HEADER_BG)))
-                item.setFont(self.difference_font)
-            table.setItem(row, column, item)
+        self.ui.pb_link.setEnabled(bool(statement_entries and calendar_entries))
+        self.ui.pb_hide.setEnabled(bool(statement_entries or calendar_entries))
+        can_create = len(statement_entries) == 1 and not calendar_entries
+        self.ui.pb_create.setEnabled(can_create)
+        self.ui.pb_create.setToolTip(
+            "" if not can_create else
+            "Открыть окно создания платежей по комиссиям из этой выписки" if statement_entries[0].fee_category else
+            "Создать в календаре новый платеж с суммой из выписки")
+        self.ui.pb_open.setEnabled(len(calendar_entries) == 1 and not statement_entries
+                                   and calendar_entries[0].event_id is not None)
 
-        if pair or in_group:
-            for column in range(self.BUTTON_COLUMN):
-                if column != self.DIFFERENCE_COLUMN:
-                    if table.item(row, column) is None:
-                        table.setItem(row, column, QTableWidgetItem(""))
-                    table.item(row, column).setBackground(QBrush(QColor(COLOR_PAIR_BG)))
+    def update_resolved_buttons(self):
+        if self.refilling:
+            return
+        self.ui.pb_unlink.setEnabled(bool(self.ui.tw_linked.selectionModel().selectedRows()))
+        self.ui.pb_restore.setEnabled(bool(self.ui.tw_hidden.selectionModel().selectedRows()))
 
-        if pair:
-            button = QPushButton("Исправить")
-            button.setToolTip("Сумма оплаты и сумма платежа в календаре будут изменены на сумму из выписки")
-            button.clicked.connect(partial(self.accept_statement_amount, pair))
-            table.setCellWidget(row, self.BUTTON_COLUMN, button)
-            self.add_ignore_button(row, (pair.statement.key, pair.calendar.key))
-        elif statement_entry and not calendar_entry and not in_group:
-            button = QPushButton("Создать")
-            if statement_entry.fee_category:
-                button.setToolTip("Открыть окно создания платежей по комиссиям из этой выписки")
-                button.clicked.connect(self.make_fee_payments)
-            else:
-                button.setToolTip("Создать в календаре новый платеж с суммой из выписки")
-                button.clicked.connect(partial(self.create_payment, statement_entry.amount, fee_date))
-            table.setCellWidget(row, self.BUTTON_COLUMN, button)
-        elif calendar_entry and not statement_entry and not in_group and calendar_entry.event_id is not None:
-            button = QPushButton("Исправить")
-            button.setToolTip("Открыть окно редактирования этого платежа из календаря")
-            button.clicked.connect(partial(self.edit_calendar_payment, calendar_entry, fee_date))
-            table.setCellWidget(row, self.BUTTON_COLUMN, button)
+    def copy_rows(self, table: QTableWidget):
+        rows = sorted({index.row() for index in table.selectionModel().selectedRows()})
+        lines = ["\t".join(table.item(row, column).text().replace("\n", " ") if table.item(row, column) else ""
+                           for column in range(table.columnCount())) for row in rows]
+        QApplication.clipboard().setText("\n".join(lines))
 
-        if not pair and not in_group:
-            self.add_ignore_button(row, ((statement_entry or calendar_entry).key,))
+    def link_selected(self):
+        statement_entries = self.selected_entries(self.ui.tw_statement)
+        calendar_entries = self.selected_entries(self.ui.tw_calendar)
+        if not (statement_entries and calendar_entries):
+            return
+        zero = Decimal("0")
+        statement_sum = sum((e.amount for e in statement_entries), zero)
+        calendar_sum = sum((e.amount for e in calendar_entries), zero)
+        can_correct = len(statement_entries) == 1 and len(calendar_entries) == 1
 
-    def add_ignore_button(self, row: int, keys: tuple[str, ...]):
-        button = QPushButton()
-        button.setIcon(QIcon(":/designer/icons/remove.svg"))
-        button.setToolTip("Игнорировать: скрыть это расхождение (запоминается для этой выписки)")
-        button.clicked.connect(partial(self.hide_entries, keys))
-        self.ui.tw_discrepancies.setCellWidget(row, self.IGNORE_COLUMN, button)
+        if statement_sum != calendar_sum:
+            choice = self.ask_link_with_difference(statement_sum, calendar_sum, can_correct)
+            if choice is None:
+                return
+            if choice == "correct" and not self.correct_amount(calendar_entries[0], statement_entries[0].amount):
+                return
+        self.link_keys(tuple(e.key for e in statement_entries + calendar_entries))
+
+    def ask_link_with_difference(self, statement_sum: Decimal, calendar_sum: Decimal, can_correct: bool) -> str | None:
+        difference = statement_sum - calendar_sum
+        text = (f"Суммы различаются: в выписке {dec_strcommaspace(statement_sum, add_rub=True)}, "
+                f"в календаре {dec_strcommaspace(calendar_sum, add_rub=True)} "
+                f"(разница {dec_strcommaspace(difference, add_rub=True)}).")
+        box = QMessageBox(QMessageBox.Icon.Question, "Суммы различаются", text, parent=self)
+        correct_button = None
+        if can_correct:
+            correct_button = box.addButton(f"Изменить сумму в календаре на {dec_strcommaspace(statement_sum)}",
+                                           QMessageBox.ButtonRole.AcceptRole)
+        link_button = box.addButton("Связать без изменения сумм", QMessageBox.ButtonRole.AcceptRole)
+        box.addButton("Отмена", QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        if correct_button is not None and box.clickedButton() is correct_button:
+            return "correct"
+        if box.clickedButton() is link_button:
+            return "link"
+        return None
+
+    def correct_amount(self, calendar_entry: PaymentEntry, new_amount: Decimal) -> bool:
+        if not self.dbh.correct_payment_sum(calendar_entry.payment_id, new_amount):
+            ErrorInfoMessageBox("Не удалось изменить сумму платежа (подробнее см. лог)").exec()
+            return False
+        return True
+
+    def show_explanation(self, text: str):
+        ErrorInfoMessageBox(text, is_info=True, parent=self).exec()
+
+    def link_keys(self, keys: tuple[str, ...]):
+        self.marks.links.append(keys)
+        self.marks_changed()
+
+    def reject_proposal(self, key: str):
+        self.marks.rejected.add(key)
+        self.marks_changed()
+
+    def hide_keys(self, keys: tuple[str, ...]):
+        self.marks.hidden.update(keys)
+        self.marks_changed()
+
+    def hide_selected(self):
+        entries = (self.selected_entries(self.ui.tw_statement) + self.selected_entries(self.ui.tw_calendar))
+        if entries:
+            self.hide_keys(tuple(e.key for e in entries))
+
+    def restore_selected(self):
+        table = self.ui.tw_hidden
+        rows = {index.row() for index in table.selectionModel().selectedRows()}
+        self.marks.hidden.difference_update(table.item(row, 0).data(KEY_ROLE) for row in rows)
+        self.marks_changed()
+
+    def restore_hidden(self):
+        self.marks.hidden.clear()
+        self.marks_changed()
+
+    def unlink_selected(self):
+        table = self.ui.tw_linked
+        for index in table.selectionModel().selectedRows():
+            keys = tuple(json.loads(table.item(index.row(), 0).data(KEY_ROLE)))
+            if keys in self.marks.links:
+                self.marks.links.remove(keys)
+        self.marks_changed()
+
+    def create_selected(self):
+        entry = self.selected_entries(self.ui.tw_statement)[0]
+        if entry.fee_category:
+            self.make_fee_payments()
+        else:
+            self.create_payment(entry.amount, entry.fee_date)
+
+    def open_selected(self):
+        entry = self.selected_entries(self.ui.tw_calendar)[0]
+        self.edit_calendar_payment(entry, entry.fee_date)
 
     def create_payment(self, amount: Decimal, fee_date: date):
         self.create_event(amount, fee_date, self)
@@ -241,28 +615,6 @@ class MatchingDialog(QDialog):
         self.create_fees(self.csv_path, self.match_result.fee_totals, self)
         self.reconcile()
 
-    def add_group(self, group: RegroupedPayments):
-        table = self.ui.tw_discrepancies
-        for index in range(max(len(group.statement), len(group.calendar))):
-            self.add_row(group.fee_date,
-                         group.statement[index] if index < len(group.statement) else None,
-                         group.calendar[index] if index < len(group.calendar) else None,
-                         in_group=True)
-
-        row = table.rowCount()
-        table.insertRow(row)
-        table.setSpan(row, 0, 1, self.BUTTON_COLUMN)
-        item = QTableWidgetItem("Суммы группы равны, но платежи разбиты по-разному. Проверьте расчёт:\n"
-                                + group.explanation)
-        item.setBackground(QBrush(QColor(COLOR_PAIR_BG)))
-        table.setItem(row, 0, item)
-        button = QPushButton("Подтвердить")
-        button.setToolTip("Считать эти платежи сверенными: группа исчезнет из расхождений (запоминается для этой выписки)")
-        button.clicked.connect(partial(self.hide_entries, (group.key,)))
-        table.setCellWidget(row, self.BUTTON_COLUMN, button)
-
     def accept_statement_amount(self, pair: ProbablePair):
-        if not self.dbh.correct_payment_sum(pair.calendar.payment_id, pair.statement.amount):
-            ErrorInfoMessageBox("Не удалось изменить сумму платежа (подробнее см. лог)").exec()
-            return
-        self.reconcile()
+        if self.correct_amount(pair.calendar, pair.statement.amount):
+            self.reconcile()
