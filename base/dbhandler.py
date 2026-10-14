@@ -19,7 +19,8 @@ from base.liability import LiabilityCategory, RowType
 from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
 from base.paths import db_path, backup_dir
 from base.payment import Payment, PaymentEntry
-from base.syncdiff import DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, TABLE_DERIVED_COLUMNS
+from base.syncdiff import (DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, KEY_COLUMNS, REFERENCES,
+                           TABLE_DERIVED_COLUMNS, key_sql, table_key)
 from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
@@ -282,72 +283,114 @@ class DBHandler:
         main_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA main.table_info("{table}")')]
         return [column for column in main_columns if column in other_columns]
 
-    def apply_merge(self, target_path: str, source_path: str, plan: MergePlan, event_ids: list[int],
-                    payment_ids: list[int]) -> dict[str, dict[int, int]] | None:
+    def apply_merge(self, target_path: str, source_path: str, plan: MergePlan,
+                    my_changes: DbDiff) -> dict[str, dict[int, int]] | None:
         try:
             with self._file_connection(target_path) as connection:
                 self._file_execute(connection, "ATTACH DATABASE ? AS mine", source_path)
                 self._file_execute(connection, "BEGIN")
-                for table in ("payment", "event"):
+                for table in reversed(DETAILED_TABLES):
                     self._delete_rows(connection, table, plan.deletes.get(table, []))
+                id_maps: dict[str, dict[int, int]] = {}
                 for table in DETAILED_TABLES:
-                    self._update_rows(connection, table, plan.updates.get(table, []))
-                event_map = self._copy_added_rows(connection, "event", event_ids, {})
-                payment_map = self._copy_added_rows(connection, "payment", payment_ids, {"eventid": event_map})
+                    added_ids = [row_id for row_id in my_changes.added_ids(table) if row_id not in plan.skip_added.get(table, [])]
+                    id_maps[table] = self._copy_added_rows(connection, table, added_ids, id_maps)
+                for table in DETAILED_TABLES:
+                    self._update_rows(connection, table, plan.updates.get(table, []), id_maps)
                 self._file_execute(connection, "COMMIT")
-                return {"event": event_map, "payment": payment_map}
+                return id_maps
         except Exception as e:
             log.x(f"Не удалось добавить строки из {source_path} в {target_path}: {e}")
             return None
 
     def _delete_rows(self, connection: str, table: str, ids: list[int]) -> None:
         for row_id in ids:
-            self._file_execute(connection, f'DELETE FROM main."{table}" WHERE id = ?', row_id)
-        if table == "payment" or not ids:
+            self._file_execute(connection, f'DELETE FROM main."{table}" WHERE {key_sql(table, f'main."{table}"')} = ?', row_id)
+        if not ids:
             return
         removed = ", ".join(str(row_id) for row_id in ids)
-        if self._file_execute(connection, f"SELECT COUNT(*) FROM main.payment WHERE eventid IN ({removed})")[0][0]:
-            raise RuntimeError("К удалённым событиям остались привязаны платежи")
+        for child, references in REFERENCES.items():
+            for column, parent in references.items():
+                if parent == table and self._file_execute(connection, f'SELECT COUNT(*) FROM main."{child}" WHERE "{column}" IN ({removed})')[0][0]:
+                    raise RuntimeError(f"К удалённым строкам таблицы {table} остались привязаны строки таблицы {child}")
 
-    def _update_rows(self, connection: str, table: str, updates: list[tuple[int, list[str]]]) -> None:
+    def _update_rows(self, connection: str, table: str, updates: list[tuple[int, list[str]]],
+                     id_maps: dict[str, dict[int, int]]) -> None:
         for row_id, columns in updates:
-            assignments = ", ".join(f'"{column}" = (SELECT "{column}" FROM mine."{table}" WHERE id = ?)' for column in columns)
-            self._file_execute(connection, f'UPDATE main."{table}" SET {assignments} WHERE id = ?', *([row_id] * len(columns)), row_id)
+            fields = ", ".join(f'"{column}"' for column in columns)
+            rows = self._file_execute(connection, f'SELECT {fields} FROM mine."{table}" WHERE {key_sql(table, f'mine."{table}"')} = ?', row_id)
+            if not rows:
+                raise RuntimeError(f"В таблице {table} нет строки с ключом {row_id}")
+            values = dict(zip(columns, rows[0]))
+            self._map_references(connection, table, values, id_maps)
+            assignments = ", ".join(f'"{column}" = ?' for column in columns)
+            self._file_execute(connection, f'UPDATE main."{table}" SET {assignments} WHERE {key_sql(table, f'main."{table}"')} = ?', *values.values(), row_id)
 
-    def _copy_added_rows(self, connection: str, table: str, ids: list[int], references: dict[str, dict[int, int]]) -> dict[int, int]:
+    def _map_references(self, connection: str, table: str, values: dict[str, Any], id_maps: dict[str, dict[int, int]]) -> None:
+        for column, parent in REFERENCES.get(table, {}).items():
+            value = values.get(column)
+            if not value:
+                continue
+            if value in id_maps.get(parent, {}):
+                values[column] = id_maps[parent][value]
+            elif not self._file_execute(connection, f'SELECT 1 FROM main."{parent}" WHERE "{table_key(parent)}" = ?', value):
+                raise RuntimeError(f"Строка таблицы {table} ссылается на отсутствующую строку {value} таблицы {parent}")
+
+    def _copy_added_rows(self, connection: str, table: str, ids: list[int], id_maps: dict[str, dict[int, int]]) -> dict[int, int]:
         columns = self._common_columns(connection, table, "mine")
-        sequence = self._file_execute(connection, "SELECT seq FROM main.sqlite_sequence WHERE name = ?", table)
-        last_id = self._file_execute(connection, f'SELECT MAX(id) FROM main."{table}"')[0][0]
-        next_id = max(int(sequence[0][0]) if sequence else 0, int(last_id or 0)) + 1
+        key = table_key(table)
+        has_own_id = key == "id"
+        next_id = 0
+        if has_own_id:
+            sequence = self._file_execute(connection, "SELECT seq FROM main.sqlite_sequence WHERE name = ?", table)
+            last_id = self._file_execute(connection, f'SELECT MAX("{key}") FROM main."{table}"')[0][0]
+            next_id = max(int(sequence[0][0]) if sequence else 0, int(last_id or 0)) + 1
         fields = ", ".join(f'"{column}"' for column in columns)
         placeholders = ", ".join("?" for _ in columns)
         id_map: dict[int, int] = {}
         for old_id in sorted(ids):
-            rows = self._file_execute(connection, f'SELECT {fields} FROM mine."{table}" WHERE id = ?', old_id)
+            rows = self._file_execute(connection, f'SELECT {fields} FROM mine."{table}" WHERE {key_sql(table, f'mine."{table}"')} = ?', old_id)
             if not rows:
-                raise RuntimeError(f"В таблице {table} нет строки с id {old_id}")
+                raise RuntimeError(f"В таблице {table} нет строки с ключом {old_id}")
             values = dict(zip(columns, rows[0]))
-            for column, mapping in references.items():
-                if values[column] in mapping:
-                    values[column] = mapping[values[column]]
-                elif not self._file_execute(connection, "SELECT 1 FROM main.event WHERE id = ?", values[column]):
-                    raise RuntimeError(f"Строка {old_id} таблицы {table} ссылается на отсутствующее событие {values[column]}")
-            values["id"] = next_id
+            self._map_references(connection, table, values, id_maps)
+            if has_own_id:
+                values[key] = next_id
+                next_id += 1
             self._file_execute(connection, f'INSERT INTO main."{table}" ({fields}) VALUES ({placeholders})', *values.values())
-            id_map[old_id] = next_id
-            next_id += 1
+            id_map[old_id] = values.get(key, old_id)
         return id_map
 
-    def find_merge_warnings(self, path: str, event_ids: list[int], payment_ids: list[int], touched_event_ids: list[int],
+    def find_merge_warnings(self, path: str, added: dict[str, list[int]], touched_event_ids: list[int],
                             touched_payment_ids: list[int]) -> MergeWarnings | None:
         warnings = MergeWarnings()
-        events = ", ".join(str(event_id) for event_id in event_ids) or "NULL"
-        payments = ", ".join(str(payment_id) for payment_id in payment_ids) or "NULL"
-        touched_events = ", ".join(str(event_id) for event_id in touched_event_ids) or "NULL"
-        touched_payments = ", ".join(str(payment_id) for payment_id in touched_payment_ids) or "NULL"
+
+        def id_list(ids: list[int]) -> str:
+            return ", ".join(str(row_id) for row_id in ids) or "NULL"
+
+        contractors, contracts, documents = id_list(added["contractor"]), id_list(added["contract"]), id_list(added["contractdocument"])
+        events, payments = id_list(added["event"]), id_list(added["payment"])
+        touched_events, touched_payments = id_list(touched_event_ids), id_list(touched_payment_ids)
         title = "(SELECT e.receiver || ' — ' || e.name FROM event e WHERE e.id = n.eventid)"
         try:
             with self._file_connection(path) as connection:
+                warnings.duplicate_contractors = self._query_dicts(
+                    connection, ["name"],
+                    f"SELECT n.name FROM contractor n WHERE n.id IN ({contractors}) AND EXISTS ("
+                    f"SELECT 1 FROM contractor o WHERE o.id NOT IN ({contractors}) AND o.name IS n.name) ORDER BY n.id")
+                warnings.duplicate_contracts = self._query_dicts(
+                    connection, ["contractor_name", "name", "date"],
+                    f"SELECT r.name, n.name, n.date FROM contract n LEFT JOIN contractor r ON r.id = n.contractor_id "
+                    f"WHERE n.id IN ({contracts}) AND EXISTS ("
+                    f"SELECT 1 FROM contract o WHERE o.id NOT IN ({contracts}) AND o.contractor_id IS n.contractor_id "
+                    f"AND o.name IS n.name AND o.date IS n.date) ORDER BY n.id")
+                warnings.duplicate_documents = self._query_dicts(
+                    connection, ["contractor_name", "contract_number", "contract_date", "document_name"],
+                    f"SELECT r.name, c.name, c.date, n.document_name FROM contractdocument n "
+                    f"LEFT JOIN contract c ON c.id = n.contract_id LEFT JOIN contractor r ON r.id = c.contractor_id "
+                    f"WHERE n.id IN ({documents}) AND EXISTS ("
+                    f"SELECT 1 FROM contractdocument o WHERE o.id NOT IN ({documents}) AND o.contract_id IS n.contract_id "
+                    f"AND o.document_name IS n.document_name) ORDER BY n.id")
                 warnings.duplicate_events = self._query_dicts(
                     connection, ["receiver", "name", "totalamount", "duedate"],
                     f"SELECT n.receiver, n.name, n.totalamount, n.duedate FROM event n WHERE n.id IN ({events}) AND EXISTS ("
@@ -373,30 +416,49 @@ class DBHandler:
     def _query_dicts(self, connection: str, names: list[str], sql: str) -> list[dict]:
         return [dict(zip(names, row)) for row in self._file_execute(connection, sql)]
 
+    @staticmethod
+    def _derived_fields(table: str, alias: str, schema: str) -> list[str]:
+        def document_fields(document_id: str) -> list[str]:
+            source = (f"FROM {schema}.contractdocument d JOIN {schema}.contract c ON c.id = d.contract_id "
+                      f"LEFT JOIN {schema}.contractor r ON r.id = c.contractor_id WHERE d.id = {document_id}")
+            return [f"(SELECT {column} {source})" for column in ("r.name", "c.name", "c.date", "d.document_name")]
+
+        responsible = f"(SELECT p.name FROM {schema}.personal p WHERE p.id = {alias}.responsible)"
+        if table == "payment":
+            return [f"(SELECT e.receiver || ' — ' || e.name FROM {schema}.event e WHERE e.id = {alias}.eventid)"]
+        if table == "event":
+            return [responsible]
+        if table == "contract":
+            return [f"(SELECT r.name FROM {schema}.contractor r WHERE r.id = {alias}.contractor_id)"]
+        if table == "contractdocument":
+            return document_fields(f"{alias}.id")[:3]
+        if table == "contractpaymentterm":
+            return document_fields(f"{alias}.document_id")
+        if table == "contractsavedvalues":
+            return document_fields(f"{alias}.contractdocumentid") + [responsible]
+        if table in KEY_COLUMNS:
+            return [key_sql(table, alias)]
+        return []
+
     def _read_table_diff(self, connection: str, table: str) -> TableDiff:
         columns = self._common_columns(connection, table)
-        if "id" not in columns:
+        if any(column not in columns for column in KEY_COLUMNS.get(table, (table_key(table),))):
             return TableDiff()
         names = columns + list(TABLE_DERIVED_COLUMNS.get(table, ()))
 
         def select(alias: str, schema: str) -> str:
-            fields = [f'{alias}."{column}"' for column in columns]
-            if table == "payment":
-                fields.append(f"(SELECT e.receiver || ' — ' || e.name FROM {schema}.event e WHERE e.id = {alias}.eventid)")
-            elif table == "event":
-                fields.append(f"(SELECT p.name FROM {schema}.personal p WHERE p.id = {alias}.responsible)")
-            return ", ".join(fields)
+            return ", ".join([f'{alias}."{column}"' for column in columns] + self._derived_fields(table, alias, schema))
 
         def read(sql: str) -> list[list]:
             return self._file_execute(connection, sql)
 
         added = read(f'SELECT {select("n", "main")} FROM main."{table}" n '
-                     f'WHERE n.id NOT IN (SELECT id FROM old."{table}") ORDER BY n.id')
+                     f'WHERE {key_sql(table, "n")} NOT IN (SELECT {key_sql(table, "k")} FROM old."{table}" k) ORDER BY {key_sql(table, "n")}')
         removed = read(f'SELECT {select("o", "old")} FROM old."{table}" o '
-                       f'WHERE o.id NOT IN (SELECT id FROM main."{table}") ORDER BY o.id')
+                       f'WHERE {key_sql(table, "o")} NOT IN (SELECT {key_sql(table, "k")} FROM main."{table}" k) ORDER BY {key_sql(table, "o")}')
         differs = " OR ".join(f'n."{column}" IS NOT o."{column}"' for column in columns)
         changed = read(f'SELECT {select("n", "main")}, {select("o", "old")} FROM main."{table}" n '
-                       f'JOIN old."{table}" o ON n.id = o.id WHERE {differs} ORDER BY n.id')
+                       f'JOIN old."{table}" o ON {key_sql(table, "n")} = {key_sql(table, "o")} WHERE {differs} ORDER BY {key_sql(table, "n")}')
         width = len(names)
         return TableDiff([dict(zip(names, row)) for row in added],
                          [dict(zip(names, row)) for row in removed],
@@ -1235,31 +1297,6 @@ class DBHandler:
         return self._load_id_name_list(
             "SELECT id, document_name FROM contractdocument WHERE contract_id = ?", (contract_id,),
             "Ошибка SQL при попытке получить список документов договора")
-
-    def load_last_contract_id(self, contractor_id: int) -> int | None:
-        if not self.is_db_connected():
-            return None
-        query = QSqlQuery()
-        query.prepare("SELECT lastcontractid FROM contractor WHERE id = ?")
-        query.addBindValue(contractor_id)
-        if not query.exec():
-            log.e(f"Ошибка SQL при попытке получить lastcontractid: {query.lastError().text()}")
-            return None
-        if query.next() and not query.isNull(0):
-            return int(query.value(0))
-        return None
-
-    def save_last_contract_id(self, contractor_id: int, contract_id: int) -> bool:
-        if not self.is_db_connected():
-            return False
-        query = QSqlQuery()
-        query.prepare("UPDATE contractor SET lastcontractid = ? WHERE id = ?")
-        query.addBindValue(contract_id)
-        query.addBindValue(contractor_id)
-        if not query.exec():
-            log.e(f"Ошибка SQL при попытке сохранить lastcontractid: {query.lastError().text()}")
-            return False
-        return True
 
     def load_document_parents(self, document_id: int) -> tuple[int, int] | None:
         if not self.is_db_connected():

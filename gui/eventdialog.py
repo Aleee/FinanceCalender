@@ -29,9 +29,10 @@ class ContractSelector(QObject):
 
     documentIdChanged = Signal(object)
 
-    def __init__(self, db: DBHandler, cmb_contractor: QComboBox, cmb_contract: QComboBox, cmb_document: QComboBox, parent=None):
+    def __init__(self, db: DBHandler, sh: SettingsHandler, cmb_contractor: QComboBox, cmb_contract: QComboBox, cmb_document: QComboBox, parent=None):
         super().__init__(parent)
         self.db = db
+        self.sh = sh
         self.cmb_contractor = cmb_contractor
         self.cmb_contract = cmb_contract
         self.cmb_document = cmb_document
@@ -111,7 +112,7 @@ class ContractSelector(QObject):
             if prefer_contract_id is not None:
                 idx = cmb.findData(prefer_contract_id)
             if idx < 0:
-                last = self.db.load_last_contract_id(contractor_id)
+                last = self.sh.last_contract_id(contractor_id)
                 if last is not None:
                     idx = cmb.findData(last)
             cmb.setCurrentIndex(idx if idx >= 0 else 0)
@@ -127,7 +128,7 @@ class ContractSelector(QObject):
         contract_id = self.cmb_contract.itemData(index)
         contractor_id = self.cmb_contractor.currentData()
         if contract_id is not None and contractor_id is not None:
-            self.db.save_last_contract_id(contractor_id, contract_id)
+            self.sh.set_last_contract_id(contractor_id, contract_id)
         self._reload_documents()
 
     # ---------- комбобокс документов ----------
@@ -292,6 +293,7 @@ class EventDialog(QDialog):
         # self.ui.widget.hide()
 
         self.selector = ContractSelector(self.dbh,
+                                         self.sh,
                                          self.ui.cmb_contractor,
                                          self.ui.cmb_contract,
                                          self.ui.cmb_document,

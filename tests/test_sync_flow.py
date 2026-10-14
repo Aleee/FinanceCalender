@@ -593,7 +593,7 @@ def test_merge_not_done_when_other_table_changed(shared_event, channel):
     machine_a, machine_b = shared_event
     add_event(machine_a, 2, "От первого")
     con = sqlite3.connect(machine_b.file)
-    con.execute("INSERT INTO contractor (id, name) VALUES (1, 'Новый')")
+    con.execute("INSERT INTO department (id, name) VALUES (1, 'Новый')")
     con.commit()
     con.close()
     with machine_a as dbh:
@@ -662,7 +662,10 @@ def test_merge_keeps_changes_for_next_push_when_push_fails(connected, channel, m
 def run_sql(machine: Machine, sql: str, *params) -> None:
     import sqlite3
     con = sqlite3.connect(machine.file)
-    con.execute(sql, params)
+    if params:
+        con.execute(sql, params)
+    else:
+        con.executescript(sql)
     con.commit()
     con.close()
 
@@ -801,3 +804,237 @@ def test_merge_ignores_event_deleted_on_both_sides(shared_event, channel):
     action = sync_both(machine_a, machine_b, channel, "DELETE FROM event WHERE id = 1", "DELETE FROM event WHERE id = 1")
     assert action == SyncAction.MERGE
     assert rows(machine_b, "SELECT COUNT(*) FROM event") == [(0,)]
+
+
+def chain_sql(number: int, contractor: str, term: bool = True) -> str:
+    sql = (f"INSERT INTO contractor (id, name) VALUES ({number}, '{contractor}');"
+           f"INSERT INTO contract (id, contractor_id, name, date) VALUES ({number}, {number}, '1', '2026-02-01');"
+           f"INSERT INTO contractdocument (id, contract_id, document_name) VALUES ({number}, {number}, 'Приложение');")
+    return sql + (f"INSERT INTO contractpaymentterm (document_id, payment_type) VALUES ({number}, 'RELATIVE');" if term else "")
+
+
+CONTRACT_ROWS = {
+    "contractor": "SELECT id, name FROM contractor ORDER BY id",
+    "contract": "SELECT id, contractor_id FROM contract ORDER BY id",
+    "contractdocument": "SELECT id, contract_id FROM contractdocument ORDER BY id",
+    "contractpaymentterm": "SELECT document_id, days_count FROM contractpaymentterm ORDER BY document_id",
+    "contractsavedvalues": "SELECT contractdocumentid, receiver FROM contractsavedvalues ORDER BY contractdocumentid",
+    "event": "SELECT id, contractdocument_id FROM event ORDER BY id",
+}
+
+
+@pytest.fixture
+def shared_contract(connected, channel):
+    machine_a, machine_b = connected
+    run_sql(machine_a, chain_sql(1, "Ромашка") + "INSERT INTO contractdocument (id, contract_id, document_name) VALUES (2, 1, 'Без сроков');")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    return machine_a, machine_b
+
+
+def test_merge_adds_contractor_contract_document_chain_with_new_ids(connected, channel):
+    machine_a, machine_b = connected
+    run_sql(machine_a, chain_sql(1, "Альфа"))
+    run_sql(machine_b, chain_sql(1, "Бета") + "INSERT INTO contractsavedvalues (contractdocumentid, receiver) VALUES (1, 'Бета');"
+                       "INSERT INTO event (id, receiver, name, totalamount, duedate, contractdocument_id) "
+                       "VALUES (1, 'Р', 'Н', '1', '2026-10-15', 1)")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    report = syncmod.SyncReport()
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, report, merge=True) == SyncAction.MERGE
+    assert rows(machine_b, CONTRACT_ROWS["contractor"]) == [(1, "Альфа"), (2, "Бета")]
+    assert rows(machine_b, CONTRACT_ROWS["contract"]) == [(1, 1), (2, 2)]
+    assert rows(machine_b, CONTRACT_ROWS["contractdocument"]) == [(1, 1), (2, 2)]
+    assert rows(machine_b, CONTRACT_ROWS["contractpaymentterm"]) == [(1, 0), (2, 0)]
+    assert rows(machine_b, CONTRACT_ROWS["contractsavedvalues"]) == [(2, "Бета")]
+    assert rows(machine_b, CONTRACT_ROWS["event"]) == [(1, 2)]
+    assert report.warnings.is_empty
+    with machine_a as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    for sql in CONTRACT_ROWS.values():
+        assert rows(machine_a, sql) == rows(machine_b, sql)
+
+
+def test_merge_links_existing_event_to_new_document(shared_event, channel):
+    machine_a, machine_b = shared_event
+    action = sync_both(machine_a, machine_b, channel, chain_sql(1, "Альфа"),
+                       chain_sql(1, "Бета") + "UPDATE event SET contractdocument_id = 1 WHERE id = 1")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, CONTRACT_ROWS["contractdocument"]) == [(1, 1), (2, 2)]
+    assert rows(machine_b, CONTRACT_ROWS["event"]) == [(1, 2)]
+
+
+def test_merge_contractor_rename_and_their_new_contract(shared_contract, channel):
+    machine_a, machine_b = shared_contract
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, "INSERT INTO contract (id, contractor_id, name, date) VALUES (2, 1, '13', '2026-03-01')",
+                       "UPDATE contractor SET name = 'Ромашка плюс' WHERE id = 1", report)
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, CONTRACT_ROWS["contractor"]) == [(1, "Ромашка плюс")]
+    assert rows(machine_b, CONTRACT_ROWS["contract"]) == [(1, 1), (2, 1)]
+    assert [new["name"] for _, new in report.my_changes.tables["contractor"].changed] == ["Ромашка плюс"]
+    assert [row["name"] for row in report.their_changes.tables["contract"].added] == ["13"]
+
+
+def test_conflict_when_contractor_renamed_differently(shared_contract, channel):
+    machine_a, machine_b = shared_contract
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, "UPDATE contractor SET name = 'А' WHERE id = 1",
+                       "UPDATE contractor SET name = 'Б' WHERE id = 1", report)
+    assert action == SyncAction.CONFLICT
+    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Наименование", "Б", "А")]
+
+
+def test_merge_warns_about_duplicate_contractor(connected, channel):
+    machine_a, machine_b = connected
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, chain_sql(1, "Одинаковый"), chain_sql(1, "Одинаковый"), report)
+    assert action == SyncAction.MERGE
+    assert [row["name"] for row in report.warnings.duplicate_contractors] == ["Одинаковый"]
+    assert rows(machine_b, CONTRACT_ROWS["contractor"]) == [(1, "Одинаковый"), (2, "Одинаковый")]
+
+
+def test_merge_warns_about_duplicate_contract(shared_contract, channel):
+    machine_a, machine_b = shared_contract
+    report = syncmod.SyncReport()
+    sql = "INSERT INTO contract (id, contractor_id, name, date) VALUES (2, 1, '13', '2026-03-01')"
+    assert sync_both(machine_a, machine_b, channel, sql, sql, report) == SyncAction.MERGE
+    assert [row["name"] for row in report.warnings.duplicate_contracts] == ["13"]
+    assert rows(machine_b, CONTRACT_ROWS["contract"]) == [(1, 1), (2, 1), (3, 1)]
+
+
+def test_merge_warns_about_duplicate_document(shared_contract, channel):
+    machine_a, machine_b = shared_contract
+    report = syncmod.SyncReport()
+    sql = "INSERT INTO contractdocument (id, contract_id, document_name) VALUES (3, 1, 'Акт')"
+    assert sync_both(machine_a, machine_b, channel, sql, sql, report) == SyncAction.MERGE
+    assert [row["document_name"] for row in report.warnings.duplicate_documents] == ["Акт"]
+    assert rows(machine_b, CONTRACT_ROWS["contractdocument"]) == [(1, 1), (2, 1), (3, 1), (4, 1)]
+
+
+def test_merge_edits_document_and_its_payment_term_separately(shared_contract, channel):
+    machine_a, machine_b = shared_contract
+    action = sync_both(machine_a, machine_b, channel, "UPDATE contractdocument SET description = 'опись' WHERE id = 1",
+                       "UPDATE contractpaymentterm SET days_count = 10 WHERE document_id = 1")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, "SELECT description FROM contractdocument WHERE id = 1") == [("опись",)]
+    assert rows(machine_b, CONTRACT_ROWS["contractpaymentterm"]) == [(1, 10)]
+
+
+def test_conflict_when_payment_term_added_on_both_sides(shared_contract, channel):
+    machine_a, machine_b = shared_contract
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, "INSERT INTO contractpaymentterm (document_id, payment_type) VALUES (2, 'RELATIVE')",
+                       "INSERT INTO contractpaymentterm (document_id, payment_type) VALUES (2, 'FIXED')", report)
+    assert action == SyncAction.CONFLICT
+    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Сроки оплаты", "добавлено", "тоже добавлено")]
+
+
+def test_merge_deletes_document_with_payment_term_removed_by_me(shared_contract, channel):
+    machine_a, machine_b = shared_contract
+    action = sync_both(machine_a, machine_b, channel, NEW_EVENT_2,
+                       "DELETE FROM contractpaymentterm WHERE document_id = 1; DELETE FROM contractdocument WHERE id = 1")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, CONTRACT_ROWS["contractdocument"]) == [(2, 1)]
+    assert rows(machine_b, CONTRACT_ROWS["contractpaymentterm"]) == []
+
+
+def test_conflict_when_contract_added_to_contractor_deleted_in_master(shared_contract, channel):
+    machine_a, machine_b = shared_contract
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel,
+                       "DELETE FROM contractpaymentterm; DELETE FROM contractdocument; DELETE FROM contract; DELETE FROM contractor",
+                       "INSERT INTO contract (id, contractor_id, name, date) VALUES (2, 1, '13', '2026-03-01')", report)
+    assert action == SyncAction.CONFLICT
+    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Договор", "добавлено или изменено", "контрагент удалён")]
+
+
+def test_merge_not_done_when_new_document_refers_to_missing_position(shared_contract, channel):
+    machine_a, machine_b = shared_contract
+    action = sync_both(machine_a, machine_b, channel, NEW_EVENT_2,
+                       "INSERT INTO contractdocument (id, contract_id, document_name, position_id) VALUES (3, 1, 'Акт', 5)")
+    assert action == SyncAction.CONFLICT
+
+
+FINPLAN_ROWS = "SELECT year, category, m1 FROM finplan ORDER BY year, category"
+
+
+@pytest.fixture
+def shared_finplan(connected, channel):
+    machine_a, machine_b = connected
+    run_sql(machine_a, "INSERT INTO finplan (year, category, m1) VALUES (2027, 10000, 100), (2027, 21000, 200), (2028, 10000, 300)")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    return machine_a, machine_b
+
+
+def test_merge_finplan_edit_does_not_block_event_merge(shared_finplan, channel):
+    machine_a, machine_b = shared_finplan
+    action = sync_both(machine_a, machine_b, channel, "UPDATE finplan SET m1 = 150 WHERE year = 2027 AND category = 10000", NEW_EVENT_2)
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, FINPLAN_ROWS) == [(2027, 10000, 150), (2027, 21000, 200), (2028, 10000, 300)]
+    assert rows(machine_b, "SELECT name FROM event") == [("Другое",)]
+
+
+def test_merge_my_finplan_edit_when_other_changed_events(shared_finplan, channel):
+    machine_a, machine_b = shared_finplan
+    action = sync_both(machine_a, machine_b, channel, NEW_EVENT_2, "UPDATE finplan SET m1 = 250 WHERE year = 2027 AND category = 21000")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, FINPLAN_ROWS) == [(2027, 10000, 100), (2027, 21000, 250), (2028, 10000, 300)]
+    with machine_a as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    assert rows(machine_a, FINPLAN_ROWS) == rows(machine_b, FINPLAN_ROWS)
+
+
+def test_conflict_when_same_finplan_cell_changed_differently(shared_finplan, channel):
+    machine_a, machine_b = shared_finplan
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, "UPDATE finplan SET m1 = 1 WHERE year = 2027 AND category = 10000",
+                       "UPDATE finplan SET m1 = 2 WHERE year = 2027 AND category = 10000", report)
+    assert action == SyncAction.CONFLICT
+    assert [(c.title, c.topic, c.mine, c.theirs) for c in report.conflicts] == [
+        ("Финплан 2027: 1. Остаток средств на начало периода", "Январь", "2,00", "1,00")]
+
+
+def test_merge_adds_and_deletes_finplan_year(shared_finplan, channel):
+    machine_a, machine_b = shared_finplan
+    action = sync_both(machine_a, machine_b, channel, "UPDATE finplan SET m1 = 5 WHERE year = 2027 AND category = 21000",
+                       "DELETE FROM finplan WHERE year = 2028; INSERT INTO finplan (year, category, m1) VALUES (2029, 10000, 7)")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, FINPLAN_ROWS) == [(2027, 10000, 100), (2027, 21000, 5), (2029, 10000, 7)]
+
+
+def test_merge_finplan_year_added_on_both_sides_identically(shared_finplan, channel):
+    machine_a, machine_b = shared_finplan
+    insert = "INSERT INTO finplan (year, category, m1) VALUES (2029, 10000, 7)"
+    assert sync_both(machine_a, machine_b, channel, insert, insert) == SyncAction.MERGE
+    assert rows(machine_b, "SELECT COUNT(*) FROM finplan WHERE year = 2029") == [(1,)]
+
+
+def test_conflict_when_finplan_year_added_on_both_sides_differently(shared_finplan, channel):
+    machine_a, machine_b = shared_finplan
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, "INSERT INTO finplan (year, category, m1) VALUES (2029, 10000, 7)",
+                       "INSERT INTO finplan (year, category, m1) VALUES (2029, 10000, 8)", report)
+    assert action == SyncAction.CONFLICT
+    assert [(c.topic, c.mine, c.theirs) for c in report.conflicts] == [("Январь", "8,00", "7,00")]
+
+
+def test_conflict_when_finplan_row_deleted_by_me_and_changed_by_other(shared_finplan, channel):
+    machine_a, machine_b = shared_finplan
+    action = sync_both(machine_a, machine_b, channel, "UPDATE finplan SET m1 = 1 WHERE year = 2028",
+                       "DELETE FROM finplan WHERE year = 2028")
+    assert action == SyncAction.CONFLICT
+
+
+def test_merge_fulfillmentdata_of_different_periods(connected, channel):
+    machine_a, machine_b = connected
+    insert = "INSERT INTO fulfillmentdata (startdate, enddate, \"10000\") VALUES ('{0}-01', '{0}-30', {1})"
+    action = sync_both(machine_a, machine_b, channel, insert.format("2026-06", 10), insert.format("2026-07", 20))
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, "SELECT startdate, \"10000\" FROM fulfillmentdata ORDER BY startdate") == [("2026-06-01", 10), ("2026-07-01", 20)]

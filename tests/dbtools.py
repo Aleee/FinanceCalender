@@ -72,7 +72,8 @@ OTHER_TABLES_DDL = [
     'CREATE TABLE "contract" ("id" INTEGER NOT NULL UNIQUE, "contractor_id" INTEGER, "name" TEXT, "date" TEXT, PRIMARY KEY("id" AUTOINCREMENT))',
     'CREATE TABLE "contractdocument" ("id" INTEGER NOT NULL UNIQUE, "contract_id" INTEGER, "document_type" INTEGER, '
     '"document_name" TEXT, "description" TEXT, "position_id" INTEGER, PRIMARY KEY("id" AUTOINCREMENT))',
-    'CREATE TABLE "contractpaymentterm" ("document_id" INTEGER, "payment_type" TEXT NOT NULL, "days_count" INTEGER DEFAULT 0)',
+    'CREATE TABLE "contractpaymentterm" ("document_id" INTEGER, "payment_type" TEXT NOT NULL, "days_count" INTEGER DEFAULT 0, '
+    '"days_type" TEXT, "has_calendar_condition" BOOLEAN DEFAULT FALSE, "month_day" INTEGER, "month_type" TEXT, PRIMARY KEY("document_id"))',
     'CREATE TABLE "contractsavedvalues" ("contract_id" INTEGER, "category" INTEGER, "subcategory" INTEGER, "name" TEXT, "nds" INTEGER, '
     '"paymenttype" INTEGER, "descr" TEXT, "responsible" INTEGER, "hidden" INTEGER)',
     'CREATE TABLE "personal" ("id" INTEGER NOT NULL, "name" TEXT, "department" INTEGER, "position" INTEGER, "archived" INTEGER, PRIMARY KEY("id"))',

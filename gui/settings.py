@@ -79,6 +79,13 @@ class SettingsHandler:
     def set_fulfillment_highlight(self, enabled: bool) -> None:
         self.settings.setValue("Fulfillment/highlight", int(enabled))
 
+    def last_contract_id(self, contractor_id: int) -> int | None:
+        value = str_int(self.settings.value(f"LastContract/{contractor_id}"), 0)
+        return value or None
+
+    def set_last_contract_id(self, contractor_id: int, contract_id: int) -> None:
+        self.settings.setValue(f"LastContract/{contractor_id}", contract_id)
+
     def paid_load_months(self) -> int:
         return str_int(self.settings.value("Common/paidloadperiod"), 3)
 

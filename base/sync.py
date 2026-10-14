@@ -528,15 +528,13 @@ def merge_into_master(dbh: "DBHandler", channel: SyncChannel, master: MasterInfo
             return False
         merged = Path(folder) / "merged.db"
         shutil.copyfile(downloaded, merged)
-        id_maps = dbh.apply_merge(str(merged), dbh.local_db_path(), plan, my_changes.added_ids("event"),
-                                  my_changes.added_ids("payment"))
+        id_maps = dbh.apply_merge(str(merged), dbh.local_db_path(), plan, my_changes)
         if id_maps is None or not dbh.check_file_integrity(str(merged)):
             return False
-        new_events, new_payments = list(id_maps["event"].values()), list(id_maps["payment"].values())
+        added = {table: list(id_map.values()) for table, id_map in id_maps.items()}
         changed_events = [new_row["id"] for _, new_row in my_changes.tables["event"].changed]
         changed_payments = [new_row["id"] for _, new_row in my_changes.tables["payment"].changed]
-        warnings = dbh.find_merge_warnings(str(merged), new_events, new_payments, new_events + changed_events,
-                                           new_payments + changed_payments)
+        warnings = dbh.find_merge_warnings(str(merged), added, added["event"] + changed_events, added["payment"] + changed_payments)
         save_conflict_copy(dbh)
         if not replace_db_file(dbh, str(merged)):
             raise SyncError("Не удалось заменить локальную копию объединённой базой (подробности см. в логе)")

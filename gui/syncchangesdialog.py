@@ -8,7 +8,10 @@ from base.syncdiff import Conflict, DbDiff, TableDiff, describe_other_table, des
 
 
 class DiffTreeWidget(QTreeWidget):
-    TABLE_TITLES = (("event", "Платежи"), ("payment", "Оплаты"))
+    TABLE_TITLES = (("contractor", "Контрагенты"), ("contract", "Договоры"), ("contractdocument", "Документы договоров"),
+                    ("contractpaymentterm", "Сроки оплаты документов"), ("contractsavedvalues", "Сохранённые значения документов"),
+                    ("event", "Платежи"), ("payment", "Оплаты"), ("finplan", "Финансовый план"),
+                    ("fulfillmentdata", "Данные об исполнении"))
     EXPAND_ALL_LIMIT = 100
 
     def __init__(self, diff: DbDiff, parent: QWidget | None = None):
