@@ -7,6 +7,7 @@ from html import escape
 import lovely_logger as log
 
 from PySide6.QtCore import QDate, QModelIndex, Qt, QTimer
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QDialog, QPlainTextEdit
 
 from base.contract import DocumentTitle, PaymentDueType
@@ -82,6 +83,8 @@ class CopyDocDialog(QDialog):
         self.ui.de_duedate.dateChanged.connect(self.on_duedate_edited)
         self.ui.la_duedatehint.linkActivated.connect(self.apply_due_date)
         self.ui.pb_accept.clicked.connect(self.accept)
+        for key in ("Ctrl+Return", "Ctrl+Enter"):
+            QShortcut(QKeySequence(key), self).activated.connect(self.ui.pb_accept.click)
         self.ui.pb_cancel.clicked.connect(self.reject)
 
         self.recalc_due_date()

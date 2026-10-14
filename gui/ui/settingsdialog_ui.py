@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QCombo
     QHBoxLayout, QLabel, QLineEdit, QListView,
     QListWidget, QListWidgetItem, QPlainTextEdit, QPushButton,
     QRadioButton, QSizePolicy, QSpacerItem, QSpinBox,
-    QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
+    QStackedWidget, QTabWidget, QWidget)
 
 from gui.commonwidgets.colorpushbutton import ColorPushButton
 import resources_rc
@@ -971,19 +971,19 @@ class Ui_settingsdialog(object):
 
         self.gridLayout_25.addWidget(self.gb_updates, 1, 0, 1, 1)
 
-        self.gb_hotkeys = QGroupBox(self.pg_build)
-        self.gb_hotkeys.setObjectName(u"gb_hotkeys")
-        self.verticalLayout_hotkeys = QVBoxLayout(self.gb_hotkeys)
-        self.verticalLayout_hotkeys.setObjectName(u"verticalLayout_hotkeys")
-        self.la_hotkeys = QLabel(self.gb_hotkeys)
-        self.la_hotkeys.setObjectName(u"la_hotkeys")
-        self.la_hotkeys.setTextFormat(Qt.TextFormat.RichText)
-        self.la_hotkeys.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
+        self.horizontalLayout_hotkeys = QHBoxLayout()
+        self.horizontalLayout_hotkeys.setObjectName(u"horizontalLayout_hotkeys")
+        self.pb_hotkeys = QPushButton(self.pg_build)
+        self.pb_hotkeys.setObjectName(u"pb_hotkeys")
 
-        self.verticalLayout_hotkeys.addWidget(self.la_hotkeys)
+        self.horizontalLayout_hotkeys.addWidget(self.pb_hotkeys)
+
+        self.horizontalSpacer_hotkeys = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_hotkeys.addItem(self.horizontalSpacer_hotkeys)
 
 
-        self.gridLayout_25.addWidget(self.gb_hotkeys, 2, 0, 1, 1)
+        self.gridLayout_25.addLayout(self.horizontalLayout_hotkeys, 2, 0, 1, 1)
 
         self.verticalSpacer_10 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -1176,7 +1176,7 @@ class Ui_settingsdialog(object):
         self.gb_updates.setTitle(QCoreApplication.translate("settingsdialog", u"\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f", None))
         self.la_updatestatus.setText(QCoreApplication.translate("settingsdialog", u"<status>", None))
         self.pb_checkupdates.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0441\u0435\u0439\u0447\u0430\u0441", None))
-        self.gb_hotkeys.setTitle(QCoreApplication.translate("settingsdialog", u"\u0413\u043e\u0440\u044f\u0447\u0438\u0435 \u043a\u043b\u0430\u0432\u0438\u0448\u0438", None))
+        self.pb_hotkeys.setText(QCoreApplication.translate("settingsdialog", u"\u0413\u043e\u0440\u044f\u0447\u0438\u0435 \u043a\u043b\u0430\u0432\u0438\u0448\u0438...", None))
 
         __sortingEnabled = self.lw_menu.isSortingEnabled()
         self.lw_menu.setSortingEnabled(False)

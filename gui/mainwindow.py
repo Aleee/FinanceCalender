@@ -415,6 +415,8 @@ class MainWindow(QMainWindow):
     def _init_toolbar_sync(self) -> None:
         self.act_sync_now = QAction("Синхронизировать сейчас", self)
         self.act_sync_settings = QAction("Настройки синхронизации...", self)
+        self.act_sync_now.setShortcut(QKeySequence("F5"))
+        self.addAction(self.act_sync_now)
         sync_menu = QMenu(self)
         sync_menu.addAction(self.act_sync_now)
         sync_menu.addAction(self.act_sync_settings)
@@ -725,6 +727,20 @@ class MainWindow(QMainWindow):
                           ("Ctrl+R", self.reset_filters),
                           ("Ctrl+S", self.save_note)):
             QShortcut(QKeySequence(key), self).activated.connect(slot)
+        # Поиск: Esc очищает поле, Enter и стрелка вниз переводят в таблицу
+        search_shortcuts = ((Qt.Key.Key_Escape, self.ui.le_search.clear),
+                            (Qt.Key.Key_Down, self.ui.trw_event.setFocus))
+        for key, slot in search_shortcuts:
+            search_shortcut = QShortcut(QKeySequence(key), self.ui.le_search)
+            search_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+            search_shortcut.activated.connect(slot)
+        self.ui.le_search.returnPressed.connect(self.ui.trw_event.setFocus)
+        # Оплата с клавиатуры: Enter в полях даты и суммы, Del в истории оплат
+        self.ui.dsb_paymentsum.lineEdit().returnPressed.connect(self.ui.pb_addpayment.click)
+        self.ui.de_paymentdate.lineEdit().returnPressed.connect(self.ui.pb_addpayment.click)
+        delete_payment_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Delete), self.ui.tv_payment)
+        delete_payment_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        delete_payment_shortcut.activated.connect(self.ui.pb_deletepayment.click)
         # Начальное состояние: в таблице ничего не выбрано
         for element in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete,
                         self.ui.pb_addpayment, self.ui.pb_deletepayment, self.ui.tb_savenote):

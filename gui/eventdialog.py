@@ -4,7 +4,7 @@ from datetime import date
 import lovely_logger as log
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QObject, Signal, QTimer
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QCheckBox, QDialog, QButtonGroup, QCompleter, QLineEdit, QMenu, QToolButton, QComboBox
 from decimal import Decimal
 
@@ -235,6 +235,8 @@ class EventDialog(QDialog):
         self.ui.pb_savevalues.clicked.connect(self.save_contract_values)
         self.ui.tb_unbindcontract.clicked.connect(self.unbind_contract)
         self.ui.pb_accept.clicked.connect(self.accept)
+        for key in ("Ctrl+Return", "Ctrl+Enter"):
+            QShortcut(QKeySequence(key), self).activated.connect(self.ui.pb_accept.click)
         self.ui.pb_cancel.clicked.connect(self.reject)
 
         self.chb_statement: QCheckBox | None = None

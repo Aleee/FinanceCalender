@@ -53,17 +53,6 @@ class SettingsDialog(QDialog):
         3: 999,
     }
 
-    HOTKEYS = (
-        ("Ctrl+N", "Новый платеж"),
-        ("Ctrl+D", "Копировать платеж"),
-        ("Ctrl+Shift+D", "Быстрая копия привязанного платежа"),
-        ("F2", "Редактировать платеж (или двойной клик)"),
-        ("Del", "Удалить платеж"),
-        ("Ctrl+E", "Экспорт"),
-        ("Ctrl+F", "Поиск по платежам"),
-        ("Ctrl+R", "Сбросить все фильтры"),
-    )
-
     MENU_ROW_CSV: int = 3
     MENU_ROW_PERSONAL: int = 4
     MENU_ROW_STORAGE: int = 5
@@ -145,7 +134,6 @@ class SettingsDialog(QDialog):
         self.ui.cmb_csv_responsible.setModel(self.responsible_proxy_model)
         self.ui.cmb_csv_responsible.setModelColumn(PersonalCol.NAME)
         # Информация
-        self.fill_hotkeys_info()
         self.prepare_updatesection()
         app = QApplication.instance()
         self.ui.la_buildnumber.setText(f"Сборка {app.app_version}")
@@ -203,13 +191,6 @@ class SettingsDialog(QDialog):
             lambda: self.on_personallist_current_change(QModelIndex(), QModelIndex()))
         if self.ui.lv_personal.model().rowCount() > 0:
             self.ui.lv_personal.setCurrentIndex(self.ui.lv_personal.model().index(0, PersonalCol.NAME, QModelIndex()))
-
-    def fill_hotkeys_info(self) -> None:
-        rows: list[str] = []
-        for keys, description in self.HOTKEYS:
-            rows.append(f"<tr><td style='background-color: #ffffff; color: #2c5c8a;'>&nbsp;<b>{keys}</b>&nbsp;</td>"
-                        f"<td style='padding-left: 8px;'>{description}</td></tr>")
-        self.ui.la_hotkeys.setText(f"<table cellspacing='3' cellpadding='2'>{''.join(rows)}</table>")
 
     def prepare_updatesection(self) -> None:
         self.update_checker: Optional[UpdateChecker] = getattr(QApplication.instance(), "update_checker", None)
