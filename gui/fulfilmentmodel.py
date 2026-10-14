@@ -25,6 +25,15 @@ class TablePalette:
     high1: QColor = field(default_factory=lambda: QColor("#d4babf"))
     high2: QColor = field(default_factory=lambda: QColor("#d6b1b6"))
     high3: QColor = field(default_factory=lambda: QColor("#da9fa4"))
+    base1_green: QColor = field(default_factory=lambda: QColor("#e8f5e9"))
+    base2_green: QColor = field(default_factory=lambda: QColor("#dcf0dd"))
+    base3_green: QColor = field(default_factory=lambda: QColor("#cfeacf"))
+    mid1_green: QColor = field(default_factory=lambda: QColor("#d6e9d9"))
+    mid2_green: QColor = field(default_factory=lambda: QColor("#cde4d0"))
+    mid3_green: QColor = field(default_factory=lambda: QColor("#c2dec6"))
+    high1_green: QColor = field(default_factory=lambda: QColor("#bcd5c1"))
+    high2_green: QColor = field(default_factory=lambda: QColor("#b2cdb7"))
+    high3_green: QColor = field(default_factory=lambda: QColor("#a5c5ab"))
 
 
 class TreeItem:
@@ -132,6 +141,8 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
     spanRole = Qt.ItemDataRole.UserRole + 1
     internalValueRole = Qt.ItemDataRole.UserRole + 2
 
+    BALANCE_CATEGORIES = (10000, 40000)
+
     NORMAL_CUTPOINT: float = 1.1
     HIGH_CUTPOINT: float = 1.3
     VERYHIGH_CUTPOINT: float = 1.5
@@ -140,6 +151,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
         super(FulfilmentModel, self).__init__(parent)
         self.rootItem = None
         self.fulfillment_mode: bool = True
+        self.highlight_enabled: bool = True
         self.categories = list(self.FULFILLMENT_STRUCTURE.keys())
         self.payments_categories = list(key for key in self.FULFILLMENT_STRUCTURE.keys() if key // 10000 == 3)
         self.plt = TablePalette()
@@ -151,6 +163,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
             self.rootItem = TreeItem(("#", "Виды поступлений и расходов", "Сумма", "Сумма без НДС"))
         self.fulfillment_mode = is_fulfillment
         if is_fulfillment:
+            plan_values = plan_values or {}
             # Заполнение заголовочных строк
             factuals: dict = self.calculate_factuals(payments, inflow_values)
             for categorie, data in self.FULFILLMENT_STRUCTURE.items():
@@ -158,7 +171,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
                     plan_value = plan_values[categorie]
                 except KeyError:
                     plan_value = None
-                if plan_value is not None:
+                if plan_value is not None and categorie not in self.BALANCE_CATEGORIES:
                     deviation = factuals[categorie] - plan_value
                     if plan_value != 0:
                         fulfillment = factuals[categorie] / plan_value
@@ -254,6 +267,7 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
             factuals_dict[mapped_category] += amount
 
         self.aggregate_totals(factuals_dict)
+        factuals_dict[40000] = factuals_dict[10000] + factuals_dict[20000] - factuals_dict[30000]
 
         return {key: int(Decimal(value).to_integral_value(rounding=ROUND_HALF_UP)) for key, value in factuals_dict.items()}
 
@@ -324,41 +338,43 @@ class FulfilmentModel(QtCore.QAbstractItemModel):
         elif role == Qt.ItemDataRole.BackgroundRole:
             if index.parent() == QModelIndex():
                 categorie: int = index.internalPointer().categorie
-                if self.fulfillment_mode:
-                    fulfilment_value: float | None = index.internalPointer().itemData[5]
-                else:
-                    fulfilment_value: float | None = None
-                if self.categorie_level(categorie) == 2:
-                    if not self.fulfillment_mode or fulfilment_value is None or fulfilment_value <= self.NORMAL_CUTPOINT:
-                        return self.plt.high
-                    elif fulfilment_value < self.HIGH_CUTPOINT:
-                        return self.plt.high1
-                    elif fulfilment_value < self.VERYHIGH_CUTPOINT:
-                        return self.plt.high2
-                    else:
-                        return self.plt.high3
-                elif self.categorie_level(categorie) == 1:
-                    if not self.fulfillment_mode or fulfilment_value is None or fulfilment_value <= self.NORMAL_CUTPOINT:
-                        return self.plt.mid
-                    elif fulfilment_value < self.HIGH_CUTPOINT:
-                        return self.plt.mid1
-                    elif fulfilment_value < self.VERYHIGH_CUTPOINT:
-                        return self.plt.mid2
-                    else:
-                        return self.plt.mid3
-                else:
-                    if not self.fulfillment_mode or fulfilment_value is None or fulfilment_value <= self.NORMAL_CUTPOINT:
-                        return self.plt.base
-                    elif fulfilment_value < self.HIGH_CUTPOINT:
-                        return self.plt.base1
-                    elif fulfilment_value < self.VERYHIGH_CUTPOINT:
-                        return self.plt.base2
-                    else:
-                        return self.plt.base3
+                fulfilment_value: float | None = None
+                if self.fulfillment_mode and self.highlight_enabled:
+                    fulfilment_value = index.internalPointer().itemData[5]
+                return self.row_shades(self.categorie_level(categorie), categorie // 10000 == 2)[self.highlight_step(fulfilment_value)]
             else:
                 return None
         else:
             return None
+
+    def highlight_step(self, fulfilment_value: float | None) -> int:
+        if fulfilment_value is None or fulfilment_value <= self.NORMAL_CUTPOINT:
+            return 0
+        elif fulfilment_value < self.HIGH_CUTPOINT:
+            return 1
+        elif fulfilment_value < self.VERYHIGH_CUTPOINT:
+            return 2
+        else:
+            return 3
+
+    def row_shades(self, level: int, is_income: bool) -> tuple[QColor, QColor, QColor, QColor]:
+        plt = self.plt
+        if is_income:
+            shades = ((plt.base, plt.base1_green, plt.base2_green, plt.base3_green),
+                      (plt.mid, plt.mid1_green, plt.mid2_green, plt.mid3_green),
+                      (plt.high, plt.high1_green, plt.high2_green, plt.high3_green))
+        else:
+            shades = ((plt.base, plt.base1, plt.base2, plt.base3),
+                      (plt.mid, plt.mid1, plt.mid2, plt.mid3),
+                      (plt.high, plt.high1, plt.high2, plt.high3))
+        return shades[level]
+
+    def set_highlight_enabled(self, enabled: bool) -> None:
+        self.highlight_enabled = enabled
+        row_count = self.rowCount(QModelIndex())
+        if row_count:
+            self.dataChanged.emit(self.index(0, 0, QModelIndex()), self.index(row_count - 1, self.columnCount(QModelIndex()) - 1, QModelIndex()),
+                                  [Qt.ItemDataRole.BackgroundRole])
 
     def flags(self, index):
         if not index.isValid():

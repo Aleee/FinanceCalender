@@ -203,9 +203,9 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
         raise CSVParseError("В файле не найдена строка с периодом выписки")
 
     for transaction_date, total in income_fee_totals.items():
-        payments.add(transaction_date, total, "Комиссии в поступлениях", fee_category=LiabilityCategory.BANKING)
+        payments.add(transaction_date, total, "Комиссии, относимые на банковские расходы", fee_category=LiabilityCategory.BANKING)
     for transaction_date, total in outgoing_fee_totals.items():
-        payments.add(transaction_date, total, "Комиссии к уплате", fee_category=LiabilityCategory.COMMISSION)
+        payments.add(transaction_date, total, "Комиссии, относимые на комиссионные расходы", fee_category=LiabilityCategory.COMMISSION)
     for transaction_date, total in payroll_totals.items():
         payments.add(transaction_date, total, PAYROLL_DESCRIPTION)
     for transaction_date, total in contract_tax_totals.items():

@@ -499,7 +499,7 @@ class LiabilityXlsWriter(BaseXlsWriter):
             model_atlevel(-1, self.model).set_hidden_filter(False)
         ###############################
 
-        if str_bool(self.settings_handler.settings.value("Export/frozenheader")):
+        if str_bool(self.settings_handler.settings.value("Export/frozenheader", 1)):
             worksheet.freeze_panes(self.HEADER_ROWS_NUMBER, 0)
 
         self._close_workbook(workbook, worksheet)

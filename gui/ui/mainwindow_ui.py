@@ -631,7 +631,7 @@ class Ui_MainWindow(object):
 #endif // QT_CONFIG(shortcut)
         self.act_finplan.setText(QCoreApplication.translate("MainWindow", u"\u0424\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u044b\u0439 \u043f\u043b\u0430\u043d", None))
 #if QT_CONFIG(tooltip)
-        self.act_finplan.setToolTip(QCoreApplication.translate("MainWindow", u"\u0424\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u044b\u0439 \u043f\u043b\u0430\u043d (\u041f\u041a\u041c: \u0432\u044b\u0431\u043e\u0440 \u0433\u043e\u0434\u0430)", None))
+        self.act_finplan.setToolTip(QCoreApplication.translate("MainWindow", u"\u0424\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u044b\u0439 \u043f\u043b\u0430\u043d", None))
 #endif // QT_CONFIG(tooltip)
         self.act_fulfillment.setText(QCoreApplication.translate("MainWindow", u"\u0418\u0441\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0444\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u043e\u0433\u043e \u043f\u043b\u0430\u043d\u0430", None))
         self.act_featured.setText(QCoreApplication.translate("MainWindow", u"\u041d\u0430 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u0435", None))

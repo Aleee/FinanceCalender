@@ -1028,7 +1028,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
     <string>Финансовый план</string>
    </property>
    <property name="toolTip">
-    <string>Финансовый план (ПКМ: выбор года)</string>
+    <string>Финансовый план</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

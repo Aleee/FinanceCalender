@@ -718,7 +718,7 @@ class MatchingDialog(QDialog):
         text = (f"Сумма платежа в календаре будет изменена: {dec_strcommaspace(pair.calendar.amount, add_rub=True)} → "
                 f"{dec_strcommaspace(pair.statement.amount, add_rub=True)}")
         if pair.calendar.event_id is not None:
-            text += " Сумма связанного обязательства изменится на ту же разницу."
+            text += " Сумма связанного платежа изменится на ту же разницу."
         if YesNoMessagebox(f"{text}\nПродолжить?", self).exec() != YesNoMessagebox.YES_RETURN_VALUE:
             return
         if self.correct_amount(pair.calendar, pair.statement.amount):

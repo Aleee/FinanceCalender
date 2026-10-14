@@ -549,7 +549,7 @@ class DBHandler:
         query.prepare("DELETE FROM payment WHERE eventid = ?")
         query.addBindValue(event_id)
         if not query.exec():
-            log.e(f"Ошибка SQL при попытке удалить платежи обязательства {event_id}: {query.lastError().text()}")
+            log.e(f"Ошибка SQL при попытке удалить оплаты платежа {event_id}: {query.lastError().text()}")
             return False
         return True
 
@@ -919,7 +919,7 @@ class DBHandler:
             query.addBindValue(str(old_total + new_sum - old_sum))
             query.addBindValue(event_id)
             if not query.exec():
-                log.e(f"Ошибка SQL при попытке изменить сумму обязательства {event_id}: {query.lastError().text()}")
+                log.e(f"Ошибка SQL при попытке изменить сумму платежа {event_id}: {query.lastError().text()}")
                 return False
             return True
 

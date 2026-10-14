@@ -87,7 +87,7 @@ def test_other_counterparty_is_not_paired():
 
 
 def test_entries_without_receiver_are_not_paired():
-    pairs, _, _ = _pair_probable_matches([entry("1156.92", "", "Комиссии в поступлениях")],
+    pairs, _, _ = _pair_probable_matches([entry("1156.92", "", "Комиссии, относимые на банковские расходы")],
                                          [entry("1150.00", "", "Комиссии")])
     assert pairs == []
 

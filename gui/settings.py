@@ -73,6 +73,12 @@ class SettingsHandler:
     def sync_backup_interval_minutes(self) -> int:
         return str_int(self.settings.value("Sync/backupintervalminutes"), 30)
 
+    def fulfillment_highlight(self) -> bool:
+        return str_bool(self.settings.value("Fulfillment/highlight"), True)
+
+    def set_fulfillment_highlight(self, enabled: bool) -> None:
+        self.settings.setValue("Fulfillment/highlight", int(enabled))
+
     def paid_load_months(self) -> int:
         return str_int(self.settings.value("Common/paidloadperiod"), 3)
 
