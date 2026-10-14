@@ -771,9 +771,9 @@ class SettingsDialog(QDialog):
         self.ui.stw.setCurrentIndex(self.MENU_PAGES[self.ui.lw_menu.row(current_item)])
 
     def request_restore_backup(self) -> bool:
-        msg_box = YesNoMessagebox("Обратите внимание, что данные текущей сессии будут заменены выбранными и в результате полностью утрачены. "
-                                  "Последней сохраненной резервной копией будет копия, созданная при последнем запуске приложения (при условии, что резервное "
-                                  "копирование было выполнено успешно). Уверены, что хотите продолжить?", self)
+        msg_box = YesNoMessagebox("Обратите внимание, что данные текущей сессии будут заменены выбранными. "
+                                  "Перед заменой программа сохранит копию текущих данных "
+                                  "(файл «before_restore_…» в папке data/backup). Уверены, что хотите продолжить?", self)
         if msg_box.exec() != YesNoMessagebox.YES_RETURN_VALUE:
             return False
         backup_folder = self.settings_handler.backup_path()

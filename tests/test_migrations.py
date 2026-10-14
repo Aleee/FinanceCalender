@@ -222,7 +222,7 @@ def test_restore_backup_from_old_version(dbh, work_db_path, tmp_path):
     assert not (work_db_path.parent / "db_restore_temp.db").exists()
 
 
-def test_restore_backup_failure_keeps_working_db(dbh, work_db_path, tmp_path):
+def test_restore_backup_failure_keeps_working_db(dbh, work_db_path, backup_folder, tmp_path):
     create_db(work_db_path, CLIENT_VERSION, {"marker": "current session"})
     dbh.open_db_connection()
     garbage = tmp_path / "garbage.db"
@@ -232,3 +232,16 @@ def test_restore_backup_failure_keeps_working_db(dbh, work_db_path, tmp_path):
     dbh.db.close()
     assert read_meta(work_db_path)["marker"] == "current session"
     assert not (work_db_path.parent / "db_restore_temp.db").exists()
+    assert not list(backup_folder.glob("before_restore_*.db"))
+
+
+def test_restore_backup_saves_copy_of_current_db(dbh, work_db_path, backup_folder, tmp_path):
+    create_db(work_db_path, CLIENT_VERSION, {"marker": "current session"})
+    dbh.open_db_connection()
+    backup = create_db(tmp_path / "backup.db", CLIENT_VERSION, {"marker": "from backup"})
+    assert restore_backup(dbh, str(backup))
+    dbh.db.close()
+    assert read_meta(work_db_path)["marker"] == "from backup"
+    copies = list(backup_folder.glob("before_restore_*.db"))
+    assert len(copies) == 1
+    assert read_meta(copies[0])["marker"] == "current session"

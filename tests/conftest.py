@@ -46,6 +46,7 @@ def dbh(shared_dbh, tmp_path: Path, work_db_path: Path, backup_folder: Path, mon
     monkeypatch.setattr(dbmod, "db_path", lambda: str(work_db_path))
     monkeypatch.setattr(dbmod, "backup_dir", lambda: str(backup_folder))
     monkeypatch.setattr(backupmod, "db_path", lambda: str(work_db_path))
+    monkeypatch.setattr(backupmod, "backup_dir", lambda: str(backup_folder))
     monkeypatch.setattr(dbmod, "MIGRATIONS", dict(MIGRATIONS))
     monkeypatch.setattr(shared_dbh, "DB_VERSION", dbmod.DBHandler.DB_VERSION)
     shared_dbh.settings_handler = FakeSettingsHandler(tmp_path / "settings.ini")

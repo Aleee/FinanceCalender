@@ -6,10 +6,10 @@ from PySide6.QtCore import QDateTime, QDate
 from PySide6.QtSql import QSqlDatabase
 
 from base.dbhandler import DBHandler
-from base.paths import db_path
+from base.paths import db_path, backup_dir
 from gui.settings import SettingsHandler
 
-BACKUP_FILE_PREFIXES = ("backup_", "before_sync_")
+BACKUP_FILE_PREFIXES = ("backup_", "before_sync_", "before_restore_")
 
 
 def save_backup(sh: SettingsHandler, dbh: DBHandler) -> QDateTime:
@@ -64,12 +64,25 @@ def restore_backup(dbh: DBHandler, db_file_path: str) -> bool:
         dbh.open_db_connection()
         return False
     try:
+        if not save_pre_restore_copy(dbh):
+            dbh.open_db_connection()
+            return False
         if not replace_db_file(dbh, migrated_path):
             return False
     finally:
         Path(migrated_path).unlink(missing_ok=True)
     log.i(f"База данных восстановлена из файла {db_file_path}")
     return True
+
+
+def save_pre_restore_copy(dbh: DBHandler) -> bool:
+    copy_path: Path = Path(backup_dir()) / ("before_restore_" + QDateTime.currentDateTime().toString("yyyyMMdd-hhmmss") + ".db")
+    try:
+        copy_path.unlink(missing_ok=True)
+    except OSError as e:
+        log.x(f"Не удалось заменить существующую копию перед восстановлением {copy_path}: {e}")
+        return False
+    return dbh.copy_db_file(str(copy_path))
 
 
 def replace_db_file(dbh: DBHandler, db_file_path: str) -> bool:
