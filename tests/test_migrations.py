@@ -94,6 +94,7 @@ def test_migrate_sql_error_rolls_back_everything(dbh, work_db_path, migrations):
                      "INSERT INTO meta (key, value) VALUES ('key3', 'y')",
                      "INSERT INTO no_such_table VALUES (1)"]
     assert not dbh.migrate_db()
+    assert dbh.migration_failed
     assert read_version(db) == 2
     assert "col3" not in table_columns(db, "event")
     assert "key3" not in read_meta(db)
@@ -107,6 +108,7 @@ def test_migrate_function_error_rolls_back_everything(dbh, work_db_path, migrati
     db = create_db(work_db_path, 2)
     migrations[3] = ["ALTER TABLE event ADD COLUMN col3 TEXT", broken]
     assert not dbh.migrate_db()
+    assert dbh.migration_failed
     assert read_version(db) == 2
     assert "col3" not in table_columns(db, "event")
     assert "half_done" not in read_meta(db)
@@ -126,10 +128,60 @@ def test_migrate_refuses_db_newer_than_client(dbh, work_db_path, backup_folder):
     assert not any(backup_folder.iterdir())
 
 
+def test_is_db_newer_than_client(dbh, work_db_path):
+    create_db(work_db_path, CLIENT_VERSION + 1)
+    assert dbh.is_db_newer_than_client()
+    assert not dbh.is_db_connected()
+    assert read_version(work_db_path) == CLIENT_VERSION + 1
+
+
+@pytest.mark.parametrize("version", [CLIENT_VERSION - 1, CLIENT_VERSION])
+def test_is_db_newer_than_client_false_for_current_and_older(dbh, work_db_path, version):
+    create_db(work_db_path, version)
+    assert not dbh.is_db_newer_than_client()
+
+
+def test_is_db_newer_than_client_false_for_garbage(dbh, work_db_path):
+    work_db_path.parent.mkdir(parents=True)
+    work_db_path.write_bytes(b"this is not a sqlite database" * 100)
+    assert not dbh.is_db_newer_than_client()
+
+
 def test_migrate_garbage_file_returns_false(dbh, work_db_path):
     work_db_path.parent.mkdir(parents=True)
     work_db_path.write_bytes(b"this is not a sqlite database" * 100)
     assert not dbh.migrate_db()
+    assert not dbh.migration_failed
+
+
+def test_migrate_failure_flag_is_not_set_for_success_current_and_newer(dbh, work_db_path):
+    create_db(work_db_path, 1)
+    assert dbh.migrate_db()
+    assert not dbh.migration_failed
+    assert dbh.migrate_db()
+    assert not dbh.migration_failed
+    dbh.DB_VERSION = CLIENT_VERSION - 1
+    assert not dbh.migrate_db()
+    assert not dbh.migration_failed
+
+
+def test_migrate_failure_flag_is_reset_by_next_successful_run(dbh, work_db_path, migrations):
+    create_db(work_db_path, 2)
+    saved_step = migrations[3]
+    migrations[3] = ["INSERT INTO no_such_table VALUES (1)"]
+    assert not dbh.migrate_db()
+    assert dbh.migration_failed
+    migrations[3] = saved_step
+    assert dbh.migrate_db()
+    assert not dbh.migration_failed
+
+
+def test_failed_pre_migration_copy_is_a_migration_failure(dbh, work_db_path, monkeypatch):
+    db = create_db(work_db_path, 1)
+    monkeypatch.setattr(dbh, "_save_pre_migration_copy", lambda version: False)
+    assert not dbh.migrate_db()
+    assert dbh.migration_failed
+    assert read_version(db) == 1
 
 
 def test_make_migrated_copy_migrates_only_the_copy(dbh, current_db, tmp_path):

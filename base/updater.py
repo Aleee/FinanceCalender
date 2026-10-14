@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -15,12 +16,13 @@ from PySide6.QtCore import QObject, QUrl, QUrlQuery, QFile, QIODevice, QDateTime
 from PySide6.QtNetwork import (QNetworkAccessManager, QNetworkReply, QNetworkRequest, QNetworkProxy,
                                QNetworkProxyFactory, QNetworkProxyQuery, QSslSocket)
 
+from base.macupdate import APP_BUNDLE, install_location_problem, launch_mac_updater
 from base.paths import app_dir, update_dir
 from base.version import APP_VERSION, DB_VERSION, is_newer
 
 API_URL = "https://cloud-api.yandex.net/v1/disk/public/resources/download"
 PUBLIC_KEY = "https://disk.yandex.by/d/-feulMjOLlZpoA"
-VERSION_FILE = "version.json"
+VERSION_FILE = f"version-mac-{platform.machine()}.json" if sys.platform == "darwin" else "version.json"
 CHECK_TIMEOUT_MS = 60000
 DOWNLOAD_TIMEOUT_MS = 90000
 NETWORK_ATTEMPTS = 3
@@ -33,6 +35,12 @@ DIAG_HOSTS = ("cloud-api.yandex.net", "downloader.disk.yandex.ru", "api.github.c
 DIAG_TIMEOUT_MS = 8000
 DIAG_COMMAND_TIMEOUT = 30
 INTERNET_SETTINGS_KEY = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+PROXY_SETTINGS_SCRIPT = (f"Get-ItemProperty '{INTERNET_SETTINGS_KEY}' | "
+                         f"Select-Object ProxyEnable,ProxyServer,ProxyOverride,AutoConfigURL | Format-List; "
+                         f"'DefaultConnectionSettings flags: ' + "
+                         f"(Get-ItemProperty '{INTERNET_SETTINGS_KEY}\\Connections').DefaultConnectionSettings[8]")
+ANTIVIRUS_SCRIPT = ("Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct | "
+                    "Select-Object displayName,productState | Format-List")
 
 
 class UpdateError(Exception):
@@ -72,9 +80,20 @@ def is_frozen() -> bool:
     return getattr(sys, "frozen", False)
 
 
+def check_install_location() -> None:
+    if sys.platform != "darwin":
+        return
+    problem = install_location_problem()
+    if problem:
+        raise UpdateError(problem)
+
+
 def launch_updater() -> None:
-    updater_path = os.path.join(update_dir(), "updater.exe")
+    updater_path = os.path.join(update_dir(), "update.sh" if sys.platform == "darwin" else "updater.exe")
     try:
+        if sys.platform == "darwin":
+            launch_mac_updater(new_dir())
+            return
         shutil.copy2(os.path.join(new_dir(), "updater.exe"), updater_path)
         subprocess.Popen([updater_path, "--pid", str(os.getpid()), "--app-dir", app_dir(), "--new-dir", new_dir()],
                          cwd=update_dir(), close_fds=True, creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
@@ -125,9 +144,11 @@ def probe_host(host: str, proxy: QNetworkProxy, label: str) -> None:
 
 
 def run_command(label: str, args: list[str]) -> None:
+    windows = sys.platform == "win32"
     try:
         result = subprocess.run(args, capture_output=True, stdin=subprocess.DEVNULL, timeout=DIAG_COMMAND_TIMEOUT,
-                                creationflags=CREATE_NO_WINDOW, encoding="oem", errors="replace")
+                                creationflags=CREATE_NO_WINDOW if windows else 0,
+                                encoding="oem" if windows else "utf-8", errors="replace")
     except subprocess.TimeoutExpired:
         log.w(f"Диагностика, команда [{label}]: нет ответа за {DIAG_COMMAND_TIMEOUT} с")
         return
@@ -140,13 +161,8 @@ def run_command(label: str, args: list[str]) -> None:
 
 def run_command_diagnostics() -> None:
     api_link = f"{API_URL}?public_key={PUBLIC_KEY}&path=/{VERSION_FILE}"
-    curl = ["curl.exe", "-v", "-sS", "-m", "20", "-o", "NUL"]
-    settings = (f"Get-ItemProperty '{INTERNET_SETTINGS_KEY}' | "
-                f"Select-Object ProxyEnable,ProxyServer,ProxyOverride,AutoConfigURL | Format-List; "
-                f"'DefaultConnectionSettings flags: ' + "
-                f"(Get-ItemProperty '{INTERNET_SETTINGS_KEY}\\Connections').DefaultConnectionSettings[8]")
-    antivirus = ("Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct | "
-                 "Select-Object displayName,productState | Format-List")
+    windows = sys.platform == "win32"
+    curl = ["curl.exe" if windows else "curl", "-v", "-sS", "-m", "20", "-o", "NUL" if windows else "/dev/null"]
     proxy_vars = {name: os.environ[name] for name in ("HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY")
                   if name in os.environ}
     log.i(f"Диагностика, переменные прокси: {proxy_vars}")
@@ -154,9 +170,11 @@ def run_command_diagnostics() -> None:
     run_command("curl API без прокси", curl + ["--noproxy", "*", api_link])
     run_command("curl GitHub", curl + ["https://api.github.com"])
     run_command("nslookup", ["nslookup", DIAG_HOSTS[0]])
+    if not windows:
+        return
     run_command("netsh winhttp", ["netsh", "winhttp", "show", "proxy"])
-    run_command("настройки прокси", ["powershell", "-NoProfile", "-NonInteractive", "-Command", settings])
-    run_command("антивирус", ["powershell", "-NoProfile", "-NonInteractive", "-Command", antivirus])
+    run_command("настройки прокси", ["powershell", "-NoProfile", "-NonInteractive", "-Command", PROXY_SETTINGS_SCRIPT])
+    run_command("антивирус", ["powershell", "-NoProfile", "-NonInteractive", "-Command", ANTIVIRUS_SCRIPT])
 
 
 def run_network_diagnostics() -> None:
@@ -243,7 +261,7 @@ class UpdateChecker(QObject):
                 raise NetworkError(f"Не удалось скачать {VERSION_FILE}: {reply.error().name}, {reply.errorString()}")
             info = UpdateInfo.from_json(bytes(reply.readAll()))
             if not is_newer(info.version):
-                self.finish("Установлена актуальная версия", "Обновления: нет")
+                self.finish("Установлена актуальная версия", "Обновления: актуальная версия")
             elif info.db_version < DB_VERSION:
                 log.w(f"Версия {info.version} требует более старой версии БД ({info.db_version}, у нас {DB_VERSION}), "
                       f"обновление не предлагается")
@@ -275,6 +293,11 @@ class UpdateDownloader(QObject):
     def start(self, info: UpdateInfo) -> None:
         self.info = info
         self.cancelled = False
+        try:
+            check_install_location()
+        except UpdateError as e:
+            self.failed.emit(str(e))
+            return
         try:
             self.prepare_update_dir()
         except OSError as e:
@@ -378,13 +401,19 @@ class UpdateDownloader(QObject):
                 digest.update(chunk)
         if digest.hexdigest() != self.info.sha256:
             raise UpdateError("Скачанный файл повреждён (не совпала контрольная сумма). Попробуйте ещё раз.")
+        mac = sys.platform == "darwin"
         try:
-            with zipfile.ZipFile(self.zip_path()) as archive:
-                archive.extractall(new_dir())
-        except zipfile.BadZipFile:
+            if mac:
+                subprocess.run(["ditto", "-x", "-k", self.zip_path(), new_dir()], check=True, capture_output=True)
+            else:
+                with zipfile.ZipFile(self.zip_path()) as archive:
+                    archive.extractall(new_dir())
+        except (zipfile.BadZipFile, subprocess.CalledProcessError):
             raise UpdateError("Архив с обновлением повреждён.")
-        for name in (APP_EXE, "_internal", "updater.exe"):
+        for name in (APP_BUNDLE,) if mac else (APP_EXE, "_internal", "updater.exe"):
             if not os.path.exists(os.path.join(new_dir(), name)):
                 raise UpdateError(f"В архиве обновления нет {name}.")
-        if os.path.exists(os.path.join(new_dir(), "data")):
+        data_path = os.path.join(new_dir(), APP_BUNDLE, "Contents", "MacOS", "data") if mac \
+            else os.path.join(new_dir(), "data")
+        if os.path.exists(data_path):
             raise UpdateError("В архиве обновления есть папка data, установка отменена.")

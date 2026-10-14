@@ -1,11 +1,13 @@
 import shutil
 from collections import defaultdict
+from contextlib import contextmanager
 from dataclasses import asdict
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from datetime import date
 from typing import Any, Callable, Optional
+from uuid import uuid4
 
 from PySide6.QtCore import QDate
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
@@ -14,9 +16,10 @@ import lovely_logger as log
 from base.date import str_date, date_str, date_displstr
 from base.formatting import str_decimal
 from base.liability import LiabilityCategory, RowType
-from base.migrations import MIGRATIONS, MigrationError
+from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
 from base.paths import db_path, backup_dir
-from base.payment import Payment
+from base.payment import Payment, PaymentEntry
+from base.syncdiff import DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, TABLE_DERIVED_COLUMNS
 from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
@@ -27,7 +30,7 @@ from gui.finplanmodel import FinPlanTableModel
 class DBHandler:
 
     DB_VERSION: int = _DB_VERSION
-    EVENT_TABLE_COLUMNUM: int = 18
+    EVENT_TABLE_COLUMNUM: int = 17
     PAYMENT_TABLE_COLUMNUM: int = 5
 
     DATE_FORMAT = "yyyy-MM-dd"
@@ -38,6 +41,7 @@ class DBHandler:
 
         self.personal_data_max_id: int = 0
         self.after_commit_actions: list[Callable[[], None]] = []
+        self.migration_failed: bool = False
 
     @staticmethod
     def _is_null(value: Any) -> bool:
@@ -72,6 +76,14 @@ class DBHandler:
             self.db.close()
             return None
         return version
+
+    def is_db_newer_than_client(self) -> bool:
+        self.db.setDatabaseName(db_path())
+        if not self.db.open():
+            return False
+        version = self.get_db_version()
+        self.db.close()
+        return version is not None and version > self.DB_VERSION
 
     def check_db_file_integrity(self, alternative_path: str = "") -> bool:
         checked_path: str = alternative_path if alternative_path else db_path()
@@ -110,12 +122,14 @@ class DBHandler:
     def migrate_db(self, alternative_path: str = "") -> bool:
         migrated_path: str = alternative_path if alternative_path else db_path()
         self.after_commit_actions.clear()
+        self.migration_failed = False
         self.db.setDatabaseName(migrated_path)
         if not self.db.open():
             log.e(f"Не удалось открыть базу данных для обновления структуры: {migrated_path}")
             return False
         version = self.get_db_version()
         if version is None:
+            self.db.close()
             return False
         if version == self.DB_VERSION:
             self.db.close()
@@ -124,6 +138,7 @@ class DBHandler:
             log.e(f"Версия базы данных ({version}) новее версии клиента ({self.DB_VERSION}), обновление структуры невозможно")
             self.db.close()
             return False
+        self.migration_failed = True
         if not alternative_path and not self._save_pre_migration_copy(version):
             self.db.close()
             return False
@@ -134,6 +149,8 @@ class DBHandler:
         try:
             for target_version in range(version + 1, self.DB_VERSION + 1):
                 self._apply_migration(target_version)
+            if not alternative_path and not self._increase_change_counter():
+                raise MigrationError("Не удалось отметить изменение базы данных после обновления структуры")
             if not self.db.commit():
                 raise MigrationError(f"Не удалось подтвердить транзакцию: {self.db.lastError().text()}")
         except Exception as e:
@@ -142,6 +159,7 @@ class DBHandler:
             self.db.close()
             return False
         self.db.close()
+        self.migration_failed = False
         log.i(f"Структура базы данных обновлена: версия {version} -> {self.DB_VERSION}")
         for action in self.after_commit_actions:
             try:
@@ -164,6 +182,284 @@ class DBHandler:
         if not self.set_setting("db_version", target_version):
             raise MigrationError(f"Не удалось записать версию базы данных {target_version}")
 
+    def _increase_change_counter(self) -> bool:
+        query = QSqlQuery()
+        if not query.exec(INCREASE_CHANGE_COUNTER):
+            log.e(f"Не удалось увеличить счётчик изменений базы данных: {query.lastError().text()}")
+            return False
+        return True
+
+    def mark_db_changed(self, path: str) -> bool:
+        self.db.setDatabaseName(path)
+        if not self.db.open():
+            log.e(f"Не удалось открыть базу данных, чтобы отметить изменение: {path}")
+            return False
+        marked = self._increase_change_counter()
+        self.db.close()
+        return marked
+
+    @contextmanager
+    def _file_connection(self, path: str):
+        name = f"file_{uuid4().hex}"
+        try:
+            self._open_file_connection(name, path)
+            yield name
+        finally:
+            self._close_file_connection(name)
+
+    @staticmethod
+    def _open_file_connection(name: str, path: str) -> None:
+        connection = QSqlDatabase.addDatabase("QSQLITE", name)
+        connection.setDatabaseName(path)
+        opened = connection.open()
+        error = connection.lastError().text()
+        del connection
+        if not opened:
+            raise RuntimeError(f"Не удалось открыть базу данных {path}: {error}")
+
+    @staticmethod
+    def _close_file_connection(name: str) -> None:
+        connection = QSqlDatabase.database(name, False)
+        connection.close()
+        del connection
+        QSqlDatabase.removeDatabase(name)
+
+    @staticmethod
+    def _file_execute(connection_name: str, sql: str, *values: Any) -> list[list]:
+        query = QSqlQuery(QSqlDatabase.database(connection_name, False))
+        query.prepare(sql)
+        for value in values:
+            query.addBindValue(value)
+        error = "" if query.exec() else query.lastError().text()
+        rows: list[list] = []
+        while not error and query.next():
+            rows.append([query.value(i) for i in range(query.record().count())])
+        query.finish()
+        del query
+        if error:
+            raise RuntimeError(f"Ошибка SQL: {error}. Запрос: {sql}")
+        return rows
+
+    def read_file_settings(self, path: str, keys: tuple[str, ...]) -> dict[str, str | None] | None:
+        try:
+            with self._file_connection(path) as connection:
+                values: dict[str, str | None] = {}
+                for key in keys:
+                    rows = self._file_execute(connection, "SELECT value FROM meta WHERE key = ?", key)
+                    values[key] = str(rows[0][0]) if rows else None
+                return values
+        except Exception as e:
+            log.x(f"Не удалось прочитать служебные ключи из файла {path}: {e}")
+            return None
+
+    def check_file_integrity(self, path: str) -> bool:
+        try:
+            with self._file_connection(path) as connection:
+                return self._file_execute(connection, "PRAGMA integrity_check")[0][0] == "ok"
+        except Exception as e:
+            log.x(f"Не удалось проверить целостность файла {path}: {e}")
+            return False
+
+    @staticmethod
+    def local_db_path() -> str:
+        return db_path()
+
+    def read_db_diff(self, old_path: str, new_path: str) -> DbDiff | None:
+        try:
+            with self._file_connection(new_path) as connection:
+                self._file_execute(connection, "ATTACH DATABASE ? AS old", old_path)
+                diff = DbDiff()
+                for table in DETAILED_TABLES:
+                    diff.tables[table] = self._read_table_diff(connection, table)
+                diff.other_tables = self._read_other_tables_diff(connection)
+                return diff
+        except Exception as e:
+            log.x(f"Не удалось сравнить файлы базы данных {old_path} и {new_path}: {e}")
+            return None
+
+    def _common_columns(self, connection: str, table: str, other_schema: str = "old") -> list[str]:
+        other_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA {other_schema}.table_info("{table}")')]
+        main_columns = [row[1] for row in self._file_execute(connection, f'PRAGMA main.table_info("{table}")')]
+        return [column for column in main_columns if column in other_columns]
+
+    def apply_merge(self, target_path: str, source_path: str, plan: MergePlan, event_ids: list[int],
+                    payment_ids: list[int]) -> dict[str, dict[int, int]] | None:
+        try:
+            with self._file_connection(target_path) as connection:
+                self._file_execute(connection, "ATTACH DATABASE ? AS mine", source_path)
+                self._file_execute(connection, "BEGIN")
+                for table in ("payment", "event"):
+                    self._delete_rows(connection, table, plan.deletes.get(table, []))
+                for table in DETAILED_TABLES:
+                    self._update_rows(connection, table, plan.updates.get(table, []))
+                event_map = self._copy_added_rows(connection, "event", event_ids, {})
+                payment_map = self._copy_added_rows(connection, "payment", payment_ids, {"eventid": event_map})
+                self._file_execute(connection, "COMMIT")
+                return {"event": event_map, "payment": payment_map}
+        except Exception as e:
+            log.x(f"Не удалось добавить строки из {source_path} в {target_path}: {e}")
+            return None
+
+    def _delete_rows(self, connection: str, table: str, ids: list[int]) -> None:
+        for row_id in ids:
+            self._file_execute(connection, f'DELETE FROM main."{table}" WHERE id = ?', row_id)
+        if table == "payment" or not ids:
+            return
+        removed = ", ".join(str(row_id) for row_id in ids)
+        if self._file_execute(connection, f"SELECT COUNT(*) FROM main.payment WHERE eventid IN ({removed})")[0][0]:
+            raise RuntimeError("К удалённым событиям остались привязаны платежи")
+
+    def _update_rows(self, connection: str, table: str, updates: list[tuple[int, list[str]]]) -> None:
+        for row_id, columns in updates:
+            assignments = ", ".join(f'"{column}" = (SELECT "{column}" FROM mine."{table}" WHERE id = ?)' for column in columns)
+            self._file_execute(connection, f'UPDATE main."{table}" SET {assignments} WHERE id = ?', *([row_id] * len(columns)), row_id)
+
+    def _copy_added_rows(self, connection: str, table: str, ids: list[int], references: dict[str, dict[int, int]]) -> dict[int, int]:
+        columns = self._common_columns(connection, table, "mine")
+        sequence = self._file_execute(connection, "SELECT seq FROM main.sqlite_sequence WHERE name = ?", table)
+        last_id = self._file_execute(connection, f'SELECT MAX(id) FROM main."{table}"')[0][0]
+        next_id = max(int(sequence[0][0]) if sequence else 0, int(last_id or 0)) + 1
+        fields = ", ".join(f'"{column}"' for column in columns)
+        placeholders = ", ".join("?" for _ in columns)
+        id_map: dict[int, int] = {}
+        for old_id in sorted(ids):
+            rows = self._file_execute(connection, f'SELECT {fields} FROM mine."{table}" WHERE id = ?', old_id)
+            if not rows:
+                raise RuntimeError(f"В таблице {table} нет строки с id {old_id}")
+            values = dict(zip(columns, rows[0]))
+            for column, mapping in references.items():
+                if values[column] in mapping:
+                    values[column] = mapping[values[column]]
+                elif not self._file_execute(connection, "SELECT 1 FROM main.event WHERE id = ?", values[column]):
+                    raise RuntimeError(f"Строка {old_id} таблицы {table} ссылается на отсутствующее событие {values[column]}")
+            values["id"] = next_id
+            self._file_execute(connection, f'INSERT INTO main."{table}" ({fields}) VALUES ({placeholders})', *values.values())
+            id_map[old_id] = next_id
+            next_id += 1
+        return id_map
+
+    def find_merge_warnings(self, path: str, event_ids: list[int], payment_ids: list[int], touched_event_ids: list[int],
+                            touched_payment_ids: list[int]) -> MergeWarnings | None:
+        warnings = MergeWarnings()
+        events = ", ".join(str(event_id) for event_id in event_ids) or "NULL"
+        payments = ", ".join(str(payment_id) for payment_id in payment_ids) or "NULL"
+        touched_events = ", ".join(str(event_id) for event_id in touched_event_ids) or "NULL"
+        touched_payments = ", ".join(str(payment_id) for payment_id in touched_payment_ids) or "NULL"
+        title = "(SELECT e.receiver || ' — ' || e.name FROM event e WHERE e.id = n.eventid)"
+        try:
+            with self._file_connection(path) as connection:
+                warnings.duplicate_events = self._query_dicts(
+                    connection, ["receiver", "name", "totalamount", "duedate"],
+                    f"SELECT n.receiver, n.name, n.totalamount, n.duedate FROM event n WHERE n.id IN ({events}) AND EXISTS ("
+                    f"SELECT 1 FROM event o WHERE o.id NOT IN ({events}) AND o.receiver IS n.receiver AND o.name IS n.name "
+                    f"AND o.totalamount IS n.totalamount AND o.duedate IS n.duedate) ORDER BY n.id")
+                warnings.duplicate_payments = self._query_dicts(
+                    connection, ["event_title", "sum", "paymentdate"],
+                    f"SELECT {title}, n.sum, n.paymentdate FROM payment n WHERE n.id IN ({payments}) AND EXISTS ("
+                    f"SELECT 1 FROM payment o WHERE o.id NOT IN ({payments}) AND o.eventid IS n.eventid "
+                    f"AND o.paymentdate IS n.paymentdate AND o.sum IS n.sum) ORDER BY n.id")
+                warnings.overpaid_events = self._query_dicts(
+                    connection, ["receiver", "name", "totalamount", "duedate", "paid"],
+                    f"SELECT e.receiver, e.name, e.totalamount, e.duedate, ROUND(SUM(CAST(p.sum AS REAL)), 2) "
+                    f"FROM event e JOIN payment p ON p.eventid = e.id "
+                    f"WHERE e.id IN ({touched_events}) OR e.id IN (SELECT eventid FROM payment WHERE id IN ({touched_payments})) "
+                    f"GROUP BY e.id "
+                    f"HAVING ROUND(SUM(CAST(p.sum AS REAL)), 2) > ROUND(CAST(e.totalamount AS REAL), 2) ORDER BY e.id")
+            return warnings
+        except Exception as e:
+            log.x(f"Не удалось проверить результат объединения в файле {path}: {e}")
+            return None
+
+    def _query_dicts(self, connection: str, names: list[str], sql: str) -> list[dict]:
+        return [dict(zip(names, row)) for row in self._file_execute(connection, sql)]
+
+    def _read_table_diff(self, connection: str, table: str) -> TableDiff:
+        columns = self._common_columns(connection, table)
+        if "id" not in columns:
+            return TableDiff()
+        names = columns + list(TABLE_DERIVED_COLUMNS.get(table, ()))
+
+        def select(alias: str, schema: str) -> str:
+            fields = [f'{alias}."{column}"' for column in columns]
+            if table == "payment":
+                fields.append(f"(SELECT e.receiver || ' — ' || e.name FROM {schema}.event e WHERE e.id = {alias}.eventid)")
+            elif table == "event":
+                fields.append(f"(SELECT p.name FROM {schema}.personal p WHERE p.id = {alias}.responsible)")
+            return ", ".join(fields)
+
+        def read(sql: str) -> list[list]:
+            return self._file_execute(connection, sql)
+
+        added = read(f'SELECT {select("n", "main")} FROM main."{table}" n '
+                     f'WHERE n.id NOT IN (SELECT id FROM old."{table}") ORDER BY n.id')
+        removed = read(f'SELECT {select("o", "old")} FROM old."{table}" o '
+                       f'WHERE o.id NOT IN (SELECT id FROM main."{table}") ORDER BY o.id')
+        differs = " OR ".join(f'n."{column}" IS NOT o."{column}"' for column in columns)
+        changed = read(f'SELECT {select("n", "main")}, {select("o", "old")} FROM main."{table}" n '
+                       f'JOIN old."{table}" o ON n.id = o.id WHERE {differs} ORDER BY n.id')
+        width = len(names)
+        return TableDiff([dict(zip(names, row)) for row in added],
+                         [dict(zip(names, row)) for row in removed],
+                         [(dict(zip(names, row[width:])), dict(zip(names, row[:width]))) for row in changed])
+
+    def _read_other_tables_diff(self, connection: str) -> dict[str, tuple[int, int]]:
+        tables = [row[0] for row in self._file_execute(
+            connection, "SELECT name FROM main.sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")]
+        service_keys = ", ".join(f"'{key}'" for key in SERVICE_META_KEYS)
+        result: dict[str, tuple[int, int]] = {}
+        for table in tables:
+            columns = self._common_columns(connection, table)
+            if table in DETAILED_TABLES or not columns:
+                continue
+            fields = ", ".join(f'"{column}"' for column in columns)
+            condition = f" WHERE key NOT IN ({service_keys})" if table == "meta" else ""
+            new_rows = f'SELECT {fields} FROM main."{table}"{condition}'
+            old_rows = f'SELECT {fields} FROM old."{table}"{condition}'
+            only_new = int(self._file_execute(connection, f"SELECT COUNT(*) FROM ({new_rows} EXCEPT {old_rows})")[0][0])
+            only_old = int(self._file_execute(connection, f"SELECT COUNT(*) FROM ({old_rows} EXCEPT {new_rows})")[0][0])
+            if only_new or only_old:
+                result[table] = (only_new, only_old)
+        return result
+
+    def copy_db_file(self, target_path: str) -> bool:
+        try:
+            with self._file_connection(db_path()) as connection:
+                self._file_execute(connection, "VACUUM INTO ?", target_path)
+        except Exception as e:
+            log.x(f"Не удалось сохранить копию базы данных в {target_path}: {e}")
+            return False
+        return True
+
+    def create_sync_snapshot(self, snapshot_path: str, new_token: str) -> int | None:
+        try:
+            with self._file_connection(db_path()) as source:
+                counter = int(self._file_execute(source, "SELECT value FROM meta WHERE key = 'change_counter'")[0][0])
+                self._file_execute(source, "VACUUM INTO ?", snapshot_path)
+            with self._file_connection(snapshot_path) as snapshot:
+                self._file_execute(snapshot, "UPDATE meta SET value = ? WHERE key = 'sync_token'", new_token)
+                self._file_execute(snapshot, "UPDATE meta SET value = '0' WHERE key = 'change_counter'")
+                triggers = self._file_execute(snapshot, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'")[0][0]
+                indexes = self._file_execute(snapshot, "SELECT COUNT(*) FROM sqlite_master WHERE name = 'idx_meta_key'")[0][0]
+                if triggers == 0 or indexes == 0:
+                    raise RuntimeError("В снимке базы данных нет триггеров или индекса таблицы meta")
+        except Exception as e:
+            log.x(f"Не удалось создать снимок базы данных для синхронизации: {e}")
+            return None
+        return counter
+
+    def finish_push(self, new_token: str, snapshot_counter: int) -> bool:
+        if not self.db.transaction():
+            log.e(f"Не удалось начать транзакцию после отправки: {self.db.lastError().text()}")
+            return False
+        query = QSqlQuery()
+        query.prepare("UPDATE meta SET value = '0' WHERE key = 'change_counter' AND CAST(value AS INTEGER) = ?")
+        query.addBindValue(snapshot_counter)
+        if not (self.set_setting("sync_token", new_token) and query.exec() and self.db.commit()):
+            log.e(f"Не удалось записать результат отправки в базу данных: {self.db.lastError().text()} {query.lastError().text()}")
+            self.db.rollback()
+            return False
+        return True
+
     @staticmethod
     def _save_pre_migration_copy(version: int) -> bool:
         copy_path: Path = Path(backup_dir()) / f"before_migration_v{version}.db"
@@ -182,7 +478,8 @@ class DBHandler:
         except OSError as e:
             log.x(f"Не удалось скопировать {source_path} во временный файл {temp_path}: {e}")
             return None
-        if self.migrate_db(str(temp_path)) and self.check_db_file_integrity(str(temp_path)):
+        if (self.migrate_db(str(temp_path)) and self.check_db_file_integrity(str(temp_path))
+                and self.mark_db_changed(str(temp_path))):
             return str(temp_path)
         temp_path.unlink(missing_ok=True)
         return None
@@ -230,6 +527,31 @@ class DBHandler:
 
     def is_db_connected(self) -> bool:
         return self.db.isOpen()
+
+    def run_in_transaction(self, action: Callable[[], bool]) -> bool:
+        if not self.db.transaction():
+            log.e(f"Не удалось начать транзакцию: {self.db.lastError().text()}")
+            return False
+        try:
+            succeeded: bool = action()
+        except Exception as e:
+            log.x(f"Ошибка внутри транзакции, изменения отменены: {e}")
+            self.db.rollback()
+            return False
+        if succeeded and self.db.commit():
+            return True
+        log.e(f"Транзакция отменена: {self.db.lastError().text()}")
+        self.db.rollback()
+        return False
+
+    def delete_payments_by_event(self, event_id: int) -> bool:
+        query = QSqlQuery()
+        query.prepare("DELETE FROM payment WHERE eventid = ?")
+        query.addBindValue(event_id)
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке удалить платежи обязательства {event_id}: {query.lastError().text()}")
+            return False
+        return True
 
     def switch_db_files(self, new_file_path: str = "", close_current_connection: bool = False) -> bool:
         if close_current_connection:
@@ -308,6 +630,9 @@ class DBHandler:
         if not self.is_db_connected():
             log.w("Отсутствует соединение с базой данных")
             return False
+        return self.run_in_transaction(lambda: self._write_finplan(year, finplan_structure, finplanmodel))
+
+    def _write_finplan(self, year: int, finplan_structure: dict, finplanmodel: FinPlanTableModel) -> bool:
         query = QSqlQuery()
         query.prepare("DELETE FROM finplan WHERE year = ?")
         query.addBindValue(year)
@@ -423,6 +748,9 @@ class DBHandler:
     def delete_position(self, position_id: int) -> bool:
         if not self.is_db_connected():
             return False
+        return self.run_in_transaction(lambda: self._remove_position(position_id))
+
+    def _remove_position(self, position_id: int) -> bool:
         query = QSqlQuery()
         query.prepare("UPDATE personal SET position = NULL WHERE position = ?")
         query.addBindValue(position_id)
@@ -481,12 +809,17 @@ class DBHandler:
     def save_personal_data(self, data: list) -> bool:
         if not self.is_db_connected():
             return False
+        return self.run_in_transaction(lambda: self._write_personal_data(data))
+
+    def _write_personal_data(self, data: list) -> bool:
         query: QSqlQuery = QSqlQuery()
         for entry in data:
             position_value = entry[4] if entry[4] else None
             if entry[0] <= self.personal_data_max_id:
-                query.prepare("UPDATE personal SET name = ?, department = ?, archived = ?, position = ? WHERE id = ?")
-                for val in [entry[1], entry[2], entry[3], position_value, entry[0]]:
+                query.prepare("UPDATE personal SET name = ?, department = ?, archived = ?, position = ? WHERE id = ? "
+                              "AND (name, department, archived, position) IS NOT (?, ?, ?, ?)")
+                for val in [entry[1], entry[2], entry[3], position_value, entry[0],
+                            entry[1], entry[2], entry[3], position_value]:
                     query.addBindValue(val)
             else:
                 query.prepare("INSERT INTO personal(id, name, department, archived, position) VALUES (?,?,?,?,?)")
@@ -497,13 +830,13 @@ class DBHandler:
                 return False
         return True
 
-    def get_paymentsum_for_period(self, date_from: date, date_to: date) -> dict[date, list[Decimal]] | None:
+    def get_paymentsum_for_period(self, date_from: date, date_to: date) -> dict[date, list[PaymentEntry]] | None:
         if not self.is_db_connected():
             return None
         query: QSqlQuery = QSqlQuery()
         query.prepare(
             "SELECT payment.paymentdate, payment.sum, "
-            "COALESCE(event.name, ''), event.receiver "
+            "COALESCE(event.name, ''), event.receiver, payment.id, payment.eventid, event.descr "
             "FROM payment "
             "LEFT JOIN event ON event.id = payment.eventid "
             "WHERE payment.paymentdate BETWEEN ? AND ?"
@@ -514,15 +847,83 @@ class DBHandler:
             log.e(f"Не удалось получить перечень платежей за период с {date_from} по {date_to}: {query.lastError().text()}")
             return None
 
-        by_date: dict[date, list[Decimal]] = {}
+        by_date: dict[date, list[PaymentEntry]] = {}
 
         while query.next():
             paymentdate = str_date(query.value(0), python_date=True)
             amount = str_decimal(query.value(1))
-            descr = query.value(2) + f" ({query.value(3)})"
-            by_date.setdefault(paymentdate, []).append((amount, descr))
+            receiver = "" if self._is_null(query.value(3)) else query.value(3)
+            basis = "" if self._is_null(query.value(6)) else query.value(6)
+            descr = query.value(2) + f" ({receiver})"
+            by_date.setdefault(paymentdate, []).append(
+                PaymentEntry(amount, descr, receiver, query.value(4), query.value(5), f"{query.value(2)} {basis}",
+                             key=f"c|{query.value(4)}"))
 
         return by_date
+
+    def get_payment_of_day(self, event_id: int, day: date) -> tuple[int, Decimal] | None:
+        if not self.is_db_connected():
+            return None
+        query: QSqlQuery = QSqlQuery()
+        query.prepare("SELECT id, sum FROM payment WHERE eventid = ? AND paymentdate = ? ORDER BY id DESC LIMIT 1")
+        query.addBindValue(event_id)
+        query.addBindValue(day.isoformat())
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке найти оплату платежа {event_id} за {day}: {query.lastError().text()}")
+            return None
+        if not query.next():
+            return None
+        return query.value(0), str_decimal(query.value(1))
+
+    def set_payment_sum(self, payment_id: int, new_sum: Decimal) -> bool:
+        if not self.is_db_connected():
+            return False
+        query: QSqlQuery = QSqlQuery()
+        query.prepare("UPDATE payment SET sum = ? WHERE id = ?")
+        query.addBindValue(str(new_sum))
+        query.addBindValue(payment_id)
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке изменить сумму оплаты {payment_id}: {query.lastError().text()}")
+            return False
+        return True
+
+    def correct_payment_sum(self, payment_id: int, new_sum: Decimal) -> bool:
+        if not self.is_db_connected():
+            return False
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare("SELECT payment.sum, payment.eventid, event.totalamount "
+                          "FROM payment LEFT JOIN event ON event.id = payment.eventid WHERE payment.id = ?")
+            query.addBindValue(payment_id)
+            if not query.exec() or not query.next():
+                log.e(f"Не удалось прочитать платёж {payment_id} для корректировки суммы: {query.lastError().text()}")
+                return False
+            old_sum = str_decimal(query.value(0))
+            event_id = query.value(1)
+            old_total = None if self._is_null(query.value(2)) else str_decimal(query.value(2))
+            if old_sum is None:
+                log.e(f"Не удалось распознать сумму платежа {payment_id}: {query.value(0)!r}")
+                return False
+
+            query.prepare("UPDATE payment SET sum = ? WHERE id = ?")
+            query.addBindValue(str(new_sum))
+            query.addBindValue(payment_id)
+            if not query.exec():
+                log.e(f"Ошибка SQL при попытке изменить сумму платежа {payment_id}: {query.lastError().text()}")
+                return False
+
+            if old_total is None or self._is_null(event_id):
+                return True
+            query.prepare("UPDATE event SET totalamount = ? WHERE id = ?")
+            query.addBindValue(str(old_total + new_sum - old_sum))
+            query.addBindValue(event_id)
+            if not query.exec():
+                log.e(f"Ошибка SQL при попытке изменить сумму обязательства {event_id}: {query.lastError().text()}")
+                return False
+            return True
+
+        return self.run_in_transaction(action)
 
     def load_column_values(self, column: str, as_set: bool = True) -> set | list | None:
         if not self.is_db_connected():

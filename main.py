@@ -2,13 +2,16 @@ import os
 import sys
 import cProfile
 import lovely_logger as log
+import PySide6
+from PySide6.QtCore import QTranslator
 from PySide6.QtNetwork import QNetworkProxyFactory
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from base.paths import logs_dir
 from base.updater import UpdateChecker
 from base.version import APP_VERSION
+from gui.commonwidgets.neutralarrowstyle import NeutralArrowStyle
 from gui.mainwindow import MainWindow
 from gui.updatedialog import UpdateController
 
@@ -19,11 +22,15 @@ class App(QApplication):
     def __init__(self):
         super().__init__(sys.argv)
 
+        self.qt_translator: QTranslator = QTranslator(self)
+        if self.qt_translator.load("qtbase_ru", os.path.join(os.path.dirname(PySide6.__file__), "translations")):
+            self.installTranslator(self.qt_translator)
+
         QNetworkProxyFactory.setUseSystemConfiguration(True)
 
         self.app_version = APP_VERSION
 
-        self.setStyle('fusion')
+        self.setStyle(NeutralArrowStyle())
 
         self.window: MainWindow = MainWindow()
         self.window.show()
@@ -44,7 +51,19 @@ def main():
     # pr = cProfile.Profile()
     # pr.enable()
 
-    logs_folder = logs_dir()
+    #TEMP
+    if sys.platform == 'win32' and not getattr(sys, 'frozen', False):
+        os.environ['PATH'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'openssl') + os.pathsep + \
+                             os.environ['PATH']
+
+    try:
+        logs_folder = logs_dir()
+    except OSError as e:
+        QApplication(sys.argv)
+        QMessageBox.critical(None, "Платежный календарь",
+                             f"Не удалось создать папку с данными программы:\n{e}\n\n"
+                             f"Проверьте права на запись в эту папку.")
+        sys.exit(1)
     if sys.stderr is None or sys.stderr.name == '<stderr>':
         sys.stderr = open(os.path.join(logs_folder, "sys_errors.log"), "a", encoding="utf-8", buffering=1)
     if sys.stdout is None or sys.stdout.name == '<stdout>':

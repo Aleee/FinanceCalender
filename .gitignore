@@ -13,6 +13,6 @@
 !db/.gitkeep
 /data/
 profile_results.pstat
-resources.qrc
 /data/config/
 /data/logs/
+/docs/

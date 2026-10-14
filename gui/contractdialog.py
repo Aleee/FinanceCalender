@@ -20,7 +20,7 @@ class ContractDocumentDialog(QDialog):
     )
     MONTH_TYPE_ITEMS = (
         ("предыдущего", MonthType.PREVIOUS),
-        ("отчётного", MonthType.CURRENT),
+        ("отчетного", MonthType.CURRENT),
         ("следующего", MonthType.NEXT),
     )
 

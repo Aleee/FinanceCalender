@@ -360,7 +360,6 @@ class LiabilityXlsWriter(BaseXlsWriter):
         Col.FILTERFLAGS: 0,
         Col.FEATURED: 0,
         Col.HIDDEN: 0,
-        Col.RECEIVERNOCASE: 0,
     }
 
     def __init__(self, model: LiabilityTotalsProxyModel, view: QTableView, settings_handler: SettingsHandler):

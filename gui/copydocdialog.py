@@ -171,7 +171,7 @@ class CopyDocDialog(QDialog):
         elif self.ui.te_name.toPlainText().strip() == "":
             text, focus_widget = "Наименование не может быть пустым", self.ui.te_name
         elif self.ui.de_incurrencedate.date() > self.ui.de_duedate.date():
-            text, focus_widget = "Дата возникновения платежа не может быть больше даты оплаты", self.ui.de_incurrencedate
+            text, focus_widget = "Дата возникновения не может быть больше срока оплаты", self.ui.de_incurrencedate
         if text:
             ErrorInfoMessageBox(text, parent=self).exec()
             focus_widget.setFocus()
@@ -179,7 +179,7 @@ class CopyDocDialog(QDialog):
 
         descr = self.ui.te_descr.toPlainText().strip()
         if self.ui.de_duedate.date() < QDate.currentDate():
-            text += "Дата платежа меньше текущей даты. "
+            text += "Срок оплаты меньше текущей даты. "
         if descr == "":
             text += "Основание платежа не указано. "
         elif descr.casefold() in {existing.strip().casefold() for existing in self.descriptions}:
@@ -216,7 +216,6 @@ class CopyDocDialog(QDialog):
             self.source_value(Col.NOTES),
             0,
             int(bool(self.source_value(Col.HIDDEN))),
-            receiver.lower(),
         ]
 
         if original_model.insert_row(data) is None:

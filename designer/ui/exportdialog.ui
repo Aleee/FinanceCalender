@@ -93,7 +93,7 @@
       <item>
        <widget class="QCheckBox" name="chb_remainsum">
         <property name="text">
-         <string>Задолженность</string>
+         <string>Остаток платежа</string>
         </property>
        </widget>
       </item>
@@ -107,7 +107,7 @@
       <item>
        <widget class="QCheckBox" name="chb_duedate">
         <property name="text">
-         <string>Дата платежа</string>
+         <string>Срок оплаты</string>
         </property>
        </widget>
       </item>

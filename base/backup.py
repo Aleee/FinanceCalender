@@ -9,6 +9,8 @@ from base.dbhandler import DBHandler
 from base.paths import db_path
 from gui.settings import SettingsHandler
 
+BACKUP_FILE_PREFIXES = ("backup_", "before_sync_")
+
 
 def save_backup(sh: SettingsHandler, dbh: DBHandler) -> QDateTime:
     backup_path: str = sh.backup_path()
@@ -17,13 +19,13 @@ def save_backup(sh: SettingsHandler, dbh: DBHandler) -> QDateTime:
         return QDateTime()
     backup_filepath: Path = Path(backup_path).joinpath("backup_" + QDateTime.currentDateTime().toString("yyyyMMdd-hhmmss") + ".db")
     try:
-        shutil.copy(db_path(), backup_filepath)
-        return QDateTime.currentDateTime()
-    except FileNotFoundError:
-        log.e(f"Файл для копирования {db_path()} не найден")
-    except Exception as e:
-        log.x(f"При попытке создать резервную копию произошла ошибка: {e}")
-    return QDateTime()
+        backup_filepath.unlink(missing_ok=True)
+    except OSError as e:
+        log.x(f"Не удалось заменить существующую резервную копию {backup_filepath}: {e}")
+        return QDateTime()
+    if not dbh.copy_db_file(str(backup_filepath)):
+        return QDateTime()
+    return QDateTime.currentDateTime()
 
 
 def clean_backup_folder(sh: SettingsHandler) -> bool:
@@ -32,16 +34,17 @@ def clean_backup_folder(sh: SettingsHandler) -> bool:
         log.e("Не удалось очистить папку с резервными копиями: путь не указан или не существует")
         return False
     try:
-        cleanup_period: int = int(sh.settings.value("Backup/cleanupperiod"))
+        cleanup_period: int = int(sh.settings.value("Backup/cleanupperiod", 30))
     except (ValueError, TypeError):
         log.e("Не удалось очистить папку с резервными копиями: не удалось получить настройки хранения")
         return False
     minimum_date: QDate = QDate.currentDate().addDays(-cleanup_period)
     filenames: list[str] = [item.name for item in Path(backup_foldername).iterdir() if item.is_file()]
     for fname in filenames:
-        if not fname.startswith("backup_"):  # чтобы не трогать посторонние файлы в папке бэкапов
+        prefix: str | None = next((p for p in BACKUP_FILE_PREFIXES if fname.startswith(p)), None)
+        if prefix is None:  # чтобы не трогать посторонние файлы в папке бэкапов
             continue
-        date_substring: str = fname[7:15]
+        date_substring: str = fname[len(prefix):len(prefix) + 8]
         filedate: QDate = QDate.fromString(date_substring, "yyyyMMdd")
         if not filedate.isValid():
             continue

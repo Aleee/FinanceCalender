@@ -1,10 +1,11 @@
 from dataclasses import dataclass
+from datetime import date
 
 import lovely_logger as log
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QObject, Signal, QTimer
 from PySide6.QtGui import QAction, QIcon
-from PySide6.QtWidgets import QDialog, QButtonGroup, QCompleter, QLineEdit, QMenu, QToolButton, QComboBox
+from PySide6.QtWidgets import QCheckBox, QDialog, QButtonGroup, QCompleter, QLineEdit, QMenu, QToolButton, QComboBox
 from decimal import Decimal
 
 from base.casting import str_bool
@@ -196,7 +197,9 @@ class EventDialog(QDialog):
                             "Счет-фактура №", "Договор финансового лизинга №", "Договор лизинга №", "Кредитный договор №", "Договор поставки №"]
 
     def __init__(self, final_proxy_model, responsible_model: ResponsibleCategorySortModel, payment_model: PaymentHistoryTableModel, db_handler: DBHandler,
-                 settings_handler: SettingsHandler, edit_mode: bool = False, copy_mode: bool = False, current_index: QModelIndex | None = None, parent=None):
+                 settings_handler: SettingsHandler, edit_mode: bool = False, copy_mode: bool = False, current_index: QModelIndex | None = None,
+                 initial_amount: Decimal | None = None, from_statement: bool = False,
+                 payment_date: date | None = None, parent=None):
         super(EventDialog, self).__init__(parent)
         self.ui = Ui_EventDialog()
         self.ui.setupUi(self)
@@ -210,6 +213,8 @@ class EventDialog(QDialog):
         self.copy_mode: bool = copy_mode
         self.non_editable_values: dict = {"id": 0, "paidamount": Decimal(0)}
         self.sidepanel_visibility: bool = False
+        self.today_payment: tuple[int, Decimal] | None = None
+        self.operation_date: date | None = payment_date
 
         self.index: QModelIndex = current_index if current_index is not None else QModelIndex()
         self.contractdocument_id = (self.index.siblingAtColumn(Col.CONTRACTDOCUMENTID).data(LiabilitySqlTableModel.qtValueRole)
@@ -230,6 +235,21 @@ class EventDialog(QDialog):
         self.ui.tb_unbindcontract.clicked.connect(self.unbind_contract)
         self.ui.pb_accept.clicked.connect(self.accept)
         self.ui.pb_cancel.clicked.connect(self.reject)
+
+        self.chb_statement: QCheckBox | None = None
+        if from_statement and not edit_mode:
+            self.chb_statement = QCheckBox("Оплатить датой операции")
+        elif from_statement:
+            self.chb_statement = QCheckBox("Исправить сумму оплаты")
+            self.today_payment = self.dbh.get_payment_of_day(
+                self.index.siblingAtColumn(Col.ID).data(LiabilitySqlTableModel.qtValueRole), payment_date)
+            if self.today_payment is None:
+                self.chb_statement.setToolTip("В день операции оплаты по этому платежу нет")
+        if self.chb_statement:
+            self.chb_statement.setChecked(not edit_mode or self.today_payment is not None)
+            self.chb_statement.setEnabled(not edit_mode or self.today_payment is not None)
+            self.ui.horizontalLayout_3.insertSpacing(1, 15)
+            self.ui.horizontalLayout_3.insertWidget(2, self.chb_statement)
 
         self.no_wheel_filter = NoWheelFilter(self)
         for widget in (self.ui.dsb_totalamount, self.ui.de_incurrencedate, self.ui.de_duedate, self.ui.cmb_category,
@@ -344,6 +364,8 @@ class EventDialog(QDialog):
             self.ui.rb_typenormal.setChecked(True)
             self.set_subcategory_visible(False)
             self.show_bound_contract("")
+            if initial_amount is not None:
+                self.ui.dsb_totalamount.setValue(float(initial_amount))
             self.ui.le_receiver.setFocus()
 
         self.ui.de_paymenttrigger.setDate(self.ui.de_incurrencedate.date())
@@ -590,16 +612,18 @@ class EventDialog(QDialog):
             text, focus_widget = "Наименование платежа должно быть указано", self.ui.te_name
         elif self.ui.dsb_totalamount.value() == 0.0:
             text, focus_widget = "Сумма платежа не может быть равна нулю", self.ui.dsb_totalamount
-        elif self.non_editable_values["paidamount"] > Decimal(str(self.ui.dsb_totalamount.value())):
+        elif self.non_editable_values["paidamount"] + self.payment_shift() > Decimal(str(self.ui.dsb_totalamount.value())):
             text, focus_widget = "Новая общая сумма платежа превышает сумму уже сделанных по нему оплат", self.ui.dsb_totalamount
         elif self.ui.de_incurrencedate.date() > self.ui.de_duedate.date():
-            text, focus_widget = "Дата возникновения платежа не может быть больше даты оплаты", self.ui.de_incurrencedate
+            text, focus_widget = "Дата возникновения не может быть больше срока оплаты", self.ui.de_incurrencedate
         elif self.ui.rb_typerefund.isChecked() and self.ui.de_duedate.date() > QDate.currentDate():
             text, focus_widget = "Дата возврата не может быть больше сегодняшней даты", self.ui.de_duedate
         elif self.ui.cmb_subcategory.isVisible() and self.ui.cmb_subcategory.currentData() == 0:
             text, focus_widget = "Подкатегория платежа не выбрана", self.ui.cmb_subcategory
         elif self.ui.cmb_responsible.currentData() == 0:
-            text, focus_widget = "Ответственное лицо не назначено", self.ui.cmb_responsible
+            text, focus_widget = "Ответственный не назначен", self.ui.cmb_responsible
+        elif self.corrected_payment_sum() == 0:
+            text, focus_widget = "Исправленная сумма оплаты не может быть равна нулю", self.ui.dsb_totalamount
         if text:
             msg = ErrorInfoMessageBox(text, parent=self)
             msg.exec()
@@ -611,7 +635,7 @@ class EventDialog(QDialog):
         is_source_paid: bool = ((self.edit_mode or self.copy_mode) and
                                 FilterFlags.PAID in self.index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole))
         if self.ui.de_duedate.date() < QDate.currentDate() and not self.ui.rb_typerefund.isChecked() and not is_source_paid:
-            text += "Дата платежа меньше текущей даты. "
+            text += "Срок оплаты меньше текущей даты. "
         if self.ui.te_descr.toPlainText().strip() == "":
             text += "Основание платежа не указано. "
         if text:
@@ -620,6 +644,31 @@ class EventDialog(QDialog):
             if msg.exec() == YesNoMessagebox.NO_RETURN_VALUE:
                 return False
         return True
+
+    def payment_shift(self) -> Decimal:
+        if not (self.today_payment and self.chb_statement and self.chb_statement.isChecked()):
+            return Decimal(0)
+        old_total = Decimal(str(self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilitySqlTableModel.qtValueRole)))
+        return Decimal(str(self.ui.dsb_totalamount.value())) - old_total
+
+    def corrected_payment_sum(self) -> Decimal | None:
+        if not (self.today_payment and self.chb_statement and self.chb_statement.isChecked()):
+            return None
+        return self.today_payment[1] + self.payment_shift()
+
+    def source_row(self) -> int:
+        if self.index.model() is model_atlevel(-2, self.model):
+            return self.index.row()
+        return map_to_source(-2, self.index).row()
+
+    def _insert_paid(self, original_model: LiabilitySqlTableModel, data: list, total_amount: Decimal,
+                     payment_date: QDate) -> bool:
+        if original_model.insert_row(data) is None:
+            return False
+        return self.payment_model.append_row([original_model.last_inserted_id,
+                                              date_str(payment_date),
+                                              str(total_amount),
+                                              date_str(QDate.currentDate())])
 
     def accept(self, /):
         if not self.check_integrity():
@@ -670,22 +719,28 @@ class EventDialog(QDialog):
             data.append(self.non_editable_values["featured"])
         # hidden
         data.append(int(self.ui.chb_hidden.isChecked()))
-        # receivernocase
-        data.append(self._stripped(self.ui.le_receiver.text()).lower())
 
         original_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
         if not self.edit_mode:
-            new_row = original_model.insert_row(data)
-            if new_row is None:
+            paid_date: QDate | None = None
+            if self.ui.rb_typerefund.isChecked():
+                paid_date = self.ui.de_duedate.date()
+            elif self.chb_statement and self.chb_statement.isChecked():
+                paid_date = QDate(self.operation_date.year, self.operation_date.month, self.operation_date.day)
+            if paid_date is not None:
+                saved: bool = self.dbh.run_in_transaction(
+                    lambda: self._insert_paid(original_model, data, total_amount, paid_date))
+                if not saved:
+                    original_model.select()
+            else:
+                saved = original_model.insert_row(data) is not None
+            if not saved:
                 log.e(f"Не удалось вставить новую строку в таблицу event со следующими данными: {data}")
                 return
-            if self.ui.rb_typerefund.isChecked():
-                original_model.submitAll()
-                self.payment_model.append_row([original_model.index(new_row, Col.ID).data(LiabilitySqlTableModel.qtValueRole),
-                                               date_str(self.ui.de_duedate.date()),
-                                               str(total_amount),
-                                               date_str(QDate.currentDate())])
             QDialog.accept(self)
         else:
-            original_model.edit_row(map_to_source(-2, self.index).row(), data)
+            new_payment_sum = self.corrected_payment_sum()
+            original_model.edit_row(self.source_row(), data)
+            if new_payment_sum is not None and not self.dbh.set_payment_sum(self.today_payment[0], new_payment_sum):
+                ErrorInfoMessageBox("Не удалось исправить сумму оплаты (подробности см. в логе)", parent=self).exec()
             QDialog.accept(self)

@@ -1,14 +1,18 @@
+import getpass
 import sys
 from enum import IntEnum
 
 import lovely_logger as log
 
-from PySide6.QtCore import QSettings, QDir, QSize, QPoint, QRect, QCoreApplication
+from PySide6.QtCore import QSettings, QDir, QSize, QPoint, QRect, QCoreApplication, QTimer
 from PySide6.QtWidgets import QApplication, QWidget
 
 from base.casting import str_bool, str_int
 from base.paths import settings_path, backup_dir, to_stored_path, from_stored_path
 from gui.eventsqlmodel import Col, RowFormatting
+
+
+MIN_WINDOW_WIDTH = 1000
 
 
 class FontSize(IntEnum):
@@ -32,8 +36,45 @@ class SettingsHandler:
     def set_backup_path(self, path: str) -> None:
         self.settings.setValue("Backup/path", to_stored_path(path))
 
+    def sync_enabled(self) -> bool:
+        return str_bool(self.settings.value("Sync/enabled"), False)
+
+    def sync_channel_type(self) -> str:
+        channel_type: str = self.settings.value("Sync/channel", "folder")
+        return channel_type if channel_type in ("yandex", "folder") else "folder"
+
+    def sync_token(self) -> str:
+        return self.settings.value("Sync/token", "") or ""
+
+    def sync_disk_folder(self) -> str:
+        return self.settings.value("Sync/diskfolder", "") or "app:/"
+
+    def sync_token_expires(self) -> str:
+        return self.settings.value("Sync/tokenexpires", "") or ""
+
+    def sync_folder(self) -> str:
+        return from_stored_path(self.settings.value("Sync/folder", ""))
+
+    def set_sync_folder(self, path: str) -> None:
+        self.settings.setValue("Sync/folder", to_stored_path(path))
+
+    def sync_author(self) -> str:
+        return self.settings.value("Sync/author", "") or getpass.getuser()
+
+    def sync_interval_minutes(self) -> int:
+        return str_int(self.settings.value("Sync/interval"), 5)
+
+    def sync_idle_seconds(self) -> int:
+        return str_int(self.settings.value("Sync/idleseconds"), 60)
+
+    def sync_long_backup_keep_days(self) -> int:
+        return str_int(self.settings.value("Sync/backupkeepdays"), 60)
+
+    def sync_backup_interval_minutes(self) -> int:
+        return str_int(self.settings.value("Sync/backupintervalminutes"), 30)
+
     def paid_load_months(self) -> int:
-        return str_int(self.settings.value("Common/paidloadperiod"), 999)
+        return str_int(self.settings.value("Common/paidloadperiod"), 3)
 
     def apply_settings(self, apply_geometry: bool = False) -> None:
         # Отключение фильтра на время применения настроек
@@ -76,8 +117,7 @@ class SettingsHandler:
         ## Состояние боковой панели
         self.mw.ui.spb_term.set_switch_state(str_bool(self.settings.value("Sidepanel/termfilter"), True))
         self.mw.ui.spb_category.set_switch_state(str_bool(self.settings.value("Sidepanel/categoryfilter"), True))
-        self.mw.ui.spb_receiver.set_switch_state(str_bool(self.settings.value("Sidepanel/receiverfilter"), False))
-        self.mw.ui.spb_responsible.set_switch_state(str_bool(self.settings.value("Sidepanel/responsiblefilter"), False))
+        self.mw.ui.spb_responsible.set_switch_state(str_bool(self.settings.value("Sidepanel/responsiblefilter"), True))
 
         # Таблица
         ## Скрытие и отображение столбцов
@@ -119,8 +159,8 @@ class SettingsHandler:
             self.mw.base_model.set_row_formatting(RowFormatting())
 
         ## Отображение заголовков/футеров
-        self.mw.ui.act_toggleheaders.setChecked(str_bool(self.settings.value("Appearance/headersenabled"), False))
-        self.mw.ui.act_togglefooters.setChecked(str_bool(self.settings.value("Appearance/footersenabled"), False))
+        self.mw.ui.act_toggleheaders.setChecked(str_bool(self.settings.value("Appearance/headersenabled"), True))
+        self.mw.ui.act_togglefooters.setChecked(str_bool(self.settings.value("Appearance/footersenabled"), True))
 
         ## Перезагрузить список персонала
         self.mw.update_responsible_models(update_widgets=True)
@@ -161,6 +201,7 @@ class SettingsHandler:
             widget.setFixedWidth(width)
         # Боковая панель только ограничивается снизу - её ширину пользователь задаёт разделителем
         self.mw.ui.wdg_eventfilter.setMinimumWidth((200, 245, 270)[setting_value])
+        QTimer.singleShot(0, self.update_min_window_width)
 
         # Виджеты с самостоятельной регулировкой
         for filterwdg in (self.mw.ui.lw_term, self.mw.ui.lw_category):
@@ -172,6 +213,12 @@ class SettingsHandler:
         # Вернуть исключениям свои стили
         for widget in exclusions:
             widget.setStyleSheet(saved_stylesheets[widget])
+
+    def update_min_window_width(self) -> None:
+        # Окно не должно быть уже, чем нужно содержимому при выбранном шрифте
+        self.mw.setMinimumWidth(MIN_WINDOW_WIDTH)
+        self.mw.centralWidget().layout().invalidate()
+        self.mw.setMinimumWidth(max(MIN_WINDOW_WIDTH, self.mw.minimumSizeHint().width()))
 
     def save_settings(self) -> None:
         # Отображение
@@ -189,7 +236,6 @@ class SettingsHandler:
         ## Состояние боковой панели
         self.settings.setValue("Sidepanel/termfilter", int(self.mw.ui.spb_term.switch_state()))
         self.settings.setValue("Sidepanel/categoryfilter", int(self.mw.ui.spb_category.switch_state()))
-        self.settings.setValue("Sidepanel/receiverfilter", int(self.mw.ui.spb_receiver.switch_state()))
         self.settings.setValue("Sidepanel/responsiblefilter", int(self.mw.ui.spb_responsible.switch_state()))
         ## Положение разделителей
         self.settings.setValue("Mainwindow/splittermain", self.mw.ui.spl_main.saveState())

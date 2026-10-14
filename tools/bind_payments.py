@@ -354,8 +354,8 @@ def main(apply: bool) -> None:
         with wcon:
             wcon.executemany("UPDATE event SET contractdocument_id = ? WHERE id = ? AND (contractdocument_id IS NULL OR contractdocument_id = 0)",
                              [(sc[0][1]["doc_id"], ev["id"]) for ev, sc in bound])
-            wcon.executemany("UPDATE event SET receiver = ?, receivernocase = ? WHERE id = ?",
-                             [(name, name.lower(), ev_id) for ev_id, name in renames.items()])
+            wcon.executemany("UPDATE event SET receiver = ? WHERE id = ?",
+                             [(name, ev_id) for ev_id, name in renames.items()])
         wcon.close()
         print(f"Записано: {len(bound)}. Копия БД: {backup_path}")
 

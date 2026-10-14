@@ -1,12 +1,13 @@
 import sys
+from datetime import date
 from decimal import Decimal
-from typing import Any
+from typing import Any, Callable
 import lovely_logger as log
 
 from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
-from PySide6.QtGui import QAction, QKeySequence, QShortcut
-from PySide6.QtSql import QSqlTableModel, QSqlQuery
-from PySide6.QtWidgets import QMainWindow, QDialog, QLabel, QWidget, QListView, QToolButton, QLineEdit
+from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPalette, QShortcut
+from PySide6.QtSql import QSqlTableModel
+from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QStyle, QWidget, QListView, QToolButton, QSizePolicy
 
 from base.backup import clean_backup_folder, save_backup
 from base.casting import str_int
@@ -14,12 +15,14 @@ from base.contract import ContractInfo
 from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
-from base.payment import PaymentField
+from base.payment import PaymentEntry, PaymentField
+from base.sync import (MasterInfo, NetworkError, SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, read_local_state,
+                       set_stage_listener, synchronize)
+from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
 from gui.common import map_to_source
 from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparator
-from gui.commonwidgets.eventfilter import RightClickFilter
 from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
 from gui.contractdialog import ContractDocumentDialog
@@ -37,28 +40,31 @@ from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
 from gui.recoverydialog import RecoveryDialog
 from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
-from gui.settings import SettingsHandler
+from gui.settings import FontSize, SettingsHandler
 from gui.settingsdialog import SettingsDialog
+from gui.syncchangesdialog import SyncChangesDialog
+from gui.syncconflictdialog import SyncConflictDialog
+from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PLANNED_STAGES, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS,
+                             SYNC_STAGE_CHANGES_NOTICE, SYNC_STAGE_CONFLICT_RESOLUTION, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_tabs, connect_to_master,
+                             create_master, create_sync_channel, create_sync_params, describe_master, failure_status_text,
+                             master_age_days, merge_message, merge_tabs, merge_warning_lines, overwrite_master, pull_message,
+                             pull_tabs, take_master, token_days_left)
+from gui.ui.syncicon import SyncToolButton, create_sync_icon
+from gui.syncprogressdialog import SyncProgressDialog
+from gui.syncsettingsdialog import SyncSettingsDialog
 from gui.ui.mainwindow_ui import Ui_MainWindow
-from gui.ui.yearinputdialog_ui import Ui_YearInputDialog
 from gui.exportdialog import ExportDialog
-
-
-class YearInputDialog(QDialog):
-    def __init__(self, default_year: int, parent=None):
-        super(YearInputDialog, self).__init__(parent)
-        self.ui = Ui_YearInputDialog()
-        self.ui.setupUi(self)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.FramelessWindowHint)
-        self.setStyleSheet("background-color: #D5D6D8")
-        self.ui.spinBox.setValue(default_year)
-        self.ui.pushButton.clicked.connect(self.accept)
-        self.ui.pb_cancel.clicked.connect(self.reject)
 
 
 class MainWindow(QMainWindow):
 
     CONTRACT_NOTBOUND_TEXT = '<span style="color: #808080;">не привязан</span>'
+    SYNC_PROBLEM_STATUSES = (SYNC_STATUS_TEXT[SyncAction.CONFLICT], SYNC_STATUS_TEXT[SyncAction.FOREIGN_DB],
+                             SYNC_STATUS_TEXT[SyncAction.CLIENT_OUTDATED], "токен недействителен", "ОШИБКА")
+    SYNC_SUCCESS_ACTIONS = (SyncAction.NOTHING, SyncAction.PULL, SyncAction.PUSH, SyncAction.MERGE)
+    SYNC_PROBLEM_COLOR = QColor("#C62828")
+    SYNC_WARNING_COLOR = QColor("#B26A00")
+    SYNC_OK_COLOR = QColor("#2E7D32")
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -70,6 +76,15 @@ class MainWindow(QMainWindow):
         self.saved_before_exit: bool = False
         self.nosave_exit: bool = False
         self.bound_document_id: int = 0
+        self.sync_status_text: str = "не выполнялась"
+        self.sync_progress: SyncProgressDialog | None = None
+        self.sync_error: str = ""
+        self.sync_network_failed: bool = False
+        self.sync_retry_text: str = ""
+        self.sync_failure_text: str = "ОШИБКА"
+        self.sync_master_info: MasterInfo | None = None
+        self.sync_checked_at: str = ""
+        self.sync_succeeded_at: QDateTime = QDateTime()
 
         # Загрузка данных из БД: проверка файла, восстановление при необходимости, подключение
         self._load_database()
@@ -77,14 +92,17 @@ class MainWindow(QMainWindow):
         # Создание моделей таблиц (обязательства/платежи) и экспортера
         self._init_models()
 
-        # Поле быстрого поиска в тулбаре
-        self._init_toolbar_search()
-
-        # Подключение всех сигналов (фильтры, модели, тулбар)
-        self._connect_signals()
+        # Подписи кнопок и выпадающие группы в тулбаре
+        self._init_toolbar_groups()
 
         # Строка состояния
         self._init_statusbar()
+
+        # Кнопка синхронизации в правой части тулбара
+        self._init_toolbar_sync()
+
+        # Подключение всех сигналов (фильтры, модели, тулбар)
+        self._connect_signals()
 
         # Косметика
         self._init_widget_cosmetics()
@@ -96,6 +114,9 @@ class MainWindow(QMainWindow):
         self.settings_handler.apply_settings(apply_geometry=True)
         self.ui.stw_eventinfo.setCurrentIndex(1)
 
+        # Первая синхронизация после запуска
+        QTimer.singleShot(100, lambda: self.auto_sync(is_first=True))
+
 
     def _load_database(self) -> None:
         # Если файла БД нет или он не прошёл проверку - предлагаем восстановление,
@@ -104,12 +125,19 @@ class MainWindow(QMainWindow):
         if not self.db_handler.check_db_files_exists():
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,
                                          text="К сожалению, найти файл базы данных в стандартном расположении не удалось. "
-                                              "Выберите файл для восстановления",
-                                         cancel_available=False, parent=self)
+                                              "Выберите файл для восстановления или загрузите базу с сервера синхронизации",
+                                         cancel_available=False, offer_sync=True, parent=self)
             if recover_dlg.exec() != QDialog.DialogCode.Accepted:
                 sys.exit()
-        ## Обновление структуры до актуальной версии
-        self.db_handler.migrate_db()
+        ## База данных новее программы - ничего не трогаем
+        if self.db_handler.is_db_newer_than_client():
+            ErrorInfoMessageBox("База данных создана более новой версией программы. Обновите программу").exec()
+            sys.exit()
+        ## Обновление структуры до актуальной версии: при сбое файл остаётся прежним, восстановление не предлагаем
+        if not self.db_handler.migrate_db() and self.db_handler.migration_failed:
+            ErrorInfoMessageBox("Не удалось обновить структуру базы данных до версии этой программы. "
+                                "Файл базы данных не изменён (подробности см. в логе)").exec()
+            sys.exit()
         ## Проверка файла
         if not self.db_handler.check_db_file_integrity():
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,
@@ -160,29 +188,107 @@ class MainWindow(QMainWindow):
         # Инициализация экспортера
         self.xls_writer: LiabilityXlsWriter = LiabilityXlsWriter(self.proxy2_model, self.ui.tv_payment, self.settings_handler)
 
-    def _init_toolbar_search(self) -> None:
-        # QToolBar в Qt Designer принимает только действия, поэтому поле поиска создаётся здесь
-        self.toolbar_spacer = QWidget(self)
-        self.toolbar_spacer.setFixedWidth(20)
-        self.le_search = QLineEdit(self)
-        self.le_search.setFixedWidth(300)
-        self.le_search.setClearButtonEnabled(True)
-        self.le_search.setPlaceholderText("Поиск по платежам (Ctrl+F)")
-        self.le_search.setToolTip("Поиск по наименованию (предмету) и основанию платежа (Ctrl+F)")
-        self.ui.tlbr.addWidget(self.toolbar_spacer)
-        self.ui.tlbr.addWidget(self.le_search)
+    def _init_toolbar_groups(self) -> None:
+        short_labels: dict[QAction, str] = {
+            self.ui.act_new: "Новый",
+            self.ui.act_copy: "Копия",
+            self.ui.act_edit: "Изменить",
+            self.ui.act_delete: "Удалить",
+            self.ui.act_export: "Экспорт",
+            self.ui.act_contracts: "Договоры",
+            self.ui.act_settings: "Настройки",
+        }
+        for action, text in short_labels.items():
+            action.setIconText(text)
+        self.ui.tlbr.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+
+        view_actions: list[QAction] = [self.ui.act_featured, self.ui.act_toggleheaders, self.ui.act_togglefooters]
+        bank_actions: list[QAction] = [self.ui.act_matching, self.ui.act_fees]
+        tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions,
+                                              "На контроле, заголовки и итоги разделов")
+        tb_bank = self._make_toolbar_dropdown("Выписка", ":/icon-toolbar/designer/icons/statement.svg", bank_actions,
+                                              "Сверка банковской выписки и учет комиссий")
+        copy_actions: list[QAction] = [self.ui.act_copy, self.ui.act_copydoc]
+        tb_copy = self._make_toolbar_split_button(self.ui.act_copy, copy_actions)
+        planfact_actions: list[QAction] = [self.ui.act_finplan, self.ui.act_fulfillment, self.ui.act_chart]
+        self.tb_planfact = self._make_toolbar_split_button(
+            self.ui.act_fulfillment, planfact_actions, "План-факт", ":/icon-toolbar/designer/icons/fulfillment.svg",
+            "Исполнение финансового плана, финансовый план и графики")
+        self.ui.tlbr.insertWidget(self.ui.act_copy, tb_copy)
+        self.ui.tlbr.insertWidget(self.ui.act_finplan, self.tb_planfact)
+        self.ui.tlbr.insertWidget(self.ui.act_featured, tb_view)
+        self.ui.tlbr.insertWidget(self.ui.act_fees, tb_bank)
+        for action in copy_actions + planfact_actions + view_actions + bank_actions:
+            self.ui.tlbr.removeAction(action)
+
+        button_groups: list[list[QToolButton]] = [[]]
+        for action in self.ui.tlbr.actions():
+            if action.isSeparator():
+                button_groups.append([])
+                continue
+            button: QToolButton = self.ui.tlbr.widgetForAction(action)
+            button.setStyleSheet(f"font-size: {FontSize.LARGE - 1}pt;")
+            button.ensurePolished()
+            button_groups[-1].append(button)
+        for group in button_groups:
+            group_width: int = max(self._toolbar_button_width(button) for button in group)
+            for button in group:
+                button.setFixedWidth(group_width)
+
+    @staticmethod
+    def _toolbar_button_width(button: QToolButton) -> int:
+        text_width: int = button.fontMetrics().horizontalAdvance(button.text())
+        arrow_width: int = button.style().pixelMetric(QStyle.PixelMetric.PM_MenuButtonIndicator, None, button)
+        if button.popupMode() == QToolButton.ToolButtonPopupMode.MenuButtonPopup:
+            return text_width + arrow_width + 8
+        return text_width + 14
+
+    def _make_toolbar_dropdown(self, text: str, icon_path: str, actions: list[QAction], tooltip: str) -> QToolButton:
+        menu = QMenu(self)
+        for action in actions:
+            action.setIconVisibleInMenu(True)
+            menu.addAction(action)
+        button = QToolButton()
+        button.setObjectName("tb_dropdown")
+        button.setText(text)
+        button.setIcon(QIcon(icon_path))
+        button.setIconSize(self.ui.tlbr.iconSize())
+        button.setToolTip(tooltip)
+        button.setAutoRaise(True)
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        button.setMenu(menu)
+        return button
+
+    def _make_toolbar_split_button(self, default_action: QAction, actions: list[QAction], text: str = "",
+                                   icon_path: str = "", tooltip: str = "") -> QToolButton:
+        menu = QMenu(self)
+        for action in actions:
+            action.setIconVisibleInMenu(True)
+            menu.addAction(action)
+        button = QToolButton()
+        button.setObjectName("tb_dropdown")
+        button.setDefaultAction(default_action)
+        if text:
+            button.setText(text)
+            button.setIcon(QIcon(icon_path))
+            button.setToolTip(tooltip)
+        button.setIconSize(self.ui.tlbr.iconSize())
+        button.setAutoRaise(True)
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        button.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        button.setMenu(menu)
+        return button
 
     def _connect_signals(self) -> None:
         # Пересчет итоговых строк
         self.proxy1_model.layoutChanged.connect(self.proxy2_model.recalculate_totals)
         # Секции боковой панели: кнопка-переключатель, сам фильтр, подпись и проверка активности фильтра
         self.filter_sections: tuple = (
-            (self.ui.spb_term, self.ui.lw_term, "СРОК ПОГАШЕНИЯ",
+            (self.ui.spb_term, self.ui.lw_term, "СРОК ОПЛАТЫ",
              lambda: self.ui.lw_term.currentRow() != 0),
             (self.ui.spb_category, self.ui.lw_category, "КАТЕГОРИЯ",
              lambda: self.ui.lw_category.currentRow() != 0),
-            (self.ui.spb_receiver, self.ui.le_receiverfilter, "ПОЛУЧАТЕЛЬ",
-             lambda: bool(self.ui.le_receiverfilter.text())),
             (self.ui.spb_responsible, self.ui.cmb_responsiblefilter, "ОТВЕТСТВЕННЫЙ",
              lambda: self.ui.cmb_responsiblefilter.currentData(Qt.ItemDataRole.UserRole) != 0),
         )
@@ -201,7 +307,6 @@ class MainWindow(QMainWindow):
 
         self.ui.lw_term.currentRowChanged.connect(self.update_filters_and_select)
         self.ui.lw_category.currentRowChanged.connect(self.update_filters_and_select)
-        self.ui.le_receiverfilter.textChanged.connect(self.update_filters_and_select)
         self.ui.cmb_responsiblefilter.currentIndexChanged.connect(self.update_filters_and_select)
         self.ui.chb_paytoday.checkStateChanged.connect(self.update_filters_and_select)
 
@@ -209,9 +314,10 @@ class MainWindow(QMainWindow):
         self.search_timer: QTimer = QTimer(self)
         self.search_timer.setSingleShot(True)
         self.search_timer.setInterval(250)
-        self.search_timer.timeout.connect(self.apply_search_filter)
-        self.le_search.textChanged.connect(lambda: self.search_timer.start())
+        self.search_timer.timeout.connect(self.update_filters_and_select)
+        self.ui.le_search.textChanged.connect(lambda: self.search_timer.start())
         self.ui.pb_resetfilters.clicked.connect(self.reset_filters)
+        self.ui.scrollArea.verticalScrollBar().rangeChanged.connect(self.update_search_margin)
 
         # Действия при переключении избранного
         self.ui.act_featured.triggered.connect(self.update_filters_and_select)
@@ -250,12 +356,9 @@ class MainWindow(QMainWindow):
         self.ui.act_edit.triggered.connect(lambda: self.open_event_dialog(edit=True))
         self.ui.act_delete.triggered.connect(self.delete_event)
         self.ui.act_finplan.triggered.connect(self.open_finplan_dialog)
-        self.rmb_finplan_filter = RightClickFilter(self)
-        self.rmb_finplan_filter.rightmousebutton_clicked.connect(lambda: self.open_finplan_dialog(ask_year=True))
-        self.ui.tlbr.widgetForAction(self.ui.act_finplan).installEventFilter(self.rmb_finplan_filter)
         self.ui.act_fulfillment.triggered.connect(self.open_fulfillment_dialog)
         self.ui.act_chart.triggered.connect(self.open_chart_dialog)
-        self.ui.act_fees.triggered.connect(self.open_fees_dialog)
+        self.ui.act_fees.triggered.connect(lambda: self.open_fees_dialog())
         self.ui.act_matching.triggered.connect(self.open_matching_dialog)
         self.ui.act_export.triggered.connect(self.open_export_dialog)
         self.ui.act_contracts.triggered.connect(self.open_contractor_dialog)
@@ -273,19 +376,329 @@ class MainWindow(QMainWindow):
         self.base_model.cacheUpdateNeeded.connect(self.base_model.invalidate_sort_cache)
 
     def _init_statusbar(self) -> None:
+        self.la_sbar_sync = QLabel("")
         self.la_sbar_backup = QLabel("")
         self.la_sbar_update = QLabel("")
         self.separator1 = StatusBarSeparator(self)
+        self.separator_sync = StatusBarSeparator(self)
         self.separator2 = StatusBarSeparator(self)
         self.separator3 = StatusBarSeparator(self)
         self.spacer = QWidget()
         self.spacer.setFixedWidth(10)
+
         self.ui.statusBar.addPermanentWidget(self.separator1)
+        self.ui.statusBar.addPermanentWidget(self.la_sbar_sync)
+        self.ui.statusBar.addPermanentWidget(self.separator_sync)
         self.ui.statusBar.addPermanentWidget(self.la_sbar_backup)
         self.ui.statusBar.addPermanentWidget(self.separator2)
         self.ui.statusBar.addPermanentWidget(self.la_sbar_update)
         self.ui.statusBar.addPermanentWidget(self.separator3)
         self.ui.statusBar.addPermanentWidget(self.spacer)
+        self.update_sync_statusbar()
+        self.set_backup_status("")
+
+    def update_sync_statusbar(self) -> None:
+        is_visible: bool = self.settings_handler.sync_enabled() and self.sync_succeeded_at.isValid()
+        if is_visible:
+            is_today: bool = self.sync_succeeded_at.date() == QDate.currentDate()
+            self.la_sbar_sync.setText(f"Последняя синхронизация: {self.sync_succeeded_at.toString('HH:mm' if is_today else 'HH:mm dd.MM.yyyy')}")
+        self.la_sbar_sync.setToolTip("Дата и время последней успешной синхронизации")
+        self.la_sbar_sync.setVisible(is_visible)
+        self.separator_sync.setVisible(is_visible)
+
+    def set_backup_status(self, error_text: str) -> None:
+        self.la_sbar_backup.setText(error_text)
+        self.la_sbar_backup.setStyleSheet(f"color: {self.SYNC_PROBLEM_COLOR.name()};")
+        self.la_sbar_backup.setVisible(bool(error_text))
+        self.separator2.setVisible(bool(error_text))
+
+    def _init_toolbar_sync(self) -> None:
+        self.act_sync_now = QAction("Синхронизировать сейчас", self)
+        self.act_sync_settings = QAction("Настройки синхронизации...", self)
+        sync_menu = QMenu(self)
+        sync_menu.addAction(self.act_sync_now)
+        sync_menu.addAction(self.act_sync_settings)
+        self.tb_sync = SyncToolButton()
+        self.tb_sync.setAutoRaise(True)
+        self.tb_sync.setObjectName("tb_sync")
+        self.tb_sync.setFixedHeight(self.ui.tlbr.widgetForAction(self.ui.act_new).sizeHint().height())
+        self.tb_sync.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.tb_sync.setMenu(sync_menu)
+        self.tb_sync.clicked.connect(self.on_sync_button_clicked)
+        self.act_sync_now.triggered.connect(lambda: self.run_sync())
+        self.act_sync_settings.triggered.connect(self.open_sync_settings_dialog)
+        self.sync_channel: SyncChannel | None = None
+        self.sync_channel_settings: tuple | None = None
+        self.sync_timer = QTimer(self)
+        self.sync_timer.timeout.connect(self.auto_sync)
+        self.idle_sync_timer = IdleSyncTimer(self)
+        self.idle_sync_timer.timeout.connect(self.idle_sync)
+        self.apply_sync_timer()
+        self.update_sync_status()
+        self.sync_status_timer = QTimer(self)
+        self.sync_status_timer.timeout.connect(self.refresh_sync_status)
+        self.sync_status_timer.start(3000)
+
+        sync_spacer = QWidget(self)
+        sync_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        right_margin = QWidget(self)
+        right_margin.setFixedWidth(6)
+        self.ui.tlbr.addWidget(sync_spacer)
+        self.ui.tlbr.addWidget(self.tb_sync)
+        self.ui.tlbr.addWidget(right_margin)
+
+    def on_sync_button_clicked(self) -> None:
+        if self.settings_handler.sync_enabled():
+            self.run_sync()
+        else:
+            self.open_sync_settings_dialog()
+
+    def set_sync_button_state(self, text: str, color: QColor | None = None, icon_color: QColor | None = None) -> None:
+        self.tb_sync.setText(text)
+        palette: QPalette = QApplication.palette(self.tb_sync)
+        if color is not None:
+            palette.setColor(QPalette.ColorRole.ButtonText, color)
+            palette.setColor(QPalette.ColorRole.WindowText, color)
+        self.tb_sync.setPalette(palette)
+        self.tb_sync.setIcon(create_sync_icon(palette.buttonText().color() if icon_color is None else icon_color))
+
+    def update_sync_status(self) -> None:
+        self.update_sync_statusbar()
+        if not self.settings_handler.sync_enabled():
+            self.set_sync_button_state("Синхронизация:\nвыключена",self.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText))
+            self.tb_sync.setToolTip("Синхронизация выключена. Нажмите, чтобы открыть настройки синхронизации")
+            self.act_sync_now.setEnabled(False)
+            return
+        self.act_sync_now.setEnabled(True)
+        master_age: int | None = master_age_days(self.sync_master_info) if self.sync_master_info else None
+        is_master_stale: bool = master_age is not None and master_age >= SYNC_STALE_DAYS
+        days_left: int | None = token_days_left(self.settings_handler)
+        token_warning: str = ""
+        if days_left is not None and days_left < 0:
+            token_warning = "Токен Яндекса истёк, получите новый и укажите его в настройках синхронизации"
+        elif days_left is not None and days_left <= TOKEN_WARNING_DAYS:
+            token_warning = f"Токен Яндекса истекает через {days_left} дн., получите новый заранее"
+        is_problem: bool = self.sync_status_text in self.SYNC_PROBLEM_STATUSES or (days_left is not None and days_left < 0)
+        is_actual: bool = self.sync_status_text == SYNC_STATUS_TEXT[SyncAction.NOTHING]
+        has_unsent_changes: bool = False
+        if is_actual:
+            try:
+                has_unsent_changes = read_local_state(self.db_handler).has_changes
+            except SyncError as e:
+                log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
+        is_warning: bool = is_master_stale or bool(token_warning) or has_unsent_changes
+        status_text: str = f"Синхронизация:\n{'есть неотправленные' if has_unsent_changes else self.sync_status_text}"
+        if not is_problem and is_warning and not has_unsent_changes:
+            status_text += " ⚠"
+        color: QColor | None = None
+        icon_color: QColor | None = None
+        if is_problem:
+            color = self.SYNC_PROBLEM_COLOR
+        elif is_warning or not is_actual:
+            color = self.SYNC_WARNING_COLOR
+        else:
+            icon_color = self.SYNC_OK_COLOR
+        self.set_sync_button_state(status_text, color, icon_color)
+        if self.settings_handler.sync_channel_type() == "yandex":
+            tooltip_lines: list[str] = [f"Яндекс.Диск, папка {self.settings_handler.sync_disk_folder()}"]
+        else:
+            tooltip_lines = [f"Папка обмена: {self.settings_handler.sync_folder()}"]
+        if token_warning:
+            tooltip_lines.append(token_warning)
+        if self.sync_checked_at:
+            tooltip_lines.append(f"Последняя проверка: {self.sync_checked_at}")
+        if self.sync_master_info:
+            tooltip_lines.append(f"Общая база обновлена: {describe_master(self.sync_master_info)}")
+        if is_master_stale:
+            tooltip_lines.append(f"Внимание: общая база не обновлялась {master_age} дн., возможно, второй пользователь не отправляет изменения")
+        if self.sync_error:
+            tooltip_lines.append(f"Последняя ошибка: {self.sync_error}")
+        if self.sync_retry_text:
+            tooltip_lines.append(self.sync_retry_text)
+        tooltip_lines.append("Нажмите, чтобы синхронизировать; стрелка справа — меню")
+        self.tb_sync.setToolTip("\n".join(tooltip_lines))
+
+    def refresh_sync_status(self) -> None:
+        if self.settings_handler.sync_enabled() and self.tb_sync.isEnabled():
+            self.update_sync_status()
+
+    def apply_sync_timer(self) -> None:
+        self.sync_timer.stop()
+        if self.settings_handler.sync_enabled():
+            self.sync_timer.start(self.settings_handler.sync_interval_minutes() * 60 * 1000)
+        self.idle_sync_timer.set_idle_seconds(self.settings_handler.sync_idle_seconds() if self.settings_handler.sync_enabled() else 0)
+
+    def idle_sync(self) -> None:
+        try:
+            if not read_local_state(self.db_handler).has_changes:
+                return
+        except SyncError as e:
+            log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
+            return
+        self.auto_sync()
+
+    def get_sync_channel(self) -> SyncChannel:
+        current_settings = (self.settings_handler.sync_channel_type(), self.settings_handler.sync_token(),
+                            self.settings_handler.sync_disk_folder(), self.settings_handler.sync_folder())
+        if self.sync_channel is None or self.sync_channel_settings != current_settings:
+            self.sync_channel = create_sync_channel(self.settings_handler)
+            self.sync_channel_settings = current_settings
+        return self.sync_channel
+
+    def auto_sync(self, retries_left: int = SYNC_RETRY_ATTEMPTS, is_first: bool = False) -> None:
+        if (not self.settings_handler.sync_enabled() or not self.tb_sync.isEnabled()
+                or self.sync_progress is not None or QApplication.activeModalWidget() is not None
+                or self.ui.tb_savenote.isEnabled()):
+            return
+        self.run_sync(interactive=False, pause_when_done=is_first)
+        if self.sync_network_failed and retries_left > 0:
+            delay_seconds: int = SYNC_RETRY_DELAY_MS // 1000
+            log.i(f"Повтор синхронизации через {delay_seconds} с, осталось попыток: {retries_left}")
+            self.sync_retry_text = f"Автоматический повтор через {delay_seconds} с (осталось попыток: {retries_left})"
+            self.update_sync_status()
+            self.ui.statusBar.showMessage(f"Не удалось связаться с сервером синхронизации. "
+                                          f"Повторим попытку через {delay_seconds} с (осталось попыток: {retries_left})",
+                                          SYNC_RETRY_DELAY_MS)
+            QTimer.singleShot(SYNC_RETRY_DELAY_MS, lambda: self.auto_sync(retries_left - 1))
+
+    def run_sync(self, interactive: bool = True, pause_when_done: bool = True) -> None:
+        if not self.settings_handler.sync_enabled():
+            return
+        self.save_note()
+        channel = self.get_sync_channel()
+        params = create_sync_params(self.settings_handler)
+        previous_status_text: str = self.sync_status_text
+        report = SyncReport()
+        action: SyncAction | None = None
+        self.sync_progress = SyncProgressDialog(self, planned_stages=SYNC_PLANNED_STAGES)
+        self.sync_progress.start()
+        try:
+            action = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True))
+            is_changed_by_other: bool = action in (SyncAction.PULL, SyncAction.MERGE)
+            is_merged: bool = action == SyncAction.MERGE
+            if interactive or action == SyncAction.CONFLICT:
+                action = self._resolve_sync_action(action, channel, params, report)
+            self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
+            if action in self.SYNC_SUCCESS_ACTIONS:
+                self.sync_succeeded_at = QDateTime.currentDateTime()
+            self.sync_status_text = self.sync_failure_text if action is None else SYNC_STATUS_TEXT[action]
+            if action in (SyncAction.PULL, SyncAction.MERGE):
+                self.reload_after_sync_pull()
+            self.update_sync_status()
+            if is_changed_by_other:
+                if is_merged:
+                    changes_dlg = SyncChangesDialog(merge_message(report), merge_tabs(report), self, warnings=merge_warning_lines(report))
+                else:
+                    changes_dlg = SyncChangesDialog(pull_message(report.master_info or self.sync_master_info), pull_tabs(report), self)
+                self.sync_progress.show_stage_now(SYNC_STAGE_CHANGES_NOTICE)
+                changes_dlg.exec()
+        finally:
+            self._close_sync_progress(pause=pause_when_done and action is not None)
+        if interactive:
+            if action is None:
+                ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
+            elif action in SYNC_ACTION_MESSAGE:
+                ErrorInfoMessageBox(SYNC_ACTION_MESSAGE[action], is_info=True, parent=self).exec()
+        elif self.sync_status_text != previous_status_text and action in (SyncAction.CONFLICT, SyncAction.CLIENT_OUTDATED):
+            self.ui.statusBar.showMessage(f"Синхронизация: {self.sync_status_text}. Нажмите на кнопку синхронизации на панели инструментов", 15000)
+
+    def _resolve_sync_action(self, action: SyncAction | None, channel: SyncChannel, params: SyncParams,
+                             report: SyncReport) -> SyncAction | None:
+        if action in (SyncAction.NO_MASTER, SyncAction.FOREIGN_DB):
+            self.sync_progress.hide_for_question()
+        if action == SyncAction.NO_MASTER and YesNoMessagebox(
+                "В папке обмена нет общей базы. Создать её из вашей локальной копии?",
+                self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
+            self.sync_progress.start()
+            return self._run_sync_step(channel, lambda: create_master(self.db_handler, channel, params))
+        if action == SyncAction.FOREIGN_DB and YesNoMessagebox(
+                "В папке обмена лежит общая база с другими данными. Заменить ею вашу локальную копию? "
+                "Текущая локальная копия будет сохранена в папке резервных копий.",
+                self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
+            self.sync_progress.start()
+            return self._run_sync_step(channel, lambda: connect_to_master(self.db_handler, channel))
+        if action == SyncAction.CONFLICT and self.sync_master_info:
+            if report.my_changes is None:
+                self._run_sync_step(channel, lambda: compare_with_master(self.db_handler, channel, report))
+            conflict_dlg = SyncConflictDialog(describe_master(self.sync_master_info), self, conflict_tabs(report), report.conflicts)
+            self.sync_progress.show_stage_now(SYNC_STAGE_CONFLICT_RESOLUTION)
+            conflict_dlg.exec()
+            if conflict_dlg.take_master_chosen():
+                return self._run_sync_step(channel, lambda: take_master(self.db_handler, channel))
+            if conflict_dlg.overwrite_chosen():
+                return self._run_sync_step(channel, lambda: overwrite_master(self.db_handler, channel, params))
+        return action
+
+    def confirm_exit_with_sync(self) -> bool:
+        if not self.settings_handler.sync_enabled():
+            return True
+        try:
+            if not read_local_state(self.db_handler).has_changes:
+                return True
+        except SyncError as e:
+            log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
+            return True
+        channel = self.get_sync_channel()
+        params = create_sync_params(self.settings_handler)
+        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params),
+                                                        SYNC_PLANNED_STAGES)
+        if action == SyncAction.PUSH:
+            return True
+        reason: str = self.sync_error if action is None else SYNC_STATUS_TEXT[action]
+        return YesNoMessagebox(f"Изменения не отправлены в общую базу ({reason}). Закрыть программу без отправки?",
+                               self).exec() == YesNoMessagebox.YES_RETURN_VALUE
+
+    def _close_sync_progress(self, pause: bool) -> None:
+        progress: SyncProgressDialog = self.sync_progress
+        self.sync_progress = None
+        progress.complete(pause)
+        progress.finish()
+
+    def _run_sync_step(self, channel: SyncChannel, step: Callable[[], SyncAction],
+                       planned_stages: tuple[str, ...] = ()) -> SyncAction | None:
+        self.tb_sync.setEnabled(False)
+        self.sync_retry_text = ""
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        owns_progress: bool = self.sync_progress is None
+        progress: SyncProgressDialog = SyncProgressDialog(self, planned_stages=planned_stages) if owns_progress else self.sync_progress
+        set_stage_listener(progress.set_stage)
+        if owns_progress:
+            progress.start()
+        try:
+            action: SyncAction = step()
+            progress.complete(owns_progress)
+            self.sync_error = ""
+            self.sync_network_failed = False
+            self.sync_master_info = channel.last_master_info()
+            return action
+        except SyncError as e:
+            log.e(f"Синхронизация не выполнена: {e}")
+            self.sync_error = str(e)
+            self.sync_network_failed = isinstance(e, NetworkError)
+            self.sync_failure_text = failure_status_text(e)
+            progress.fail()
+            return None
+        finally:
+            set_stage_listener(None)
+            if owns_progress:
+                progress.finish()
+            QApplication.restoreOverrideCursor()
+            self.tb_sync.setEnabled(True)
+
+    def reload_after_sync_pull(self) -> None:
+        clear_calendar_cache()
+        self.base_model.select()
+        self.payment_model.select()
+        self.update_responsible_models(update_widgets=True)
+        self.update_filters_and_select()
+        self.base_model.cacheUpdateNeeded.emit()
+        self.on_currentevent_change()
+
+    def open_sync_settings_dialog(self) -> None:
+        if SyncSettingsDialog(self.settings_handler, self).exec() == QDialog.DialogCode.Accepted:
+            self.apply_sync_timer()
+            self.update_sync_status()
+            QTimer.singleShot(1000, self.auto_sync)
 
     def set_update_status(self, text: str) -> None:
         self.la_sbar_update.setText(text)
@@ -308,7 +721,7 @@ class MainWindow(QMainWindow):
         self.ui.act_copydoc.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.ui.act_copydoc.setToolTip(f"{self.ui.act_copydoc.toolTip()} (Ctrl+Shift+D)")
         # Горячие клавиши, которым не соответствует кнопка тулбара
-        for key, slot in (("Ctrl+F", self.le_search.setFocus),
+        for key, slot in (("Ctrl+F", self.ui.le_search.setFocus),
                           ("Ctrl+R", self.reset_filters),
                           ("Ctrl+S", self.save_note)):
             QShortcut(QKeySequence(key), self).activated.connect(slot)
@@ -336,10 +749,7 @@ class MainWindow(QMainWindow):
             error_msg = ErrorInfoMessageBox("Не удалось очистить папку с резервными копиями (см. подробности в логе)")
             error_msg.exec()
         backup_datetime: QDateTime = save_backup(self.settings_handler, self.db_handler)
-        if backup_datetime.isValid():
-            self.la_sbar_backup.setText(f"Резервная копия: {date_displstr(backup_datetime)}")
-        else:
-            self.la_sbar_backup.setText("Резервная копия: ОШИБКА СОЗДАНИЯ")
+        self.set_backup_status("" if backup_datetime.isValid() else "Резервная копия: ОШИБКА СОЗДАНИЯ")
 
 
     def get_current_event_index(self, source_model_index: bool = False) -> QModelIndex:
@@ -471,7 +881,7 @@ class MainWindow(QMainWindow):
     def _current_filter_args(self) -> tuple:
         return (self.ui.lw_term.current_term(),
                 self.ui.lw_category.current_category(),
-                self.ui.le_receiverfilter.text(),
+                self.ui.le_search.text(),
                 self.ui.cmb_responsiblefilter.currentData(),
                 self.ui.chb_paytoday.isChecked(),
                 str_int(self.settings_handler.settings.value("Common/paidloadperiod", 3), 3),
@@ -488,24 +898,29 @@ class MainWindow(QMainWindow):
         return (any(is_active() for *_, is_active in self.filter_sections)
                 or self.ui.chb_paytoday.isChecked()
                 or self.ui.act_featured.isChecked()
-                or bool(self.le_search.text()))
+                or bool(self.ui.le_search.text()))
 
-    def apply_search_filter(self) -> None:
-        self.proxy1_model.set_filter(Filter.SEARCH, self.le_search.text())
-        self.ui.pb_resetfilters.setEnabled(self.any_filter_active())
+    def update_search_margin(self, _minimum: int, maximum: int) -> None:
+        scrollbar_width: int = self.ui.scrollArea.verticalScrollBar().sizeHint().width() if maximum > 0 else 0
+        right_margin: int = 9 + scrollbar_width
+        self.ui.pb_resetfilters.setStyleSheet(
+            "QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; "
+            f"margin: 9px {right_margin}px 0px 9px;}}\n"
+            "QPushButton:hover {background-color: #e8eef4;}\n"
+            "QPushButton:disabled {color: #a0a0a0;}")
+        self.ui.horizontalLayout_search.setContentsMargins(9, 3, right_margin, 3)
 
     def reset_filters(self) -> None:
-        blocked_widgets: tuple = (self.ui.lw_term, self.ui.lw_category, self.ui.le_receiverfilter,
+        blocked_widgets: tuple = (self.ui.lw_term, self.ui.lw_category,
                                   self.ui.cmb_responsiblefilter, self.ui.chb_paytoday,
-                                  self.le_search, self.ui.act_featured)
+                                  self.ui.le_search, self.ui.act_featured)
         for widget in blocked_widgets:
             widget.blockSignals(True)
         self.ui.lw_term.setCurrentRow(0)
         self.ui.lw_category.setCurrentRow(0)
-        self.ui.le_receiverfilter.clear()
         self.ui.cmb_responsiblefilter.setCurrentIndex(0)
         self.ui.chb_paytoday.setChecked(False)
-        self.le_search.clear()
+        self.ui.le_search.clear()
         self.ui.act_featured.setChecked(False)
         for widget in blocked_widgets:
             widget.blockSignals(False)
@@ -513,7 +928,6 @@ class MainWindow(QMainWindow):
         self.proxy1_model.set_filter(Filter.TERM, list(TermCategory)[0], invalidate=False)
         self.proxy1_model.set_filter(Filter.CATEGORY, 0, invalidate=False)
         self.proxy1_model.set_filter(Filter.PAYTODAY, False, invalidate=False)
-        self.proxy1_model.set_filter(Filter.SEARCH, "")
         # Заголовки свёрнутых секций могли остаться подкрашенными как активные
         for switch_button, filter_widget, label, is_active in self.filter_sections:
             switch_button.change_style_on_hiding_activefilter(switch_button.switch_state(), is_active())
@@ -581,14 +995,19 @@ class MainWindow(QMainWindow):
         else:
             return False
 
-    def open_event_dialog(self, edit: bool = False, copy: bool = False) -> bool:
+    def open_event_dialog(self, edit: bool = False, copy: bool = False, initial_amount: Decimal | None = None,
+                          parent: QWidget | None = None, from_statement: bool = False,
+                          payment_entry: PaymentEntry | None = None, payment_date: date | None = None) -> bool:
         curr_index: QModelIndex = self.get_current_event_index()
+        if payment_entry is not None:
+            curr_index = self.find_event_index(payment_entry.event_id)
 
         if edit or copy:
             if not curr_index.isValid():
                 self.warn_selection_lost()
                 return False
-            selection_not_visible: bool = is_selection_filteredout(self.proxy2_model, self.ui.trw_event, two_proxies=True, current_instead=True)
+            selection_not_visible: bool = (payment_entry is None and is_selection_filteredout(
+                self.proxy2_model, self.ui.trw_event, two_proxies=True, current_instead=True))
             if selection_not_visible:
                 self.warn_selection_lost()
                 return False
@@ -601,7 +1020,7 @@ class MainWindow(QMainWindow):
             if not self.responsible_partial_model:
                 self.warn_personal_unavailable()
                 return False
-            responsible_id = self.current_data(Col.RESPONSIBLE, LiabilitySqlTableModel.qtValueRole)
+            responsible_id = curr_index.siblingAtColumn(Col.RESPONSIBLE).data(LiabilitySqlTableModel.qtValueRole)
             matches = self.responsible_partial_model.match(self.responsible_partial_model.index(0, 0), Qt.ItemDataRole.UserRole,
                                                            responsible_id, hits=1, flags=Qt.MatchFlag.MatchExactly)
             if not matches:
@@ -611,7 +1030,8 @@ class MainWindow(QMainWindow):
             return False
 
         event_dialog: EventDialog = EventDialog(final_proxy_model=self.proxy2_model, responsible_model=responsible_model, payment_model= self.payment_model,
-                                                settings_handler=self.settings_handler, db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, parent=self)
+                                                settings_handler=self.settings_handler, db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, initial_amount=initial_amount,
+                                                from_statement=from_statement, payment_date=payment_date, parent=parent or self)
         if event_dialog.exec():
             if not edit:
                 set_due_filter = False
@@ -620,11 +1040,20 @@ class MainWindow(QMainWindow):
                         set_due_filter = True
                 self.select_new_event(set_due_filter)
             else:
+                self.base_model.load_payment_totals()
                 self.update_filters_and_select()
+                self.update_eventinfo()
             self.proxy1_model.invalidate()
             return True
         else:
             return False
+
+    def find_event_index(self, event_id: int | None) -> QModelIndex:
+        self.base_model.select()
+        for row in range(self.base_model.rowCount()):
+            if self.base_model.index(row, Col.ID).data(LiabilitySqlTableModel.qtValueRole) == event_id:
+                return self.base_model.index(row, 0)
+        return QModelIndex()
 
     def select_new_event(self, set_due_filter: bool) -> None:
         self.base_model.submitAll()
@@ -634,13 +1063,7 @@ class MainWindow(QMainWindow):
             self.ui.lw_term.setCurrentRow(0)
         self.update_filters_and_select()
         # ищем и выделяем новую строку
-        query = QSqlQuery()
-        if not query.exec("SELECT last_insert_rowid()"):
-            log.w(f"Не удалось получить id последней добавленной записи: {query.lastError().text()}")
-        if query.next():
-            last_id = query.value(0)
-        else:
-            last_id = 0
+        last_id: int = self.base_model.last_inserted_id
 
         base_index_to_select = None
         for row in range(self.base_model.rowCount() - 1, -1, -1):
@@ -677,7 +1100,7 @@ class MainWindow(QMainWindow):
         msg.exec()
 
     def warn_personal_unavailable(self) -> None:
-        msg = ErrorInfoMessageBox("Не удалось получить список ответственных лиц (подробности см. в логе). "
+        msg = ErrorInfoMessageBox("Не удалось получить список ответственных (подробности см. в логе). "
                                   "Проверьте настройки и файл персонала.", parent=self)
         msg.exec()
 
@@ -692,12 +1115,17 @@ class MainWindow(QMainWindow):
             return False
         msg_box = YesNoMessagebox("Удаление платежа - необратимое действие. Уверены, что хотите продолжить?")
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
-            deleted_event_id: int = self.base_model.delete_row(self.proxy1_model.mapToSource(self.proxy2_model.mapToSource(curr_index)).row())
-            if deleted_event_id == 0:
+            event_id: int = self.current_data(Col.ID, LiabilitySqlTableModel.qtValueRole)
+            row: int = self.proxy1_model.mapToSource(self.proxy2_model.mapToSource(curr_index)).row()
+            deleted: bool = self.db_handler.run_in_transaction(
+                lambda: self.db_handler.delete_payments_by_event(event_id) and self.base_model.delete_row(row) != 0)
+            if not deleted:
+                self.base_model.select()
+                self.update_filters_and_select()
+                ErrorInfoMessageBox("Не удалось удалить платеж (подробности см. в логе)", parent=self).exec()
                 return False
             # Удаление строки не вызывает currentChanged
             self.on_currentevent_change()
-            self.payment_model.delete_rows_byeventid(deleted_event_id)
             self.update_filters_and_select()
             return True
         return False
@@ -709,17 +1137,27 @@ class MainWindow(QMainWindow):
         self.base_model.select()
         self.update_filters_and_select()
         self.base_model.cacheUpdateNeeded.emit()
+        self.update_sync_status()
 
-    def open_fees_dialog(self) -> None:
-        fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.base_model, self.payment_model, self)
+    def open_fees_dialog(self, csv_path: str = "", statement_fee_totals: dict | None = None,
+                         parent: QWidget | None = None) -> None:
+        fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.base_model, self.payment_model,
+                                           parent or self, csv_path, statement_fee_totals)
         fees_dialog.exec()
         self.base_model.select()
         self.update_filters_and_select()
 
     def open_matching_dialog(self) -> None:
-        matching_dialog: MatchingDialog = MatchingDialog(self.settings_handler, self.db_handler, self)
+        matching_dialog: MatchingDialog = MatchingDialog(
+            self.settings_handler, self.db_handler,
+            lambda amount, fee_date, dialog: self.open_event_dialog(initial_amount=amount, parent=dialog, from_statement=True,
+                                                                    payment_date=fee_date),
+            lambda entry, fee_date, dialog: self.open_event_dialog(edit=True, parent=dialog, from_statement=True,
+                                                                   payment_entry=entry, payment_date=fee_date),
+            self.open_fees_dialog, self)
         matching_dialog.exec()
         self.base_model.select()
+        self.payment_model.update_filter()
         self.update_filters_and_select()
 
     def open_export_dialog(self) -> bool:
@@ -731,13 +1169,8 @@ class MainWindow(QMainWindow):
         dlg: ExportDialog = ExportDialog(self.xls_writer, self.ui.trw_event.get_columnvisibility_list(), self)
         return dlg.exec() == QDialog.DialogCode.Accepted
 
-    def open_finplan_dialog(self, ask_year: bool = False) -> None:
+    def open_finplan_dialog(self) -> None:
         year: int = QDate().currentDate().year()
-        if ask_year:
-            tdlg: YearInputDialog = YearInputDialog(year, self)
-            if not tdlg.exec():
-                return
-            year = tdlg.ui.spinBox.value()
         dlg: FinPlanDialog = FinPlanDialog(self.db_handler, self.settings_handler, year, self)
         dlg.exec()
 
@@ -784,5 +1217,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event, /):
         self.save_note()
+        if not self.confirm_exit_with_sync():
+            event.ignore()
+            return
         self.settings_handler.save_settings()
         event.accept()

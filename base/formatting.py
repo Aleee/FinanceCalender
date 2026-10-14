@@ -8,10 +8,19 @@ COLOR_OK: str = "#2e7d32"
 COLOR_HEADER_BG: str = "#e9ecef"
 COLOR_WARNING: str = "#9a6700"
 COLOR_WARNING_BG: str = "#fff4cc"
+COLOR_PAIR_BG: str = "#fffbea"
 
 
 def dec_strcommaspace(dec: Decimal, add_rub: bool = False) -> str:
     return f"{dec:,.2f}".replace(",", " ").replace(".", ",") + (" руб." if add_rub else "")
+
+
+def records_word(count: int) -> str:
+    if count % 10 == 1 and count % 100 != 11:
+        return "запись"
+    if 2 <= count % 10 <= 4 and not 12 <= count % 100 <= 14:
+        return "записи"
+    return "записей"
 
 
 def dec_html(dec: Decimal) -> str:

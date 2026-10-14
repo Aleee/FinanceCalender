@@ -65,7 +65,6 @@ class Col(IntEnum):
     FILTERFLAGS = 18
     FEATURED = 19
     HIDDEN = 20
-    RECEIVERNOCASE = 21
 
 
 class LiabilitySqlTableModel(QSqlTableModel):
@@ -86,18 +85,17 @@ class LiabilitySqlTableModel(QSqlTableModel):
         Col.REMAINAMOUNT: ("Остаток платежа", True),
         Col.TOTALAMOUNT: ("Сумма платежа", True),
         Col.NDS: ("", False),
-        Col.DUEDATE: ("Дата платежа", True),
-        Col.INCURRENCEDATE: ("Дата появления", True),
+        Col.DUEDATE: ("Срок оплаты", True),
+        Col.INCURRENCEDATE: ("Дата возникновения", True),
         Col.PAYMENTTYPE: ("Вид платежа", True),
         Col.DESCR: ("Основание платежа", True),
-        Col.RESPONSIBLE: ("Ответственное лицо", True),
+        Col.RESPONSIBLE: ("Ответственный", True),
         Col.NOTES: ("", False),
         Col.TODAYSHARE: ("Оплата сегодня", True),
         Col.LASTPAYMENTDATE: ("", False),
         Col.FILTERFLAGS: ("", False),
         Col.FEATURED: ("", True),
         Col.HIDDEN: ("", True),
-        Col.RECEIVERNOCASE: ("", False),
     }
 
     DECIMAL_COLUMNS = [
@@ -132,6 +130,7 @@ class LiabilitySqlTableModel(QSqlTableModel):
         self.header_cache: list[int] | None = None
         self.personal_dict: dict = {}
         self.document_titles: dict[int, DocumentTitle] = {}
+        self.last_inserted_id: int = 0
         self.contract_icon = QIcon(":/icon-table/designer/icons/attachment.svg")
         empty_pixmap = QPixmap(self.ICON_SIZE, self.ICON_SIZE)
         empty_pixmap.fill(Qt.GlobalColor.transparent)
@@ -340,8 +339,10 @@ class LiabilitySqlTableModel(QSqlTableModel):
             event_id = self.raw_value(row, Col.ID)
             if event_id is None:
                 continue
+            search_text = "\n".join(str(self.raw_value(row, column) or "")
+                                    for column in (Col.NAME, Col.DESCR, Col.RECEIVER)).lower()
             event_cache[event_id] = (self.raw_value(row, Col.CATEGORY) or 0,
-                                     self.raw_value(row, Col.RECEIVERNOCASE) or "",
+                                     search_text,
                                      self.to_int(self.raw_value(row, Col.RESPONSIBLE)),
                                      bool(self.raw_value(row, Col.FEATURED)),
                                      bool(self.raw_value(row, Col.HIDDEN)),
@@ -353,14 +354,14 @@ class LiabilitySqlTableModel(QSqlTableModel):
         liability_rows: dict[int, LiabilityRow] = {}
         if event_cache is None:
             event_cache = self.event_columns()
-        for event_id, (category, receiver, responsible, featured, hidden, total, due_date) in event_cache.items():
+        for event_id, (category, search_text, responsible, featured, hidden, total, due_date) in event_cache.items():
             paid, today_share, last_payment_date = self.payment_totals.get(event_id, self.NO_PAYMENTS)
             try:
                 remain = Decimal(total) - paid
             except (decimal.InvalidOperation, TypeError):
                 remain = -paid
             filter_flags = calculate_filterflags(remain, due_date, today_share != 0, self.current_date)
-            liability_rows[event_id] = LiabilityRow(category=category, receiver=receiver, responsible=responsible,
+            liability_rows[event_id] = LiabilityRow(category=category, search_text=search_text, responsible=responsible,
                                                     featured=featured, hidden=hidden, remain=remain,
                                                     today_share=today_share, last_payment_date=last_payment_date,
                                                     filter_flags=filter_flags)
@@ -449,6 +450,12 @@ class LiabilitySqlTableModel(QSqlTableModel):
         if len(data) != len(self.stored_columns()):
             raise IndexError("В новую строку передано неверное количество данных")
         result = self.insert_data_in_row(new_row_position, data)
+        if result is not None:
+            if self.submitAll():
+                self.last_inserted_id = self.index(new_row_position, Col.ID).data(self.qtValueRole)
+            else:
+                self.revertAll()
+                result = None
         self.cacheUpdateNeeded.emit()
         return result
 
@@ -489,14 +496,14 @@ class LiabilitySqlTableModel(QSqlTableModel):
             log.e(f"Не удалось записать изменения в таблицу event: {self.lastError().text()}")
         return result
 
-    def send_filterwidget_labeldata(self, term: TermCategory, category: int, receiver: str, responsible: int, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
+    def send_filterwidget_labeldata(self, term: TermCategory, category: int, search: str, responsible: int, paid_today: bool, paid_months_toshow: int, featured: bool) -> None:
         threshold = paid_threshold(self.current_date, paid_months_toshow)
-        receiver = receiver.lower()
+        search = search.strip().lower()
         term_labels_dict = dict.fromkeys(TermCategory, 0)
         category_counts: dict[int, int] = {}
         total_by_term = 0
         for liability in self.liability_rows().values():
-            if not matches_details(liability, receiver, responsible, paid_today, featured):
+            if not matches_details(liability, search, responsible, paid_today, featured):
                 continue
             if matches_category(category, liability):
                 for term_category in TermCategory:

@@ -649,7 +649,7 @@ class SettingsDialog(QDialog):
     def load_settings_values(self) -> None:
         # Основные
         ## Отображение оплаченных
-        self.ui.cmb_loadpaid.setCurrentIndex(1)
+        self.ui.cmb_loadpaid.setCurrentIndex(0)
         paidloadperiod: int = str_int(self.settings_handler.settings.value("Common/paidloadperiod"), -1)
         for loadpaid_option in self.LOADPAID_SET.items():
             if paidloadperiod == loadpaid_option[1]:
@@ -766,7 +766,7 @@ class SettingsDialog(QDialog):
 
     def request_restore_backup(self) -> bool:
         msg_box = YesNoMessagebox("Обратите внимание, что данные текущей сессии будут заменены выбранными и в результате полностью утрачены. "
-                                  "Последней сохраненной контрольной точкой будет точка последнего запуска приложения (при условии, что резервное "
+                                  "Последней сохраненной резервной копией будет копия, созданная при последнем запуске приложения (при условии, что резервное "
                                   "копирование было выполнено успешно). Уверены, что хотите продолжить?", self)
         if msg_box.exec() != YesNoMessagebox.YES_RETURN_VALUE:
             return False

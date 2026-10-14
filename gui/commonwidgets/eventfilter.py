@@ -1,15 +1,19 @@
 from PySide6.QtCore import QObject, QEvent, Qt, Signal, QPoint, QModelIndex, QRect
-from PySide6.QtWidgets import QAbstractItemView, QToolTip
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QAbstractItemView, QMenu, QToolTip
 
 
 class RightClickFilter(QObject):
 
-    rightmousebutton_clicked = Signal()
+    rightmousebutton_clicked = Signal(QAction)
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
-        if event.type() == QEvent.Type.MouseButtonPress:
-            if event.button() == Qt.MouseButton.RightButton:
-                self.rightmousebutton_clicked.emit()
+        if (event.type() == QEvent.Type.MouseButtonRelease and event.button() == Qt.MouseButton.RightButton
+                and isinstance(obj, QMenu)):
+            action: QAction | None = obj.actionAt(event.position().toPoint())
+            if action is not None:
+                self.rightmousebutton_clicked.emit(action)
+                return True
         return super().eventFilter(obj, event)
 
 
