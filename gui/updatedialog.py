@@ -101,9 +101,13 @@ class UpdateController(QObject):
 
     def on_ready(self, new_dir: str) -> None:
         self.hide_progress_dialog()
+        app = QApplication.instance()
+        app.setQuitOnLastWindowClosed(False)
+        if not self.window.close():
+            app.setQuitOnLastWindowClosed(True)
+            return
         try:
             launch_updater()
         except UpdateError as e:
-            ErrorInfoMessageBox(str(e), parent=self.window).exec()
-            return
-        self.window.close()
+            ErrorInfoMessageBox(str(e)).exec()
+        app.quit()
