@@ -80,6 +80,7 @@ class SettingsDialog(QDialog):
 
         self.personal_model: Optional[PersonalTableModel] = None
         self.personal_proxy_model: Optional[PersonalSortFilterModel] = None
+        self.responsible_proxy_model: Optional[PersonalSortFilterModel] = None
 
         self.reject_possible: bool = reject_possible
         self.ui.lw_menu.setIconSize(QSize(30, 30))
@@ -138,7 +139,10 @@ class SettingsDialog(QDialog):
         # Календарь
         self.prepare_calendarpage()
         # Также добавить персонал в CSV-подменю
-        self.ui.cmb_csv_responsible.setModel(self.personal_proxy_model)
+        self.responsible_proxy_model = PersonalSortFilterModel(self)
+        self.responsible_proxy_model.setSourceModel(self.personal_model)
+        self.responsible_proxy_model.sort(PersonalCol.NAME)
+        self.ui.cmb_csv_responsible.setModel(self.responsible_proxy_model)
         self.ui.cmb_csv_responsible.setModelColumn(PersonalCol.NAME)
         # Информация
         self.fill_hotkeys_info()
@@ -753,7 +757,9 @@ class SettingsDialog(QDialog):
         self.db_handler.set_setting("CSVparser/columnstoparse", self.ui.le_csv_columns.text())
         self.db_handler.set_setting("CSVparser/knownunp", self.ui.le_csv_unp.text())
         self.db_handler.set_setting("CSVparser/patterns", self.ui.te_csv_patterns.toPlainText())
-        self.db_handler.set_setting("CSVparser/responsible", self.ui.cmb_csv_responsible.model().index(self.ui.cmb_csv_responsible.currentIndex(), 0).data())
+        responsible_id = self.ui.cmb_csv_responsible.model().index(self.ui.cmb_csv_responsible.currentIndex(), 0).data()
+        if responsible_id is not None:
+            self.db_handler.set_setting("CSVparser/responsible", responsible_id)
         self.db_handler.set_setting("CSVparser/nomatchpatterns", self.ui.te_csv_nomatchpatterns.toPlainText())
         # Календарь
         for year, year_data in self.calendar_data.items():
