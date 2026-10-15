@@ -16,7 +16,7 @@ from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
 from base.payment import PaymentEntry, PaymentField
-from base.sync import (MasterInfo, NetworkError, SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, read_local_state,
+from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, read_local_state,
                        set_stage_listener, synchronize)
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
@@ -48,7 +48,7 @@ from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PLANNED_STAGES, SYNC_RETR
                              SYNC_STAGE_CHANGES_NOTICE, SYNC_STAGE_CONFLICT_RESOLUTION, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_tabs, connect_to_master,
                              create_master, create_sync_channel, create_sync_params, describe_master, failure_status_text,
                              master_age_days, merge_message, merge_tabs, merge_warning_lines, overwrite_master, pull_message,
-                             pull_tabs, take_master, token_days_left)
+                             pull_tabs, restore_master, take_master, token_days_left)
 from gui.ui.syncicon import SyncToolButton, create_sync_icon
 from gui.syncprogressdialog import SyncProgressDialog
 from gui.syncsettingsdialog import SyncSettingsDialog
@@ -80,6 +80,7 @@ class MainWindow(QMainWindow):
         self.sync_progress: SyncProgressDialog | None = None
         self.sync_error: str = ""
         self.sync_network_failed: bool = False
+        self.sync_info_unreadable: bool = False
         self.sync_retry_text: str = ""
         self.sync_failure_text: str = "ОШИБКА"
         self.sync_master_info: MasterInfo | None = None
@@ -576,6 +577,8 @@ class MainWindow(QMainWindow):
         self.sync_progress.start()
         try:
             action = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True))
+            if action is None and interactive and self.sync_info_unreadable:
+                action = self._restore_master_info_and_sync(channel, params, report)
             is_changed_by_other: bool = action in (SyncAction.PULL, SyncAction.MERGE)
             is_merged: bool = action == SyncAction.MERGE
             if interactive or action == SyncAction.CONFLICT:
@@ -603,6 +606,18 @@ class MainWindow(QMainWindow):
                 ErrorInfoMessageBox(SYNC_ACTION_MESSAGE[action], is_info=True, parent=self).exec()
         elif self.sync_status_text != previous_status_text and action in (SyncAction.CONFLICT, SyncAction.CLIENT_OUTDATED):
             self.ui.statusBar.showMessage(f"Синхронизация: {self.sync_status_text}. Нажмите на кнопку синхронизации на панели инструментов", 15000)
+
+    def _restore_master_info_and_sync(self, channel: SyncChannel, params: SyncParams, report: SyncReport) -> SyncAction | None:
+        self.sync_progress.hide_for_question()
+        if YesNoMessagebox(f"Не удалось прочитать служебный файл master.json в общем хранилище ({self.sync_error}).\n\n"
+                           "Восстановить его по общей базе? Сама общая база не изменится, будет заново создан только master.json, "
+                           "после чего пройдёт обычная синхронизация.",
+                           self).exec() != YesNoMessagebox.YES_RETURN_VALUE:
+            return None
+        self.sync_progress.start()
+        if self._run_sync_step(channel, lambda: restore_master(self.db_handler, channel, params)) is None:
+            return None
+        return self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True))
 
     def _resolve_sync_action(self, action: SyncAction | None, channel: SyncChannel, params: SyncParams,
                              report: SyncReport) -> SyncAction | None:
@@ -671,12 +686,14 @@ class MainWindow(QMainWindow):
             progress.complete(owns_progress)
             self.sync_error = ""
             self.sync_network_failed = False
+            self.sync_info_unreadable = False
             self.sync_master_info = channel.last_master_info()
             return action
         except SyncError as e:
             log.e(f"Синхронизация не выполнена: {e}")
             self.sync_error = str(e)
             self.sync_network_failed = isinstance(e, NetworkError)
+            self.sync_info_unreadable = isinstance(e, MasterInfoError)
             self.sync_failure_text = failure_status_text(e)
             progress.fail()
             return None

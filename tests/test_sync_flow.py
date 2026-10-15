@@ -5,7 +5,7 @@ import pytest
 
 import base.sync as syncmod
 from base.sync import (FolderChannel, MasterChangedError, MasterInfo, MasterUpdatingError, SyncAction, SyncError, SyncParams,
-                       pull_master, push_master, synchronize)
+                       pull_master, push_master, restore_master_info, synchronize)
 from gui.syncmanager import connect_to_master, create_master, overwrite_master, take_master
 from tests.dbtools import create_db, read_meta
 
@@ -1038,3 +1038,12 @@ def test_merge_fulfillmentdata_of_different_periods(connected, channel):
     action = sync_both(machine_a, machine_b, channel, insert.format("2026-06", 10), insert.format("2026-07", 20))
     assert action == SyncAction.MERGE
     assert rows(machine_b, "SELECT startdate, \"10000\" FROM fulfillmentdata ORDER BY startdate") == [("2026-06-01", 10), ("2026-07-01", 20)]
+
+
+def test_restore_master_info_for_folder_channel(connected, channel):
+    _, machine_b = connected
+    channel.master_info_path.write_text("broken", encoding="utf-8")
+    with machine_b as dbh:
+        restored = restore_master_info(dbh, channel, PARAMS)
+        assert restored.sync_token == machine_b.meta()["sync_token"]
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.NOTHING

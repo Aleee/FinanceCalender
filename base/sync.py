@@ -69,6 +69,10 @@ class AuthError(SyncError):
     pass
 
 
+class MasterInfoError(SyncError):
+    pass
+
+
 class MasterChangedError(SyncError):
     pass
 
@@ -128,7 +132,7 @@ class MasterInfo:
         try:
             return cls(**json.loads(text))
         except (ValueError, TypeError) as e:
-            raise SyncError(f"Файл {MASTER_INFO_NAME} повреждён или имеет неизвестный формат: {e}") from e
+            raise MasterInfoError(f"Файл {MASTER_INFO_NAME} повреждён или имеет неизвестный формат: {e}") from e
 
 
 def read_local_state(dbh: "DBHandler") -> LocalState:
@@ -194,6 +198,10 @@ class SyncChannel(ABC):
         ...
 
     @abstractmethod
+    def write_master_info(self, info: MasterInfo) -> None:
+        ...
+
+    @abstractmethod
     def backup_master(self) -> None:
         ...
 
@@ -251,6 +259,17 @@ class FolderChannel(SyncChannel):
             raise SyncError(f"Не удалось записать общую базу в {self.folder}: {e}") from e
         finally:
             temp_db_path.unlink(missing_ok=True)
+            temp_info_path.unlink(missing_ok=True)
+
+    def write_master_info(self, info: MasterInfo) -> None:
+        temp_info_path = self.master_info_path.with_name(MASTER_INFO_NAME + TEMP_SUFFIX)
+        try:
+            self.folder.mkdir(parents=True, exist_ok=True)
+            temp_info_path.write_text(info.to_json(), encoding="utf-8")
+            os.replace(temp_info_path, self.master_info_path)
+        except OSError as e:
+            raise SyncError(f"Не удалось записать {MASTER_INFO_NAME} в {self.folder}: {e}") from e
+        finally:
             temp_info_path.unlink(missing_ok=True)
 
     @property
@@ -488,6 +507,29 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
         finally:
             if migrated_path is not None:
                 Path(migrated_path).unlink(missing_ok=True)
+
+
+def restore_master_info(dbh: "DBHandler", channel: SyncChannel, params: SyncParams) -> MasterInfo:
+    try:
+        existing = channel.read_master_info()
+    except MasterInfoError as e:
+        log.w(f"Восстановление {MASTER_INFO_NAME}: файл не читается ({e})")
+    else:
+        if existing is not None:
+            raise SyncError(f"Файл {MASTER_INFO_NAME} в порядке, восстанавливать его не нужно")
+    with tempfile.TemporaryDirectory() as folder:
+        downloaded = Path(folder) / MASTER_DB_NAME
+        report_stage(STAGE_DOWNLOAD)
+        channel.download_master(downloaded)
+        report_stage(STAGE_CHECK)
+        state = read_file_state(dbh, downloaded)
+        if not dbh.check_file_integrity(str(downloaded)):
+            raise SyncError("Общая база не прошла проверку целостности, восстановить master.json нельзя")
+    info = MasterInfo(state.db_uuid, state.sync_token, state.db_version, params.author, params.machine,
+                      datetime.now().isoformat(timespec="seconds"), params.app_version)
+    channel.write_master_info(info)
+    log.w(f"Файл {MASTER_INFO_NAME} восстановлен по общей базе (sync_token {info.sync_token})")
+    return info
 
 
 def collect_conflict_report(dbh: "DBHandler", channel: SyncChannel, report: SyncReport) -> None:

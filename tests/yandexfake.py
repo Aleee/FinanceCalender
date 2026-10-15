@@ -24,6 +24,7 @@ class FakeDisk(HttpClient):
         self.async_operations: bool = False
         self.pending_uploads: int = 0
         self.corrupt_uploads: bool = False
+        self.unreadable: set[str] = set()
         self.network_down: bool = False
         self.move_lost_response: bool = False
         self.operation_polls: int = 0
@@ -76,6 +77,7 @@ class FakeDisk(HttpClient):
 
     def store(self, path: str, content: bytes) -> HttpResponse:
         self.files[path] = content + b"!" if self.corrupt_uploads else content
+        self.unreadable.discard(path)
         if self.pending_uploads:
             return HttpResponse(202, b"")
         return HttpResponse(201, b"")
@@ -83,6 +85,8 @@ class FakeDisk(HttpClient):
     def give(self, path: str, download_file: Path | None) -> HttpResponse:
         if path not in self.files:
             return HttpResponse(404, b"")
+        if path in self.unreadable:
+            return HttpResponse(500, b"file IO failure: no more reliable hosts")
         if download_file is not None:
             download_file.write_bytes(self.files[path])
             return HttpResponse(200, b"")

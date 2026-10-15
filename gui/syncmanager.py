@@ -9,7 +9,7 @@ from base.dbhandler import DBHandler
 from base.httpclient import QtHttpClient
 from base.sync import (STAGE_COMPARE, STAGE_CONNECT, AuthError, FolderChannel, MasterInfo, MasterUpdatingError, NetworkError,
                        SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, collect_conflict_report, pull_master,
-                       push_master, save_conflict_copy)
+                       push_master, restore_master_info, save_conflict_copy)
 from base.syncdiff import DbDiff, format_warnings
 from base.version import APP_VERSION
 from base.yandexchannel import YandexDiskApiChannel
@@ -118,6 +118,11 @@ def overwrite_master(dbh: DBHandler, channel: SyncChannel, params: SyncParams) -
     save_conflict_copy(dbh)
     push_master(dbh, channel, params, overwrite=True)
     return SyncAction.PUSH
+
+
+def restore_master(dbh: DBHandler, channel: SyncChannel, params: SyncParams) -> SyncAction:
+    restore_master_info(dbh, channel, params)
+    return SyncAction.NOTHING
 
 
 def compare_with_master(dbh: DBHandler, channel: SyncChannel, report: SyncReport) -> SyncAction:

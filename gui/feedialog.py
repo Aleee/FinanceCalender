@@ -314,7 +314,7 @@ class FeeDialog(QDialog):
             str(agg.total),
             0,
             fee_date_str,
-            today_str,
+            fee_date_str,
             1,
             f"Выписка от {date_displstr(qt_fee_date)}",
             self.dbh.get_setting("CSVparser/responsible", "0"),

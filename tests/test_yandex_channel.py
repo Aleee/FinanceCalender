@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from base.sync import AuthError, BACKUP_TIME_FORMAT, NetworkError, SyncAction, SyncError, pull_master, push_master, synchronize
+from base.sync import (AuthError, BACKUP_TIME_FORMAT, MasterInfoError, NetworkError, SyncAction, SyncError, pull_master, push_master,
+                       restore_master_info, synchronize)
 from base.yandexchannel import YandexDiskApiChannel
 from tests.test_sync_flow import PARAMS, add_event, add_payment, edit, make_machine, patch_backup_dir  # noqa: F401
 from tests.yandexfake import FakeDisk, json_response
@@ -390,3 +391,39 @@ def test_upload_confirmation_does_not_retry_auth_errors(channel, disk):
     with pytest.raises(AuthError):
         channel.put_file("app:/master.json", "0" * 32, 1, data=b"x")
     assert len(calls) == 1
+
+
+def test_restore_master_info_from_unreadable_json(machine_a, channel, disk):
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+        disk.unreadable.add("app:/master.json")
+        channel.cached_info = None
+        with pytest.raises(MasterInfoError):
+            synchronize(dbh, channel, PARAMS)
+        restored = restore_master_info(dbh, channel, PARAMS)
+        assert restored.sync_token == dbh.get_setting("sync_token")
+        assert restored.db_uuid == dbh.get_setting("db_uuid")
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.NOTHING
+
+
+def test_restore_master_info_from_missing_json(machine_a, channel, disk):
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+        del disk.files["app:/master.json"]
+        restore_master_info(dbh, channel, PARAMS)
+        assert channel.read_master_info().sync_token == dbh.get_setting("sync_token")
+
+
+def test_restore_master_info_refuses_when_json_is_fine(machine_a, channel):
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+        with pytest.raises(SyncError):
+            restore_master_info(dbh, channel, PARAMS)
+
+
+def test_restore_master_info_does_not_hide_network_errors(machine_a, channel, disk):
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+        disk.network_down = True
+        with pytest.raises(NetworkError):
+            restore_master_info(dbh, channel, PARAMS)

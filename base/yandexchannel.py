@@ -9,7 +9,7 @@ import lovely_logger as log
 
 from base.httpclient import HttpClient, HttpResponse
 from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INFO_NAME, MASTER_LONG_BACKUPS_DIR,
-                       MasterInfo, NetworkError, SHORT_BACKUPS_KEEP_DAYS, SyncChannel, SyncError, TEMP_SUFFIX,
+                       MasterInfo, MasterInfoError, NetworkError, SHORT_BACKUPS_KEEP_DAYS, SyncChannel, SyncError, TEMP_SUFFIX,
                        backup_time_from_name, file_md5, is_backup_of_today, master_backup_name)
 
 API_URL = "https://cloud-api.yandex.net/v1/disk"
@@ -55,6 +55,8 @@ class YandexDiskApiChannel(SyncChannel):
             self.cached_info = None
             return None
         response = self.http.send("GET", href, self.auth_headers())
+        if response.status >= 500:
+            raise MasterInfoError(f"Файл {MASTER_INFO_NAME} не читается с Яндекс.Диска: ошибка {response.status}")
         if response.status != 200:
             raise self.error_from(response)
         info = MasterInfo.from_json(response.body.decode("utf-8"))
@@ -87,6 +89,15 @@ class YandexDiskApiChannel(SyncChannel):
             self.delete_quietly(temp_db)
             raise
         self.cached_info = (hashlib.md5(info_bytes).hexdigest(), replace(info))
+
+    def write_master_info(self, info: MasterInfo) -> None:
+        info_bytes = info.to_json().encode("utf-8")
+        self.cached_info = None
+        self.put_file(self.remote_path(MASTER_INFO_NAME), hashlib.md5(info_bytes).hexdigest(), len(info_bytes),
+                      data=info_bytes)
+        written = self.read_master_info()
+        if written is None or written.sync_token != info.sync_token:
+            raise SyncError(f"Файл {MASTER_INFO_NAME} записан на Яндекс.Диск, но не читается обратно")
 
     def backup_master(self) -> None:
         backup_name = master_backup_name()
