@@ -4,7 +4,11 @@ on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15-intel]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -14,5 +18,5 @@ jobs:
       - run: python tools/build_release_mac.py
       - uses: actions/upload-artifact@v4
         with:
-          name: FinanceCalender-mac
+          name: FinanceCalender-mac-${{ matrix.os }}
           path: dist/release/*
