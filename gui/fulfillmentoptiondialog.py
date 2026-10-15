@@ -2,6 +2,7 @@ from PySide6 import QtWidgets
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QDialog, QButtonGroup
 
+from gui.manualdialog import add_help_shortcut
 from base.date import first_date_of_month, last_date_of_month
 from base.dbhandler import DBHandler
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
@@ -19,6 +20,7 @@ class FulfillmentOptionDialog(QDialog):
         super(FulfillmentOptionDialog, self).__init__(parent)
         self.ui = Ui_FulfillmentOptionDialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "11-planfact.html")
 
         self.db_handler = db_handler
         self.sh = settings_handler

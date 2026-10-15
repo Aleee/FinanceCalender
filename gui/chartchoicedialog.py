@@ -1,6 +1,7 @@
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QDialog
 
+from gui.manualdialog import add_help_shortcut
 from base.date import first_date_of_month
 from gui.chartdialogs import DebtChartDialog
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
@@ -13,6 +14,7 @@ class ChartChoiceDialog(QDialog):
         super(ChartChoiceDialog, self).__init__(parent)
         self.ui = Ui_ChartChoiceDialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "11-planfact.html")
 
         self.ui.de_start.setDate(first_date_of_month(QDate.currentDate().addMonths(-1)))
         self.ui.de_end.setDate(QDate.currentDate())

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="870" height="380" viewBox="0 0 870 380" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f3a5f"/>
+    </marker>
+  </defs>
+  <rect width="870" height="380" fill="#ffffff"/>
+
+  <g font-size="15" text-anchor="middle">
+    <rect x="260" y="15" width="350" height="125" rx="14" fill="#fffbea" stroke="#b8a54a" stroke-width="1.5"/>
+    <text x="435" y="45" font-weight="700" fill="#7a6a1c">Удалённое хранилище</text>
+    <text x="435" y="66" font-size="12" fill="#555">облачный диск или общая папка</text>
+    <rect x="320" y="80" width="230" height="44" rx="8" fill="#ffffff" stroke="#b8a54a" stroke-width="1.5"/>
+    <text x="435" y="107" font-weight="700" fill="#1f3a5f">Общая база</text>
+  </g>
+
+  <g font-size="15" text-anchor="middle">
+    <rect x="20" y="230" width="270" height="120" rx="8" fill="#e8f0f8" stroke="#1f5fa8" stroke-width="1.5"/>
+    <text x="155" y="258" font-weight="700" fill="#1f5fa8">Компьютер в офисе</text>
+    <rect x="55" y="274" width="200" height="40" rx="8" fill="#ffffff" stroke="#1f5fa8" stroke-width="1.5"/>
+    <text x="155" y="299" fill="#1f3a5f">Локальная копия</text>
+    <text x="155" y="338" font-size="12" fill="#555">работает и без сети</text>
+
+    <rect x="580" y="230" width="270" height="120" rx="8" fill="#e8f0f8" stroke="#1f5fa8" stroke-width="1.5"/>
+    <text x="715" y="258" font-weight="700" fill="#1f5fa8">Ноутбук или флешка</text>
+    <rect x="615" y="274" width="200" height="40" rx="8" fill="#ffffff" stroke="#1f5fa8" stroke-width="1.5"/>
+    <text x="715" y="299" fill="#1f3a5f">Локальная копия</text>
+    <text x="715" y="338" font-size="12" fill="#555">работает и без сети</text>
+  </g>
+
+  <line x1="190" y1="228" x2="318" y2="126" stroke="#1f3a5f" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <line x1="680" y1="228" x2="552" y2="126" stroke="#1f3a5f" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <g font-size="12" fill="#1f3a5f" text-anchor="middle">
+    <rect x="198" y="164" width="110" height="22" rx="4" fill="#ffffff"/>
+    <text x="253" y="180">синхронизация</text>
+    <rect x="562" y="164" width="110" height="22" rx="4" fill="#ffffff"/>
+    <text x="617" y="180">синхронизация</text>
+  </g>
+</svg>

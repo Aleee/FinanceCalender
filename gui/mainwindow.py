@@ -35,6 +35,7 @@ from base.liability import FilterFlags, RowType, PaymentType, TermCategory
 from gui.feedialog import FeeDialog
 from gui.finplandialog import FinPlanDialog
 from gui.fulfillmentoptiondialog import FulfillmentOptionDialog
+from gui.manualdialog import ManualDialog
 from gui.matchingdialog import MatchingDialog
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
@@ -86,6 +87,7 @@ class MainWindow(QMainWindow):
         self.sync_master_info: MasterInfo | None = None
         self.sync_checked_at: str = ""
         self.sync_succeeded_at: QDateTime = QDateTime()
+        self.manual_dialog: ManualDialog | None = None
 
         # Загрузка данных из БД: проверка файла, восстановление при необходимости, подключение
         self._load_database()
@@ -366,6 +368,7 @@ class MainWindow(QMainWindow):
         self.ui.la_contractbound.linkActivated.connect(self.open_bound_document)
         self.ui.act_gotocontract.triggered.connect(self.open_bound_document)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog(True))
+        self.ui.act_help.triggered.connect(lambda: self.open_manual_dialog())
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.HEADER, checked))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.ui.trw_event.span_columns() if checked else None)
         self.ui.act_togglefooters.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.FOOTER, checked))
@@ -1171,6 +1174,17 @@ class MainWindow(QMainWindow):
         self.update_filters_and_select()
         self.base_model.cacheUpdateNeeded.emit()
         self.update_sync_status()
+
+    def open_manual_dialog(self, page: str = "", owner: QWidget | None = None) -> None:
+        if not ManualDialog.is_available():
+            ErrorInfoMessageBox("Руководство не найдено. Переустановите программу или обратитесь к ответственному за программу",
+                                parent=self).exec()
+            return
+        if self.manual_dialog is None:
+            self.manual_dialog = ManualDialog(self.settings_handler, owner or self)
+        else:
+            self.manual_dialog.set_owner(owner or self)
+        self.manual_dialog.show_manual(page)
 
     def open_fees_dialog(self, csv_path: str = "", statement_fee_totals: dict | None = None,
                          parent: QWidget | None = None) -> None:

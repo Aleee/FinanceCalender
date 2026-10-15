@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="870" height="330" viewBox="0 0 870 330" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="870" height="330" fill="#ffffff"/>
+
+  <g font-size="14" text-anchor="middle" fill="#1f3a5f" font-weight="700">
+    <text x="545" y="24">Общая база изменена другим пользователем?</text>
+    <text x="395" y="60" font-weight="400">нет</text>
+    <text x="695" y="60" font-weight="400">да</text>
+  </g>
+  <g font-size="14" fill="#1f3a5f" font-weight="700">
+    <text x="20" y="150">У вас есть</text>
+    <text x="20" y="170">неотправленные</text>
+    <text x="20" y="190">изменения?</text>
+  </g>
+  <g font-size="14" text-anchor="end" fill="#1f3a5f">
+    <text x="240" y="152">нет</text>
+    <text x="240" y="262">да</text>
+  </g>
+
+  <g font-size="15" text-anchor="middle">
+    <rect x="250" y="75" width="290" height="100" rx="8" fill="#f4f6f9" stroke="#8a94a3" stroke-width="1.5"/>
+    <text x="395" y="115" font-weight="700" fill="#1f3a5f">Ничего не происходит</text>
+    <text x="395" y="140" font-size="12" fill="#555">«данные актуальны»</text>
+
+    <rect x="550" y="75" width="300" height="100" rx="8" fill="#eaf6ec" stroke="#2e7d32" stroke-width="1.5"/>
+    <text x="700" y="107" font-weight="700" fill="#2e7d32">Получение</text>
+    <text x="700" y="130" font-size="12" fill="#555">локальная копия заменяется</text>
+    <text x="700" y="148" font-size="12" fill="#555">общей базой</text>
+
+    <rect x="250" y="185" width="290" height="100" rx="8" fill="#e8f0f8" stroke="#1f5fa8" stroke-width="1.5"/>
+    <text x="395" y="217" font-weight="700" fill="#1f5fa8">Отправка</text>
+    <text x="395" y="240" font-size="12" fill="#555">общая база заменяется</text>
+    <text x="395" y="258" font-size="12" fill="#555">вашей локальной копией</text>
+
+    <rect x="550" y="185" width="300" height="100" rx="8" fill="#fdf1e3" stroke="#b26a00" stroke-width="1.5"/>
+    <text x="700" y="217" font-weight="700" fill="#b26a00">Объединение или конфликт</text>
+    <text x="700" y="240" font-size="12" fill="#555">программа пробует соединить</text>
+    <text x="700" y="258" font-size="12" fill="#555">правки; если нельзя — спрашивает вас</text>
+  </g>
+</svg>

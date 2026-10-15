@@ -8,6 +8,7 @@ from PySide6.QtGui import QAction, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QCheckBox, QDialog, QButtonGroup, QCompleter, QLineEdit, QMenu, QToolButton, QComboBox
 from decimal import Decimal
 
+from gui.manualdialog import add_help_shortcut
 from base.casting import str_bool
 from base.date import date_str, MONTHS_RU
 from base.dbhandler import DBHandler
@@ -204,6 +205,7 @@ class EventDialog(QDialog):
         super(EventDialog, self).__init__(parent)
         self.ui = Ui_EventDialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "03-event-dialog.html")
 
         self.model = final_proxy_model
         self.responsible_model: ResponsibleCategorySortModel = responsible_model

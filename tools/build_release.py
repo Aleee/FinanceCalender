@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from tools.build_manual import build_manual
 from base.version import APP_VERSION, DB_VERSION, parse_version
 
 APP_NAME = "FinanceCalender"
@@ -71,6 +72,8 @@ def main() -> None:
     args = parser.parse_args()
 
     parse_version(APP_VERSION)
+    if not build_manual():
+        sys.exit("Нет руководства в manual/ и нет исходников в docs/manual, из которых его можно собрать")
     print(f"Версия: {APP_VERSION}")
 
     app_folder = build_app()

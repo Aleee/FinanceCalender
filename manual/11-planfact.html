@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 11. План-факт и графики</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 11. План-факт и графики</h1></td></tr></table>
+<p>Кнопка «План-факт» открывает три инструмента: «Финансовый план» (плановые суммы на год), «Исполнение финансового плана» (сравнение плана с оплатами за период) и «Графики» (динамика задолженности). Нажатие на саму кнопку открывает «Исполнение финансового плана».</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Финансовый план</h2></td></tr></table>
+<p>Плановые суммы вводятся по месяцам и статьям. Окно открывается на текущем годе.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Финансовый план»" src="images/12-planfact/finplan.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 30. Окно «Финансовый план».</em></span></p>
+<ul>
+<li><strong>Год.</strong> Поле «Год» (2025–2099). «Сохранить» записывает только показанный год и закрывает окно. Если в году есть несохранённые изменения, при смене года и при «Отмена» программа спрашивает подтверждение; согласие отбрасывает изменения.</li>
+</ul>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Запрос при смене года" src="images/12-planfact/finplan-year.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 31. Запрос при смене года: в 2026 году есть несохранённое изменение.</em></span></p>
+<ul>
+<li><strong>Что вводится.</strong> Только строки без вложенных строк. Цветные строки (разделы и подразделы) считаются сами: «2. Поступление денежных средств» = 2.1 + 2.2 + 2.3, «3. Расходование денежных средств» = 3.1 + 3.2 + 3.3. Строки «1. Остаток средств на начало периода» и «4. Остаток средств на конец периода» вводятся вручную и ни в какие суммы не входят.</li>
+<li><strong>Какие значения принимаются.</strong> Целые числа в рублях, без копеек, можно отрицательные. Тысячи можно разделять обычным пробелом. Другое значение (копейки, буквы, неразрывный пробел) программа молча отбрасывает, ячейка остаётся прежней.</li>
+<li><strong>Пусто и ноль — не одно и то же.</strong> Пустая ячейка означает «плана нет», ноль — «план равен нулю» (см. «Исполнение» в отчёте).</li>
+<li><strong>Копирование.</strong> <strong>Ctrl+C</strong> копирует выделенный диапазон, <strong>Ctrl+V</strong> вставляет его начиная с выделенной ячейки (можно из Excel), <strong>Del</strong> очищает выделенные ячейки. При вставке пропускаются цветные строки и значения, которые не принимаются, — без сообщения. Копируйте из Excel числа в формате «Общий» без копеек.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Исполнение финансового плана</h2></td></tr></table>
+<p>Отчёт сравнивает план с тем, что реально оплачено за период. Расходы берутся из внесённых оплат (<a href="04-payment.html">раздел 4</a>), поэтому перед отчётом внесите все оплаты периода, а комиссии банка — через «Учет комиссий» (<a href="09-fees.html">раздел 9</a>).</p>
+<h3 id="s4">Шаг 1. Что и за какой период</h3>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Выбор отчёта и периода" src="images/12-planfact/period.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 32. Выбор отчёта и периода.</em></span></p>
+<p>Вверху выбирается отчёт: «Исполнение финансового плана» или «Перечень затрат» (см. ниже). Период задаётся одним из трёх способов: «За месяц», «За месяцы» (месяцы одного года) или «За период» (две даты). Начало и конец должны быть в одном году.</p>
+<h3 id="s5">Шаг 2. Сведения о поступлениях</h3>
+<p>Программа не знает остатка на счёте и поступлений: она ведёт только платежи. Поэтому после «Далее» вы вводите эти числа сами.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Сведения о поступлениях" src="images/12-planfact/inflow.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 33. Сведения о поступлениях.</em></span></p>
+<p>Числа запоминаются для точно такого же периода (те же даты) и подставляются при следующем открытии. Запоминаются, только если введено хотя бы одно ненулевое значение. Вернуться на предыдущий шаг нельзя: «Отмена» закрывает окно.</p>
+<h3 id="s6">Как читать отчёт</h3>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Отчёт «Исполнение финансового плана»" src="images/12-planfact/report.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 34. Отчёт за сентябрь. Развернуты строки «заработная плата с налогами» и «энергоносители».</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Столбец</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что показывает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">План</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Плановые суммы из «Финансового плана» за <strong>целые месяцы</strong>, в которые попадает период. Если период 10–20 сентября, план берётся за весь сентябрь. Для периода из нескольких месяцев суммы складываются. Если план за год не сохранялся, столбец пуст</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Факт</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Расходы — сумма <strong>оплат с датой внутри периода</strong> (дата оплаты, а не срок оплаты) по категориям платежей, скрытые платежи входят. Остаток на начало и поступления — то, что вы ввели на шаге 2. Остаток на конец — «1» + «2» − «3»</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Отклонение</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Факт минус план: минус — меньше плана, плюс — больше. Для остатков на начало и на конец периода не считается</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Исполнение</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Факт ÷ план в процентах. «—», если план равен нулю. Пусто, если плана нет (в нужных месяцах строка пуста) и для остатков на начало и на конец периода</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Строки итогов («2.», «3.» и т. д.) складываются из вложенных.</li>
+<li><strong>Цвет.</strong> Строка с исполнением больше 110% окрашивается: расходы — розовым, поступления — зелёным; темнее — от 130% и от 150%. Подсветку можно отключить галочкой «Подсвечивать отклонения» под таблицей, выбор запоминается. В экспорт цвета отклонений не попадают.</li>
+<li><strong>Список оплат.</strong> Щелчок по строке разворачивает оплаты этой статьи: сумма, дата, получатель и наименование платежа, самые крупные сверху. Оплаты по скрытым платежам собираются в одну строку «Другие».</li>
+</ul>
+<h3 id="s7">Перечень затрат</h3>
+<p>Список расходов за период без плана и без шага 2: два столбца, «Сумма» и «Сумма без НДС» (по ставке НДС платежа). Строки разворачиваются так же; скрытые платежи — «Другие».</p>
+<h3 id="s8">Экспорт отчета</h3>
+<p>«Экспорт в XLS» и «Экспорт в PDF» сохраняют таблицу как на экране, <strong>без развёрнутых списков оплат</strong>. Окна выбора столбцов нет. Имя файла по умолчанию начинается с «ИсполнениеПлана_» или «ПереченьЗатрат_» и содержит даты периода. Страница книжная, по ширине помещается на одну. Перезапись, PDF и ошибки сохранения — как в <a href="10-export.html">разделе 10</a> (PDF нужен установленный Microsoft Excel).</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Графики</h2></td></tr></table>
+<p>«Графики» открывает окно «Построить график» с единственным вариантом «Динамика задолженности». Период по умолчанию — с первого числа прошлого месяца до сегодняшнего дня. Это пример того, что программа умеет показывать по накопленным данным: как менялась сумма неоплаченных платежей и какая её часть просрочена.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="График «Задолженность»" src="images/13-charts/debt.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 35. График задолженности за период с 15.08 по 14.10 по всем категориям.</em></span></p>
+<p><strong>Как считается.</strong></p>
+<ul>
+<li>Задолженность растёт на сумму платежа в <strong>дату возникновения</strong> и уменьшается на каждую оплату в день оплаты. Срок оплаты на общую задолженность не влияет. На первый день периода задолженность уже включает всё накопленное раньше.</li>
+<li><strong>Просроченная</strong> часть — то, что осталось неоплаченным после срока оплаты. Она появляется на следующий день после срока (если срок раньше даты возникновения — после даты возникновения) и уменьшается следующими оплатами.</li>
+<li>Платежи-возвраты не учитываются, скрытые платежи учитываются.</li>
+</ul>
+<p><strong>Что на графике.</strong> Легенды в окне нет:</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Линия</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что это</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Синяя с заливкой</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Общая задолженность</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Красная с заливкой</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Просроченная задолженность</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Пунктирные синяя и красная</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Те же линии, сглаженные</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Фиолетовая (шкала справа, 0–100%)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Доля просроченной задолженности в общей, сглаженная</td>
+</tr>
+</tbody>
+</table>
+<p>Наведите мышь на график: появятся вертикальная линия и подсказка с датой, «Общая», «Просрочка» и «Доля» на этот день, без сглаживания. Масштабировать и прокручивать график нельзя.</p>
+<ul>
+<li><strong>Категории.</strong> Щелчок по категории включает и выключает её (можно несколько); если не выбрано ни одной, учитываются все. Для финансовой деятельности подкатегории не разделяются.</li>
+<li><strong>Сглаживание (дни).</strong> От 1 до 90, по умолчанию 10. Каждая точка сглаженных линий — среднее за указанное число дней до и после неё. График пересчитывается сразу.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Что может пойти не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Дата начала превышает дату окончания периода»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Начало позже конца. Для «За месяцы» — месяц «с» позже месяца «по»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Исправьте период</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Начало и конец периода должны быть в пределах одного года»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Период захватывает два года</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Постройте отчёты отдельно по каждому году</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось загрузить данные финансового плана из базы данных»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Окно плана не открылось</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите; если повторяется, обратитесь к ответственному за программу</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«К сожалению, данные не удалось сохранить (см. подробности в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">План не записан, окно осталось открытым</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите «Сохранить»; пока окно открыто, введённые значения не потеряны</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Изменения за текущий год не сохранены. Перейти к другому году без сохранения?»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Вы сменили год, не сохранив ввод</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Нет» — остаться и сохранить; «Да» — отбросить изменения</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Вы уверены, что хотите выйти без сохранения изменений?»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Вы закрываете окно плана с несохранёнными изменениями</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Нет» — вернуться и сохранить; «Да» — отбросить</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось загрузить данные о платежах из базы данных (подробнее см. лог)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Отчёт или перечень не открылись</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите; если повторяется, обратитесь к ответственному за программу</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Число введено или вставлено, а ячейка не изменилась</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Значение не целое число (копейки, буквы, неразрывный пробел) или строка цветная</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Введите целое число в ячейку без вложенных строк</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

@@ -3,6 +3,7 @@ from typing import Optional
 from PySide6.QtCore import QDate, QSettings
 from PySide6.QtWidgets import QDialog, QButtonGroup, QLayout, QDialogButtonBox
 
+from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, ContractInfo
 from base.paymentdate import calculate_payment_date
@@ -28,6 +29,7 @@ class ContractDocumentDialog(QDialog):
         super().__init__(parent)
         self.ui = Ui_ContractDialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "06-contractors.html")
         self.layout().setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
 
         self.dbh = dbh

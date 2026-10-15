@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QLineEdit, 
     QInputDialog, QPushButton, QApplication
 from PySide6.QtCore import Qt, QSize, QRegularExpression, QModelIndex, QDate, QTimer
 
+from gui.manualdialog import add_help_shortcut, open_manual
 from base.backup import restore_backup
 from base.casting import str_bool, str_int
 from base.dbhandler import DBHandler
@@ -62,6 +63,7 @@ class SettingsDialog(QDialog):
         super(SettingsDialog, self).__init__(parent)
         self.ui = Ui_settingsdialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "12-settings.html")
 
         self.settings_handler: SettingsHandler = settings_handler
         self.settings_handler.save_settings()
@@ -110,6 +112,7 @@ class SettingsDialog(QDialog):
 
         # Сигналы
         self.ui.pb_ok.clicked.connect(self.accept)
+        self.ui.pb_hotkeys.clicked.connect(lambda: open_manual(self, "P3-hotkeys.html"))
         self.ui.pb_cancel.clicked.connect(self.reject)
         self.ui.lw_menu.currentItemChanged.connect(self.change_stw_page)
         self.ui.pb_backuppath.clicked.connect(lambda: self.change_path(self.ui.le_backuppath))

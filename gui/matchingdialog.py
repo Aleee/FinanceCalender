@@ -14,6 +14,7 @@ from PySide6.QtGui import QBrush, QColor, QFont, QKeySequence, QPalette, QShortc
 from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QHBoxLayout, QHeaderView, QMenu, QMessageBox,
                                QPushButton, QTableWidget, QTableWidgetItem, QToolButton, QWidget)
 
+from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
 from base.feeparser import CSVParseError
 from base.formatting import (dec_html, dec_strcommaspace, records_word, COLOR_STATEMENT, COLOR_CALENDAR,
@@ -66,6 +67,7 @@ class MatchingDialog(QDialog):
         super(MatchingDialog, self).__init__(parent)
         self.ui = Ui_matchingdialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "08-statement-matching.html")
         self.setAcceptDrops(True)
 
         self.sh: SettingsHandler = settings_handler

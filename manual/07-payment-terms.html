@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 7. Сроки оплаты по договору</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 7. Сроки оплаты по договору</h1></td></tr></table>
+<p>Условие договора («в течение 10 рабочих дней после получения счёта», «не позднее 25 числа следующего месяца»), записанное в документ договора (<a href="06-contractors.html">раздел 6</a>), программа переводит в дату и предлагает её как <strong>срок оплаты</strong> платежа.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Расчёт — только подсказка: дату вы подставляете кнопкой и всегда можете исправить вручную.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Где задаются условия</h2></td></tr></table>
+<p>Условия хранятся в <strong>документе</strong> (рис. 18 в <a href="06-contractors.html">разделе 6</a>), в группе «Срок оплаты»:</p>
+<ul>
+<li><strong>«Условия оплаты по договору (текст)»</strong> — напоминание для вас, на расчёт не влияет;</li>
+<li><strong>Тип срока оплаты</strong> — один из трёх вариантов; он и его поля определяют расчёт.</li>
+</ul>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Группа «Срок оплаты» в окне документа" src="images/07-contractors/payment-term.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 20. Группа «Срок оплаты» в окне документа. Выбран относительный срок: 30 календарных дней после события, но не позднее 25 числа следующего месяца.</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Три типа срока</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Тип в окне документа</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Как читается условие</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что нужно задать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Предоплата / Срок явно не определён»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Срока в договоре нет, или он не связан с датами (например, оплата заранее)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ничего</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Относительный срок оплаты (привязка к событию)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Оплата в течение N дней после события» и, при желании, «но не позднее N числа месяца»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Число дней, какие это дни (календарные, банковские или рабочие), а для ограничения — число и месяц</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Фиксированный срок оплаты (привязка к календарю)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не позднее N числа месяца»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Число и месяц</td>
+</tr>
+</tbody>
+</table>
+<p>Как выбрать тип:</p>
+<ul>
+<li>«Оплата в течение 5 банковских дней с даты подписания акта» — относительный срок;</li>
+<li>«Оплата до 15 числа месяца, следующего за отчетным» — фиксированный срок;</li>
+<li>«Оплата по предоплате» или условий оплаты в тексте вообще нет — предоплата.</li>
+</ul>
+<h3 id="s4">Предоплата / Срок явно не определён</h3>
+<p>Расчетная дата не считается («—», «← Подставить дату» неактивна): срок вводится в платеже вручную. Этот тип стоит у нового документа по умолчанию.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Не путайте с видом платежа «предоплата» (<a href="03-event-dialog.html">раздел 3</a>): это пометка в платеже.</p>
+</td></tr></table>
+<h3 id="s5">Относительный срок оплаты</h3>
+<p>Срок отсчитывается от <strong>события</strong> (выставления счёта, подписания акта, получения товара); его дата — «Дата возникновения», указывается в платеже. Условие в окне документа читается как предложение:</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#5b7aa6"></td><td bgcolor="#f1f4f9" style="padding: 10px 16px 0px 16px;">
+<p>Оплата в течение <strong>[10]</strong> <strong>[рабочих]</strong> дней после события, но не позднее <strong>[25]</strong> числа <strong>[следующего]</strong> месяца</p>
+</td></tr></table>
+<p>Вторая часть («но не позднее …») необязательна и включается флажком.</p>
+<ul>
+<li><strong>Число дней</strong> — от 0 до 365.</li>
+<li><strong>Какие дни</strong> — «календарных», «банковских» или «рабочих» (см. ниже).</li>
+<li><strong>Число</strong> — от 1 до 31. Если в месяце меньше дней (например, 31 число в ноябре), берётся последний день месяца.</li>
+<li><strong>Месяц</strong> — «предыдущего», «отчетного» или «следующего».</li>
+</ul>
+<p>При включённом «но не позднее …» выбирается <strong>более ранняя</strong> из двух дат: «30 дней, но не позднее 25 числа следующего месяца» — что наступит раньше.</p>
+<h3 id="s6">Фиксированный срок оплаты</h3>
+<p>Срок не зависит от события, это число месяца:</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#5b7aa6"></td><td bgcolor="#f1f4f9" style="padding: 10px 16px 0px 16px;">
+<p>Не позднее <strong>[15]</strong> числа <strong>[следующего]</strong> месяца</p>
+</td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Три типа срока оплаты на шкале времени" src="images/08-payment-terms/term-types.svg" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 21. Как программа получает расчетную дату. У относительного срока она отсчитывается от даты возникновения, у фиксированного привязана к числу месяца, у предоплаты не считается.</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Что нужно программе для расчёта</h2></td></tr></table>
+<p>Кроме условий документа, нужны две даты (панель договора, рис. 19 в <a href="06-contractors.html">разделе 6</a>):</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Нужно для</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Откуда берётся</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;"><strong>Дата возникновения</strong></td>
+<td style="border-bottom: 1px solid #d9e0e9;">относительного срока: от неё отсчитываются дни</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Из платежа; в панели можно задать отдельно</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;"><strong>Отчетный месяц</strong> (месяц и год)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">фиксированного срока и ограничения «но не позднее …»: от него считаются слова «текущий», «следующий», «предыдущий»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сначала текущий месяц; от дат платежа не зависит</td>
+</tr>
+</tbody>
+</table>
+<p>Показываются только нужные поля: при фиксированном сроке нет «Даты возникновения», при относительном без ограничения — «Отчетного месяца».</p>
+<p><strong>Отчетный месяц</strong> зависит от сути договора, поэтому программа его не определяет: стоит текущий месяц, и ничего на него не влияет. Если нужен другой, выберите его (и год): расчетная дата пересчитается.</p>
+<p><strong>Пример.</strong> Сегодня 12.11.2026, вносится акт за октябрь, условие «Не позднее 15 числа следующего месяца». Нужно выбрать «Октябрь»: срок — 16.11 (15.11 — воскресенье). Если оставить «Ноябрь», получится 15.12.2026.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> В окне «Копировать платеж с новым основанием» (<a href="03-event-dialog.html">раздел 3</a>) отчетный месяц сначала следует за датой возникновения, пока вы не выберете его вручную.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">Как программа считает дату</h2></td></tr></table>
+<h3 id="s9">Фиксированный срок</h3>
+<ol>
+<li>Отчетный месяц сдвигается: «следующего» — вперёд, «предыдущего» — назад.</li>
+<li>Берётся указанное число (или последний день месяца).</li>
+<li>Выходной или праздничный день переносится на <strong>ближайший следующий рабочий день</strong>.</li>
+</ol>
+<h3 id="s10">Относительный срок</h3>
+<p>От даты возникновения отсчитывается число дней; при «но не позднее …» берётся более ранняя из двух дат (ограничение считается по правилам фиксированного срока). Виды дней:</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Вид дней</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Как считаются</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Если результат выпал на нерабочий день</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«календарных»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Все дни подряд, включая выходные</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Срок переносится на ближайший <strong>следующий</strong> рабочий день</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«рабочих»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Считаются только рабочие дни; день возникновения не считается — первым днём будет следующий рабочий</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не бывает: результат всегда рабочий день</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«банковских»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Считаются только дни, в которые работает банк; день возникновения не считается</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не бывает: результат всегда банковский день</td>
+</tr>
+</tbody>
+</table>
+<p>Рабочие и банковские дни различаются, только если в календаре отмечены особые дни (ниже); по умолчанию это дни с понедельника по пятницу.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Перенос всегда идёт <strong>вперёд</strong>, а не назад на пятницу (правило Гражданского кодекса Республики Беларусь): при «не позднее 15 числа» и воскресенье 15-го срок — понедельник 16-го.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s11">Примеры</h2></td></tr></table>
+<p>В примерах выходные — суббота и воскресенье, праздников нет.</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Условие в документе</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Дата возникновения</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Отчетный месяц</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Расчетная дата</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Пояснение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">10 календарных дней</td>
+<td style="border-bottom: 1px solid #d9e0e9;">20.10.2026 (Вт)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">—</td>
+<td style="border-bottom: 1px solid #d9e0e9;">30.10.2026 (Пт)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">20.10 + 10 дней — рабочий день, переносить не нужно</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">10 календарных дней</td>
+<td style="border-bottom: 1px solid #d9e0e9;">14.10.2026 (Ср)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">—</td>
+<td style="border-bottom: 1px solid #d9e0e9;">26.10.2026 (Пн)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">14.10 + 10 дней = 24.10 (суббота), срок переносится на понедельник</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">10 рабочих дней</td>
+<td style="border-bottom: 1px solid #d9e0e9;">14.10.2026 (Ср)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">—</td>
+<td style="border-bottom: 1px solid #d9e0e9;">28.10.2026 (Ср)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Считаются только будни: 15.10 — первый день, 28.10 — десятый</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">30 календарных дней, но не позднее 25 числа следующего месяца</td>
+<td style="border-bottom: 1px solid #d9e0e9;">14.10.2026 (Ср)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Октябрь 2026</td>
+<td style="border-bottom: 1px solid #d9e0e9;">13.11.2026 (Пт)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">14.10 + 30 дней = 13.11, это раньше, чем 25.11, поэтому выбирается 13.11</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">30 календарных дней, но не позднее 25 числа следующего месяца</td>
+<td style="border-bottom: 1px solid #d9e0e9;">30.10.2026 (Пт)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Октябрь 2026</td>
+<td style="border-bottom: 1px solid #d9e0e9;">25.11.2026 (Ср)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">30.10 + 30 дней = 29.11 (воскресенье) → 30.11. Это позже, чем 25.11, поэтому выбирается ограничение</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Не позднее 15 числа текущего месяца</td>
+<td style="border-bottom: 1px solid #d9e0e9;">—</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Октябрь 2026</td>
+<td style="border-bottom: 1px solid #d9e0e9;">15.10.2026 (Чт)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Рабочий день, перенос не нужен</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Не позднее 15 числа следующего месяца</td>
+<td style="border-bottom: 1px solid #d9e0e9;">—</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Октябрь 2026</td>
+<td style="border-bottom: 1px solid #d9e0e9;">16.11.2026 (Пн)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">15.11 — воскресенье, срок переносится на понедельник</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Не позднее 31 числа текущего месяца</td>
+<td style="border-bottom: 1px solid #d9e0e9;">—</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ноябрь 2026</td>
+<td style="border-bottom: 1px solid #d9e0e9;">30.11.2026 (Пн)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В ноябре 30 дней, берётся последний день</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Не позднее 10 числа предыдущего месяца</td>
+<td style="border-bottom: 1px solid #d9e0e9;">—</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Октябрь 2026</td>
+<td style="border-bottom: 1px solid #d9e0e9;">10.09.2026 (Чт)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Отчетный месяц минус один — сентябрь</td>
+</tr>
+</tbody>
+</table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s12">Календарь рабочих и праздничных дней</h2></td></tr></table>
+<p>Праздники и переносы выходных вносятся в «Настройки» → «Календарь» (по годам) тремя списками:</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Список</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что в него вносить</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Как это влияет на расчёт</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Праздничные»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нерабочие будни</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не считаются ни рабочим, ни банковским днём</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Рабочие банковские»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выходные, в которые работают и организации, и банки</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Считаются и рабочим, и банковским днём</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Рабочие небанковские»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выходные, в которые работают организации, но не банки</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Считаются рабочим днём, но не банковским</td>
+</tr>
+</tbody>
+</table>
+<p>Внесённые дни влияют и на перенос календарных дней и фиксированных сроков. Пример: 24.10.2026 (суббота) внесена в «Рабочие небанковские»; тогда «10 рабочих дней» от 14.10.2026 закончатся 27.10, а «10 банковских дней» — 28.10.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Праздников и переносов программа не знает: пока они не внесены, все будни рабочие, а суббота и воскресенье выходные. Внесите их на нужный год заранее, иначе расчетная дата может выпасть на нерабочий день или сдвинуться.</p>
+</td></tr></table>
+<p>Используется календарь года, на который попала дата: при переходе через Новый год нужны оба года.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s13">Где вы увидите расчёт</h2></td></tr></table>
+<p><strong>В панели договора окна платежа:</strong> «Расчетная дата:» (например, «30.10.2026 (Пт)») или «—». Пересчитывается при смене даты возникновения или отчетного месяца; в платеж переносится кнопкой «← Подставить дату» (<a href="06-contractors.html">раздел 6</a>).</p>
+<p><strong>В окне «Копирование платежа с новым основанием»</strong> срок подставляется автоматически. Подсказка у поля:</p>
+<ul>
+<li>«Рассчитана автоматически»;</li>
+<li>«Расчетная: 30.10.2026 (Пт) · вернуть» — срок изменён вручную, «вернуть» возвращает расчетную дату;</li>
+<li>«Укажите вручную» — расчёта нет.</li>
+</ul>
+<p>День недели красный, если дата — суббота или воскресенье.</p>
+<p><strong>Уже созданные платежи не пересчитываются.</strong> Изменение условий в документе не меняет срок созданных платежей; новая дата появится в новых платежах или после повторного «← Подставить дату».</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s14">Если расчетная дата не подходит</h2></td></tr></table>
+<p>Проверьте по порядку:</p>
+<ol>
+<li>условия документа (рис. 18 в <a href="06-contractors.html">разделе 6</a>): тип, число дней, вид дней, месяц;</li>
+<li>«Дату возникновения» и «Отчетный месяц» в панели договора (чаще всего причина в отчетном месяце);</li>
+<li>календарь («Настройки» → «Календарь»): нет ли неизвестных программе праздников и рабочих суббот;</li>
+<li>перенос вперёд: выходной переезжает на понедельник, а не на пятницу.</li>
+</ol>
+<p>Иначе введите срок вручную: принимается любая дата. Если условие нельзя описать (например, «через 3 дня после поставки, но не ранее 1 числа»), выберите «Предоплата / Срок явно не определён» и впишите условие в текстовое поле как напоминание.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s15">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">В «Расчетная дата» стоит «—»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Тип документа «Предоплата / Срок явно не определён»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Введите срок оплаты вручную или смените тип срока в документе</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Кнопка «← Подставить дату» неактивна</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Платеж не привязан к документу, выбранному в панели (в том числе выбран другой документ), или расчетной даты нет</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выберите документ платежа или привяжите платеж к выбранному (<a href="06-contractors.html">раздел 6</a>); проверьте тип срока</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Расчетная дата сдвинута на месяц</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Отчетный месяц стоит не тот (по умолчанию он равен сегодняшнему)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выберите нужный месяц и год в блоке «Отчетный месяц»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Расчетная дата выпала на праздник или не учла перенесённый рабочий день</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Праздник или перенос не внесены в календарь</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Внесите их в «Настройки» → «Календарь»</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Не видно полей «Дата возникновения» или «Отчетный месяц» в панели</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Эти поля показываются только когда они нужны для условий выбранного документа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте тип срока в документе</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Дата возникновения не может быть больше срока оплаты» при сохранении платежа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Дата возникновения позже срока оплаты</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Исправьте одну из дат</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

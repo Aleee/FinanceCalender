@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 14. Синхронизация между устройствами</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 14. Синхронизация между устройствами</h1></td></tr></table>
+<p>Синхронизация нужна, если с программой работают на нескольких устройствах или несколько человек: например, вы в офисе, коллега дома. Программа сама следит, чтобы у всех были одни и те же данные, и сообщает, если что-то нужно решить вам.</p>
+<p><strong>Настройка подключения</strong> (способ обмена, доступ к хранилищу, имя пользователя) выполняется один раз. Эти значения вам должен сообщить ответственный за программу. Как подключить устройство впервые — в <a href="P2-startup-data.html">приложении 2</a>.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Как это устроено</h2></td></tr></table>
+<p>У каждого устройства своя <strong>локальная копия</strong> базы. Это обычная база программы: с ней можно работать без сети. Кроме того, в <strong>хранилище</strong> (Яндекс.Диск или общая папка) лежит одна <strong>общая база</strong>. Программа сверяет локальную копию с общей базой и переносит изменения в нужную сторону.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Локальные копии и общая база" src="images/16-sync/scheme.svg" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 45. Каждое устройство работает со своей копией и обменивается изменениями через общую базу.</em></span></p>
+<p>Устройства друг с другом напрямую не связаны: изменения доходят до другого пользователя только через общую базу. Поэтому изменение, которое вы не «отправили», коллега не увидит.</p>
+<p>Синхронизируется вся база: платежи, оплаты, контрагенты, договоры, финансовый план и исполнение плана. Из окна «Настройки» (<a href="12-settings.html">раздел 12</a>) в базе хранятся и поэтому передаются на другие устройства «Календарь», «Парсер выписки» и «Персонал». Остальное («Отображение», «Таблица», «Хранение», настройки синхронизации) на каждом устройстве своё.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Кнопка синхронизации</h2></td></tr></table>
+<p>Кнопка справа на панели инструментов показывает состояние и запускает синхронизацию. Стрелка справа от неё открывает меню: «Синхронизировать сейчас» и «Настройки синхронизации…».</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Состояния кнопки синхронизации" src="images/16-sync/button-states.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 46. Состояния кнопки синхронизации: «выключена», «данные актуальны», «есть неотправленные», «нет связи», «КОНФЛИКТ».</em></span></p>
+<p>Если синхронизация выключена, нажатие на кнопку открывает окно настроек. Подробности видны в подсказке при наведении курсора: время последней проверки, дата и автор последней отправки в общую базу, а при проблеме и её причина.</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Надпись на кнопке</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Цвет</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что значит</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">выключена</td>
+<td style="border-bottom: 1px solid #d9e0e9;">серый</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Синхронизация не включена</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Включите её в окне настроек, если нужно (данные для него у ответственного за программу)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">данные актуальны</td>
+<td style="border-bottom: 1px solid #d9e0e9;">зелёный значок</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ваша локальная копия совпадает с общей базой</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ничего</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">есть неотправленные</td>
+<td style="border-bottom: 1px solid #d9e0e9;">оранжевый</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Вы внесли изменения, они ещё не в общей базе</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Подождите: программа отправит их сама, или нажмите кнопку</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">общей базы нет</td>
+<td style="border-bottom: 1px solid #d9e0e9;">оранжевый</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В хранилище ещё нет общей базы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Создайте её (<a href="P2-startup-data.html">приложение 2</a>)</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">нет связи</td>
+<td style="border-bottom: 1px solid #d9e0e9;">оранжевый</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Хранилище недоступно</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Работайте дальше. Программа повторит попытку сама, см. «Работа без сети»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">общая база обновляется</td>
+<td style="border-bottom: 1px solid #d9e0e9;">оранжевый</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Другой пользователь как раз отправляет изменения</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Подождите минуту и нажмите кнопку ещё раз</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">КОНФЛИКТ</td>
+<td style="border-bottom: 1px solid #d9e0e9;">красный</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Изменения есть и у вас, и в общей базе, объединить их автоматически нельзя</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нажмите кнопку и выберите, чьи данные оставить (см. «Конфликт»)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">в общей базе другие данные</td>
+<td style="border-bottom: 1px solid #d9e0e9;">красный</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В хранилище лежит общая база, не связанная с вашей локальной копией</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не отвечайте «Да» наугад (<a href="P2-startup-data.html">приложение 2</a>): уточните у ответственного за программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">обновите программу</td>
+<td style="border-bottom: 1px solid #d9e0e9;">красный</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Общая база создана более новой версией программы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Обновите программу (<a href="15-update.html">раздел 15</a>). До этого ничего не меняется</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">токен недействителен</td>
+<td style="border-bottom: 1px solid #d9e0e9;">красный</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Доступ к хранилищу не принят</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Обратитесь к ответственному за программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">ОШИБКА</td>
+<td style="border-bottom: 1px solid #d9e0e9;">красный</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Другая ошибка, подробности в подсказке</td>
+<td style="border-bottom: 1px solid #d9e0e9;">См. «Что может пойти не так»</td>
+</tr>
+</tbody>
+</table>
+<p>Знак ⚠ после надписи или оранжевая надпись при «данные актуальны» говорят, что есть замечание: общая база давно не обновлялась или скоро истекает доступ к хранилищу. Причина указана в подсказке (см. «Предупреждения»).</p>
+<p>В строке состояния показано «Последняя синхронизация: …»: время последней успешной синхронизации.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Когда синхронизация запускается</h2></td></tr></table>
+<p>Обычно вам не нужно нажимать кнопку: программа проверяет общую базу сама.</p>
+<ul>
+<li><strong>При запуске</strong>, сразу после открытия окна.</li>
+<li><strong>По таймеру</strong>: каждые 5 минут по умолчанию (меняется в настройках).</li>
+<li><strong>После паузы в работе</strong>: если вы внесли изменения и минуту (по умолчанию) ничего не нажимали, программа отправляет их.</li>
+<li><strong>Вручную</strong>: кнопка или «Синхронизировать сейчас» или <strong>F5</strong>. Перед этим сохраняется открытая заметка.</li>
+<li><strong>При закрытии</strong>: если есть неотправленные изменения, программа пробует отправить их перед выходом.</li>
+</ul>
+<p>Автоматическая синхронизация пропускается, пока открыто любое окно с вопросом или настройками, есть несохранённая заметка или уже идёт другая синхронизация. Ничего страшного: попытка повторится при следующей проверке.</p>
+<p>На время синхронизации появляется окно с этапами, а кнопка недоступна. При медленной сети программа может на несколько секунд перестать отзываться: это нормально, дождитесь окончания.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Что делает программа при проверке</h2></td></tr></table>
+<p>Программа смотрит на два вопроса: изменил ли общую базу кто-то другой с момента вашей последней синхронизации и есть ли у вас неотправленные изменения. От ответов зависит, что произойдёт.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Что делает программа" src="images/16-sync/decision.svg" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 47. Четыре возможных исхода проверки.</em></span></p>
+<h3 id="s6">Ничего не изменилось</h3>
+<p>Никаких действий и сообщений, на кнопке «данные актуальны».</p>
+<h3 id="s7">Менялись только ваши данные</h3>
+<p>Ваша локальная копия заменяет общую базу. Сообщений нет: на кнопке «данные актуальны». Перед заменой программа сохраняет в хранилище копию прежней общей базы (см. «Копии общей базы»).</p>
+<h3 id="s8">Менялись только данные другого пользователя</h3>
+<p>Ваша локальная копия заменяется общей базой. Программа сообщает: «Данные были изменены другим пользователем. Программа обновлена по актуальной версии», указывает время и автора изменений и показывает список: какие платежи, оплаты, контрагенты, договоры, документы, финансовый план и исполнение плана добавлены, изменены и удалены (столбцы «Запись», «Было», «Стало»). По остальным данным (календарь, парсер выписки, персонал) показано только число изменённых строк.</p>
+<p>Перед заменой программа сохраняет вашу прежнюю локальную копию в <code>data\backup</code> как <code>before_sync_…</code> (<a href="13-backup.html">раздел 13</a>). Это случай, когда данные на вашем устройстве заменяются целиком без вашего решения, поэтому такая копия делается всегда.</p>
+<h3 id="s9">Менялось и у вас, и в общей базе</h3>
+<p>Это самое важное и самое сложное. Возможны два исхода: программа объединит изменения сама или потребует вашего решения.</p>
+<h4 id="s10">Автоматическое объединение</h4>
+<p>Программа объединяет изменения без вашего участия, если выполнены оба условия:</p>
+<ol>
+<li>С последней синхронизации вы меняли только <strong>платежи и оплаты, контрагентов, договоры и документы (вместе со сроками оплаты), финансовый план и исполнение плана</strong>. Если вы меняли «Календарь», «Парсер выписки» или «Персонал» в настройках (<a href="12-settings.html">раздел 12</a>), объединить автоматически нельзя. Изменения коллеги при этом могут быть любыми.</li>
+<li>Вы и коллега не изменили <strong>одно и то же поле</strong> одной и той же записи. Если вы поменяли сумму платежа, а коллега у этого же платежа поменял заметку, это не пересечение. Если же оба поменяли сумму, это уже конфликт.</li>
+</ol>
+<p>Конфликтом также считается, если:</p>
+<ul>
+<li>один удалил контрагента, договор, документ или платеж, а другой добавил или изменил то, что к ним относится (например, оплату удалённого платежа или платеж по удалённому документу);</li>
+<li>оба добавили строку финансового плана или исполнения плана за один и тот же год и категорию (период), но значения разные. Если значения одинаковые, строка просто остаётся одна.</li>
+</ul>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Как объединяются изменения" src="images/16-sync/merge.svg" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 48. Ваши изменения переносятся на общую базу, уже содержащую изменения коллеги.</em></span></p>
+<p>Что при этом происходит:</p>
+<ul>
+<li>ваши добавленные, изменённые и удалённые записи переносятся на общую базу;</li>
+<li>результат заменяет вашу локальную копию и отправляется в общую базу;</li>
+<li>ваша версия данных до объединения сохраняется в <code>data\backup</code> как <code>conflict_…</code> и не удаляется сама (<a href="13-backup.html">раздел 13</a>).</li>
+</ul>
+<p>Программа показывает окно с сообщением «Пока вы работали, общая база была изменена другим пользователем … Ваши изменения объединены с ними и отправлены в общую базу» и двумя вкладками: «Изменения другого пользователя» и «Ваши изменения».</p>
+<p><strong>Проверьте блок «Проверьте после объединения (N):»</strong>, если он есть. В нём программа предупреждает о возможных последствиях объединения:</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Предупреждение</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Как могло получиться</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Возможный дубль контрагента</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Вы и коллега добавили контрагента с одним названием</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Оставьте одного: перенесите договоры и удалите лишнего</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Возможный дубль договора</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Вы и коллега добавили договор с тем же номером и датой у одного контрагента</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Оставьте один договор</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Возможный дубль документа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Вы и коллега добавили документ с тем же названием в один договор</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Оставьте один документ</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Возможный дубль платежа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Вы и коллега добавили один и тот же платеж</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Откройте оба платежа и удалите лишний</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Возможный дубль оплаты</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Вы и коллега отметили одну и ту же оплату</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Удалите лишнюю оплату</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Оплачено больше суммы платежа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Вы и коллега отметили оплаты по одному платежу, вместе они превысили сумму</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте оплаты платежа и исправьте лишнюю</td>
+</tr>
+</tbody>
+</table>
+<p>Предупреждения только подсказывают, куда посмотреть: программа ничего не исправляет сама.</p>
+<h4 id="s11">Конфликт</h4>
+<p>Если автоматически объединить нельзя (пересеклись правки, либо вы меняли «Календарь», «Парсер выписки» или «Персонал»), кнопка становится красной «КОНФЛИКТ» и открывается окно «Конфликт синхронизации».</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Конфликт синхронизации»" src="images/16-sync/conflict-dialog.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 49. Окно «Конфликт синхронизации».</em></span></p>
+<p>В окне:</p>
+<ul>
+<li>вверху написано, когда и кем обновлена общая база, и напоминание: <strong>перед любым выбором ваша версия сохраняется в <code>data\backup</code> как <code>conflict_…</code></strong>;</li>
+<li>таблица причин конфликта: запись, что именно изменено и значения у вас и в общей базе (например, «сумма — у вас 60.00, в общей базе 50.00»). Если причина в том, что менялись другие разделы, об этом сказано там же;</li>
+<li>вкладки «Ваши изменения» и «Изменения в общей базе»: что именно изменено каждой стороной с последней синхронизации.</li>
+</ul>
+<p>Выбрать нужно одну из трёх кнопок:</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Три варианта решения конфликта" src="images/16-sync/conflict.svg" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 50. Что происходит при каждом выборе.</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Кнопка</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Когда выбирать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;"><strong>Взять общую базу</strong></td>
+<td style="border-bottom: 1px solid #d9e0e9;">Верна версия коллеги или ваши изменения не важны. Если часть ваших правок нужна, откройте <code>conflict_…</code> (см. ниже) и перенесите их вручную</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;"><strong>Перезаписать общую базу моей версией</strong></td>
+<td style="border-bottom: 1px solid #d9e0e9;">Верна ваша версия, и изменения коллеги можно потерять. Это затронет всех пользователей: на их устройствах данные заменятся вашими</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;"><strong>Отмена</strong></td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нужно время подумать или посоветоваться. Ничего не меняется, окно появится снова при следующей автоматической проверке</td>
+</tr>
+</tbody>
+</table>
+<p>Если сомневаетесь, нажмите «Отмена», сравните вкладки и свяжитесь с коллегой: решение по одному конфликту обычно занимает пару минут. Отправлять свои изменения до решения нельзя.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> «Перезаписать общую базу» нельзя отменить в программе. Если вы ошиблись, обратитесь к ответственному за программу: в хранилище остаётся копия прежней общей базы (подраздел «Копии общей базы»).</p>
+</td></tr></table>
+<p><strong>Как вернуть данные из <code>conflict_…</code>.</strong> Это обычная копия базы: её можно восстановить так же, как любую другую (<a href="13-backup.html">раздел 13</a>). Но восстановленные данные снова будут вашими неотправленными изменениями, и конфликт может повториться. Если нужны только отдельные платежи, лучше восстановить копию на отдельном устройстве или попросить ответственного за программу открыть её и перенести нужное вручную.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s12">Работа без сети</h2></td></tr></table>
+<p>Сеть нужна только на время синхронизации. Всё остальное время программа работает со своей локальной копией, и вы можете спокойно вносить платежи и оплаты.</p>
+<p>Если связи нет, кнопка показывает «нет связи». Программа автоматически повторит попытку: через 30 секунд, потом ещё раз, всего три попытки. Об этом сообщается в строке состояния и в подсказке кнопки. Потом программа продолжит проверки по обычному расписанию.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Работа дома и возвращение в офис" src="images/16-sync/offline.svg" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 51. Изменения, сделанные без сети, отправляются или объединяются, когда связь появилась.</em></span></p>
+<p>Что делать, если вы работали дома без сети:</p>
+<ol>
+<li>Вносите и меняйте платежи и оплаты как обычно. Кнопка «есть неотправленные» или «нет связи» в этом случае нормальна.</li>
+<li>Когда появится сеть, ничего специально делать не нужно: программа сама отправит изменения (или объединит их, если коллега тоже работал).</li>
+<li>Если вы закрываете программу без сети, она сообщит: «Изменения не отправлены в общую базу (нет связи). Закрыть программу без отправки?» Можно ответить «Да»: изменения никуда не денутся, их отправит следующая синхронизация.</li>
+</ol>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Данные на устройстве не пропадают, но пока вы не отправили изменения, коллега их не видит. Чем дольше вы работаете без синхронизации, тем выше шанс конфликта.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s13">Разные версии программы</h2></td></tr></table>
+<p>Когда программу обновляют, общую базу первым обновляет тот, у кого новая версия. Остальные видят «обновите программу», и синхронизация для них приостанавливается: никаких данных не меняется. Обновите программу (<a href="15-update.html">раздел 15</a>) и синхронизируйтесь снова. Пока вы не обновились, продолжать работать можно, а изменения отправятся после обновления.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s14">Копии общей базы</h2></td></tr></table>
+<p>Чтобы можно было вернуть данные, если общую базу заменили по ошибке, программа сохраняет в хранилище копии прежней общей базы:</p>
+<ul>
+<li><strong>Короткие копии</strong> хранятся 3 дня, создаются при отправке не чаще, чем раз в указанное в настройках число минут;</li>
+<li><strong>Ежедневные копии</strong> хранятся указанное в настройках число дней (по умолчанию 60).</li>
+</ul>
+<p>Эти копии не видны в программе: за доступом к ним обращайтесь к ответственному за программу. Копии на самом устройстве (<a href="13-backup.html">раздел 13</a>) хранятся отдельно.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s15">Предупреждения программы</h2></td></tr></table>
+<ul>
+<li><strong>«Внимание: общая база не обновлялась N дн., возможно, второй пользователь не отправляет изменения»</strong> (в подсказке кнопки, появляется со 7 дней). Это просто напоминание: если вы ожидали изменений, спросите коллегу, работает ли у него синхронизация.</li>
+<li><strong>«Токен Яндекса истекает через N дн., получите новый заранее»</strong> (в подсказке, за 30 дней до конца срока). Доступ к удалённому хранилищу нужно продлить: обратитесь к ответственному за программу. После окончания срока кнопка станет красной, а синхронизация перестанет проходить, пока не будет получен новый доступ.</li>
+<li><strong>«Синхронизация: …. Нажмите на кнопку синхронизации на панели инструментов»</strong> (в строке состояния на 15 секунд). Автоматическая проверка нашла проблему (конфликт или устаревшую программу), требующую вашего внимания.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s16">Параметры</h2></td></tr></table>
+<p>Окно «Настройки синхронизации…» открывается из меню кнопки. Кроме данных подключения, которые вам выдают, там есть несколько параметров, которые можно менять.</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Параметр</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что меняет</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Значение по умолчанию и совет</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверять общую базу каждые</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Как часто программа сама проверяет общую базу и принимает чужие изменения</td>
+<td style="border-bottom: 1px solid #d9e0e9;">5 мин. Чаще: быстрее видите чужие правки; реже: меньше нагрузки</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Отправлять изменения после бездействия</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Через сколько секунд после последнего нажатия клавиши или мыши программа отправляет ваши изменения</td>
+<td style="border-bottom: 1px solid #d9e0e9;">60 с. «выкл» отключает такую отправку: тогда изменения уйдут при следующей проверке по таймеру или при закрытии</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Хранить ежедневные копии общей базы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сколько дней хранятся ежедневные копии общей базы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">60 дн.</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Копировать общую базу при отправке не чаще, чем раз в</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Как часто создаются короткие копии</td>
+<td style="border-bottom: 1px solid #d9e0e9;">30 мин; «каждый раз» делает копию при каждой отправке</td>
+</tr>
+</tbody>
+</table>
+<p>После «ОК» программа проверит общую базу через секунду.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s17">Как не потерять данные</h2></td></tr></table>
+<ul>
+<li>Дождитесь, пока кнопка покажет «данные актуальны», прежде чем выключать компьютер или закрывать ноутбук. Если закрываете программу, ответьте на вопрос о неотправленных изменениях осознанно.</li>
+<li>Не правьте одни и те же платежи одновременно: два человека, меняющие один платеж, получат конфликт.</li>
+<li>Если вы меняли «Календарь», «Парсер выписки» или «Персонал» в настройках, синхронизируйтесь сразу: такие правки автоматически не объединяются.</li>
+<li>При конфликте не торопитесь. Вариант «Отмена» ничего не меняет, а ваша версия всё равно сохраняется в <code>data\backup</code>.</li>
+<li>Не удаляйте <code>conflict_…</code> сразу: они сами не удаляются и могут пригодиться.</li>
+<li>Восстановление из копии (<a href="13-backup.html">раздел 13</a>) тоже превращается в ваши неотправленные изменения: после него синхронизируйтесь осознанно.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s18">Что может пойти не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось выполнить синхронизацию: Нет связи с сервером: …» (кнопка «нет связи»)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нет интернета или хранилище временно недоступно</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Работайте дальше, программа повторит попытку. Если не проходит долго, проверьте интернет</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Токен недействителен или истёк» (кнопка «токен недействителен»)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Доступ к удалённому хранилищу закончился или отозван</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Обратитесь к ответственному за программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Нет доступа к Яндекс.Диску: проверьте токен и права приложения»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">У программы нет прав на нужную папку</td>
+<td style="border-bottom: 1px solid #d9e0e9;">То же</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«На Яндекс.Диске недостаточно места»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В хранилище нет места</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Освободите место на диске</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Ресурс на Яндекс.Диске заблокирован, повторите позже»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Хранилище временно занято</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите через несколько минут</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Общая база обновляется: файл базы данных и master.json не совпадают, повторите позже» (кнопка «общая база обновляется»)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Другой пользователь отправляет изменения в этот момент</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Подождите минуту и нажмите кнопку ещё раз</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Общая база создана более новой версией программы. Обновите программу. Ничего не изменено»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Коллега уже обновил программу</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Обновите программу (<a href="15-update.html">раздел 15</a>)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Файл общей базы не найден» / «В общем хранилище нет базы данных»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Общую базу удалили или её нет по указанному пути</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте путь в настройках; если база удалена, создайте её заново (<a href="P2-startup-data.html">приложение 2</a>)</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Скачанная общая база не прошла проверку целостности» / «Скачанная общая база не соответствует master.json»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Файл загрузился не полностью или повреждён</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите синхронизацию. Если повторяется, обратитесь к ответственному за программу</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось сохранить локальную копию перед заменой» / «… перед разрешением конфликта»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не удалось записать копию в <code>data\backup</code> (нет места или прав)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Освободите место на диске. Данные не изменены</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось заменить локальную копию общей базой (подробности см. в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не удалось записать базу на место</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Закройте программу, запустите снова. Если не помогает, приложите журнал работы и обратитесь к ответственному</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Общая база изменилась во время подготовки отправки»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Пока вы отправляли, общая база изменилась</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите синхронизацию</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Папка обмена не указана или не существует» (в настройках)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Для способа «Папка» не выбрана папка</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Укажите существующую папку</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Укажите токен» / «Укажите имя пользователя: оно записывается при отправке изменений» (в настройках)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не заполнены обязательные поля</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Заполните поля данными от ответственного за программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Подключиться не удалось: …» (кнопка «Проверить подключение»)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Данные подключения неверны или нет связи</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте данные и интернет</td>
+</tr>
+</tbody>
+</table>
+<p>Если что-то не удаётся исправить, обратитесь к ответственному за программу и приложите журнал работы. В окне настроек синхронизации есть кнопка «Диагностика сети…»: она собирает сведения о соединении в архив, который можно отправить ответственному.</p>
+</body>
+</html>

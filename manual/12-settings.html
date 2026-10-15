@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 12. Настройки</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 12. Настройки</h1></td></tr></table>
+<p>Окно «Настройки» открывается кнопкой «Настройки» на панели инструментов. Разделы окна — список слева.</p>
+<ul>
+<li><strong>«ОК»</strong> сохраняет все разделы и сразу применяет их, <strong>«Отмена»</strong> отбрасывает всё. Исключение — перечень должностей: он сохраняется сразу (см. «Персонал»).</li>
+<li>Если что-то заполнено неверно, «ОК» ничего не сохранит, а программа покажет сообщение и откроет нужный раздел (см. «Что может пойти не так»).</li>
+<li>Настройки синхронизации здесь нет: она настраивается из меню кнопки синхронизации (<a href="14-sync.html">раздел 14</a>).</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> «Отображение», «Таблица» и «Хранение» хранятся на этом компьютере, у каждого устройства свои. «Календарь», «Парсер выписки» и «Персонал» хранятся <strong>в базе</strong> и передаются при синхронизации. Если вы изменили что-то из них, а другой пользователь тоже вносил изменения и отправил их раньше, программа не сможет объединить правки сама: будет конфликт (<a href="14-sync.html">раздел 14</a>).</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Отображение</h2></td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Раздел «Отображение»" src="images/14-settings/appearance.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 36. Раздел «Отображение».</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Настройка</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что меняет</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Размер шрифта</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Обычный», «Большой», «Огромный» — шрифт всей программы, применяется без перезапуска. Чем крупнее шрифт, тем шире минимальная ширина главного окна</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Форматы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Цвет текста, цвет заливки и жирность для просроченных и сегодняшних платежей, заголовков (отдельно разделы и подразделы) и строк итогов. Цвет выбирается нажатием на квадрат. Блок «Пример» показывает результат до сохранения</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Вертикальные границы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Линии между столбцами таблицы</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Сбросить форматирование</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Возвращает цвета, жирность и «Вертикальные границы» к исходным. Сохраняется по «ОК», как остальное</td>
+</tr>
+</tbody>
+</table>
+<p>По умолчанию просроченные платежи выделены красным текстом, сегодняшние — полужирным, заливка у них белая (то есть не выделена). Те же цвета попадают в экспорт (<a href="10-export.html">раздел 10</a>). Заливку выбранной строки изменить нельзя.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Таблица</h2></td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Раздел «Таблица»" src="images/14-settings/table.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 37. Раздел «Таблица».</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Настройка</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что меняет</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Данные в основной таблице</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Показывать или скрывать столбцы «Общая сумма платежа», «Основание платежа», «Вид платежа», «Дата возникновения», «Ответственный». Остальные столбцы скрыть нельзя. Скрытые столбцы в окне экспорта по умолчанию не отмечены (<a href="10-export.html">раздел 10</a>)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Отображать оплаченные платежи за</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Срок: «три месяца» (по умолчанию), «полгода», «один год», «все время». Отсчёт идёт от даты <strong>последней оплаты</strong></td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Закреплять заголовочную часть в XLSX-файле</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Шапка остаётся на месте при прокрутке экспортированного файла (<a href="10-export.html">раздел 10</a>)</td>
+</tr>
+</tbody>
+</table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Платежи, полностью оплаченные раньше выбранного срока, <strong>пропадают из таблицы совсем</strong>: их не покажет ни фильтр «Оплаченные», ни поиск, и в экспорт они не попадут. В базе они остаются. Чтобы увидеть их снова, увеличьте срок. На отчёты плана и сверку выписки настройка не влияет.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Календарь</h2></td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Раздел «Календарь»" src="images/14-settings/calendar.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 38. Раздел «Календарь».</em></span></p>
+<p>Календарь нужен для расчёта сроков оплаты (<a href="07-payment-terms.html">раздел 7</a>): какие дни считаются рабочими и банковскими. Без внесённых дат все будни рабочие, а суббота и воскресенье выходные.</p>
+<ul>
+<li><strong>Год.</strong> Прошлый, текущий и следующий. Для каждого года свои списки.</li>
+<li><strong>Списки.</strong> Дата добавляется кнопкой «+», убирается кнопкой «−» или клавишей <strong>Del</strong>. Изменения сохраняются по «ОК».</li>
+<li><strong>Какие дни в какой список.</strong> В «Праздничные» — только будни (Пн–Пт), в «Рабочие банковские» и «Рабочие небанковские» — только Сб и Вс. Одна дата не может быть в двух списках. Что означает каждый список — в <a href="07-payment-terms.html">разделе 7</a>.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Вносите праздники и переносы заранее, в начале года. Если срок оплаты переходит на следующий год, нужны оба года.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Парсер выписки</h2></td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Раздел «Парсер выписки»" src="images/14-settings/parser.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 39. Раздел «Парсер выписки».</em></span></p>
+<p>Здесь описано, как программа читает файл банковской выписки. Значения зависят от банка: если банк изменил формат файла, поменяйте и настройки.</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Поле</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Где используется</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Номер строки с указанием периода, номер строки с первой операцией, столбцы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сверка выписки (<a href="08-statement-matching.html">раздел 8</a>) и учёт комиссий (<a href="09-fees.html">раздел 9</a>)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">УНП банков, дополнительные паттерны, ответственный за комиссии</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Учёт комиссий (<a href="09-fees.html">раздел 9</a>)</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Исключающие паттерны для выписки</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Только сверка: строки выписки, в назначении которых есть такой фрагмент, пропускаются (<a href="08-statement-matching.html">раздел 8</a>)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Паттерны</strong> пишутся через запятую, регистр не важен.</li>
+<li><strong>Столбцы</strong> — семь номеров через запятую, нумерация с 0: дата, код, УНП, название, сумма, назначение, получатель. <strong>УНП банков</strong> — девятизначные номера через запятую. Если формат нарушен, поле подсвечивается красной рамкой, а «ОК» не сохранит настройки.</li>
+<li><strong>Ответственный за комиссии</strong> выбирается из действующих сотрудников (раздел «Персонал»).</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s6">Персонал</h2></td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Раздел «Персонал», вкладка «Сотрудники»" src="images/14-settings/personal.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 40. Раздел «Персонал», вкладка «Сотрудники».</em></span></p>
+<p>Из этого списка выбирается ответственный в платежах (<a href="03-event-dialog.html">раздел 3</a>) и в документах договоров (<a href="06-contractors.html">раздел 6</a>).</p>
+<h3 id="s7">Сотрудники</h3>
+<ul>
+<li>«Текущие» и «Архив» переключают список. «Добавить» работает только в «Текущих». «Переименовать» открывается и двойным щелчком.</li>
+<li><strong>Удалить сотрудника нельзя</strong>, только «В архив» (из архива — «Вернуть»). Сотрудник из архива не предлагается ответственным в новых платежах, но остаётся в старых и в фильтре «ОТВЕТСТВЕННЫЙ» (<a href="05-filters.html">раздел 5</a>).</li>
+<li>Если имя уже есть в списке (в том числе в архиве), программа спросит: «Работник с именем "…" уже есть в списке (возможно, в архиве). Всё равно продолжить?».</li>
+<li><strong>Подразделение</strong> выбирается из готового списка, добавить подразделение в программе нельзя. <strong>Должность</strong> выбирается из должностей этого подразделения; при смене подразделения должность сбрасывается на «— нет —».</li>
+<li>Одну должность может занимать только один действующий сотрудник. Сначала снимите должность с прежнего сотрудника или переведите его в архив.</li>
+</ul>
+<h3 id="s8">Должности</h3>
+<p>Выберите подразделение, затем «Добавить», «Переименовать» или «Удалить» (клавиша <strong>Del</strong>). Название должности не должно повторяться внутри подразделения.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Изменения во вкладке «Должности» сохраняются сразу, «Отмена» их не вернёт. При удалении должности сотрудники теряют привязку к ней и остаются в своём подразделении. Сотрудники, добавленные или изменённые во вкладке «Сотрудники», сохраняются только по «ОК».</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Хранение</h2></td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Раздел «Хранение»" src="images/14-settings/storage.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 41. Раздел «Хранение».</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Настройка</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что меняет</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Папка для резервного копирования</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Куда программа складывает копии базы. Папка должна существовать, иначе «ОК» не сохранит настройки</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Автоматическое удаление резервных копий</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«1 месяц» (по умолчанию), «6 месяцев» или «никогда». Более старые копии программа удаляет сама</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Восстановление из резервной копии</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Заменяет текущую базу выбранной копией</td>
+</tr>
+</tbody>
+</table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Восстановление <strong>необратимо заменяет</strong> текущие данные, поэтому программа сначала предупреждает об этом. Перед заменой программа сохраняет текущие данные в <code>before_restore_…</code>: из этой копии можно вернуться. После восстановления окно настроек закрывается, а несохранённые изменения в нём пропадают. Как восстановить данные и что при этом происходит — в <a href="13-backup.html">разделе 13</a>.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Информация</h2></td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Раздел «Информация»" src="images/14-settings/info.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 42. Раздел «Информация».</em></span></p>
+<ul>
+<li><strong>О программе.</strong> Номер сборки программы. Он нужен, чтобы сообщить, какая версия установлена, и сравнить версии на разных устройствах (<a href="14-sync.html">раздел 14</a>).</li>
+<li><strong>Обновления.</strong> «Проверить сейчас» запускает проверку новой версии; ниже время и результат последней проверки. Если обновление найдено, программа спросит: «Доступно обновление …. Для его установки настройки будут сохранены, а окно настроек закрыто. Продолжить?». Что происходит при обновлении — в <a href="15-update.html">разделе 15</a>.</li>
+<li><strong>Горячие клавиши.</strong> Кнопка «Горячие клавиши…» открывает страницу руководства со всеми сочетаниями (<a href="P3-hotkeys.html">приложение 3</a>).</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s11">Что может пойти не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Папка для резервного копирования не указана или указана неверно»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Папки нет или поле пустое</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выберите существующую папку кнопкой «Изменить»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Укажите номера всех семи столбцов выписки (цифры через запятую)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В поле «Столбцы» не семь чисел</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Введите семь номеров через запятую, например <code>0,2,5,8,7,9,6</code></td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Поле с перечнем УНП банков заполнено неверно (разрешены только девятизначные УНП через запятую)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В «УНП банков» не девятизначные номера или лишние символы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Исправьте поле с красной рамкой</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Эту должность сейчас занимает …. Сначала снимите этого работника с должности.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Должность занята другим действующим сотрудником</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Снимите должность с него («— нет —») или переведите его в архив</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Обнаружена должность, занятая сразу несколькими активными работниками. Исправьте это перед сохранением.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Такое случилось после возврата сотрудника из архива</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Оставьте должность одному сотруднику</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Должность "…" уже есть в этом подразделении»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Название повторяется</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выберите другое название</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось создать должность», «…переименовать должность», «…удалить должность»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Изменение не записалось</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите; если повторяется — обратитесь к ответственному за программу</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«В список "…" можно добавлять только дни: …»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Праздник вносится в выходной или рабочая суббота в будний день</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Внесите дату в подходящий список</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Эта дата уже есть в списке "…"»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Дата занесена в другой список</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Уберите её оттуда или оставьте как есть</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось сохранить данные персонала (подробности см. в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Список сотрудников не записался. Остальные настройки к этому моменту уже сохранены</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нажмите «ОК» ещё раз; если не помогает, обратитесь к ответственному за программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«При попытке восстановления произошла ошибка (подробности см. в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выбранный файл не подошёл или не удалось заменить базу</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выберите другую копию (<a href="13-backup.html">раздел 13</a>)</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

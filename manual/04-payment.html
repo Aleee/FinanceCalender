@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 4. Оплата платежа</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 4. Оплата платежа</h1></td></tr></table>
+<p>Когда платеж выполнен, внесите <strong>оплату</strong> — дату и сумму: остаток уменьшится. Здесь описаны частичные оплаты, оплата больше остатка и удаление оплаты.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Где вносится оплата</h2></td></tr></table>
+<p>Оплата вносится в <strong>панели сведений</strong> (<a href="02-main-window.html">раздел 2</a>) выбранного платежа.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Панель сведений: история оплат и блок внесения оплаты" src="images/05-payment/pay-block.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 13. Панель сведений платежа, по которому внесено три оплаты.</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">№</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Часть панели</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что это</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">1</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Остаток платежа»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сколько ещё осталось заплатить</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">2</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Поле даты (над ним подпись «Дата и сумма»)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Дата оплаты; по умолчанию сегодня</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">3</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Поле суммы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сколько заплатили; по умолчанию остаток платежа</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">4</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Оплатить»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Записывает оплату</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">5</td>
+<td style="border-bottom: 1px solid #d9e0e9;">История оплат</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Оплаты платежа по дате, сверху самая ранняя</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">6</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Удалить»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Удаляет оплату, выбранную в истории</td>
+</tr>
+</tbody>
+</table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Для оплаты целиком дата и сумма уже подставлены: проверьте дату и нажмите «Оплатить» (или <strong>Enter</strong> в поле даты или суммы).</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Частичная оплата</h2></td></tr></table>
+<p>Каждую часть вносите отдельной оплатой.</p>
+<p><strong>Пример.</strong> Платеж «Калибровка лабораторных весов» на 7 800,00 со сроком оплаты 05.10.2026.</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы сделали</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Остаток платежа</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Ничего не оплачивали</td>
+<td style="border-bottom: 1px solid #d9e0e9;">7 800,00</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Внесли оплату 3 000,00</td>
+<td style="border-bottom: 1px solid #d9e0e9;">4 800,00</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Внесли оплату 4 800,00</td>
+<td style="border-bottom: 1px solid #d9e0e9;">0,00 — платеж оплачен полностью</td>
+</tr>
+</tbody>
+</table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Оплата больше остатка</h2></td></tr></table>
+<p>Оплату больше остатка внести можно, но программа переспросит:</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#5b7aa6"></td><td bgcolor="#f1f4f9" style="padding: 10px 16px 0px 16px;">
+<p>«Сумма оплаты (20 000,00) превышает остаток задолженности (14 800,00). Уверены, что хотите продолжить?»</p>
+</td></tr></table>
+<p>После «Да» остаток станет <strong>отрицательным</strong> («-5 200,00») — это переплата. Платеж с отрицательным остатком считается оплаченным, а остаток входит в итоги.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Переплата не исчезает сама: удалите лишнюю оплату и внесите правильную (см. «Удаление оплаты»).</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Оплата с будущей датой</h2></td></tr></table>
+<p>Если выбранная дата позже сегодняшней, программа спросит:</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#5b7aa6"></td><td bgcolor="#f1f4f9" style="padding: 10px 16px 0px 16px;">
+<p>«Выбранная дата (14.10.2026) больше текущей даты. Уверены, что хотите продолжить?»</p>
+</td></tr></table>
+<p>Остаток уменьшится сразу, а не в день оплаты. Если вопрос неожиданный, проверьте дату: возможно, выбран не тот месяц.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s6">История оплат</h2></td></tr></table>
+<p>Внесённую оплату нельзя изменить: ошиблись в дате или сумме — удалите её и внесите заново.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Удаление оплаты</h2></td></tr></table>
+<p>Выберите оплату в истории и нажмите «Удалить» (или <strong>Del</strong>); программа спросит: «Вы уверены, что хотите удалить запись об оплате?». Остаток увеличится на сумму оплаты, сам платеж не удаляется.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Отменить удаление нельзя; удалили не ту — внесите заново.</p>
+</td></tr></table>
+<p><strong>Если платеж, оплаченный полностью, нужно «вернуть в неоплаченные».</strong> Включите пункт «Оплаченные» («СРОК ОПЛАТЫ»), выберите платеж и удалите оплату.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">Что будет с платежом в таблице</h2></td></tr></table>
+<p>Платеж считается оплаченным, когда остаток нулевой или отрицательный, кроме оплаты сегодняшней датой.</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы внесли</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Остаток</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что в таблице</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Часть суммы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Больше нуля</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Платеж остаётся среди неоплаченных, строка подсвечивается по сроку оплаты</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Всю сумму, датой <strong>сегодня</strong></td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ноль</td>
+<td style="border-bottom: 1px solid #d9e0e9;">До конца дня платеж остаётся среди неоплаченных и сохраняет цвет по сроку оплаты. С завтрашнего дня он переходит в «Оплаченные»</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Всю сумму, датой <strong>в прошлом</strong></td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ноль</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Платеж сразу исчезает из «Все неоплаченные» и появляется в «Оплаченные»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Сумму больше остатка</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Меньше нуля</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Как при полной оплате, но остаток показан со знаком «минус»</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Всю сумму, датой <strong>в будущем</strong></td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ноль</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Платеж считается оплаченным сразу и виден в «Оплаченные»</td>
+</tr>
+</tbody>
+</table>
+<p>В столбец «Оплата сегодня» (<a href="02-main-window.html">раздел 2</a>) и во флажок «ОПЛАТА СЕГОДНЯ» (<a href="05-filters.html">раздел 5</a>) попадают только оплаты с датой сегодня; оплата, внесённая сегодня вчерашней датой, не учитывается.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если платеж пропал из таблицы после оплаты, ошибки нет: он оплачен полностью датой в прошлом, ищите его в «Оплаченные».</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Нажали «Оплатить», ничего не произошло, сообщения нет</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В поле суммы 0,00 (остаток равен нулю)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Введите сумму оплаты</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Сумма оплаты (…) превышает остаток задолженности (…). Уверены, что хотите продолжить?»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Вы вносите больше остатка</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Если так и задумано — «Да», иначе поправьте сумму</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Выбранная дата (…) больше текущей даты. Уверены, что хотите продолжить?»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Дата оплаты позже сегодняшней</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Если так и задумано — «Да», иначе поправьте дату</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Кнопка «Оплатить» серая</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не выбран платеж, выбрана строка раздела или итога либо выбран возврат</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выберите в таблице обычный платеж</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Кнопка «Удалить» серая</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В истории не выбрана оплата, либо выбран возврат</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Щёлкните по строке оплаты в истории</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Оплата внесена, но платеж пропал из таблицы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Платеж оплачен полностью датой в прошлом</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Найдите его в «Оплаченные» (<a href="05-filters.html">раздел 5</a>)</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Остаток платежа со знаком «минус»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Оплат внесено больше суммы платежа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Удалите лишнюю оплату или проверьте сумму платежа (<a href="03-event-dialog.html">раздел 3</a>)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Оплата не появилась в истории, хотя сообщения не было</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Оплату не удалось записать</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите. Если не помогло, перезапустите программу</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

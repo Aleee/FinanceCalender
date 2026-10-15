@@ -10,12 +10,15 @@ missing = [path for path in openssl_dlls if not os.path.exists(path)]
 if missing:
     raise SystemExit(f'Не найдены библиотеки OpenSSL: {missing}. Положите их в папку openssl/ (см. объяснение в чате).')
 
+if not os.path.exists(os.path.join('manual', 'contents.json')):
+    raise SystemExit('Не найдено руководство в папке manual/. Соберите его: python tools/build_manual.py')
+
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[(path, '.') for path in openssl_dlls],
-    datas=[],
+    datas=[('manual', 'manual')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

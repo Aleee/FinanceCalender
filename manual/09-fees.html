@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 9. Учет комиссий банка</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 9. Учет комиссий банка</h1></td></tr></table>
+<p>Банк списывает комиссии мелкими суммами по нескольку раз в день и не выставляет по ним отдельных счетов. Окно «Учет комиссий» находит комиссии в выписке, суммирует их по дням и создаёт по каждому дню оплаченный платеж. Без этого комиссии остаются в сверке (<a href="08-statement-matching.html">раздел 8</a>) в списке «Только в выписке».</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Как открыть</h2></td></tr></table>
+<ul>
+<li><strong>Из меню.</strong> «Выписка» → «Учет комиссий», затем «Загрузить выписку (CSV-файл)».</li>
+<li><strong>Из сверки.</strong> В списке «Только в выписке» выберите строку «Комиссии, относимые на комиссионные расходы» или «Комиссии, относимые на банковские расходы» и нажмите «Добавить в календарь». Выписка уже загружена. Перед созданием платежей программа сравнит суммы с суммами сверки (см. «Создание платежей»). После закрытия окна сверка выполняется заново, и созданные платежи сопоставляются со строками выписки.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Что настроить заранее</h2></td></tr></table>
+<p>«Настройки» → «Парсер выписки», группа «Парсер комиссий». Строки периода и операций и столбцы общие со сверкой (<a href="08-statement-matching.html">раздел 8</a>).</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Поле</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вводить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Номер строки с указанием периода</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Строка файла, где написано «С … ПО …». Нумерация с 1, как в Excel</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Номер строки с первой операцией</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Операции читаются до первой пустой строки</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Столбцы (дата, код, УНП, название, сумма, назначение, получатель)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Номера столбцов файла с 0, через запятую: семь цифр, по одной на каждый. Сумма — столбец дебета. Столбец «название» программа не использует, но указать его нужно</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">УНП банков</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Девятизначные УНП через запятую</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Дополнительные паттерны</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Слова из назначения платежа, по которым узнаётся комиссия, через запятую; регистр не важен. Нужны только для комиссий, которые банк удерживает из поступлений (см. ниже)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Ответственный за комиссии</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Подставляется в создаваемые платежи</td>
+</tr>
+</tbody>
+</table>
+<p>Если столбцы или УНП заполнены неверно, программа не сохранит настройки и подсветит поле красной рамкой.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Какие операции считаются комиссиями</h2></td></tr></table>
+<p>Программа читает только строки с кодом операции <strong>2</strong> и <strong>6</strong>. Остальные пропускаются.</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Группа в отчёте</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Какая операция</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Откуда берётся сумма</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Комиссии, относимые на банковские расходы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Код 6: банк удержал комиссию из поступления. В назначении есть слово «комиссия» (строчными буквами) и сразу за ним сумма: «…, комиссия 14,80 за расчеты»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Из текста назначения</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Комиссии, относимые на банковские расходы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Код 6: УНП есть в списке УНП банков и в назначении есть один из дополнительных паттернов</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Из дебета</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Комиссии, относимые на комиссионные расходы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Код 2: УНП есть в списке УНП банков</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Из дебета</td>
+</tr>
+</tbody>
+</table>
+<p>Операцию с кодом 6, в назначении которой есть паттерн, но УНП не из списка банков, программа считает <strong>подозрительной</strong> и в комиссии не включает.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> «Исключающие паттерны для выписки» (группа «Парсер модуля сверки») действуют только в сверке. В учёте комиссий строки с такими паттернами не пропускаются, поэтому суммы могут разойтись (см. «Что может пойти не так»).</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Отчёт</h2></td></tr></table>
+<p>После загрузки файла программа показывает период выписки и для каждой группы таблицу: дата, число транзакций, сумма комиссий за день и итог.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Отчёт по комиссиям" src="images/10-fees/report.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 26. Окно «Учет комиссий». Предупреждения выделены жёлтым.</em></span></p>
+<p><strong>«Подробный отчет»</strong> вместо дневных итогов показывает каждую комиссию отдельно: сумму, наименование (получатель в выписке) и назначение платежа.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Подробный отчёт" src="images/10-fees/report-full.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 27. Подробный отчёт. Строка с УНП не из списка банков выделена цветом.</em></span></p>
+<p>Предупреждения:</p>
+<ul>
+<li><strong>«Среди транзакций замечены записи с УНП, которых нет в списке УНП банков»</strong> — комиссии, удержанные из поступлений, с УНП не из списка. Они <strong>входят</strong> в суммы. Убедитесь, что это действительно комиссии банка. Если да, добавьте УНП в список УНП банков и загрузите выписку заново.</li>
+<li><strong>«Обнаружены подозрительные операции с кодом 6»</strong> — в суммы <strong>не входят</strong>. Если это комиссия банка, добавьте УНП в список и загрузите выписку заново. Если нет, ничего делать не нужно.</li>
+</ul>
+<p>«Создать платежи» доступна, если найдена хотя бы одна комиссия.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s6">Создание платежей</h2></td></tr></table>
+<p>Программа создаёт <strong>по одному платежу на каждый день и каждую группу</strong> и сразу вносит оплату на всю сумму с датой операций. Остаток таких платежей равен нулю, в списки неоплаченных они не попадают (платежи, оплаченные сегодня, остаются в них до конца дня).</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Поле платежа</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Получатель</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Банки»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Наименование</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«[A] Комиссия банка, удержанная из поступлений» (банковские расходы) или «[A] Комиссионное вознаграждение банку» (комиссионные расходы)</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Категория</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Банковские расходы» или «Комиссионные расходы»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Сумма</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Итог комиссий за день</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Срок оплаты</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Дата операций</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Дата возникновения</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Дата операций</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Вид платежа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«по факту»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">НДС</td>
+<td style="border-bottom: 1px solid #d9e0e9;">0</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Основание</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Выписка от ДД.ММ.ГГГГ»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Ответственный</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Из настройки «Ответственный за комиссии»</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Заметки</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Всего комиссий: N (в том числе на суммы: …)»</td>
+</tr>
+</tbody>
+</table>
+<p>Перед созданием программа проверяет:</p>
+<ol>
+<li><strong>Суммы сверки</strong> (только если окно открыто из сверки). Если за день комиссии, найденные здесь, не равны комиссиям сверки, программа покажет разницу по дням и спросит, всё ли равно создавать платежи.</li>
+<li><strong>Дубли.</strong> Если в календаре уже есть платеж той же категории со сроком оплаты в этот день и наименованием, начинающимся с «[A]», программа перечислит такие дни и спросит подтверждение.</li>
+</ol>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Не меняйте начало наименования «[A]» у созданных платежей: по нему программа узнаёт, что комиссии за этот день уже внесены. Загружайте выписки за непересекающиеся периоды.</p>
+</td></tr></table>
+<p>Платежи создаются по очереди. Если на каком-то произошла ошибка, уже созданные остаются; перед повторным запуском проверьте таблицу платежей, иначе появятся дубли. Отменить создание кнопкой нельзя: лишние платежи удаляются в главном окне (<a href="03-event-dialog.html">раздел 3</a>). После успешного создания программа сообщает «Операция завершена успешно» и закрывает окно.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Что может пойти не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось прочитать CSV-файл: Не удалось найти строку с периодом выписки (ROW_PERIOD)», «…В строке периода не обнаружено ожидаемого паттерна дат» или «…В файле не найдена строка с периодом выписки»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В указанной строке нет периода «С … ПО …»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте номер строки с периодом в настройках и что выбран файл выписки</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось прочитать CSV-файл: Не удалось преобразовать в число значение Дебета: …»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В строке с комиссией сумма не читается</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте номер столбца суммы в настройках</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось прочитать CSV-файл: Не удалось получить дату из строки N: …»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В столбце даты стоит не ДД.ММ.ГГГГ</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте номер столбца даты. Номер N в сообщении на единицу меньше номера строки в Excel</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось прочитать CSV-файл: Строка N: найдено более одного совпадения суммы комиссии: …»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В назначении одной строки больше одного слова «комиссия» с суммой</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Оставьте в назначении этой строки в копии файла одну комиссию и загрузите файл заново</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось прочитать CSV-файл: …» с системным текстом</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Файл не в кодировке Windows-1251, занят другой программой или недоступен</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Скачайте выписку заново, закройте файл в других программах</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Транзакций с комиссиями не обнаружено», хотя комиссии в выписке есть</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Неверны номер строки с первой операцией или номера столбцов, пуст список УНП банков, не заданы дополнительные паттерны</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сверьте настройки с файлом выписки. Если номера столбцов выходят за границы строки файла, программа молча прекращает чтение</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Вычисленная сумма комиссий не совпадает с суммой в сверке выписки: …»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Комиссии за день в сверке и в учёте разные. Обычно причина — исключающие паттерны, которые учтены в сверке, но не в учёте. Категории названы по-английски: BANKING — банковские расходы, COMMISSION — комиссионные</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Если разница ожидаема, подтвердите создание. Иначе проверьте исключающие паттерны и подозрительные операции в отчёте</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«В базе данных обнаружены уже имеющиеся записи об оплаченных комиссиях за следующие даты: …»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Комиссии за эти дни уже внесены</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Откажитесь и проверьте таблицу платежей. Подтверждайте, только если платежи нужны дополнительно</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«До момента ошибки было успешно создано N записей о комиссиях…»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Создание прервалось</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте таблицу платежей и создайте недостающее вручную</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)» или «Не удалось выполнить запрос к базе данных (см. подробности в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Платеж не удалось записать или проверить на дубли</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите; если повторяется, обратитесь к ответственному за программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Укажите номера всех семи столбцов выписки (цифры через запятую)» или «Поле с перечнем УНП банков заполнено неверно (разрешены только девятизначные УНП через запятую)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Настройки не сохранены</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Исправьте поле с красной рамкой</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

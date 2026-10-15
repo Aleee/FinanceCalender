@@ -5,6 +5,7 @@ from PySide6.QtGui import Qt, QIcon
 from PySide6.QtWidgets import QDialog, QListWidgetItem, QInputDialog, QFormLayout, QLineEdit, QDialogButtonBox, \
     QDateEdit, QListWidget
 
+from gui.manualdialog import add_help_shortcut
 from base.contract import ContractInfo
 from base.date import str_date, date_displstr, date_str
 from base.dbhandler import DBHandler
@@ -66,6 +67,7 @@ class ContractorDialog(QDialog):
         super(ContractorDialog, self).__init__(parent)
         self.ui = Ui_ContractorDialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "06-contractors.html")
 
         self.dbh = dbh
         self.settings = settings

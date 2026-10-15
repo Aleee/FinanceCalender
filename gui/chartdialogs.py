@@ -2,6 +2,7 @@ from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QDialog, QListWidgetItem, QVBoxLayout
 
+from gui.manualdialog import add_help_shortcut
 from base.chart import DebtChartWidget
 from base.debtcalculator import DebtRepository, DebtTimelineBuilder
 from base.liability import LiabilityCategory, CATEGORY_NAMES
@@ -15,6 +16,7 @@ class DebtChartDialog(QDialog):
         super(DebtChartDialog, self).__init__(parent)
         self.ui = Ui_DebtChartDialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "11-planfact.html")
 
         self.start_date: QDate = start_date
         self.end_date: QDate = end_date

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 10. Экспорт</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 10. Экспорт</h1></td></tr></table>
+<p>Экспорт сохраняет таблицу платежей в файл Excel (XLSX) или PDF, например чтобы отправить коллегам. Кнопка «Экспорт» (<strong>Ctrl+E</strong>) недоступна, пока в таблице нет платежей.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Что попадает в файл</h2></td></tr></table>
+<p>В файл попадает таблица <strong>в том виде, в каком она на экране</strong>: с учётом фильтров, поиска, кнопки «На контроле», срока показа оплаченных платежей (<a href="05-filters.html">раздел 5</a>), а также «Заголовков разделов» и «Итого по разделам» (меню «Вид»). Итоги в файле считаются по тем платежам, которые в него вошли. Перед экспортом проверьте фильтры.</p>
+<p>Просроченные и сегодняшние платежи, заголовки и итоги окрашены так же, как в таблице. Суммы в XLSX записаны числами, их можно складывать в Excel. Над таблицей стоят заголовок «ПЛАТЕЖНЫЙ КАЛЕНДАРЬ» и дата «по состоянию на …». Страница альбомная, таблица по ширине помещается на одну страницу.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Окно «Экспорт в файл»</h2></td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Экспорт в файл»" src="images/11-export/dialog.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 28. Окно «Экспорт в файл».</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Элемент</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что важно</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Формат</td>
+<td style="border-bottom: 1px solid #d9e0e9;">PDF доступен, только если на компьютере установлен Microsoft Excel (программа делает PDF через него). Иначе переключатель PDF неактивен. Выбранный формат запоминается</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Столбцы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сначала отмечены столбцы, которые сейчас видны в таблице. Выбор действует только на этот экспорт: таблицу в программе он не меняет и в следующий раз не запоминается. «Получатель» отключить нельзя. Столбцов, которых нет в списке, в файле нет</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Скрытые платежи</td>
+<td style="border-bottom: 1px solid #d9e0e9;">См. ниже</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s4">Скрытые платежи</h3>
+<p>Что делать с платежами, отмеченными как «Скрытый платеж» (<a href="03-event-dialog.html">раздел 3</a>):</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Вариант</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что будет в файле</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Итоги</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не включать»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Скрытых платежей нет</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Без скрытых платежей</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Включать полностью»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Скрытые платежи как обычные</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Со скрытыми платежами</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Включать только суммы»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Строки скрытых платежей без текста, остаются только суммы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Со скрытыми платежами</td>
+</tr>
+</tbody>
+</table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> По умолчанию выбрано «Не включать», поэтому итоги в файле могут быть меньше итогов в таблице: в таблице скрытые платежи видны всегда и входят в итоги.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Сохранение</h2></td></tr></table>
+<p>После «Экспорт…» программа спрашивает, куда сохранить файл. Имя по умолчанию — «ПлатежныйКалендарь_ДДММГГГГ» с сегодняшней датой; папка — та, куда вы сохраняли в прошлый раз, а при первом экспорте — папка <code>export</code> внутри <code>data</code> (<a href="P2-startup-data.html">приложение 2</a>). Если файл с таким именем уже есть, программа переспросит: «Файл с таким именем уже существует. Уверены, что хотите его перезаписать?». Отмена в окне сохранения возвращает в окно «Экспорт в файл».</p>
+<p>После успешного экспорта окно «Экспорт завершен» показывает путь к файлу. «Открыть файл» открывает его в Excel или в программе для PDF, «Открыть папку» показывает его в папке.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Экспорт завершен»" src="images/11-export/success.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 29. Окно «Экспорт завершен».</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s6">Закрепление заголовка</h2></td></tr></table>
+<p>Чтобы шапка таблицы оставалась на месте при прокрутке XLSX-файла, оставьте включённым «Настройки» → «Таблица» → «Экспорт таблицы» → «Закреплять заголовочную часть в XLSX-файле» (включено по умолчанию). Закрепляются четыре верхние строки (заголовок, дата, пустая строка и названия столбцов). В PDF настройка не действует.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#8a8f98"></td><td bgcolor="#f1f2f4" style="padding: 10px 16px 0px 16px;">
+<p>🍎 <strong><font color="#8a8f98">macOS:</font></strong> PDF создаётся через Excel; при первом экспорте macOS спросит разрешение управлять «Microsoft Excel» (приложение <a href="P2-startup-data.html">2</a>, <a href="P2-startup-data.html#s8">«Особенности macOS»</a>). «Открыть папку» показывает файл в Finder.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Что может пойти не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Переключатель PDF неактивен, подсказка «Для экспорта в PDF требуется установленный Microsoft Excel»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Excel не найден</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сохраните XLSX и преобразуйте его в PDF сами либо установите Excel</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось записать файл. Возможно, файл с таким же именем используется другим приложением или в настройках указан неверный путь»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Excel не смог создать PDF</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Закройте PDF с таким именем в других программах или выберите другое имя или папку</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Во время записи, переноса или удаления файлов произошла ошибка (см. подробности в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Файл не удалось сохранить. Частая причина — файл с таким именем открыт в Excel или нет прав на папку</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Закройте файл в других программах или выберите другую папку</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Превышено время ожидания экспорта в PDF через Microsoft Excel», «Не удалось запустить osascript» или «Не удалось записать PDF-файл через Microsoft Excel…» (macOS)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Excel не ответил или не получил разрешения</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте разрешение «Автоматизация» (<a href="P2-startup-data.html">приложение 2</a>) и повторите; либо сохраните XLSX</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось открыть файл» или «Не удалось открыть папку: …»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">На компьютере нет программы для такого файла либо файл или папка уже удалены</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Откройте файл вручную по пути из окна «Экспорт завершен»</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

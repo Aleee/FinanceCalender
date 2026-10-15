@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 6. Контрагенты, договоры, документы</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 6. Контрагенты, договоры, документы</h1></td></tr></table>
+<p>Платеж можно создать и без договора (<a href="03-event-dialog.html">раздел 3</a>). Но если вы регулярно платите одной организации, заведите её: тогда программа <strong>рассчитает срок оплаты</strong> (правила — в <a href="07-payment-terms.html">разделе 7</a>), а в новый платеж можно подставить готовые поля.</p>
+<p>Цепочка: <strong>контрагент → договор → документ</strong>. Документ — это обычно не конкретный счёт, а вид бумаги («Счет», «Акт»): номера отдельных счетов и актов пишутся в основании платежа, а условия оплаты хранятся один раз — в документе.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Окно «Контрагенты и договоры»</h2></td></tr></table>
+<p>Окно — мастер из трёх шагов: «Контрагент → Договор → Документ».</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Три шага окна «Контрагенты и договоры»" src="images/07-contractors/contractor-steps.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 17. Три шага окна: контрагент, договор, документ.</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Шаг</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что в списке</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Выбор контрагента</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Контрагенты по алфавиту, первая строка — «Новый контрагент»; «Поиск…» по части названия</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Выбор договора</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Договоры контрагента («М-31/2025 от 10.06.2025»), первая строка — «Новый договор»</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Выбор документа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Документы договора по алфавиту, первая строка — «Новый документ»</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s3">Новый контрагент</h3>
+<p>«Новый контрагент» → «Далее» → название (текст из «Поиск…» подставляется) → «ОК». Контрагент с таким названием (регистр не различается) не создаётся: «Контрагент с таким именем уже есть в списке».</p>
+<h3 id="s4">Новый договор</h3>
+<p>«Новый договор» → «Далее» → «Номер договора» и «Дата договора» → «ОК». Договор с таким номером и датой у контрагента уже есть: «Договор с таким номером и датой уже есть в списке».</p>
+<h3 id="s5">Новый документ</h3>
+<p>«Новый документ» → «Создать» → окно документа (ниже) → «Сохранить».</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Контрагент и договор создаются сразу после «ОК», «Отмена» окна их не удаляет. Название контрагента, номер и дату договора изменить нельзя, а удалить контрагента, договор или документ невозможно: проверяйте написание перед «ОК».</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s6">Окно документа</h2></td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно документа с пронумерованными выносками" src="images/07-contractors/document-dialog.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 18. Окно документа «Акт» по договору «М-31/2025».</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">№</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Поле</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что показывает или что вводить</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">1</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Группа «Договор»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Контрагент, номер и дата договора, только для чтения</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">2</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Название</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Например, «Счет» или «Акт». Обязательное поле</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">3</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Тип документа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Счет / Счет-фактура / Платежное требование», «ТН / ТТН», «Акт / Счет-акт», «Договор / Спецификация / Протокол согласования» или «Другое». Обязательное поле</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">4</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ответственный</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Должность, отвечающая за документ (список — «Настройки» → «Персонал»). Справочная отметка, в платеж не подставляется</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">5</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Условия оплаты по договору (текст)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Формулировка из договора, например «Оплата в течение 10 рабочих дней с даты выставления счёта». Показывается в окне платежа и при копировании с новым основанием; на расчёт не влияет</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">6</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Тип срока оплаты</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выбор из трёх вариантов</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">7</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Параметры срока</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Поля выбранного типа срока</td>
+</tr>
+</tbody>
+</table>
+<p>Типы срока оплаты — в <a href="07-payment-terms.html">разделе 7</a>. Без названия или типа документ не сохранится («Укажите название документа», «Выберите тип документа»).</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Привязка платежа к документу</h2></td></tr></table>
+<p>Привязка нужна для расчёта срока оплаты и для «Копировать платеж с новым основанием» (<a href="03-event-dialog.html">раздел 3</a>). Выполняется в панели договора окна платежа (рис. 11 в <a href="03-event-dialog.html">разделе 3</a>):</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Панель договора в окне платежа" src="images/07-contractors/contract-panel.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 19. Панель договора. 1 — контрагент, 2 — договор, 3 — документ, 4 — кнопка привязки, 5 — условия оплаты, 6 — дата возникновения и отчетный месяц, 7 — расчетная дата, 8 — «← Подставить дату», 9 — «← Заполнить поля из договора», 10 — «Сохранить поля в договор →».</em></span></p>
+<p>В панели выберите «Контрагент» (1; названия, которого нет в списке, программа не принимает), «Договор» (2; подставляется автоматически — проверьте) и «Документ» (3). Нажмите «Привязать платеж к документу» (4), затем «Создать» или «Применить»: привязка сохраняется вместе с платежом, «Отмена» её отменяет.</p>
+<p>Условия оплаты (5), расчетная дата (7) и кнопки (8–10) появляются, когда выбран документ.</p>
+<p><strong>Отвязать платеж:</strong> ✕ в строке «Договор» окна платежа, затем «Применить». Документ остаётся в справочнике.</p>
+<p>Привязанный платеж отмечен скрепкой (<a href="02-main-window.html">раздел 2</a>) и ссылкой в панели сведений (см. «Переход к договору из платежа»).</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">Расчетная дата и кнопка «← Подставить дату»</h2></td></tr></table>
+<p>Для выбранного документа панель показывает расчетный срок оплаты (7), например «11.11.2026 (Ср)»; если расчёт невозможен («Предоплата / Срок явно не определён» или мало данных) — «—». Исходные данные (6):</p>
+<ul>
+<li><strong>«Дата возникновения»</strong> — для относительного срока; сначала берётся из платежа, но в панели её можно задать отдельно;</li>
+<li><strong>«Отчетный месяц»</strong> — месяц, от которого отсчитываются «текущий», «следующий» и «предыдущий» месяц; для документов с условием «не позднее N числа месяца».</li>
+</ul>
+<p>Кнопка <strong>«← Подставить дату»</strong> (8) переносит расчетную дату в «Срок оплаты» (при относительном сроке — и дату возникновения из панели). Активна, только если платеж привязан к выбранному документу и расчетная дата есть. Сама дата не подставляется: срок можно задать вручную.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Поля из договора: сохранить и заполнить</h2></td></tr></table>
+<p>Поля повторяющихся платежей по документу можно один раз запомнить в нём.</p>
+<p><strong>«Сохранить поля в договор →»</strong> (10) запоминает для документа получателя, наименование, категорию и подкатегорию, НДС, вид, основание, ответственного и «Скрытый платеж» (не сумму, даты и заметки); прежние значения заменяются. Сообщение «Данные успешно сохранены».</p>
+<p><strong>«← Заполнить поля из договора»</strong> (9) подставляет запомненные значения в окно платежа без вопросов (сумма, даты и заметки не меняются). Если ничего не сохраняли: «Для этого договора ранее не сохранялись значения». Обе кнопки работают с документом, выбранным в панели, даже если платеж к нему не привязан.</p>
+<p>Порядок: заполнить первый платеж → «Сохранить поля в договор →»; в следующий раз выбрать тот же документ → «← Заполнить поля из договора» → ввести сумму, даты и номер документа.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если платежи по документу повторяются каждый месяц, быстрее пользоваться командой «Копировать платеж с новым основанием» (<a href="03-event-dialog.html">раздел 3</a>): она не требует запоминать поля.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Переход к договору из платежа</h2></td></tr></table>
+<p>Документ привязанного платежа открывается из главного окна: ссылкой «Привязан к договору» в панели сведений или командой «Перейти к договору» контекстного меню (рис. 8 в <a href="02-main-window.html">разделе 2</a>). Для платежа без привязки команда недоступна.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s11">Что нельзя сделать</h2></td></tr></table>
+<ul>
+<li>Изменить название контрагента, номер и дату договора, а также договор, которому принадлежит документ.</li>
+<li>Удалить контрагента, договор или документ (лишний документ на платежи не влияет).</li>
+<li>Привязать платеж к договору без документа: привязка всегда идёт к документу.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s12">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Контрагент с таким именем уже есть в списке»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Такой контрагент уже создан</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Найдите его через поле «Поиск…»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Договор с таким номером и датой уже есть в списке»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">У этого контрагента уже есть такой договор</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выберите его в списке</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Укажите название документа» или «Выберите тип документа»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не заполнено обязательное поле окна документа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Заполните поле</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось загрузить список контрагентов (см. подробнее лог)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Данные не прочитались, окно открылось без списка</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Закройте окно и откройте снова. Если не помогло, перезапустите программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось сохранить контрагента в базе данных (см. подробнее лог)» или «Не удалось сохранить договор в базе данных (см. подробнее лог)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Запись не создалась</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите попытку. Если сообщение повторяется, перезапустите программу</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось загрузить данные из базы данных (см. подробнее лог)» при открытии документа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не удалось прочитать документ, окно документа не открывается</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Перезапустите программу. Если сообщение остаётся, обратитесь к ответственному за программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">В панели договора недоступны поля «Договор» или «Документ»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">У выбранного контрагента нет договоров или у договора нет документов</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Создайте недостающее в окне «Контрагенты и договоры»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">В панели договора нет кнопок и условий оплаты</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Документ не выбран</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выберите контрагента, договор и документ</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Кнопка «← Подставить дату» неактивна</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Платеж не привязан к документу, выбранному в панели, или у документа нет расчетной даты (например, «Предоплата / Срок явно не определён»)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Привяжите платеж, и если расчетная дата «—», проверьте тип срока в документе</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Для этого договора ранее не сохранялись значения»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">По документу ещё ни разу не нажимали «Сохранить поля в договор →»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Заполните поля вручную и сохраните их кнопкой «Сохранить поля в договор →»</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Ошибка при попытке сохранения данных (подробнее см. лог)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Запомнить поля не удалось</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите попытку. Если сообщение повторяется, перезапустите программу</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Вопрос «Получатель платежа «…» не совпадает с контрагентом «…». Привязать договор?» при нажатии «Привязать платеж к документу»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Название получателя в платеже отличается от названия контрагента (регистр не важен)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Да» привязывает платеж, название получателя не меняется. «Отмена» не привязывает</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось установить связь с базой данных» при сохранении документа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Условия оплаты документа не записались</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите попытку. Если сообщение повторяется, перезапустите программу и приложите журнал работы</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

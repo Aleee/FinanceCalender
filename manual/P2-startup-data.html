@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Приложение 2. Запуск, первый старт, где хранятся данные</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Приложение 2. Запуск, первый старт, где хранятся данные</h1></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Как запустить программу</h2></td></tr></table>
+<p>Программа не требует установки: это папка с файлом <code>FinanceCalender.exe</code>. Папку можно держать где угодно, в том числе на флешке, но она должна быть доступна для записи, иначе появится сообщение «Не удалось создать папку с данными программы». Перенесите программу в другую папку или попросите выдать права.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#8a8f98"></td><td bgcolor="#f1f2f4" style="padding: 10px 16px 0px 16px;">
+<p>🍎 <strong><font color="#8a8f98">macOS:</font></strong> Программа — пакет <code>Платежный календарь.app</code>; подробности и возможные предупреждения системы — в подразделе «Особенности macOS».</p>
+</td></tr></table>
+<p>Если включена синхронизация, программа сразу сверит данные с общей базой (<a href="14-sync.html">раздел 14</a>), а затем проверит обновления (<a href="15-update.html">раздел 15</a>).</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Первый запуск</h2></td></tr></table>
+<p>Пустую базу программа сама не создаёт, поэтому при первом запуске на новом компьютере открывается окно «Восстановление базы данных». Нужно <strong>выбрать файл базы</strong> или <strong>подключиться к синхронизации</strong> и загрузить общую базу.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно восстановления базы данных, файл не найден" src="images/02-startup-data/recovery-missing.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 54. Окно «Восстановление базы данных» при первом запуске.</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Кнопка</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Выбрать»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Файл базы <code>.db</code>: например, резервная копия или файл от коллеги</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Загрузить с сервера синхронизации»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Настройки синхронизации; после сохранения подключения программа загрузит общую базу (<a href="14-sync.html">раздел 14</a>)</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Выйти»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Завершает программу</td>
+</tr>
+</tbody>
+</table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Пока базы нет, работать нельзя: «Выйти» и закрытие окна завершают программу. Нет файла — попросите его у ответственного за программу или подключитесь к общей базе.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Первое подключение к синхронизации</h2></td></tr></table>
+<p>Данные для окна «Настройки синхронизации…» (способ обмена, доступ к хранилищу, имя пользователя) выдаёт ответственный за программу. Окно открывается из меню кнопки синхронизации (<a href="14-sync.html">раздел 14</a>); после ввода данных включите синхронизацию и проверьте подключение.</p>
+<p>Какой у вас случай, зависит от того, есть ли общая база в хранилище. Вопрос зададут, только когда вы сами запустите синхронизацию (кнопка или «Синхронизировать сейчас»): автоматическая проверка лишь покажет состояние на кнопке («общей базы нет» или «в общей базе другие данные»).</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Случай</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что сделать</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что будет</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Первое устройство: общей базы ещё нет</td>
+<td style="border-bottom: 1px solid #d9e0e9;">На вопрос «В папке обмена нет общей базы. Создать её из вашей локальной копии?» ответить «Да»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В хранилище появится общая база, равная вашей локальной копии</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Новое устройство без базы</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В окне «Восстановление базы данных» нажать «Загрузить с сервера синхронизации»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Общая база загрузится как ваша локальная копия</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Второе устройство, на котором уже есть своя база</td>
+<td style="border-bottom: 1px solid #d9e0e9;">На вопрос «В папке обмена лежит общая база с другими данными. Заменить ею вашу локальную копию? Текущая локальная копия будет сохранена в папке резервных копий.» ответить «Да»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Локальная копия заменяется общей базой; прежняя сохраняется в <code>data\backup</code> как <code>before_sync_…</code> (<a href="13-backup.html">раздел 13</a>)</td>
+</tr>
+</tbody>
+</table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Отвечайте «Да» на второй вопрос, только если уверены, что в хранилище лежат нужные данные. Если нужные данные у вас, а общая база пустая или чужая, нажмите «Нет» и обратитесь к ответственному за программу.</p>
+</td></tr></table>
+<p>Обычный порядок для двух устройств: на первом создают общую базу, на втором подключаются и забирают её.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Где хранятся данные</h2></td></tr></table>
+<p>Все данные (база, резервные копии, настройки, журнал работы) хранятся в папке <code>data</code> <strong>рядом с программой</strong>. Напрямую с этими файлами работать не нужно.</p>
+<ul>
+<li>Чтобы перенести программу с данными на другой компьютер, закройте её и скопируйте папку целиком вместе с <code>data</code>.</li>
+<li>На нескольких устройствах пользуйтесь синхронизацией (<a href="14-sync.html">раздел 14</a>), а не копированием базы: так можно потерять изменения.</li>
+<li>При обращении за помощью приложите журнал работы: файл <code>log.log</code> из папки <code>data\logs</code>.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#8a8f98"></td><td bgcolor="#f1f2f4" style="padding: 10px 16px 0px 16px;">
+<p>🍎 <strong><font color="#8a8f98">macOS:</font></strong> Данные лежат в папке <code>~/Library/Application Support/FinanceCalender</code> (см. «Особенности macOS»).</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s6">Резервные копии при запуске</h2></td></tr></table>
+<p>При каждом запуске программа сохраняет резервную копию базы и удаляет слишком старые. Срок хранения и папка — «Настройки» → «Хранение». Подробнее — в <a href="13-backup.html">разделе 13</a>.</p>
+<p>Если копию создать не удалось, в строке состояния появится красная надпись «Резервная копия: ОШИБКА СОЗДАНИЯ»: проверьте, что папка для копий существует и на диске есть место.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Если базу не удалось открыть</h2></td></tr></table>
+<p>При запуске программа проверяет базу. Возможные сообщения:</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Окно «Восстановление базы данных»: «К сожалению, найти файл базы данных в стандартном расположении не удалось…»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Базы нет: первый запуск или файл удалили</td>
+<td style="border-bottom: 1px solid #d9e0e9;">См. «Первый запуск» выше</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Окно «Восстановление базы данных»: «К сожалению, при проверке файла базы данных обнаружены ошибки (подробности см. в логе). Выберите файл для восстановления»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">База повреждена</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Выбрать» → самая свежая резервная копия (дата и время в названии). Изменения после создания копии пропадут</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«База данных создана более новой версией программы. Обновите программу»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Базу открывали более новой версией программы, чем у вас. Программа закроется</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Обновите программу (<a href="15-update.html">раздел 15</a>) или возьмите новую версию у коллеги</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось обновить структуру базы данных до версии этой программы. Файл базы данных не изменён (подробности см. в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">После обновления программы базу не удалось подготовить к работе. Данные остались как были, программа закроется</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сообщите ответственному за программу, и приложите журнал работы</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось открыть базу данных (подробности см. в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">База есть, но открыть её не получилось. Программа закроется</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Запустите программу ещё раз. Если не помогает, сообщите ответственному за программу, и приложите журнал работы; данные можно вернуть из резервной копии</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Включите синхронизацию в настройках, чтобы загрузить базу с сервера» после «Загрузить с сервера синхронизации»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В окне «Настройки синхронизации» не включён пункт «Включить синхронизацию»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нажмите кнопку ещё раз, включите синхронизацию и укажите данные подключения</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось загрузить базу данных с сервера: …»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">После двоеточия указана причина</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Причины и действия — в таблице «Что может пойти не так» <a href="14-sync.html">раздела 14</a></td>
+</tr>
+</tbody>
+</table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно восстановления базы данных, база повреждена" src="images/02-startup-data/recovery-damaged.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 55. Окно «Восстановление базы данных», когда база повреждена. Кнопки «Загрузить с сервера синхронизации» здесь нет: можно только выбрать файл.</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если вы пользуетесь синхронизацией, свежие данные есть и в общей базе. Если базы нет совсем, нажмите «Загрузить с сервера синхронизации».</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">Особенности macOS</h2></td></tr></table>
+<h3 id="s9">Установка и первый запуск</h3>
+<p>Программа поставляется архивом <code>FinanceCalender-….zip</code>. На Mac:</p>
+<ol>
+<li>Распакуйте архив: появится пакет <code>Платежный календарь</code> (файл <code>Платежный календарь.app</code>).</li>
+<li>Перетащите его в папку «Программы» и запускайте оттуда.</li>
+<li>При первом запуске macOS может показать предупреждение или запросить разрешения. Это нормально, см. подраздел «Если macOS не даёт открыть программу» ниже.</li>
+</ol>
+<p>Это нужно для обновления: программа заменяет свой пакет новой версией, и ей нужна папка с правом записи. Если запустить её из архива или «Загрузок», обновление не сработает, и программа попросит: «Перенесите «Платежный календарь» в папку «Программы», запустите её оттуда и повторите обновление.» Если в папке нет прав на запись, появится сообщение «Нет прав на запись в папку …. Перенесите программу в папку «Программы» или в другую папку, доступную для записи.»</p>
+<h3 id="s10">Если macOS не даёт открыть программу</h3>
+<p>Программа не из App Store и не имеет подписи разработчика, заверенной Apple, поэтому macOS может остановить её при первом запуске. Что именно вы увидите, зависит от версии macOS и настроек. Ниже самые частые случаи.</p>
+<p><strong>1. Предупреждение о программе, скачанной из интернета.</strong> Примерный текст: «Не удалось проверить, что в «Платежный календарь» нет вредоносного ПО» или «Приложение «Платежный календарь» нельзя открыть, так как не удалось проверить разработчика». В окне будут кнопки «Готово» или «Отменить» и «Переместить в Корзину». Это стандартная проверка macOS, с программой всё в порядке. Чтобы разрешить запуск:</p>
+<ul>
+<li><strong>В новых версиях macOS</strong> (Sequoia и новее). Нажмите «Готово» (не «Переместить в Корзину»), затем «Системные настройки» → «Конфиденциальность и безопасность» → «Безопасность» → «Всё равно открыть» и введите пароль учётной записи.</li>
+<li><strong>В более старых версиях.</strong> Щёлкните по пакету <code>Платежный календарь</code> в папке «Программы» <strong>правой кнопкой мыши</strong> (или с нажатой <strong>Ctrl</strong>), выберите «Открыть» и в окне с предупреждением снова нажмите «Открыть». Если такого пункта нет, действуйте как в предыдущем пункте через «Системные настройки».</li>
+</ul>
+<p>Это нужно один раз; предупреждение вернётся, например, после повторного скачивания программы.</p>
+<p><strong>2. Сообщение, что программа «повреждена» и её нужно переместить в Корзину.</strong> Так macOS иногда реагирует на программы без подписи, хотя пакет цел. Не удаляйте программу: скачайте архив заново и распакуйте его в Finder (не сторонним архиватором). Если сообщение не пропало, обратитесь к ответственному за программу: он может снять с пакета отметку «скачано из интернета».</p>
+<p><strong>3. Запрос на доступ к файлам и папкам.</strong> При первом обращении к папке «Документы», «Загрузки», «Рабочий стол» или внешнему диску macOS спросит разрешение на доступ к файлам: нажмите «Разрешить». Если отказали, включите его в «Системные настройки» → «Конфиденциальность и безопасность» → «Файлы и папки» (иногда нужен «Полный доступ к диску») и перезапустите программу.</p>
+<p><strong>4. Запрос на управление Microsoft Excel.</strong> Экспорт в PDF на Mac выполняется через Excel (<a href="10-export.html">раздел 10</a>); при первом экспорте macOS спросит разрешение управлять «Microsoft Excel» — нажмите «Разрешить». Если отказали: «Системные настройки» → «Конфиденциальность и безопасность» → «Автоматизация» → «Платежный календарь» → «Microsoft Excel». Без Excel экспорт в PDF недоступен.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Не отключайте проверку программ целиком ради этой программы: разрешите именно «Платежный календарь».</p>
+</td></tr></table>
+
+
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> В старых версиях macOS «Конфиденциальность и безопасность» называется «Защита и безопасность»; если не нашли пункт, воспользуйтесь поиском в «Системных настройках».</p>
+</td></tr></table>
+<h3 id="s11">Где лежат данные</h3>
+<p>Данные хранятся в папке пользователя <code>~/Library/Application Support/FinanceCalender</code>, а не в пакете, поэтому перенос, обновление и удаление пакета их не затрагивают. Запускать программу с данными с флешки на Mac нельзя.</p>
+<p>Папка <code>Library</code> скрыта: в Finder выберите «Переход» → «Переход к папке…» (<strong>Cmd+Shift+G</strong>) и вставьте путь. Чтобы перенести данные на другой Mac, закройте программу и скопируйте папку <code>FinanceCalender</code> в то же место; если там уже есть такая папка, перед заменой сохраните прежнюю.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Вместо копирования папок пользуйтесь синхронизацией (<a href="14-sync.html">раздел 14</a>).</p>
+</td></tr></table>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="870" height="340" viewBox="0 0 870 340" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="870" height="340" fill="#ffffff"/>
+
+  <g font-size="15" text-anchor="middle">
+    <rect x="15" y="15" width="270" height="310" rx="8" fill="#e8f0f8" stroke="#1f5fa8" stroke-width="1.5"/>
+    <text x="150" y="45" font-weight="700" fill="#1f5fa8">Взять общую базу</text>
+    <g font-size="13" fill="#1f3a5f">
+      <text x="150" y="85" font-weight="700">Общая база</text>
+      <text x="150" y="105">не меняется</text>
+      <text x="150" y="145" font-weight="700">Ваша локальная копия</text>
+      <text x="150" y="165">заменяется общей базой</text>
+      <text x="150" y="205" font-weight="700">Ваши изменения</text>
+      <text x="150" y="225">пропадают из программы,</text>
+      <text x="150" y="245">но остаются в копии</text>
+      <text x="150" y="265">conflict_….db</text>
+    </g>
+
+    <rect x="300" y="15" width="270" height="310" rx="8" fill="#fdf1e3" stroke="#b26a00" stroke-width="1.5"/>
+    <text x="435" y="45" font-weight="700" fill="#b26a00">Перезаписать общую базу</text>
+    <text x="435" y="65" font-weight="700" fill="#b26a00">моей версией</text>
+    <g font-size="13" fill="#1f3a5f">
+      <text x="435" y="105" font-weight="700">Общая база</text>
+      <text x="435" y="125">заменяется вашей версией</text>
+      <text x="435" y="165" font-weight="700">Ваша локальная копия</text>
+      <text x="435" y="185">не меняется</text>
+      <text x="435" y="225" font-weight="700">Изменения коллеги</text>
+      <text x="435" y="245">пропадают из общей базы,</text>
+      <text x="435" y="265">но остаются в её прежней</text>
+      <text x="435" y="285">копии в хранилище</text>
+    </g>
+
+    <rect x="585" y="15" width="270" height="310" rx="8" fill="#f4f6f9" stroke="#8a94a3" stroke-width="1.5"/>
+    <text x="720" y="45" font-weight="700" fill="#555">Отмена</text>
+    <g font-size="13" fill="#1f3a5f">
+      <text x="720" y="105">Ничего не меняется.</text>
+      <text x="720" y="145">Кнопка остаётся красной,</text>
+      <text x="720" y="165">«КОНФЛИКТ». Окно появится</text>
+      <text x="720" y="185">снова при следующей</text>
+      <text x="720" y="205">автоматической проверке.</text>
+    </g>
+  </g>
+</svg>

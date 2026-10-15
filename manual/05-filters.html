@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 5. Фильтры и поиск</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 5. Фильтры и поиск</h1></td></tr></table>
+<p>Фильтры боковой панели и поиск оставляют в таблице только подходящие платежи; ничего не удаляется и не меняется.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Общие правила</h2></td></tr></table>
+<ul>
+<li><strong>Условия работают вместе.</strong> Платеж виден, только если подходит под все включённые фильтры и поиск сразу (например, «Просроченные» и ответственный «Васильев Н.»).</li>
+<li><strong>После запуска включён только «Все неоплаченные».</strong> Оплаченные платежи по умолчанию не показываются (см. «Срок оплаты» ниже).</li>
+<li><strong>Фильтры не запоминаются.</strong> При каждом запуске — «Все неоплаченные» и пустой поиск; запоминается только свёрнутость групп.</li>
+<li><strong>Заголовки разделов не показываются</strong> при выбранной категории и при поиске (<a href="02-main-window.html">раздел 2</a>).</li>
+<li><strong>Таблица, итоги и экспорт связаны.</strong> Итоги (<a href="02-main-window.html">раздел 2</a>) и экспорт (<a href="10-export.html">раздел 10</a>) учитывают только видимые платежи: перед выгрузкой проверьте фильтры.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Боковая панель</h2></td></tr></table>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Боковая панель с пронумерованными выносками" src="images/06-filters/sidebar.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 14. Боковая панель после запуска. 1 — кнопка «Сбросить фильтры»; 2 — строка поиска; 3 — СРОК ОПЛАТЫ; 4 — КАТЕГОРИЯ; 5 — ОТВЕТСТВЕННЫЙ; 6 — ОПЛАТА СЕГОДНЯ.</em></span></p>
+<h3 id="s4">Срок оплаты</h3>
+<p>«На этой неделе» — от сегодня до воскресенья включительно, «В этом месяце» — до конца месяца; просроченные платежи в них не входят. Пункты пересекаются: платеж со сроком сегодня попадёт в «Сегодня», «На этой неделе» и «В этом месяце»; в воскресенье «На этой неделе» совпадает с «Сегодня».</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Всё, что нужно оплатить в ближайшее время, — «В этом месяце» плюс «Просроченные».</p>
+</td></tr></table>
+<h4 id="s5">Оплаченные платежи</h4>
+<p>«Оплаченные» показывает только недавно оплаченные платежи. Срок: «Настройки» → «Таблица» → «Оплаченные платежи» → «Отображать оплаченные платежи за» — «три месяца» (по умолчанию), «полгода», «один год» или «все время». Отсчёт — от даты <strong>последней оплаты</strong>, а не от срока платежа. Платеж, оплаченный полностью <strong>сегодня</strong>, в «Оплаченные» попадёт только завтра (<a href="02-main-window.html">раздел 2</a>).</p>
+<h3 id="s6">Категория</h3>
+<p>Платежи финансовой деятельности показываются все вместе, независимо от подкатегории. Пункта для раздела «Текущая деятельность» целиком нет: оставьте «Все».</p>
+<h3 id="s7">Ответственный</h3>
+<p>В списке все сотрудники, в том числе из архива. Снять фильтр — крестик в поле или пустая строка в начале списка.</p>
+<h3 id="s8">Оплата сегодня</h3>
+<p>Флажок «ОПЛАТА СЕГОДНЯ» оставляет платежи, по которым сегодняшним числом внесена оплата (столбец «Оплата сегодня», <a href="02-main-window.html">раздел 2</a>).</p>
+<p>С пунктом «Оплаченные» флажок даёт пустую таблицу: платеж с оплатой за сегодня до конца дня считается неоплаченным.</p>
+<h3 id="s9">Числа в скобках</h3>
+<p>Число в скобках — сколько платежей окажется в таблице при выборе этого пункта с учётом остальных условий (поиск, ответственный, «ОПЛАТА СЕГОДНЯ», «На контроле», выбранный пункт другой группы). Поэтому при поиске числа уменьшаются.</p>
+<h3 id="s10">Свёрнутые группы</h3>
+<p>Группу можно свернуть по названию. Свёрнутая группа продолжает работать; если в ней включён фильтр, название красное. Свёрнутость запоминается.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Боковая панель с включёнными фильтрами" src="images/06-filters/sidebar-active.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 15. Включены фильтры: срок «Просроченные» (2), категория «Медоборудование» (группа свёрнута и подсвечена красным) и ответственный «Васильев Н.». 1 — «Сбросить фильтры» доступна; 2 — срок оплаты; 3 — свёрнутая группа с фильтром; 4 — ответственный.</em></span></p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s11">Пункт «На контроле»</h2></td></tr></table>
+<p>Пункт «На контроле» в меню «Вид» оставляет только платежи с жёлтой звёздочкой (<a href="02-main-window.html">раздел 2</a>) и работает вместе с остальными фильтрами.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s12">Поиск</h2></td></tr></table>
+<p>Поле поиска в боковой панели; быстрый переход — <strong>Ctrl+F</strong>. <strong>Esc</strong> очищает поиск, <strong>Enter</strong> или <strong>↓</strong> переводят курсор в таблицу, оставляя найденное.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Поиск по слову «связ»" src="images/06-filters/search.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 16. Поиск «связ»: в таблице остался один платеж (с итоговой строкой), а числа в боковой панели пересчитались.</em></span></p>
+<ul>
+<li><strong>Что ищется.</strong> Текст ищется в столбцах «Получатель платежа», «Наименование (предмет) платежа» и «Основание платежа». Заметки поиск не просматривает.</li>
+<li><strong>Часть слова и регистр.</strong> Искомый текст может быть частью слова, регистр не важен: «связ» найдёт «Услуги связи», а «север» — получателя «ООО «Северсвет»».</li>
+<li><strong>Фраза целиком.</strong> Несколько слов ищутся как фраза: подряд в одном из трёх столбцов («услуги связи» найдёт «Услуги связи, октябрь 2026», «связи услуги» — нет).</li>
+<li><strong>Поиск идёт среди тех платежей, которые оставили фильтры.</strong> При «Все неоплаченные» оплаченные платежи не найдутся: выберите «Оплаченные».</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s13">Сброс фильтров</h2></td></tr></table>
+<p>«Сбросить фильтры» (<strong>Ctrl+R</strong>) возвращает состояние после запуска:</p>
+<ul>
+<li>срок оплаты — «Все неоплаченные», категория — «Все»;</li>
+<li>ответственный не выбран;</li>
+<li>флажок «ОПЛАТА СЕГОДНЯ» снят, пункт «На контроле» выключен;</li>
+<li>строка поиска очищается.</li>
+</ul>
+<p>Что сброс <strong>не</strong> меняет: пункты «Заголовки разделов» и «Итого по разделам» в меню «Вид» и то, какие группы свёрнуты.</p>
+<p>Кнопка недоступна, пока нет включённых фильтров и поиска («Все неоплаченные» и «Все» не считаются).</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s14">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Платежа нет в таблице, хотя вы его вносили</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Он оплачен, а по умолчанию показаны только неоплаченные. Либо оплачен давно и вышел за срок показа оплаченных</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выберите «Оплаченные». Если платеж оплачен давно, увеличьте срок в «Настройки» → «Таблица» → «Оплаченные платежи»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Поиск ничего не находит, хотя платеж есть</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Поиск работает среди платежей, прошедших фильтры. Либо вы ищете текст из заметок, а поиск их не просматривает, либо слова введены не в том порядке (ищется фраза целиком)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Сбросить фильтры» и поиск по меньшему числу слов. Заметки поиском не найти</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Просроченные платежи не красные</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Включён пункт «Просроченные» или флажок «ОПЛАТА СЕГОДНЯ»: подсветка в этих режимах отключена</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Это нормально (<a href="02-main-window.html">раздел 2</a>)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Числа в боковой панели не совпадают с числом строк в таблице</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Заголовки и итоги не считаются платежами; число у пункта — для случая, когда выбран именно этот пункт</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сравнивайте с числом платежей, а не строк</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Таблица пуста, видна надпись «Нет платежей, подходящих под условия фильтрации и поиска»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Условия оставили ноль платежей</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нажмите «Сбросить фильтры»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Платеж пропал после того, как вы сняли звёздочку</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Включён пункт «На контроле» в меню «Вид»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выключите пункт «На контроле»</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Выбранный платеж больше не отображается в таблице - вероятно, изменились условия фильтрации. Выберите платеж заново.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Платеж скрыт фильтром или поиском</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сбросьте фильтры (<strong>Ctrl+R</strong>) или выберите платеж заново (<a href="02-main-window.html">раздел 2</a>)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Кнопка «Сбросить фильтры» серая</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ни один фильтр не включён</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ничего делать не нужно</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

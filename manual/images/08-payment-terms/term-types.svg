@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="870" height="470" viewBox="0 0 870 470" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f3a5f"/>
+    </marker>
+  </defs>
+  <rect width="870" height="470" fill="#ffffff"/>
+
+  <!-- 1. Относительный срок -->
+  <rect x="10" y="10" width="850" height="100" rx="8" fill="#f4f6f9" stroke="#2c5c8a" stroke-width="1.5"/>
+  <text x="25" y="35" font-size="15" font-weight="700" fill="#1f3a5f">Относительный срок</text>
+  <text x="25" y="55" font-size="12" fill="#555">«в течение N дней после события»</text>
+  <line x1="260" y1="85" x2="840" y2="85" stroke="#9aa7b5" stroke-width="2"/>
+  <line x1="280" y1="62" x2="610" y2="62" stroke="#1f3a5f" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text x="445" y="54" font-size="12" text-anchor="middle" fill="#1f3a5f">N дней: календарных, банковских или рабочих</text>
+  <circle cx="280" cy="85" r="7" fill="#ffffff" stroke="#1f3a5f" stroke-width="2.5"/>
+  <text x="280" y="105" font-size="12" text-anchor="middle" fill="#1f3a5f">Дата возникновения</text>
+  <circle cx="610" cy="85" r="8" fill="#1f5fa8"/>
+  <text x="610" y="105" font-size="12" text-anchor="middle" font-weight="700" fill="#1f5fa8">Расчетная дата</text>
+
+  <!-- 2. Относительный срок с ограничением -->
+  <rect x="10" y="120" width="850" height="130" rx="8" fill="#f4f6f9" stroke="#2c5c8a" stroke-width="1.5"/>
+  <text x="25" y="145" font-size="15" font-weight="700" fill="#1f3a5f">Относительный срок</text>
+  <text x="25" y="165" font-size="12" fill="#555">с условием «но не позднее N числа месяца»</text>
+  <line x1="260" y1="205" x2="840" y2="205" stroke="#9aa7b5" stroke-width="2"/>
+  <line x1="280" y1="182" x2="470" y2="182" stroke="#1f3a5f" stroke-width="2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text x="375" y="174" font-size="12" text-anchor="middle" fill="#1f3a5f">N дней</text>
+  <circle cx="280" cy="205" r="7" fill="#ffffff" stroke="#1f3a5f" stroke-width="2.5"/>
+  <text x="280" y="225" font-size="12" text-anchor="middle" fill="#1f3a5f">Дата возникновения</text>
+  <circle cx="470" cy="205" r="8" fill="#1f5fa8"/>
+  <text x="470" y="225" font-size="12" text-anchor="middle" font-weight="700" fill="#1f5fa8">Расчетная дата</text>
+  <circle cx="700" cy="205" r="7" fill="#ffffff" stroke="#b03a2e" stroke-width="2.5"/>
+  <text x="700" y="225" font-size="12" text-anchor="middle" fill="#b03a2e">N-е число месяца</text>
+  <text x="585" y="244" font-size="12" text-anchor="middle" fill="#555">выбирается более ранняя из двух дат</text>
+
+  <!-- 3. Фиксированный срок -->
+  <rect x="10" y="260" width="850" height="110" rx="8" fill="#f4f6f9" stroke="#2c5c8a" stroke-width="1.5"/>
+  <text x="25" y="285" font-size="15" font-weight="700" fill="#1f3a5f">Фиксированный срок</text>
+  <text x="25" y="305" font-size="12" fill="#555">«не позднее N числа месяца»</text>
+  <line x1="260" y1="325" x2="840" y2="325" stroke="#9aa7b5" stroke-width="2"/>
+  <circle cx="520" cy="325" r="8" fill="#1f5fa8"/>
+  <text x="520" y="345" font-size="12" text-anchor="middle" font-weight="700" fill="#1f5fa8">Расчетная дата</text>
+  <text x="520" y="313" font-size="12" text-anchor="middle" fill="#1f3a5f">N-е число отчетного, следующего или предыдущего месяца</text>
+  <text x="520" y="363" font-size="12" text-anchor="middle" fill="#555">дата события не нужна; выходной или праздник переносится на следующий рабочий день</text>
+
+  <!-- 4. Предоплата -->
+  <rect x="10" y="380" width="850" height="80" rx="8" fill="#f4f6f9" stroke="#2c5c8a" stroke-width="1.5"/>
+  <text x="25" y="405" font-size="15" font-weight="700" fill="#1f3a5f">Предоплата / Срок явно не определён</text>
+  <text x="25" y="428" font-size="13" fill="#b03a2e">Расчетная дата не считается — срок оплаты вводится в платеже вручную</text>
+</svg>

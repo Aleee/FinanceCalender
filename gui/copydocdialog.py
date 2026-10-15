@@ -10,6 +10,7 @@ from PySide6.QtCore import QDate, QModelIndex, Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QDialog, QPlainTextEdit
 
+from gui.manualdialog import add_help_shortcut
 from base.contract import DocumentTitle, PaymentDueType
 from base.date import date_str, date_displstr, MONTHS_RU
 from base.dbhandler import DBHandler
@@ -44,6 +45,7 @@ class CopyDocDialog(QDialog):
         super(CopyDocDialog, self).__init__(parent)
         self.ui = Ui_CopyDocDialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "03-event-dialog.html")
 
         self.model = final_proxy_model
         self.dbh = db_handler

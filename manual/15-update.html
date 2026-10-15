@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 15. Обновление программы</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 15. Обновление программы</h1></td></tr></table>
+<p>Программа сама проверяет, не вышла ли новая версия, и ставит её, когда вы согласитесь. Данные при обновлении не меняются.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Как программа узнаёт о новой версии</h2></td></tr></table>
+<p>Проверка идёт при каждом запуске и по кнопке «Проверить сейчас» в «Настройки» → «Информация» (<a href="12-settings.html">раздел 12</a>). Нужен интернет. Если связи нет, программа сама повторит запрос три раза.</p>
+<p>Результат виден в строке состояния (<a href="02-main-window.html">раздел 2</a>) и в «Настройки» → «Информация» (время и итог последней проверки):</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">В строке состояния</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">В настройках</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что значит</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Обновления: актуальная версия»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Установлена актуальная версия»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Новой версии нет</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Обновления: доступна 2026.11.02»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Доступно обновление 2026.11.02»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Есть новая версия</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Обновления: ошибка»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось проверить обновления (подробности в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверка не удалась, см. «Что может пойти не так»</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Обновления: отключены»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Проверка обновлений отключена»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверка отключена в вашей версии программы</td>
+</tr>
+</tbody>
+</table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Установка обновления</h2></td></tr></table>
+<ol>
+<li>При запуске найденное обновление программа предлагает сама. Если нашли вручную, она спросит: «Доступно обновление …. Для его установки настройки будут сохранены, а окно настроек закрыто. Продолжить?»</li>
+</ol>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Обновление»" src="images/17-update/offer.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 52. Предложение обновиться.</em></span></p>
+<p>В «Что нового» — текст, который автор версии написал для пользователей; если его нет, написано «Описание не указано.» «Позже» ничего не меняет: предложение вернётся при следующем запуске или после ручной проверки. Если на экране открыто другое окно, предложение появится, когда вы его закроете.</p>
+<ol start="2">
+<li>
+<p>Программа сохраняет копию базы <code>backup_…</code> в папку резервных копий (<a href="13-backup.html">раздел 13</a>). Если копию создать не удалось, она спросит: «Не удалось создать резервную копию базы данных. Продолжить обновление без неё?» Лучше ответить «Нет» и сначала исправить папку копий.</p>
+</li>
+<li>
+<p>Программа скачивает обновление и проверяет его. Остановить можно кнопкой «Отмена», пока идёт скачивание; на «Проверка и распаковка файлов…» отмены нет.</p>
+</li>
+</ol>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Скачивание обновления" src="images/17-update/progress.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 53. Скачивание обновления.</em></span></p>
+<ol start="4">
+<li>Программа закрывается сама, заменяет свои файлы и запускается снова уже новой версии. Если есть неотправленные изменения, при закрытии программа сначала пробует отправить их в общую базу (<a href="14-sync.html">раздел 14</a>). Если не удалось, она спросит: «Изменения не отправлены в общую базу (…). Закрыть программу без отправки?» Ответ «Нет» отменяет обновление: программа остаётся открытой, а обновление предложат снова при следующем запуске или ручной проверке.</li>
+</ol>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#8a8f98"></td><td bgcolor="#f1f2f4" style="padding: 10px 16px 0px 16px;">
+<p>🍎 <strong><font color="#8a8f98">macOS:</font></strong> Обновление работает, только если программа лежит в папке «Программы» (или в другой папке с правом записи). Иначе оно не начнётся и программа объяснит почему (<a href="P2-startup-data.html">приложение 2</a>).</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Что происходит с данными</h2></td></tr></table>
+<ul>
+<li>Заменяются только файлы программы. База, настройки, резервные копии и экспорт в папке <code>data</code> остаются как были.</li>
+<li>Если в новой версии изменилась структура базы, программа обновит базу при первом запуске сама; перед этим она сохранит копию <code>before_migration_v….db</code> (<a href="13-backup.html">раздел 13</a>).</li>
+<li>Прежняя версия программы не сохраняется. Если версия базы изменилась, старая программа её не откроет: «База данных создана более новой версией программы. Обновите программу» (<a href="P2-startup-data.html">приложение 2</a>).</li>
+<li>Если вы работаете на нескольких устройствах, обновите программу на каждом: пока версии разные, синхронизация показывает «обновите программу» (<a href="14-sync.html">раздел 14</a>).</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Что может пойти не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось проверить обновления (подробности в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нет связи с Яндекс.Диском или файл версии повреждён</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте интернет и нажмите «Проверить сейчас». Если повторяется, обратитесь к ответственному за программу, и приложите журнал работы</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Доступна версия …, но она несовместима с текущей базой данных»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В выложенной версии база старее вашей, обновляться на неё нельзя</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не обновляйтесь, сообщите ответственному за программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось связаться с Яндекс.Диском. Проверьте подключение к интернету.» или «Не удалось скачать обновление. Проверьте подключение к интернету.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Скачать файл не получилось, даже после трёх попыток</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите, когда связь наладится</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Скачанный файл повреждён (не совпала контрольная сумма). Попробуйте ещё раз.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Файл скачался с ошибкой</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите обновление</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Архив с обновлением повреждён.», «В архиве обновления нет …», «В архиве обновления есть папка data, установка отменена.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ошибка в самой выложенной версии. Ничего не изменено</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сообщите ответственному за программу</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось записать файлы в папку программы. Возможно, флешка защищена от записи или закончилось место.», «Не удалось записать файл обновления в папку программы.», «Не удалось распаковать обновление. Возможно, на диске не хватает места.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В папке программы нет места или права на запись</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Освободите место, проверьте права на запись в папку программы</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось запустить установку обновления.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Программа не смогла запустить установщик. Ничего не изменено</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите обновление. Если повторяется, сообщите ответственному за программу, и приложите журнал работы</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось подготовить обновление. Запущена прежняя версия.» или «Не удалось установить обновление. Запущена прежняя версия.» (подробности в <code>data\logs\updater.log</code>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Установщик не смог заменить файлы и вернул всё назад</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите обновление позже. Если повторяется, сообщите ответственному за программу, и приложите <code>updater.log</code></td>
+</tr>
+</tbody>
+</table>
+<p>Если после неудачной установки программа не запускается, обратитесь к ответственному за программу. Ваши данные в папке <code>data</code> остаются на месте.</p>
+</body>
+</html>

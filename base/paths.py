@@ -8,6 +8,12 @@ def app_dir() -> str:
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def manual_dir() -> str:
+    if getattr(sys, 'frozen', False):
+        return os.path.join(getattr(sys, '_MEIPASS', app_dir()), "manual")
+    return os.path.join(app_dir(), "manual")
+
+
 def storage_dir() -> str:
     if getattr(sys, 'frozen', False) and sys.platform == 'darwin':
         return os.path.expanduser("~/Library/Application Support/FinanceCalender")

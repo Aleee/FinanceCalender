@@ -3,6 +3,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog, QVBoxLayout, QLabel, QPushButton, QFileDialog, QWidget
 
+from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
 from base.sync import SyncError, fetch_master
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
@@ -15,6 +16,7 @@ class RecoveryDialog(QDialog):
     def __init__(self, settings_handler: SettingsHandler, db_handler: DBHandler, text: str = "Ошибка", cancel_available: bool = False,
                  offer_sync: bool = False, parent: QWidget | None = None):
         super().__init__(parent)
+        add_help_shortcut(self, "P2-startup-data.html")
 
         self.settings_handler: SettingsHandler = settings_handler
         self.db_handler: DBHandler = db_handler

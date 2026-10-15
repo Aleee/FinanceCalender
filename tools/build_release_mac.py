@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from base.macupdate import APP_BUNDLE
+from tools.build_manual import build_manual
 from base.version import APP_VERSION, DB_VERSION, parse_version
 
 DIST = ROOT / "dist"
@@ -60,6 +61,8 @@ def main() -> None:
         sys.exit("Скрипт собирает релиз для macOS и запускается только на Mac")
 
     parse_version(APP_VERSION)
+    if not build_manual():
+        sys.exit("Нет руководства в manual/ и нет исходников в docs/manual, из которых его можно собрать")
     arch = platform.machine()
     print(f"Версия: {APP_VERSION}, архитектура: {arch}")
 

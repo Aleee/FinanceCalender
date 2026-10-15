@@ -1,6 +1,7 @@
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QDialog
 
+from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
 from base.xlswriter import FulfilmentXlsWriter, ExportFormat
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
@@ -15,6 +16,7 @@ class FulfillmentDialog(QDialog):
         super(FulfillmentDialog, self).__init__(parent)
         self.ui = Ui_FulfillmentDialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "11-planfact.html")
 
         self.is_fulfillment_toshow: bool = fulfillment_type
         self.db_handler: DBHandler = db_handler

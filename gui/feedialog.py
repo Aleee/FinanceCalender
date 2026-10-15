@@ -9,6 +9,7 @@ import lovely_logger as log
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QDialog, QFileDialog
 
+from gui.manualdialog import add_help_shortcut
 from base.date import date_str, date_displstr
 from base.dbhandler import DBHandler
 from base.feeparser import CSVParseError, DailyFees, FeeCategoryResult, StatementParseResult, read_transaction_csv
@@ -32,6 +33,7 @@ class FeeDialog(QDialog):
         super(FeeDialog, self).__init__(parent)
         self.ui = Ui_feedialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "09-fees.html")
 
         self.sh: SettingsHandler = settings_handler
         self.dbh: DBHandler = db_handler

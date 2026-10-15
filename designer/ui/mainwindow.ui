@@ -849,6 +849,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
    <addaction name="act_toggleheaders"/>
    <addaction name="act_togglefooters"/>
    <addaction name="act_settings"/>
+   <addaction name="act_help"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="act_settings">
@@ -864,6 +865,27 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
    </property>
    <property name="toolTip">
     <string>Настройки</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="act_help">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/icon-toolbar/designer/icons/help.svg</normaloff>:/icon-toolbar/designer/icons/help.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Справка</string>
+   </property>
+   <property name="iconText">
+    <string>Справка</string>
+   </property>
+   <property name="toolTip">
+    <string>Справка (F1)</string>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

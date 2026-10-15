@@ -3,6 +3,7 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (QAbstractItemView, QDialog, QDialogButtonBox, QHeaderView, QLabel, QListWidget,
                                QListWidgetItem, QTabWidget, QTableWidget, QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
+from gui.manualdialog import add_help_shortcut
 from base.formatting import COLOR_CALENDAR, COLOR_OK, COLOR_STATEMENT, COLOR_WARNING, COLOR_WARNING_BG
 from base.syncdiff import Conflict, DbDiff, TableDiff, describe_other_table, describe_row, field_changes
 
@@ -116,6 +117,7 @@ class SyncChangesDialog(QDialog):
     def __init__(self, message: str, tabs: list[tuple[str, DbDiff | None]], parent: QWidget | None = None, info: str = "",
                  conflicts: list[Conflict] | None = None, warnings: list[str] | None = None):
         super().__init__(parent)
+        add_help_shortcut(self, "14-sync.html")
         self.setWindowTitle("Синхронизация")
         self.resize(820, 560)
 

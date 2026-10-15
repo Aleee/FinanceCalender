@@ -36,6 +36,7 @@
     <file alias="icon-toolbar/designer/icons/view.svg">designer/icons/view.svg</file>
     <file alias="icon-toolbar/designer/icons/statement.svg">designer/icons/statement.svg</file>
     <file alias="icon-toolbar/designer/icons/settings.svg">designer/icons/settings.svg</file>
+    <file alias="icon-toolbar/designer/icons/help.svg">designer/icons/help.svg</file>
     <file alias="icon-toolbar/designer/icons/delete.svg">designer/icons/delete.svg</file>
     <file>designer/icons/calendar.svg</file>
     <file alias="icon-toolbar/designer/icons/itembottom.svg">designer/icons/itembottom.svg</file>

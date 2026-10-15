@@ -3,6 +3,7 @@ from PySide6.QtCore import QModelIndex, Qt
 from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtWidgets import QDialog, QApplication
 
+from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.finplanmodel import FinPlanTableModel
@@ -16,6 +17,7 @@ class FinPlanDialog(QDialog):
         super(FinPlanDialog, self).__init__(parent)
         self.ui = Ui_FinPlanDialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "11-planfact.html")
 
         self.db_handler: DBHandler = db_handler
         self.sh: SettingsHandler = sh
