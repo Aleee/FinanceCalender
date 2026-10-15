@@ -890,6 +890,46 @@ class Ui_settingsdialog(object):
         self.pg_build.setObjectName(u"pg_build")
         self.gridLayout_25 = QGridLayout(self.pg_build)
         self.gridLayout_25.setObjectName(u"gridLayout_25")
+        self.gb_updates = QGroupBox(self.pg_build)
+        self.gb_updates.setObjectName(u"gb_updates")
+        self.horizontalLayout_updates = QHBoxLayout(self.gb_updates)
+        self.horizontalLayout_updates.setObjectName(u"horizontalLayout_updates")
+        self.la_updatestatus = QLabel(self.gb_updates)
+        self.la_updatestatus.setObjectName(u"la_updatestatus")
+        self.la_updatestatus.setWordWrap(True)
+
+        self.horizontalLayout_updates.addWidget(self.la_updatestatus)
+
+        self.horizontalSpacer_17 = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_updates.addItem(self.horizontalSpacer_17)
+
+        self.pb_checkupdates = QPushButton(self.gb_updates)
+        self.pb_checkupdates.setObjectName(u"pb_checkupdates")
+
+        self.horizontalLayout_updates.addWidget(self.pb_checkupdates)
+
+
+        self.gridLayout_25.addWidget(self.gb_updates, 1, 0, 1, 1)
+
+        self.verticalSpacer_10 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_25.addItem(self.verticalSpacer_10, 4, 0, 1, 1)
+
+        self.horizontalLayout_hotkeys = QHBoxLayout()
+        self.horizontalLayout_hotkeys.setObjectName(u"horizontalLayout_hotkeys")
+        self.pb_hotkeys = QPushButton(self.pg_build)
+        self.pb_hotkeys.setObjectName(u"pb_hotkeys")
+
+        self.horizontalLayout_hotkeys.addWidget(self.pb_hotkeys)
+
+        self.horizontalSpacer_hotkeys = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_hotkeys.addItem(self.horizontalSpacer_hotkeys)
+
+
+        self.gridLayout_25.addLayout(self.horizontalLayout_hotkeys, 3, 0, 1, 1)
+
         self.groupBox_16 = QGroupBox(self.pg_build)
         self.groupBox_16.setObjectName(u"groupBox_16")
         self.horizontalLayout_about = QHBoxLayout(self.groupBox_16)
@@ -949,45 +989,9 @@ class Ui_settingsdialog(object):
 
         self.gridLayout_25.addWidget(self.groupBox_16, 0, 0, 1, 1)
 
-        self.gb_updates = QGroupBox(self.pg_build)
-        self.gb_updates.setObjectName(u"gb_updates")
-        self.horizontalLayout_updates = QHBoxLayout(self.gb_updates)
-        self.horizontalLayout_updates.setObjectName(u"horizontalLayout_updates")
-        self.la_updatestatus = QLabel(self.gb_updates)
-        self.la_updatestatus.setObjectName(u"la_updatestatus")
-        self.la_updatestatus.setWordWrap(True)
+        self.verticalSpacer_7 = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        self.horizontalLayout_updates.addWidget(self.la_updatestatus)
-
-        self.horizontalSpacer_17 = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_updates.addItem(self.horizontalSpacer_17)
-
-        self.pb_checkupdates = QPushButton(self.gb_updates)
-        self.pb_checkupdates.setObjectName(u"pb_checkupdates")
-
-        self.horizontalLayout_updates.addWidget(self.pb_checkupdates)
-
-
-        self.gridLayout_25.addWidget(self.gb_updates, 1, 0, 1, 1)
-
-        self.horizontalLayout_hotkeys = QHBoxLayout()
-        self.horizontalLayout_hotkeys.setObjectName(u"horizontalLayout_hotkeys")
-        self.pb_hotkeys = QPushButton(self.pg_build)
-        self.pb_hotkeys.setObjectName(u"pb_hotkeys")
-
-        self.horizontalLayout_hotkeys.addWidget(self.pb_hotkeys)
-
-        self.horizontalSpacer_hotkeys = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_hotkeys.addItem(self.horizontalSpacer_hotkeys)
-
-
-        self.gridLayout_25.addLayout(self.horizontalLayout_hotkeys, 2, 0, 1, 1)
-
-        self.verticalSpacer_10 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout_25.addItem(self.verticalSpacer_10, 3, 0, 1, 1)
+        self.gridLayout_25.addItem(self.verticalSpacer_7, 2, 0, 1, 1)
 
         self.stw.addWidget(self.pg_build)
         self.pg_misc = QWidget()
@@ -1168,15 +1172,15 @@ class Ui_settingsdialog(object):
         self.cmb_backupautodelete.setItemText(2, QCoreApplication.translate("settingsdialog", u"\u043d\u0438\u043a\u043e\u0433\u0434\u0430", None))
 
         self.pb_backuppath.setText(QCoreApplication.translate("settingsdialog", u"\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c", None))
+        self.gb_updates.setTitle(QCoreApplication.translate("settingsdialog", u"\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f", None))
+        self.la_updatestatus.setText(QCoreApplication.translate("settingsdialog", u"<status>", None))
+        self.pb_checkupdates.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0441\u0435\u0439\u0447\u0430\u0441", None))
+        self.pb_hotkeys.setText(QCoreApplication.translate("settingsdialog", u"  \u0413\u043e\u0440\u044f\u0447\u0438\u0435 \u043a\u043b\u0430\u0432\u0438\u0448\u0438...  ", None))
         self.groupBox_16.setTitle(QCoreApplication.translate("settingsdialog", u"\u041e \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0435", None))
         self.la_appdescr.setText(QCoreApplication.translate("settingsdialog", u"\u0423\u0447\u0451\u0442 \u0438 \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0435\u0439", None))
         self.la_buildnumber.setText(QCoreApplication.translate("settingsdialog", u"<ver>", None))
         self.la_dbnumber.setText(QCoreApplication.translate("settingsdialog", u"<db ver>", None))
         self.la_appname.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u043b\u0430\u0442\u0435\u0436\u043d\u044b\u0439 \u043a\u0430\u043b\u0435\u043d\u0434\u0430\u0440\u044c", None))
-        self.gb_updates.setTitle(QCoreApplication.translate("settingsdialog", u"\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f", None))
-        self.la_updatestatus.setText(QCoreApplication.translate("settingsdialog", u"<status>", None))
-        self.pb_checkupdates.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0441\u0435\u0439\u0447\u0430\u0441", None))
-        self.pb_hotkeys.setText(QCoreApplication.translate("settingsdialog", u"\u0413\u043e\u0440\u044f\u0447\u0438\u0435 \u043a\u043b\u0430\u0432\u0438\u0448\u0438...", None))
 
         __sortingEnabled = self.lw_menu.isSortingEnabled()
         self.lw_menu.setSortingEnabled(False)
