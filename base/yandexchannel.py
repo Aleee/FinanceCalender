@@ -9,8 +9,8 @@ import lovely_logger as log
 
 from base.httpclient import HttpClient, HttpResponse
 from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INFO_NAME, MASTER_LONG_BACKUPS_DIR,
-                       MasterInfo, MasterInfoError, NetworkError, SHORT_BACKUPS_KEEP_DAYS, SyncChannel, SyncError, TEMP_SUFFIX,
-                       backup_time_from_name, file_md5, is_backup_of_today, master_backup_name)
+                       MasterInfo, MasterInfoError, NetworkError, SHORT_BACKUPS_KEEP_DAYS, SyncCancelledError, SyncChannel,
+                       SyncError, TEMP_SUFFIX, backup_time_from_name, file_md5, is_backup_of_today, master_backup_name)
 
 API_URL = "https://cloud-api.yandex.net/v1/disk"
 DEFAULT_DISK_FOLDER = "app:/"
@@ -82,9 +82,10 @@ class YandexDiskApiChannel(SyncChannel):
         source_md5 = file_md5(source)
         try:
             self.put_file(temp_db, source_md5, source.stat().st_size, upload_file=source)
-            self.move(temp_db, self.remote_path(MASTER_DB_NAME), source_md5)
-            self.put_file(self.remote_path(MASTER_INFO_NAME), hashlib.md5(info_bytes).hexdigest(), len(info_bytes),
-                          data=info_bytes)
+            with self.http.uninterruptible():
+                self.move(temp_db, self.remote_path(MASTER_DB_NAME), source_md5)
+                self.put_file(self.remote_path(MASTER_INFO_NAME), hashlib.md5(info_bytes).hexdigest(), len(info_bytes),
+                              data=info_bytes)
         except SyncError:
             self.delete_quietly(temp_db)
             raise
@@ -190,7 +191,7 @@ class YandexDiskApiChannel(SyncChannel):
         for _ in range(UPLOAD_CONFIRM_ATTEMPTS):
             try:
                 metadata = self.metadata(name)
-            except (AuthError, NetworkError):
+            except (AuthError, NetworkError, SyncCancelledError):
                 raise
             except SyncError as e:
                 log.d(f"Загрузка {name}: не удалось проверить файл ({e}), повторяем")

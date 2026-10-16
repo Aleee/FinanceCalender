@@ -1,6 +1,7 @@
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -8,8 +9,9 @@ import lovely_logger as log
 from PySide6.QtCore import QByteArray, QEventLoop, QFile, QIODevice, QTimer, QUrl
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
-from base.sync import NetworkError, SyncError
+from base.sync import NetworkError, SyncCancelledError, SyncError
 
+QUIET_WAIT_MS = 350
 CONNECT_TIMEOUT_MS = 1500
 RESPONSE_TIMEOUT_MS = 8000
 UPLOAD_EXTRA_MS_PER_MB = 2000
@@ -55,6 +57,27 @@ def trace_text(marks: dict[str, int], qt_error: str = "") -> str:
 
 
 class HttpClient(ABC):
+    cancel_requested: bool = False
+    cancel_allowed: bool = True
+
+    def request_cancel(self) -> None:
+        if self.cancel_allowed:
+            self.cancel_requested = True
+
+    def check_cancel(self) -> None:
+        if self.cancel_requested:
+            self.cancel_requested = False
+            raise SyncCancelledError("прервано пользователем")
+
+    @contextmanager
+    def uninterruptible(self) -> Iterator[None]:
+        self.check_cancel()
+        self.cancel_allowed = False
+        try:
+            yield
+        finally:
+            self.cancel_allowed = True
+
     @abstractmethod
     def send(self, method: str, url: str, headers: dict[str, str] | None = None, data: bytes = b"",
              upload_file: Path | None = None, download_file: Path | None = None) -> HttpResponse:
@@ -76,10 +99,15 @@ class QtHttpClient(HttpClient):
         self.marks: dict[str, int] = {}
         self.on_attempt: Callable[[AttemptInfo], None] | None = None
         self.on_retry: Callable[[int, int], None] | None = None
+        self.on_long_wait: Callable[[bool], None] | None = None
+        self.on_long_wait_end: Callable[[], None] | None = None
+        self.active_reply: QNetworkReply | None = None
+        self.active_loop: QEventLoop | None = None
         self.last_request_at: float = time.monotonic()
 
     def send(self, method: str, url: str, headers: dict[str, str] | None = None, data: bytes = b"",
              upload_file: Path | None = None, download_file: Path | None = None) -> HttpResponse:
+        self.check_cancel()
         qurl = QUrl(url)
         target = f"{method} {qurl.host()}{qurl.path()}"
         failures: list[str] = []
@@ -90,6 +118,7 @@ class QtHttpClient(HttpClient):
             try:
                 response = self.send_once(method, url, headers, data, upload_file, download_file)
             except NetworkError as e:
+                self.check_cancel()
                 qt_error = getattr(e, "qt_error", "")
                 failures.append(f"{target}: попытка {attempt}/{MAX_ATTEMPTS} не удалась за {elapsed_ms(started)} мс: "
                                 f"{e}{trace_text(self.marks, qt_error)}")
@@ -155,8 +184,38 @@ class QtHttpClient(HttpClient):
             return HttpResponse(response.status, b"")
         return response
 
-    @staticmethod
-    def wait_for_reply(reply: QNetworkReply, marks: dict[str, int] | None = None) -> str:
+    def request_cancel(self) -> None:
+        super().request_cancel()
+        if not self.cancel_requested:
+            return
+        if self.active_reply is not None:
+            self.active_reply.abort()
+        if self.active_loop is not None:
+            self.active_loop.quit()
+
+    def run_loop(self, loop: QEventLoop, is_finished: Callable[[], bool]) -> None:
+        quiet_timer = QTimer()
+        quiet_timer.setSingleShot(True)
+        quiet_timer.timeout.connect(loop.quit)
+        quiet_timer.start(QUIET_WAIT_MS)
+        self.active_loop = loop
+        long_wait_started = False
+        try:
+            loop.exec(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+            quiet_timer.stop()
+            if is_finished() or self.cancel_requested:
+                return
+            if self.on_long_wait is not None:
+                self.on_long_wait(self.cancel_allowed)
+                long_wait_started = True
+            loop.exec(QEventLoop.ProcessEventsFlag.AllEvents if self.cancel_allowed
+                      else QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+        finally:
+            self.active_loop = None
+            if long_wait_started and self.on_long_wait_end is not None:
+                self.on_long_wait_end()
+
+    def wait_for_reply(self, reply: QNetworkReply, marks: dict[str, int] | None = None) -> str:
         stage = "request"
         marks = {} if marks is None else marks
         started = time.monotonic()
@@ -188,8 +247,12 @@ class QtHttpClient(HttpClient):
             signal.connect(lambda name=name: on_connected(name))
         loop = QEventLoop()
         reply.finished.connect(loop.quit)
-        loop.exec(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
-        connect_timer.stop()
+        self.active_reply = reply
+        try:
+            self.run_loop(loop, reply.isFinished)
+        finally:
+            self.active_reply = None
+            connect_timer.stop()
         return stage
 
     @staticmethod
@@ -206,5 +269,10 @@ class QtHttpClient(HttpClient):
 
     def pause(self, milliseconds: int) -> None:
         loop = QEventLoop()
-        QTimer.singleShot(milliseconds, loop.quit)
-        loop.exec(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(loop.quit)
+        timer.start(milliseconds)
+        self.run_loop(loop, lambda: not timer.isActive())
+        timer.stop()
+        self.check_cancel()

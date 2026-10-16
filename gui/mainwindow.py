@@ -16,8 +16,8 @@ from base.date import date_displstr, date_str
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
 from base.payment import PaymentEntry, PaymentField
-from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, read_local_state,
-                       set_stage_listener, synchronize)
+from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, SyncCancelledError, SyncChannel, SyncError, SyncParams,
+                       SyncReport, read_local_state, set_stage_listener, synchronize)
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
@@ -81,6 +81,7 @@ class MainWindow(QMainWindow):
         self.sync_progress: SyncProgressDialog | None = None
         self.sync_error: str = ""
         self.sync_network_failed: bool = False
+        self.sync_cancelled: bool = False
         self.sync_info_unreadable: bool = False
         self.sync_retry_text: str = ""
         self.sync_failure_text: str = "ОШИБКА"
@@ -621,7 +622,7 @@ class MainWindow(QMainWindow):
         finally:
             self._close_sync_progress(pause=pause_when_done and action is not None)
         if interactive:
-            if action is None:
+            if action is None and not self.sync_cancelled:
                 ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()
             elif action in SYNC_ACTION_MESSAGE:
                 ErrorInfoMessageBox(SYNC_ACTION_MESSAGE[action], is_info=True, parent=self).exec()
@@ -679,7 +680,8 @@ class MainWindow(QMainWindow):
         if action is None:
             self.sync_status_text = self.sync_failure_text
             self.update_sync_status()
-            ErrorInfoMessageBox(f"Не удалось загрузить общую базу: {self.sync_error}", parent=self).exec()
+            if not self.sync_cancelled:
+                ErrorInfoMessageBox(f"Не удалось загрузить общую базу: {self.sync_error}", parent=self).exec()
             return
         self.sync_succeeded_at = QDateTime.currentDateTime()
         self.sync_status_text = SYNC_STATUS_TEXT[action]
@@ -721,13 +723,18 @@ class MainWindow(QMainWindow):
         set_stage_listener(progress.set_stage)
         http = getattr(channel, "http", None)
         if http is not None:
+            http.cancel_requested = False
             http.on_retry = progress.set_attempt
+            http.on_long_wait = progress.show_waiting
+            http.on_long_wait_end = progress.end_waiting
+            progress.set_cancel_handler(http.request_cancel)
         if owns_progress:
             progress.start()
         try:
             action: SyncAction = step()
             progress.complete(owns_progress)
             self.sync_error = ""
+            self.sync_cancelled = False
             self.sync_network_failed = False
             self.sync_info_unreadable = False
             self.sync_master_info = channel.last_master_info()
@@ -735,6 +742,7 @@ class MainWindow(QMainWindow):
         except SyncError as e:
             log.e(f"Синхронизация не выполнена: {e}")
             self.sync_error = str(e)
+            self.sync_cancelled = isinstance(e, SyncCancelledError)
             self.sync_network_failed = isinstance(e, NetworkError)
             self.sync_info_unreadable = isinstance(e, MasterInfoError)
             self.sync_failure_text = failure_status_text(e)
@@ -744,6 +752,9 @@ class MainWindow(QMainWindow):
             set_stage_listener(None)
             if http is not None:
                 http.on_retry = None
+                http.on_long_wait = None
+                http.on_long_wait_end = None
+                progress.set_cancel_handler(None)
             if owns_progress:
                 progress.finish()
             QApplication.restoreOverrideCursor()

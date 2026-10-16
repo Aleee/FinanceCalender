@@ -4,9 +4,10 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
+from PySide6.QtCore import QTimer
 
 from base.httpclient import AttemptInfo, QtHttpClient
-from base.sync import NetworkError
+from base.sync import NetworkError, SyncCancelledError
 
 FILE_CONTENT = bytes(range(256)) * 1000
 
@@ -117,6 +118,39 @@ def test_unreachable_server_raises_network_error(client):
 
 
 def test_pause_returns(client):
+    client.pause(10)
+
+
+def test_cancel_interrupts_pause(client):
+    QTimer.singleShot(50, client.request_cancel)
+    started = time.monotonic()
+    with pytest.raises(SyncCancelledError):
+        client.pause(5000)
+    assert time.monotonic() - started < 2
+
+
+def test_cancel_interrupts_stalled_request_without_retry(client, server):
+    Handler.stall_once = True
+    waits: list[bool] = []
+
+    def on_long_wait(cancellable: bool) -> None:
+        waits.append(cancellable)
+        QTimer.singleShot(50, client.request_cancel)
+
+    ends: list[int] = []
+    client.on_long_wait = on_long_wait
+    client.on_long_wait_end = lambda: ends.append(1)
+    with pytest.raises(SyncCancelledError):
+        client.send("GET", f"{server}/stall")
+    assert waits == [True]
+    assert ends == [1]
+    assert len(Handler.received) == 1
+
+
+def test_cancel_is_ignored_in_uninterruptible_section(client):
+    with client.uninterruptible():
+        client.request_cancel()
+        client.pause(10)
     client.pause(10)
 
 

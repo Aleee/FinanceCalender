@@ -65,6 +65,10 @@ class NetworkError(SyncError):
     pass
 
 
+class SyncCancelledError(SyncError):
+    pass
+
+
 class AuthError(SyncError):
     pass
 

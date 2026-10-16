@@ -8,8 +8,8 @@ from PySide6.QtWidgets import QApplication
 from base.dbhandler import DBHandler
 from base.httpclient import QtHttpClient
 from base.sync import (STAGE_COMPARE, STAGE_CONNECT, AuthError, FolderChannel, MasterInfo, MasterUpdatingError, NetworkError,
-                       SyncAction, SyncChannel, SyncError, SyncParams, SyncReport, collect_conflict_report, pull_master,
-                       push_master, restore_master_info, save_conflict_copy)
+                       SyncAction, SyncCancelledError, SyncChannel, SyncError, SyncParams, SyncReport, collect_conflict_report,
+                       pull_master, push_master, restore_master_info, save_conflict_copy)
 from base.syncdiff import DbDiff, format_warnings
 from base.version import APP_VERSION
 from base.yandexchannel import YandexDiskApiChannel
@@ -80,6 +80,8 @@ def create_sync_params(settings_handler: SettingsHandler) -> SyncParams:
 
 
 def failure_status_text(error: SyncError) -> str:
+    if isinstance(error, SyncCancelledError):
+        return "прервана"
     if isinstance(error, NetworkError):
         return "нет связи"
     if isinstance(error, AuthError):

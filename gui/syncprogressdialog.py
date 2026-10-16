@@ -1,9 +1,11 @@
 import time
+from collections.abc import Callable
 from enum import IntEnum
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QLayout, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel, QLayout, QPushButton, QStackedWidget, QVBoxLayout,
+                               QWidget)
 
 from base.sync import STAGE_CONNECT
 
@@ -160,11 +162,30 @@ class SyncProgressDialog(QDialog):
         self.rows_layout = QVBoxLayout()
         self.rows_layout.setSpacing(4)
 
+        self.cancel_handler: Callable[[], None] | None = None
+        self.wait_cursor_released: bool = False
+        self.btn_cancel = QPushButton("Отмена", self)
+        self.btn_cancel.setAutoDefault(False)
+        self.btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_cancel.setFlat(True)
+        self.btn_cancel.setStyleSheet("QPushButton { border: none; border-radius: 4px; padding: 2px 8px; color: #2c5c8a; font-weight: 600; }"
+                                      "QPushButton:hover { background-color: #e8f0f8; }"
+                                      "QPushButton:pressed { background-color: #d5e3f2; }"
+                                      "QPushButton:disabled { color: #b0b0b0; background-color: transparent; }")
+        retain_policy = self.btn_cancel.sizePolicy()
+        retain_policy.setRetainSizeWhenHidden(True)
+        self.btn_cancel.setSizePolicy(retain_policy)
+        self.btn_cancel.setVisible(False)
+        self.btn_cancel.clicked.connect(self.on_cancel_clicked)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(10)
         layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
-        layout.addWidget(self.lbl_text)
+        title_layout = QHBoxLayout()
+        title_layout.addWidget(self.lbl_text, 1)
+        title_layout.addWidget(self.btn_cancel, 0, Qt.AlignmentFlag.AlignRight)
+        layout.addLayout(title_layout)
         layout.addLayout(self.rows_layout)
 
         for stage in planned_stages:
@@ -205,6 +226,31 @@ class SyncProgressDialog(QDialog):
             self.fit_size()
             self.repaint()
 
+    def set_cancel_handler(self, handler: Callable[[], None] | None) -> None:
+        self.cancel_handler = handler
+        self.btn_cancel.setEnabled(False)
+        self.btn_cancel.setVisible(handler is not None)
+        self.fit_size()
+
+    def show_waiting(self, cancellable: bool) -> None:
+        self.btn_cancel.setEnabled(cancellable)
+        self.delay_timer.stop()
+        self.show()
+        self.repaint()
+        if cancellable and not self.wait_cursor_released:
+            QApplication.restoreOverrideCursor()
+            self.wait_cursor_released = True
+
+    def end_waiting(self) -> None:
+        if self.wait_cursor_released:
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+            self.wait_cursor_released = False
+
+    def on_cancel_clicked(self) -> None:
+        if self.cancel_handler is not None:
+            self.btn_cancel.setEnabled(False)
+            self.cancel_handler()
+
     def show_stage_now(self, text: str) -> None:
         self.delay_timer.stop()
         self.set_stage(text)
@@ -238,4 +284,4 @@ class SyncProgressDialog(QDialog):
         self.deleteLater()
 
     def reject(self) -> None:
-        pass
+        self.btn_cancel.click()
