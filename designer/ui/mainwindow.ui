@@ -64,7 +64,7 @@
           <property name="styleSheet">
            <string notr="true">QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; margin: 9px 9px 0px 9px;}
 QPushButton:hover {background-color: #e8eef4;}
-QPushButton:disabled {color: #a0a0a0;}</string>
+QPushButton:disabled {color: #6e6e6e;}</string>
           </property>
           <property name="text">
            <string>Сбросить фильтры</string>

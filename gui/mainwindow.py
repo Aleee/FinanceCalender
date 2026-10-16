@@ -297,7 +297,7 @@ class MainWindow(QMainWindow):
         )
         # Подписи заголовков, отображение/скрытие фильтров и цвет заголовка при скрытии активного фильтра
         for switch_button, filter_widget, label, is_active in self.filter_sections:
-            switch_button.set_button_label(f"🡆 {label}", f"🡇 {label}")
+            switch_button.set_button_label(label, label)
             switch_button.switch_status_changed.connect(filter_widget.setVisible)
             switch_button.switch_status_changed.connect(
                 lambda sw_status, button=switch_button, active=is_active:
@@ -953,7 +953,7 @@ class MainWindow(QMainWindow):
             "QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; "
             f"margin: 9px {right_margin}px 0px 9px;}}\n"
             "QPushButton:hover {background-color: #e8eef4;}\n"
-            "QPushButton:disabled {color: #a0a0a0;}")
+            "QPushButton:disabled {color: #6e6e6e;}")
         self.ui.horizontalLayout_search.setContentsMargins(9, 3, right_margin, 3)
 
     def reset_filters(self) -> None:

@@ -177,7 +177,7 @@ class Ui_MainWindow(object):
         self.pb_resetfilters.setObjectName(u"pb_resetfilters")
         self.pb_resetfilters.setStyleSheet(u"QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; margin: 9px 9px 0px 9px;}\n"
 "QPushButton:hover {background-color: #e8eef4;}\n"
-"QPushButton:disabled {color: #a0a0a0;}")
+"QPushButton:disabled {color: #6e6e6e;}")
 
         self.gridLayout_2.addWidget(self.pb_resetfilters, 0, 0, 1, 1)
 
