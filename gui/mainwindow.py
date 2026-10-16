@@ -196,7 +196,7 @@ class MainWindow(QMainWindow):
 
     def _init_toolbar_groups(self) -> None:
         short_labels: dict[QAction, str] = {
-            self.ui.act_new: "Новый",
+            self.ui.act_new: "Создать",
             self.ui.act_copy: "Копия",
             self.ui.act_edit: "Изменить",
             self.ui.act_delete: "Удалить",
@@ -218,8 +218,9 @@ class MainWindow(QMainWindow):
         bank_actions: list[QAction] = [self.ui.act_matching, self.ui.act_fees]
         tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions,
                                               "На контроле, заголовки и итоги разделов")
-        tb_bank = self._make_toolbar_dropdown("Выписка", ":/icon-toolbar/designer/icons/statement.svg", bank_actions,
-                                              "Сверка банковской выписки и учет комиссий")
+        tb_bank = self._make_toolbar_split_button(
+            self.ui.act_matching, bank_actions, "Сверка", ":/icon-toolbar/designer/icons/matching.svg",
+            "Сверка банковской выписки и учет комиссий")
         copy_actions: list[QAction] = [self.ui.act_copy, self.ui.act_copydoc]
         tb_copy = self._make_toolbar_split_button(self.ui.act_copy, copy_actions)
         planfact_actions: list[QAction] = [self.ui.act_finplan, self.ui.act_fulfillment, self.ui.act_chart]
@@ -243,17 +244,21 @@ class MainWindow(QMainWindow):
             button.ensurePolished()
             button_groups[-1].append(button)
         for group in button_groups:
-            group_width: int = max(self._toolbar_button_width(button) for button in group)
+            group_width: int = max(self._toolbar_button_width(button) +
+                                   (self._toolbar_arrow_width(button) if button is tb_copy else 0)
+                                   for button in group)
             for button in group:
-                button.setFixedWidth(group_width)
+                button.setFixedWidth(group_width + (0 if button is tb_copy else self._toolbar_arrow_width(button)))
 
     @staticmethod
     def _toolbar_button_width(button: QToolButton) -> int:
-        text_width: int = button.fontMetrics().horizontalAdvance(button.text())
-        arrow_width: int = button.style().pixelMetric(QStyle.PixelMetric.PM_MenuButtonIndicator, None, button)
+        return button.fontMetrics().horizontalAdvance(button.text()) + 14
+
+    @staticmethod
+    def _toolbar_arrow_width(button: QToolButton) -> int:
         if button.popupMode() == QToolButton.ToolButtonPopupMode.MenuButtonPopup:
-            return text_width + arrow_width + 8
-        return text_width + 14
+            return button.style().pixelMetric(QStyle.PixelMetric.PM_MenuButtonIndicator, None, button)
+        return 0
 
     def _make_toolbar_dropdown(self, text: str, icon_path: str, actions: list[QAction], tooltip: str) -> QToolButton:
         menu = QMenu(self)
