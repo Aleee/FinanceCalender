@@ -366,7 +366,7 @@ class MainWindow(QMainWindow):
         self.ui.act_contracts.triggered.connect(self.open_contractor_dialog)
         self.ui.la_contractbound.linkActivated.connect(self.open_bound_document)
         self.ui.act_gotocontract.triggered.connect(self.open_bound_document)
-        self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog(True))
+        self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog())
         self.ui.act_help.triggered.connect(lambda: self.open_manual_dialog())
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.HEADER, checked))
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.ui.trw_event.span_columns() if checked else None)
@@ -1218,8 +1218,8 @@ class MainWindow(QMainWindow):
             return True
         return False
 
-    def open_settings_dialog(self, reject_possible: bool = True) -> None:
-        settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, self.db_handler, reject_possible, self)
+    def open_settings_dialog(self) -> None:
+        settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, self.db_handler, self)
         settings_dialog.exec()
         self.on_currentevent_change()
         self.base_model.select()

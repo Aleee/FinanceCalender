@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from PySide6 import QtGui, QtCore
+from PySide6 import QtGui
 from PySide6.QtGui import QPalette, QRegularExpressionValidator, QShortcut, QKeySequence
 from PySide6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QLineEdit, QFileDialog, QButtonGroup, QWidget, \
     QInputDialog, QPushButton, QApplication
@@ -59,7 +59,7 @@ class SettingsDialog(QDialog):
     MENU_ROW_STORAGE: int = 5
     MENU_ROW_MISC: int = 7
 
-    def __init__(self, settings_handler: SettingsHandler, db_handler: DBHandler, reject_possible: bool = True, parent=None):
+    def __init__(self, settings_handler: SettingsHandler, db_handler: DBHandler, parent=None):
         super(SettingsDialog, self).__init__(parent)
         self.ui = Ui_settingsdialog()
         self.ui.setupUi(self)
@@ -73,12 +73,7 @@ class SettingsDialog(QDialog):
         self.personal_proxy_model: Optional[PersonalSortFilterModel] = None
         self.responsible_proxy_model: Optional[PersonalSortFilterModel] = None
 
-        self.reject_possible: bool = reject_possible
         self.ui.lw_menu.setIconSize(QSize(30, 30))
-        self.ui.pb_cancel.setEnabled(reject_possible)
-        if not reject_possible:
-            self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowType.CustomizeWindowHint)
-            self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowType.WindowCloseButtonHint)
 
         # Центрирование элементов списка меню
         menu_item_height: int = max(40, self.ui.lw_menu.fontMetrics().height() + 20)
@@ -109,6 +104,14 @@ class SettingsDialog(QDialog):
         self.ui.le_csv_unp.setValidator(validator_unp)
         self.ui.le_csv_unp.textChanged.connect(lambda: self.highlight_invalid_input(self.ui.le_csv_unp))
         self.ui.le_csv_columns.textChanged.connect(lambda: self.highlight_invalid_input(self.ui.le_csv_columns))
+        self.ui.le_csv_unp.setPlaceholderText("123456789, 987654321")
+        self.ui.le_csv_unp.setToolTip("УНП банков: девять цифр каждый, через запятую")
+        self.ui.le_csv_columns.setToolTip(
+            "Номера столбцов выписки (нумерация с нуля) в порядке: дата, код, УНП, название, сумма, назначение, "
+            f"получатель. Все семь номеров обязательны, по умолчанию {DEF_COLUMNSTOPARSE}")
+        position_hint = "Изменение записывается в базу сразу, кнопка «Отмена» его не откатит"
+        for button in (self.ui.pb_position_add, self.ui.pb_position_rename, self.ui.pb_position_remove):
+            button.setToolTip(position_hint)
 
         # Сигналы
         self.ui.pb_ok.clicked.connect(self.accept)
@@ -178,8 +181,6 @@ class SettingsDialog(QDialog):
         for wdg in (self.ui.pb_pers_current, self.ui.pb_pers_hist):
             wdg.clicked.connect(lambda: self.personal_proxy_model.show_actuals(self.ui.pb_pers_current.isChecked()))
             wdg.clicked.connect(lambda: self.ui.pb_pers_add.setEnabled(self.ui.pb_pers_current.isChecked()))
-            wdg.clicked.connect(lambda: self.ui.pb_pers_changetype.setText(
-                "В архив" if self.ui.pb_pers_current.isChecked() else "Вернуть"))
 
         self.ui.cmb_pers_dept.activated.connect(self.on_persdept_changed)
         self.ui.cmb_pers_position.activated.connect(self.on_persposition_changed)
@@ -242,6 +243,8 @@ class SettingsDialog(QDialog):
         self.ui.cmb_pers_dept.setEnabled(selection_active)
         self.ui.cmb_pers_position.setEnabled(selection_active)
         if selection_active:
+            archived = current_index.siblingAtColumn(PersonalCol.ARCHIVED).data(PersonalTableModel.internalValueRole)
+            self.ui.pb_pers_changetype.setText("Вернуть" if archived else "В архив")
             dept: int = current_index.siblingAtColumn(PersonalCol.DEPT).data(PersonalTableModel.internalValueRole)
             position: int = current_index.siblingAtColumn(PersonalCol.POSITION).data(
                 PersonalTableModel.internalValueRole)
@@ -568,10 +571,6 @@ class SettingsDialog(QDialog):
             ErrorInfoMessageBox("Не удалось сохранить данные персонала (подробности см. в логе)", parent=self).exec()
             return
         QDialog.accept(self)
-
-    def reject(self):
-        if self.reject_possible:
-            QDialog.reject(self)
 
     def done(self, result: int):
         self.settings_handler.settings.setValue("SettingsDialog/lastpage", self.ui.lw_menu.currentRow())
