@@ -265,7 +265,7 @@ class MatchingDialog(QDialog):
             csv_hash = hashlib.sha1(Path(file_path).read_bytes()).hexdigest()
         except OSError as exc:
             log.w(f"Не удалось прочитать CSV-файл выписки: {exc}")
-            ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}").exec()
+            ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}", parent=self).exec()
             return
 
         previous = self.csv_path, self.csv_hash, self.marks
@@ -307,14 +307,14 @@ class MatchingDialog(QDialog):
             result = reconcile_statement_with_calendar(self.csv_path, self.dbh, self.marks)
         except CSVParseError as exc:
             log.w(f"Не удалось прочитать CSV-файл выписки: {exc}")
-            ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}").exec()
+            ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}", parent=self).exec()
             return False
         except Exception as exc:
             log.x(f"Не удалось обработать CSV-файл: {exc}")
-            ErrorInfoMessageBox(f"Не удалось обработать CSV-файл: {exc}").exec()
+            ErrorInfoMessageBox(f"Не удалось обработать CSV-файл: {exc}", parent=self).exec()
             return False
         if result is None:
-            ErrorInfoMessageBox("В процессе обработки CSV-файла произошла ошибка (см. лог)").exec()
+            ErrorInfoMessageBox("В процессе обработки CSV-файла произошла ошибка (см. лог)", parent=self).exec()
             return False
 
         self.match_result = result
@@ -651,7 +651,7 @@ class MatchingDialog(QDialog):
 
     def correct_amount(self, calendar_entry: PaymentEntry, new_amount: Decimal) -> bool:
         if not self.dbh.correct_payment_sum(calendar_entry.payment_id, new_amount):
-            ErrorInfoMessageBox("Не удалось изменить сумму платежа (подробнее см. лог)").exec()
+            ErrorInfoMessageBox("Не удалось изменить сумму платежа (подробнее см. лог)", parent=self).exec()
             return False
         return True
 

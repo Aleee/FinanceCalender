@@ -443,11 +443,11 @@ class EventDialog(QDialog):
             return
         person_id = self.dbh.resolve_position_to_personal(position_id)
         if person_id is None:
-            ErrorInfoMessageBox("На эту должность сейчас никто не назначен. Выберите ответственного вручную.").exec()
+            ErrorInfoMessageBox("На эту должность сейчас никто не назначен. Выберите ответственного вручную.", parent=self).exec()
             return
         cmb_index = self.ui.cmb_responsible.findData(person_id)
         if cmb_index == -1:
-            ErrorInfoMessageBox("Работник, занимающий эту должность, отсутствует в текущем списке ответственных.").exec()
+            ErrorInfoMessageBox("Работник, занимающий эту должность, отсутствует в текущем списке ответственных.", parent=self).exec()
             return
         self.ui.cmb_responsible.setCurrentIndex(cmb_index)
 
@@ -459,7 +459,7 @@ class EventDialog(QDialog):
         if not self.selector.doc_id or self.calculated_payment_date is None:
             return
         if self.selector.doc_id != self.contractdocument_id:
-            ErrorInfoMessageBox("Этот договор не привязан к текущему платежу").exec()
+            ErrorInfoMessageBox("Этот договор не привязан к текущему платежу", parent=self).exec()
             return
         trigger_date = self.ui.de_paymenttrigger.date()
         self.ui.de_duedate.setDate(self.calculated_payment_date)
@@ -472,7 +472,7 @@ class EventDialog(QDialog):
         receiver = self._stripped(self.ui.le_receiver.text())
         contractor = self.ui.cmb_contractor.currentText().strip()
         if receiver and contractor and receiver.lower() != contractor.lower():
-            msg = YesNoMessagebox(f"Получатель платежа «{receiver}» не совпадает с контрагентом «{contractor}». Привязать договор?")
+            msg = YesNoMessagebox(f"Получатель платежа «{receiver}» не совпадает с контрагентом «{contractor}». Привязать договор?", self)
             if msg.exec() == YesNoMessagebox.NO_RETURN_VALUE:
                 return
         self.contractdocument_id = self.selector.doc_id
@@ -525,9 +525,9 @@ class EventDialog(QDialog):
             self.ui.cmb_responsible.currentData(),
             int(self.ui.chb_hidden.isChecked()))
         if self.dbh.save_contractdocumentvalues(contract_values):
-            ErrorInfoMessageBox("Данные успешно сохранены", is_info=True).exec()
+            ErrorInfoMessageBox("Данные успешно сохранены", is_info=True, parent=self).exec()
         else:
-            ErrorInfoMessageBox("Ошибка при попытке сохранения данных (подробнее см. лог)").exec()
+            ErrorInfoMessageBox("Ошибка при попытке сохранения данных (подробнее см. лог)", parent=self).exec()
 
     def fill_with_contract_values(self):
         doc_id = self.selector.doc_id
@@ -535,7 +535,7 @@ class EventDialog(QDialog):
             return
         contract_values = self.dbh.load_contractdocumentvalues(doc_id)
         if contract_values is None:
-            ErrorInfoMessageBox("Для этого договора ранее не сохранялись значения").exec()
+            ErrorInfoMessageBox("Для этого договора ранее не сохранялись значения", parent=self).exec()
             return
 
         self.ui.le_receiver.setText(contract_values.receiver)
@@ -646,7 +646,7 @@ class EventDialog(QDialog):
             text += "Основание платежа не указано. "
         if text:
             txt = f"{text}Вы уверены, что хотите продолжить?"
-            msg = YesNoMessagebox(txt)
+            msg = YesNoMessagebox(txt, self)
             if msg.exec() == YesNoMessagebox.NO_RETURN_VALUE:
                 return False
         return True

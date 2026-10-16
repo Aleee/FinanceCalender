@@ -782,7 +782,7 @@ class MainWindow(QMainWindow):
         # Очистка папки с резервными копиями
         cleanup_ok: bool = clean_backup_folder(self.settings_handler)
         if not cleanup_ok:
-            error_msg = ErrorInfoMessageBox("Не удалось очистить папку с резервными копиями (см. подробности в логе)")
+            error_msg = ErrorInfoMessageBox("Не удалось очистить папку с резервными копиями (см. подробности в логе)", parent=self)
             error_msg.exec()
         backup_datetime: QDateTime = save_backup(self.settings_handler, self.db_handler)
         self.set_backup_status("" if backup_datetime.isValid() else "Резервная копия: ОШИБКА СОЗДАНИЯ")
@@ -992,11 +992,11 @@ class MainWindow(QMainWindow):
             return False
         if (amount - self.current_data(Col.REMAINAMOUNT, LiabilitySqlTableModel.qtValueRole)) > 0.01:
             msg_box = YesNoMessagebox(f"Сумма оплаты ({dec_strcommaspace(amount)}) превышает остаток задолженности ({dec_strcommaspace(
-                self.current_data(Col.REMAINAMOUNT, LiabilitySqlTableModel.qtValueRole))}). Уверены, что хотите продолжить?")
+                self.current_data(Col.REMAINAMOUNT, LiabilitySqlTableModel.qtValueRole))}). Уверены, что хотите продолжить?", self)
             if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:
                 return False
         if date > QDate.currentDate():
-            msg_box = YesNoMessagebox(f"Выбранная дата ({date_displstr(date)}) больше текущей даты. Уверены, что хотите продолжить?")
+            msg_box = YesNoMessagebox(f"Выбранная дата ({date_displstr(date)}) больше текущей даты. Уверены, что хотите продолжить?", self)
             if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:
                 return False
         if self.payment_model.append_row([self.current_data(Col.ID),
@@ -1018,7 +1018,7 @@ class MainWindow(QMainWindow):
 
         if is_selection_filteredout(self.payment_proxy_model, self.ui.tv_payment):
             return False
-        msg_box = YesNoMessagebox(f"Вы уверены, что хотите удалить запись об оплате?", cancel_by_default=True)
+        msg_box = YesNoMessagebox(f"Вы уверены, что хотите удалить запись об оплате?", self, cancel_by_default=True)
         if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:
             return False
 
@@ -1150,7 +1150,7 @@ class MainWindow(QMainWindow):
             self.warn_selection_lost()
             return False
         msg_box = YesNoMessagebox("Удаление платежа - необратимое действие. Уверены, что хотите продолжить?",
-                                  cancel_by_default=True)
+                                  self, cancel_by_default=True)
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
             event_id: int = self.current_data(Col.ID, LiabilitySqlTableModel.qtValueRole)
             row: int = self.proxy1_model.mapToSource(self.proxy2_model.mapToSource(curr_index)).row()

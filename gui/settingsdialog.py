@@ -270,7 +270,7 @@ class SettingsDialog(QDialog):
             if holder_row is not None:
                 holder_name = self.personal_model.tdata[holder_row][PersonalCol.NAME]
                 ErrorInfoMessageBox(
-                    f"Эту должность сейчас занимает {holder_name}. Сначала снимите этого работника с должности.").exec()
+                    f"Эту должность сейчас занимает {holder_name}. Сначала снимите этого работника с должности.", parent=self).exec()
                 current_position = current_index.siblingAtColumn(PersonalCol.POSITION).data(
                     PersonalTableModel.internalValueRole)
                 self.ui.cmb_pers_position.setCurrentIndex(self.ui.cmb_pers_position.findData(current_position))
@@ -387,7 +387,7 @@ class SettingsDialog(QDialog):
             return
         new_id = self.db_handler.add_position(dept_id, text)
         if new_id is None:
-            ErrorInfoMessageBox("Не удалось создать должность").exec()
+            ErrorInfoMessageBox("Не удалось создать должность", parent=self).exec()
             return
         self.positions[new_id] = (dept_id, text)
         self.refresh_position_list()
@@ -404,7 +404,7 @@ class SettingsDialog(QDialog):
         if not ok or not text or text == item.text() or self.position_name_taken(dept_id, text):
             return
         if not self.db_handler.rename_position(pos_id, text):
-            ErrorInfoMessageBox("Не удалось переименовать должность").exec()
+            ErrorInfoMessageBox("Не удалось переименовать должность", parent=self).exec()
             return
         self.positions[pos_id] = (dept_id, text)
         self.refresh_position_list()
@@ -413,7 +413,7 @@ class SettingsDialog(QDialog):
     def position_name_taken(self, department_id: int, name: str) -> bool:
         for pos_dept, pos_name in self.positions.values():
             if pos_dept == department_id and pos_name == name:
-                ErrorInfoMessageBox(f"Должность \"{name}\" уже есть в этом подразделении").exec()
+                ErrorInfoMessageBox(f"Должность \"{name}\" уже есть в этом подразделении", parent=self).exec()
                 return True
         return False
 
@@ -428,7 +428,7 @@ class SettingsDialog(QDialog):
         if msg_box.exec() != YesNoMessagebox.YES_RETURN_VALUE:
             return
         if not self.db_handler.delete_position(pos_id):
-            ErrorInfoMessageBox("Не удалось удалить должность").exec()
+            ErrorInfoMessageBox("Не удалось удалить должность", parent=self).exec()
             return
         dept_id = self.positions[pos_id][0]
         for entry in self.personal_model.tdata:
@@ -509,13 +509,13 @@ class SettingsDialog(QDialog):
 
         if picked_date.dayOfWeek() not in ALLOWED_WEEKDAYS[category]:
             allowed_days = ", ".join(WEEKDAY_ABBR[day] for day in sorted(ALLOWED_WEEKDAYS[category]))
-            ErrorInfoMessageBox(f"В список \"{self.calendar_titles[category]}\" можно добавлять только дни: {allowed_days}").exec()
+            ErrorInfoMessageBox(f"В список \"{self.calendar_titles[category]}\" можно добавлять только дни: {allowed_days}", parent=self).exec()
             return
 
         year_data = self.calendar_data.setdefault(year, {"holidays": [], "workbank": [], "worknonbank": []})
         for other_category, dates in year_data.items():
             if picked_date in dates:
-                ErrorInfoMessageBox(f"Эта дата уже есть в списке \"{self.calendar_titles[other_category]}\"").exec()
+                ErrorInfoMessageBox(f"Эта дата уже есть в списке \"{self.calendar_titles[other_category]}\"", parent=self).exec()
                 return
 
         year_data[category].append(picked_date)
