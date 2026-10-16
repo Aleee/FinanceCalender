@@ -21,8 +21,8 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QCombo
     QHBoxLayout, QHeaderView, QLabel, QLineEdit,
     QListWidgetItem, QMainWindow, QPlainTextEdit, QPushButton,
     QScrollArea, QSizePolicy, QSpacerItem, QSplitter,
-    QStackedWidget, QStatusBar, QToolBar, QToolButton,
-    QTreeWidgetItem, QWidget)
+    QStackedWidget, QStatusBar, QToolBar, QTreeWidgetItem,
+    QWidget)
 
 from gui.commonwidgets.autoresizetextedit import AutoResizingTextEdit
 from gui.commonwidgets.switchpushbutton import SwitchPushButton
@@ -401,21 +401,11 @@ class Ui_MainWindow(object):
         self.gridLayout_8.setObjectName(u"gridLayout_8")
         self.gridLayout_8.setHorizontalSpacing(6)
         self.gridLayout_8.setVerticalSpacing(0)
-        self.verticalSpacer_4 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout_8.addItem(self.verticalSpacer_4, 0, 1, 1, 1)
-
         self.te_notes = QPlainTextEdit(self.wdg_eventinfo)
         self.te_notes.setObjectName(u"te_notes")
         self.te_notes.setMinimumSize(QSize(0, 55))
 
-        self.gridLayout_8.addWidget(self.te_notes, 0, 0, 2, 1)
-
-        self.tb_savenote = QToolButton(self.wdg_eventinfo)
-        self.tb_savenote.setObjectName(u"tb_savenote")
-        self.tb_savenote.setMinimumSize(QSize(0, 22))
-
-        self.gridLayout_8.addWidget(self.tb_savenote, 1, 1, 1, 1)
+        self.gridLayout_8.addWidget(self.te_notes, 0, 0, 1, 1)
 
 
         self.gridLayout_6.addLayout(self.gridLayout_8, 12, 0, 1, 5)
@@ -679,10 +669,6 @@ class Ui_MainWindow(object):
         self.pb_deletepayment.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c", None))
         self.pb_addpayment.setText(QCoreApplication.translate("MainWindow", u"\u041e\u043f\u043b\u0430\u0442\u0438\u0442\u044c", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"\u0414\u0430\u0442\u0430 \u0438 \u0441\u0443\u043c\u043c\u0430", None))
-#if QT_CONFIG(tooltip)
-        self.tb_savenote.setToolTip(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0437\u0430\u043c\u0435\u0442\u043a\u0443 (Ctrl+S)", None))
-#endif // QT_CONFIG(tooltip)
-        self.tb_savenote.setText(QCoreApplication.translate("MainWindow", u"\U0001f4be", None))
         self.tla_remainsum.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0441\u0442\u0430\u0442\u043e\u043a \u043f\u043b\u0430\u0442\u0435\u0436\u0430:  ", None))
         self.la_remainsum.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.tla_contractbound.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u0438\u0432\u044f\u0437\u0430\u043d \u043a \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0443:", None))

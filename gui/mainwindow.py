@@ -350,8 +350,6 @@ class MainWindow(QMainWindow):
         # Cигналы информационной панели
         self.ui.pb_addpayment.clicked.connect(self.make_new_payment)
         self.ui.pb_deletepayment.clicked.connect(self.delete_payment)
-        self.ui.tb_savenote.clicked.connect(lambda: self.save_note())
-        self.ui.te_notes.textChanged.connect(lambda: self.ui.tb_savenote.setEnabled(True))
         # Сигналы тулбара
         self.ui.act_new.triggered.connect(lambda: self.open_event_dialog())
         self.ui.act_copy.triggered.connect(lambda: self.open_event_dialog(copy=True))
@@ -447,6 +445,7 @@ class MainWindow(QMainWindow):
 
         self.tb_sync.setParent(self.ui.tlbr)
         self.ui.tlbr.installEventFilter(self)
+        self.ui.te_notes.installEventFilter(self)
         self.place_sync_button()
 
     def place_sync_button(self) -> None:
@@ -460,6 +459,8 @@ class MainWindow(QMainWindow):
     def eventFilter(self, watched, event) -> bool:
         if watched is self.ui.tlbr and event.type() == QEvent.Type.Resize:
             self.place_sync_button()
+        elif watched is self.ui.te_notes and event.type() == QEvent.Type.FocusOut:
+            self.save_note()
         return super().eventFilter(watched, event)
 
     def on_sync_button_clicked(self) -> None:
@@ -563,8 +564,7 @@ class MainWindow(QMainWindow):
 
     def auto_sync(self, retries_left: int = SYNC_RETRY_ATTEMPTS, is_first: bool = False) -> None:
         if (not self.settings_handler.sync_enabled() or not self.tb_sync.isEnabled()
-                or self.sync_progress is not None or QApplication.activeModalWidget() is not None
-                or self.ui.tb_savenote.isEnabled()):
+                or self.sync_progress is not None or QApplication.activeModalWidget() is not None):
             return
         self.run_sync(interactive=False, pause_when_done=is_first)
         if self.sync_network_failed and retries_left > 0:
@@ -773,7 +773,7 @@ class MainWindow(QMainWindow):
         delete_payment_shortcut.activated.connect(self.ui.pb_deletepayment.click)
         # Начальное состояние: в таблице ничего не выбрано
         for element in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete,
-                        self.ui.pb_addpayment, self.ui.pb_deletepayment, self.ui.tb_savenote):
+                        self.ui.pb_addpayment, self.ui.pb_deletepayment):
             element.setEnabled(False)
         self.ui.tlbr.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.ui.cmb_responsiblefilter.setView(QListView())  # переключение на натив (белая заливка на hover - баг?)
@@ -863,7 +863,6 @@ class MainWindow(QMainWindow):
             # Без выделения row_type is None - кнопку добавления платежа включаем только если выбрано обязательство
             self.ui.pb_addpayment.setEnabled(row_type == RowType.LIABILITY)
         self.update_eventinfo()
-        self.ui.tb_savenote.setEnabled(False)
 
     def update_eventinfo(self) -> bool:
         current_index: QModelIndex = self.get_current_event_index()
@@ -983,7 +982,6 @@ class MainWindow(QMainWindow):
         self.ui.act_export.setEnabled(self.proxy2_model.stored_count > 0)
 
     def save_note(self, index: QModelIndex | None = None) -> bool:
-        self.ui.tb_savenote.setEnabled(False)
         note_index: QModelIndex = self.get_current_event_index() if index is None else index
         if not note_index.isValid():
             return False
