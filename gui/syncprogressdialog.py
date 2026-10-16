@@ -4,8 +4,8 @@ from enum import IntEnum
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen
-from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel, QLayout, QPushButton, QStackedWidget, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel, QLayout, QProgressBar, QPushButton, QStackedWidget,
+                               QVBoxLayout, QWidget)
 
 from base.sync import STAGE_CONNECT
 
@@ -117,11 +117,27 @@ class StageRow(QWidget):
         self.label.ensurePolished()
         self.label.setMinimumWidth(self.label.fontMetrics().horizontalAdvance(f"{text} (попытка 9/9)"))
 
-        layout = QHBoxLayout(self)
+        self.bar = QProgressBar(self)
+        self.bar.setRange(0, 100)
+        self.bar.setTextVisible(False)
+        self.bar.setFixedHeight(3)
+        self.bar.setStyleSheet("QProgressBar { border: none; border-radius: 1px; background-color: #e3e8ee; }"
+                               "QProgressBar::chunk { border-radius: 1px; background-color: #2c5c8a; }")
+        self.bar.setVisible(False)
+
+        row_layout = QHBoxLayout()
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(8)
+        row_layout.addWidget(self.icons, 0, Qt.AlignmentFlag.AlignVCenter)
+        row_layout.addWidget(self.label, 1)
+        bar_layout = QHBoxLayout()
+        bar_layout.setContentsMargins(SpinnerWidget.SIZE + row_layout.spacing(), 0, 0, 0)
+        bar_layout.addWidget(self.bar)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
-        layout.addWidget(self.icons, 0, Qt.AlignmentFlag.AlignVCenter)
-        layout.addWidget(self.label, 1)
+        layout.setSpacing(2)
+        layout.addLayout(row_layout)
+        layout.addLayout(bar_layout)
         self.set_state(StageState.PENDING)
 
     def set_state(self, state: StageState) -> None:
@@ -132,12 +148,23 @@ class StageRow(QWidget):
             self.spinner.start()
         else:
             self.spinner.stop()
+        if state != StageState.ACTIVE:
+            self.bar.setVisible(False)
         if state == StageState.DONE:
             self.label.setText(self.text)
 
     def set_attempt(self, attempt: int, total: int) -> None:
         self.label.setText(f"{self.text} (попытка {attempt}/{total})")
         self.label.setMinimumWidth(max(self.label.minimumWidth(), self.label.sizeHint().width()))
+        self.bar.setValue(0)
+
+    def set_progress(self, done: int, total: int) -> bool:
+        if total <= 0:
+            return False
+        shown_before: bool = self.bar.isVisible()
+        self.bar.setValue(min(done * 100 // total, 100))
+        self.bar.setVisible(True)
+        return not shown_before
 
 
 class SyncProgressDialog(QDialog):
@@ -225,6 +252,10 @@ class SyncProgressDialog(QDialog):
             self.current_row.set_attempt(attempt, total)
             self.fit_size()
             self.repaint()
+
+    def set_progress(self, done: int, total: int) -> None:
+        if self.current_row is not None and self.current_row.set_progress(done, total):
+            self.fit_size()
 
     def set_cancel_handler(self, handler: Callable[[], None] | None) -> None:
         self.cancel_handler = handler

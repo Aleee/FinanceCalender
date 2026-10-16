@@ -101,6 +101,7 @@ class QtHttpClient(HttpClient):
         self.on_retry: Callable[[int, int], None] | None = None
         self.on_long_wait: Callable[[bool], None] | None = None
         self.on_long_wait_end: Callable[[], None] | None = None
+        self.on_progress: Callable[[int, int], None] | None = None
         self.active_reply: QNetworkReply | None = None
         self.active_loop: QEventLoop | None = None
         self.last_request_at: float = time.monotonic()
@@ -162,6 +163,10 @@ class QtHttpClient(HttpClient):
                 body, size = QByteArray(data), len(data)
             request.setTransferTimeout(RESPONSE_TIMEOUT_MS + size * UPLOAD_EXTRA_MS_PER_MB // 1_000_000)
             reply = self.manager.sendCustomRequest(request, verb, body)
+            if self.on_progress is not None and upload_file is not None:
+                reply.uploadProgress.connect(self.on_progress)
+            elif self.on_progress is not None and download_file is not None:
+                reply.downloadProgress.connect(self.on_progress)
             stage = self.wait_for_reply(reply, self.marks)
             try:
                 response = self.read_response(reply)

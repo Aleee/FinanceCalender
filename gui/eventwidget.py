@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QTreeView, QAbstractItemView
 from PySide6.QtCore import Qt, QModelIndex, QItemSelectionModel, QTimer, Signal
-from PySide6.QtGui import QPainter, QColor
+from PySide6.QtGui import QPainter, QColor, QShortcut, QKeySequence
 
 from gui.common import model_atlevel
 from gui.commonwidgets.eventfilter import TooltipFilter
@@ -73,9 +73,19 @@ class EventWidget(QTreeView):
         self.setItemDelegateForColumn(Col.FEATURED, star_delegate)
         star_delegate.state_changed.connect(lambda: self.filter_conditions_changed.emit())
 
-        hidden_delegate = BoolDelegate("🔒", "⚪")
+        hidden_delegate = BoolDelegate("🔒", "·", "", "#c8c8c8")
         self.setItemDelegateForColumn(Col.HIDDEN, hidden_delegate)
         hidden_delegate.state_changed.connect(lambda: self.filter_conditions_changed.emit())
+
+        for key, column in (("Space", Col.FEATURED), ("Ctrl+H", Col.HIDDEN)):
+            shortcut = QShortcut(QKeySequence(key), self)
+            shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+            shortcut.activated.connect(lambda col=column: self.toggle_flag(col))
+
+    def toggle_flag(self, column: Col) -> None:
+        index = self.currentIndex().siblingAtColumn(column)
+        if index.isValid():
+            self.itemDelegateForColumn(column).toggle(self.model(), index)
 
 
     def paintEvent(self, event, /) -> None:

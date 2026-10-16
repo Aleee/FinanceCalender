@@ -40,6 +40,8 @@ STAGE_APPLY = "Обновление локальной копии"
 STAGE_SNAPSHOT = "Подготовка базы к отправке"
 STAGE_BACKUP = "Сохранение резервной копии"
 STAGE_UPLOAD = "Отправка базы"
+STAGE_VERIFY = "Проверка отправленной базы"
+STAGE_CLEANUP = "Удаление старых копий"
 STAGE_ANALYZE = "Анализ ваших изменений"
 STAGE_COMPARE_CHANGES = "Сравнение изменений"
 STAGE_MERGE = "Объединение изменений"
@@ -433,6 +435,7 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
         log.d(f"Отправка общей базы: загрузка за {elapsed_ms(stage_started)} мс")
         save_sync_base(snapshot)
     if backups_cleanup_due(master):
+        report_stage(STAGE_CLEANUP)
         try:
             channel.remove_old_backups(params.long_backup_keep_days)
         except SyncError as e:

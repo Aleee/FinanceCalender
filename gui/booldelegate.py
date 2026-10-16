@@ -41,13 +41,18 @@ class BoolDelegate(EventItemDelegate):
         else:
             super().draw_content(painter, option, index)
 
+    def toggle(self, model: QAbstractItemModel, index: QModelIndex) -> bool:
+        if not self._is_liability_row(index):
+            return False
+        current: bool = bool(index.data(Qt.ItemDataRole.EditRole))
+        new_value: int = int(not current)
+        model.setData(index, new_value, Qt.ItemDataRole.EditRole)
+        self.state_changed.emit()
+        return True
+
     def editorEvent(self, event: QEvent, model: QAbstractItemModel, option: QStyleOptionViewItem, index: QModelIndex) -> bool:
         if (event.type() == QEvent.Type.MouseButtonPress
                 and event.button() == Qt.MouseButton.LeftButton
-                and self._is_liability_row(index)):
-            current: bool = bool(index.data(Qt.ItemDataRole.EditRole))
-            new_value: int = int(not current)
-            model.setData(index, new_value, Qt.ItemDataRole.EditRole)
-            self.state_changed.emit()
+                and self.toggle(model, index)):
             return True
         return super().editorEvent(event, model, option, index)

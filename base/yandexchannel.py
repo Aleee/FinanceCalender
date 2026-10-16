@@ -10,7 +10,8 @@ import lovely_logger as log
 from base.httpclient import HttpClient, HttpResponse
 from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INFO_NAME, MASTER_LONG_BACKUPS_DIR,
                        MasterInfo, MasterInfoError, NetworkError, SHORT_BACKUPS_KEEP_DAYS, SyncCancelledError, SyncChannel,
-                       SyncError, TEMP_SUFFIX, backup_time_from_name, file_md5, is_backup_of_today, master_backup_name)
+                       STAGE_VERIFY, SyncError, TEMP_SUFFIX, backup_time_from_name, file_md5, is_backup_of_today,
+                       master_backup_name, report_stage)
 
 API_URL = "https://cloud-api.yandex.net/v1/disk"
 DEFAULT_DISK_FOLDER = "app:/"
@@ -187,6 +188,8 @@ class YandexDiskApiChannel(SyncChannel):
             log.d(f"Загрузка {name}: попытка {attempt}/{UPLOAD_ATTEMPTS} отклонена (400), запрашиваем новую ссылку")
         if response.status not in (201, 202):
             raise self.error_from(response)
+        if upload_file is not None:
+            report_stage(STAGE_VERIFY)
         mismatch = False
         for _ in range(UPLOAD_CONFIRM_ATTEMPTS):
             try:

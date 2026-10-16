@@ -204,6 +204,12 @@ class MainWindow(QMainWindow):
         }
         for action, text in short_labels.items():
             action.setIconText(text)
+        for action, key in ((self.ui.act_fulfillment, "Ctrl+P"), (self.ui.act_finplan, "Ctrl+Shift+P"),
+                            (self.ui.act_chart, "Ctrl+G"), (self.ui.act_contracts, "Ctrl+K"),
+                            (self.ui.act_settings, "Ctrl+,")):
+            action.setShortcut(QKeySequence(key))
+            action.setToolTip(f"{action.toolTip() or action.text()} ({key})")
+            self.addAction(action)
         self.ui.tlbr.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
         view_actions: list[QAction] = [self.ui.act_featured, self.ui.act_toggleheaders, self.ui.act_togglefooters]
@@ -727,6 +733,7 @@ class MainWindow(QMainWindow):
             http.on_retry = progress.set_attempt
             http.on_long_wait = progress.show_waiting
             http.on_long_wait_end = progress.end_waiting
+            http.on_progress = progress.set_progress
             progress.set_cancel_handler(http.request_cancel)
         if owns_progress:
             progress.start()
@@ -754,6 +761,7 @@ class MainWindow(QMainWindow):
                 http.on_retry = None
                 http.on_long_wait = None
                 http.on_long_wait_end = None
+                http.on_progress = None
                 progress.set_cancel_handler(None)
             if owns_progress:
                 progress.finish()
