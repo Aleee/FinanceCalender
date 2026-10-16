@@ -14,7 +14,7 @@ class EventWidget(QTreeView):
     filter_conditions_changed = Signal()
 
     EMPTY_TABLE_TEXT = "Нет платежей, подходящих под условия фильтрации и поиска"
-    EMPTY_TABLE_COLOR = "#808080"
+    EMPTY_TABLE_COLOR = "#666666"
 
     DEFAULT_COLUMN_WIDTH = {
         Col.RECEIVER: 140,
