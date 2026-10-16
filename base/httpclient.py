@@ -75,6 +75,7 @@ class QtHttpClient(HttpClient):
         self.manager.setRedirectPolicy(QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy)
         self.marks: dict[str, int] = {}
         self.on_attempt: Callable[[AttemptInfo], None] | None = None
+        self.on_retry: Callable[[int, int], None] | None = None
         self.last_request_at: float = time.monotonic()
 
     def send(self, method: str, url: str, headers: dict[str, str] | None = None, data: bytes = b"",
@@ -98,6 +99,8 @@ class QtHttpClient(HttpClient):
                         log.d(failure)
                     raise
                 self.manager.clearConnectionCache()
+                if self.on_retry is not None:
+                    self.on_retry(attempt + 1, MAX_ATTEMPTS)
                 self.pause(RETRY_PAUSE_MS)
                 continue
             for failure in failures:

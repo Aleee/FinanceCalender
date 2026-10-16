@@ -719,6 +719,9 @@ class MainWindow(QMainWindow):
         owns_progress: bool = self.sync_progress is None
         progress: SyncProgressDialog = SyncProgressDialog(self, planned_stages=planned_stages) if owns_progress else self.sync_progress
         set_stage_listener(progress.set_stage)
+        http = getattr(channel, "http", None)
+        if http is not None:
+            http.on_retry = progress.set_attempt
         if owns_progress:
             progress.start()
         try:
@@ -739,6 +742,8 @@ class MainWindow(QMainWindow):
             return None
         finally:
             set_stage_listener(None)
+            if http is not None:
+                http.on_retry = None
             if owns_progress:
                 progress.finish()
             QApplication.restoreOverrideCursor()

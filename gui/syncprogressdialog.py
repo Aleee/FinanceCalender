@@ -3,7 +3,11 @@ from enum import IntEnum
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QLayout, QStackedWidget, QVBoxLayout, QWidget
+
+from base.sync import STAGE_CONNECT
+
+STAGE_RECONNECT = "Переподключение к общей базе"
 
 
 class SpinnerWidget(QWidget):
@@ -96,6 +100,7 @@ class StageRow(QWidget):
     def __init__(self, text: str, parent=None):
         super().__init__(parent)
         self.state = StageState.PENDING
+        self.text = text
         self.spinner = SpinnerWidget()
         self.icons = QStackedWidget(self)
         self.icons.setFixedSize(SpinnerWidget.SIZE, SpinnerWidget.SIZE)
@@ -107,6 +112,8 @@ class StageRow(QWidget):
         font = self.label.font()
         font.setPointSize(max(font.pointSize() - 1, 7))
         self.label.setFont(font)
+        self.label.ensurePolished()
+        self.label.setMinimumWidth(self.label.fontMetrics().horizontalAdvance(f"{text} (попытка 9/9)"))
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -123,6 +130,12 @@ class StageRow(QWidget):
             self.spinner.start()
         else:
             self.spinner.stop()
+        if state == StageState.DONE:
+            self.label.setText(self.text)
+
+    def set_attempt(self, attempt: int, total: int) -> None:
+        self.label.setText(f"{self.text} (попытка {attempt}/{total})")
+        self.label.setMinimumWidth(max(self.label.minimumWidth(), self.label.sizeHint().width()))
 
 
 class SyncProgressDialog(QDialog):
@@ -150,6 +163,7 @@ class SyncProgressDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(10)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         layout.addWidget(self.lbl_text)
         layout.addLayout(self.rows_layout)
 
@@ -169,19 +183,27 @@ class SyncProgressDialog(QDialog):
         return row
 
     def fit_size(self) -> None:
-        self.setFixedSize(self.sizeHint().expandedTo(self.minimumSize()))
+        self.layout().activate()
 
     def set_stage(self, text: str) -> None:
         if self.current_row is not None and self.current_row.state == StageState.ACTIVE:
             self.current_row.set_state(StageState.DONE)
         row: StageRow | None = self.rows.get(text)
+        if row is not None and row.state != StageState.PENDING and text == STAGE_CONNECT:
+            text = STAGE_RECONNECT
+            row = self.rows.get(text)
         if row is None or row.state != StageState.PENDING:
             row = self.add_row(text)
         row.set_state(StageState.ACTIVE)
         self.current_row = row
-        self.layout().activate()
         self.fit_size()
         self.repaint()
+
+    def set_attempt(self, attempt: int, total: int) -> None:
+        if self.current_row is not None:
+            self.current_row.set_attempt(attempt, total)
+            self.fit_size()
+            self.repaint()
 
     def show_stage_now(self, text: str) -> None:
         self.delay_timer.stop()
