@@ -6,7 +6,7 @@ class YesNoMessagebox(QMessageBox):
     YES_RETURN_VALUE: int = 2
     NO_RETURN_VALUE: int = 3
 
-    def __init__(self, text: str, parent=None):
+    def __init__(self, text: str, parent=None, cancel_by_default: bool = False):
         super(YesNoMessagebox, self).__init__(parent)
 
         self.setWindowTitle("Подтверждение")
@@ -18,6 +18,9 @@ class YesNoMessagebox(QMessageBox):
 
         self.addButton(self.yes_button, QMessageBox.ButtonRole.AcceptRole)
         self.addButton(self.cancel_button, QMessageBox.ButtonRole.RejectRole)
+        self.setEscapeButton(self.cancel_button)
+        if cancel_by_default:
+            self.setDefaultButton(self.cancel_button)
 
 
 class ErrorInfoMessageBox(QMessageBox):

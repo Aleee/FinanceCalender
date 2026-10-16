@@ -757,7 +757,8 @@ class SettingsDialog(QDialog):
     def request_restore_backup(self) -> bool:
         msg_box = YesNoMessagebox("Обратите внимание, что данные текущей сессии будут заменены выбранными. "
                                   "Перед заменой программа сохранит копию текущих данных "
-                                  "(файл «before_restore_…» в папке data/backup). Уверены, что хотите продолжить?", self)
+                                  "(файл «before_restore_…» в папке data/backup). Уверены, что хотите продолжить?", self,
+                                  cancel_by_default=True)
         if msg_box.exec() != YesNoMessagebox.YES_RETURN_VALUE:
             return False
         backup_folder = self.settings_handler.backup_path()

@@ -1018,7 +1018,7 @@ class MainWindow(QMainWindow):
 
         if is_selection_filteredout(self.payment_proxy_model, self.ui.tv_payment):
             return False
-        msg_box = YesNoMessagebox(f"Вы уверены, что хотите удалить запись об оплате?")
+        msg_box = YesNoMessagebox(f"Вы уверены, что хотите удалить запись об оплате?", cancel_by_default=True)
         if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:
             return False
 
@@ -1149,7 +1149,8 @@ class MainWindow(QMainWindow):
         if selection_not_visible:
             self.warn_selection_lost()
             return False
-        msg_box = YesNoMessagebox("Удаление платежа - необратимое действие. Уверены, что хотите продолжить?")
+        msg_box = YesNoMessagebox("Удаление платежа - необратимое действие. Уверены, что хотите продолжить?",
+                                  cancel_by_default=True)
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
             event_id: int = self.current_data(Col.ID, LiabilitySqlTableModel.qtValueRole)
             row: int = self.proxy1_model.mapToSource(self.proxy2_model.mapToSource(curr_index)).row()
