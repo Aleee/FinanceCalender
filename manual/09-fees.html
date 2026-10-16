@@ -21,7 +21,7 @@ th { color: #1f3a5f; }
 <p>Банк списывает комиссии мелкими суммами по нескольку раз в день и не выставляет по ним отдельных счетов. Окно «Учет комиссий» находит комиссии в выписке, суммирует их по дням и создаёт по каждому дню оплаченный платеж. Без этого комиссии остаются в сверке (<a href="08-statement-matching.html">раздел 8</a>) в списке «Только в выписке».</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Как открыть</h2></td></tr></table>
 <ul>
-<li><strong>Из меню.</strong> «Выписка» → «Учет комиссий», затем «Загрузить выписку (CSV-файл)».</li>
+<li><strong>Из меню.</strong> «Сверка» (стрелка справа от кнопки) → «Учет комиссий», затем «Загрузить выписку (CSV-файл)».</li>
 <li><strong>Из сверки.</strong> В списке «Только в выписке» выберите строку «Комиссии, относимые на комиссионные расходы» или «Комиссии, относимые на банковские расходы» и нажмите «Добавить в календарь». Выписка уже загружена. Перед созданием платежей программа сравнит суммы с суммами сверки (см. «Создание платежей»). После закрытия окна сверка выполняется заново, и созданные платежи сопоставляются со строками выписки.</li>
 </ul>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Что настроить заранее</h2></td></tr></table>
@@ -96,10 +96,10 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Отчёт</h2></td></tr></table>
 <p>После загрузки файла программа показывает период выписки и для каждой группы таблицу: дата, число транзакций, сумма комиссий за день и итог.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Отчёт по комиссиям" src="images/10-fees/report.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 26. Окно «Учет комиссий». Предупреждения выделены жёлтым.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 27. Окно «Учет комиссий». Предупреждения выделены жёлтым.</em></span></p>
 <p><strong>«Подробный отчет»</strong> вместо дневных итогов показывает каждую комиссию отдельно: сумму, наименование (получатель в выписке) и назначение платежа.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Подробный отчёт" src="images/10-fees/report-full.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 27. Подробный отчёт. Строка с УНП не из списка банков выделена цветом.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 28. Подробный отчёт. Строка с УНП не из списка банков выделена цветом.</em></span></p>
 <p>Предупреждения:</p>
 <ul>
 <li><strong>«Среди транзакций замечены записи с УНП, которых нет в списке УНП банков»</strong> — комиссии, удержанные из поступлений, с УНП не из списка. Они <strong>входят</strong> в суммы. Убедитесь, что это действительно комиссии банка. Если да, добавьте УНП в список УНП банков и загрузите выписку заново.</li>
