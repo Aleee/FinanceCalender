@@ -3,9 +3,9 @@ from datetime import date
 
 import lovely_logger as log
 
-from PySide6.QtCore import QModelIndex, Qt, QDate, QObject, Signal, QTimer
+from PySide6.QtCore import QModelIndex, Qt, QDate, QObject, Signal, QTimer, QEvent
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QShortcut
-from PySide6.QtWidgets import QCheckBox, QDialog, QButtonGroup, QCompleter, QLineEdit, QMenu, QToolButton, QComboBox
+from PySide6.QtWidgets import QCheckBox, QDialog, QButtonGroup, QCompleter, QLineEdit, QMenu, QToolButton, QComboBox, QWidget, QFrame
 from decimal import Decimal
 
 from gui.manualdialog import add_help_shortcut
@@ -15,7 +15,7 @@ from base.dbhandler import DBHandler
 from gui.eventsqlmodel import LiabilitySqlTableModel, Col
 from gui.common import model_atlevel, map_to_source
 from gui.commonwidgets.eventfilter import NoWheelFilter
-from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
+from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox, show_status_message
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.responsiblemodels import ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
@@ -24,6 +24,27 @@ from base.liability import LiabilityCategory, LiabilityFinanceSubcategory, CATEG
 from base.contract import PaymentDueType, SavedContractValues
 from base.paymentdate import calculate_payment_date
 from base.workcalendar import WEEKDAY_ABBR
+
+
+class InvalidFrame(QFrame):
+
+    def __init__(self, widget: QWidget):
+        super().__init__(widget.parentWidget())
+        self.widget = widget
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setStyleSheet("border: 1px solid #cc0000; background: transparent;")
+        widget.installEventFilter(self)
+        self.follow_widget()
+
+    def follow_widget(self) -> None:
+        self.setGeometry(self.widget.geometry())
+        self.setVisible(self.widget.isVisible())
+        self.raise_()
+
+    def eventFilter(self, obj, event) -> bool:
+        if obj is self.widget and event.type() in (QEvent.Type.Resize, QEvent.Type.Move, QEvent.Type.Show, QEvent.Type.Hide):
+            self.follow_widget()
+        return False
 
 
 class ContractSelector(QObject):
@@ -261,6 +282,12 @@ class EventDialog(QDialog):
                        self.ui.cmb_subcategory, self.ui.cmb_nds, self.ui.cmb_responsible):
             widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
             widget.installEventFilter(self.no_wheel_filter)
+
+        self.invalid_frames: list[InvalidFrame] = []
+        for signal in (self.ui.le_receiver.textChanged, self.ui.te_name.textChanged, self.ui.dsb_totalamount.valueChanged,
+                       self.ui.de_incurrencedate.dateChanged, self.ui.de_duedate.dateChanged,
+                       self.ui.cmb_subcategory.currentIndexChanged, self.ui.cmb_responsible.currentIndexChanged):
+            signal.connect(self.clear_invalid_marks)
 
         self.set_completers()
         self.fit_textedit_height(self.ui.te_name, self.ui.te_descr)
@@ -525,7 +552,7 @@ class EventDialog(QDialog):
             self.ui.cmb_responsible.currentData(),
             int(self.ui.chb_hidden.isChecked()))
         if self.dbh.save_contractdocumentvalues(contract_values):
-            ErrorInfoMessageBox("Данные успешно сохранены", is_info=True, parent=self).exec()
+            show_status_message(self, "Данные договора успешно сохранены")
         else:
             ErrorInfoMessageBox("Ошибка при попытке сохранения данных (подробнее см. лог)", parent=self).exec()
 
@@ -609,7 +636,18 @@ class EventDialog(QDialog):
         if by_user:
             self.sh.settings.setValue("Eventdialog/sidepanel", int(self.sidepanel_visibility))
 
+    def mark_invalid(self, *widgets: QWidget) -> None:
+        for widget in widgets:
+            self.invalid_frames.append(InvalidFrame(widget))
+
+    def clear_invalid_marks(self, *_) -> None:
+        for frame in self.invalid_frames:
+            frame.widget.removeEventFilter(frame)
+            frame.deleteLater()
+        self.invalid_frames.clear()
+
     def check_integrity(self) -> bool:
+        self.clear_invalid_marks()
         text = ""
         focus_widget = None
         if self.ui.le_receiver.text().strip() == "":
@@ -631,6 +669,9 @@ class EventDialog(QDialog):
         elif self.corrected_payment_sum() == 0:
             text, focus_widget = "Исправленная сумма оплаты не может быть равна нулю", self.ui.dsb_totalamount
         if text:
+            self.mark_invalid(focus_widget)
+            if focus_widget is self.ui.de_incurrencedate and self.ui.de_incurrencedate.date() > self.ui.de_duedate.date():
+                self.mark_invalid(self.ui.de_duedate)
             msg = ErrorInfoMessageBox(text, parent=self)
             msg.exec()
             focus_widget.setFocus()
