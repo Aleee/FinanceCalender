@@ -13,8 +13,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(inputs.intel && '["macos-14", "macos-15-intel"]' || '["macos-14"]') }}
-    runs-on: ${{ matrix.os }}
+        target: ${{ fromJSON(inputs.intel && '[{"os": "macos-14", "arch": "arm64"}, {"os": "macos-15-intel", "arch": "x86_64"}]' || '[{"os": "macos-14", "arch": "arm64"}]') }}
+    runs-on: ${{ matrix.target.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,5 +24,5 @@ jobs:
       - run: python tools/build_release_mac.py
       - uses: actions/upload-artifact@v4
         with:
-          name: FinanceCalender-mac-${{ matrix.os }}
+          name: FinanceCalender-mac-${{ matrix.target.arch }}
           path: dist/release/*
