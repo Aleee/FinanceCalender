@@ -213,6 +213,7 @@ class EventDialog(QDialog):
                             ("Погашение процентов", int(LiabilityFinanceSubcategory.INTEREST)), ("Погашение займов учредителям", int(LiabilityFinanceSubcategory.FOUNDERLOAN))]
 
     DOCUMENT_NAME_MAX_LEN = 30
+    CONTRACT_NAME_MAX_LEN = 30
 
     DESCR_COMPLETER_LIST = ["Акт сдачи-приемки оказанных услуг №", "ТТН №", "ТН №", "Договор №", "Приложение №", "Счет на оплату №",
                             "Договор аренды №", "Счет №", "Акт выполненных работ №", "Счет на оплату №", "Акт сдачи-приемки оказанных услуг №",
@@ -250,6 +251,8 @@ class EventDialog(QDialog):
         self.button_group.addButton(self.ui.rb_typenormal, PaymentType.NORMAL)
         self.button_group.addButton(self.ui.rb_typeadvance, PaymentType.ADVANCE)
         self.button_group.addButton(self.ui.rb_typerefund, PaymentType.REFUND)
+        self.responsible_chosen_manually: bool = False
+        self.ui.cmb_responsible.activated.connect(self.mark_responsible_chosen)
         self.ui.cmb_category.activated.connect(lambda: self.resort_responsible_cmb(self.ui.cmb_category.currentData(Qt.ItemDataRole.UserRole), auto_choice=True))
         self.ui.pb_toggle.clicked.connect(lambda: self.change_sidepanel_visibility(not self.sidepanel_visibility, True))
         self.ui.pb_applypaymentdate.clicked.connect(self.apply_payment_date)
@@ -428,11 +431,10 @@ class EventDialog(QDialog):
 
     def resort_responsible_cmb(self, new_category: int, auto_choice: bool):
         self.responsible_model.resort(new_category)
-        if auto_choice:
-            try:
-                self.ui.cmb_responsible.setCurrentIndex(1)
-            except IndexError:
-                pass
+        if auto_choice and not self.responsible_chosen_manually:
+            leader_id = self.ui.cmb_responsible.itemData(1, Qt.ItemDataRole.UserRole)
+            has_history = self.responsible_model.freq_dict.get(new_category, {}).get(leader_id, 0) > 0
+            self.ui.cmb_responsible.setCurrentIndex(1 if has_history else 0)
 
     @staticmethod
     def _stripped(text: str) -> str:
@@ -464,6 +466,9 @@ class EventDialog(QDialog):
         self.ui.tb_responsible.setMenu(self.tb_position_menu)
         self.tb_position_menu.triggered.connect(self.pick_responsible_by_position)
 
+    def mark_responsible_chosen(self) -> None:
+        self.responsible_chosen_manually = True
+
     def pick_responsible_by_position(self, action: QAction) -> None:
         position_id = action.data()
         if not position_id:
@@ -477,6 +482,7 @@ class EventDialog(QDialog):
             ErrorInfoMessageBox("Работник, занимающий эту должность, отсутствует в текущем списке ответственных.", parent=self).exec()
             return
         self.ui.cmb_responsible.setCurrentIndex(cmb_index)
+        self.mark_responsible_chosen()
 
     def change_nds(self):
         cmb_index: int = self.ui.cmb_nds.findData(NDS_VALUE[self.ui.cmb_category.currentData()])
@@ -505,6 +511,22 @@ class EventDialog(QDialog):
         self.contractdocument_id = self.selector.doc_id
         self.show_bound_contract(self.selected_document_title())
         self.update_contract_buttons()
+        self.pick_responsible_from_document()
+
+    def pick_responsible_from_document(self):
+        if self.edit_mode or self.copy_mode or self.responsible_chosen_manually:
+            return
+        document_data = self.dbh.load_document_data(self.contractdocument_id)
+        if document_data is None or not document_data.position_id:
+            return
+        person_id = self.dbh.resolve_position_to_personal(document_data.position_id)
+        if person_id is None:
+            return
+        cmb_index = self.ui.cmb_responsible.findData(person_id)
+        if cmb_index != -1:
+            self.ui.cmb_responsible.setCurrentIndex(cmb_index)
+            self.mark_responsible_chosen()
+            show_status_message(self, "Ответственный подставлен из договора")
 
     def unbind_contract(self):
         self.contractdocument_id = 0
@@ -512,10 +534,15 @@ class EventDialog(QDialog):
         self.update_contract_buttons()
 
     def selected_document_title(self) -> str:
-        document_name = self.ui.cmb_document.currentText()
-        if len(document_name) > self.DOCUMENT_NAME_MAX_LEN:
-            document_name = document_name[:self.DOCUMENT_NAME_MAX_LEN].rstrip() + "…"
-        return f"{self.ui.cmb_contract.currentText()} ({document_name})"
+        document_name = self._shortened(self.ui.cmb_document.currentText(), self.DOCUMENT_NAME_MAX_LEN)
+        contract_name = self._shortened(self.ui.cmb_contract.currentText(), self.CONTRACT_NAME_MAX_LEN)
+        return f"{contract_name} ({document_name})"
+
+    @staticmethod
+    def _shortened(text: str, max_len: int) -> str:
+        if len(text) > max_len:
+            return text[:max_len].rstrip() + "…"
+        return text
 
     def show_bound_contract(self, title: str) -> None:
         self.ui.la_contract.setText(title or "не привязан")
@@ -528,7 +555,7 @@ class EventDialog(QDialog):
         doc_id = self.selector.doc_id
         is_bound = bool(doc_id) and doc_id == self.contractdocument_id
         self.ui.pb_bindcontract.setEnabled(bool(doc_id) and not is_bound)
-        self.ui.pb_bindcontract.setText("Платеж привязан к этому документу" if is_bound else "Привязать платеж к документу")
+        self.ui.pb_bindcontract.setText("Платеж привязан к этому документу" if is_bound else "Привязать к документу")
         self.ui.pb_applypaymentdate.setEnabled(is_bound and self.calculated_payment_date is not None)
         self.ui.pb_fillwithvalues.setEnabled(bool(doc_id))
         self.ui.pb_savevalues.setEnabled(bool(doc_id))
@@ -580,6 +607,7 @@ class EventDialog(QDialog):
         self.ui.cmb_nds.setCurrentIndex(cmb_index)
         cmb_index: int = self.ui.cmb_responsible.findData(contract_values.responsible)
         self.ui.cmb_responsible.setCurrentIndex(cmb_index)
+        self.mark_responsible_chosen()
         self.ui.chb_hidden.setChecked(bool(contract_values.hidden))
         self.ui.te_descr.setPlainText(contract_values.descr)
         self.set_subcategory_visible(self.ui.cmb_category.currentData() == LiabilityCategory.TOP_FINANCES)

@@ -343,6 +343,9 @@
        </property>
        <item>
         <widget class="QComboBox" name="cmb_responsible">
+         <property name="toolTip">
+          <string>В новом платеже подставляется автоматически: из привязанного документа договора или самый частый ответственный по категории. Можно изменить</string>
+         </property>
          <property name="minimumSize">
           <size>
            <width>200</width>
@@ -566,8 +569,11 @@
          </property>
          <item>
           <widget class="QPushButton" name="pb_bindcontract">
+           <property name="toolTip">
+            <string>Запомнить, что платеж относится к выбранному документу. Нужна для подстановки срока оплаты</string>
+           </property>
            <property name="text">
-            <string>Привязать платеж к документу</string>
+            <string>Привязать к документу</string>
            </property>
           </widget>
          </item>
@@ -580,6 +586,11 @@
          </item>
          <item>
           <widget class="QLabel" name="label_20">
+           <property name="font">
+            <font>
+             <bold>true</bold>
+            </font>
+           </property>
            <property name="text">
             <string>Условия оплаты:</string>
            </property>
@@ -747,10 +758,10 @@
          <item>
           <widget class="QPushButton" name="pb_applypaymentdate">
            <property name="toolTip">
-            <string>Доступно, когда платеж привязан к выбранному документу</string>
+            <string>Поставить расчетную дату в срок оплаты платежа. Доступно, когда платеж привязан к выбранному документу</string>
            </property>
            <property name="text">
-            <string>← Подставить дату</string>
+            <string>← Подставить срок оплаты</string>
            </property>
           </widget>
          </item>
@@ -762,7 +773,22 @@
           </widget>
          </item>
          <item>
+          <widget class="QLabel" name="la_valuesgroup">
+           <property name="font">
+            <font>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Значения полей</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="pb_fillwithvalues">
+           <property name="toolTip">
+            <string>Перезаписать поля платежа значениями, сохраненными для выбранного документа</string>
+           </property>
            <property name="text">
             <string>← Заполнить поля из договора</string>
            </property>
@@ -770,6 +796,9 @@
          </item>
          <item>
           <widget class="QPushButton" name="pb_savevalues">
+           <property name="toolTip">
+            <string>Запомнить текущие поля платежа как образец для выбранного документа</string>
+           </property>
            <property name="text">
             <string>Сохранить поля в договор →</string>
            </property>

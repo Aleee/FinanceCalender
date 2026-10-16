@@ -335,6 +335,9 @@ class Ui_EventDialog(object):
 
         self.label_20 = QLabel(self.wdg_contractterms)
         self.label_20.setObjectName(u"label_20")
+        font = QFont()
+        font.setBold(True)
+        self.label_20.setFont(font)
 
         self.verticalLayout.addWidget(self.label_20)
 
@@ -418,8 +421,6 @@ class Ui_EventDialog(object):
 
         self.la_calculatedpaymentdate = QLabel(self.wdg_contractterms)
         self.la_calculatedpaymentdate.setObjectName(u"la_calculatedpaymentdate")
-        font = QFont()
-        font.setBold(True)
         self.la_calculatedpaymentdate.setFont(font)
 
         self.horizontalLayout_13.addWidget(self.la_calculatedpaymentdate)
@@ -442,6 +443,12 @@ class Ui_EventDialog(object):
         self.line_10.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.verticalLayout.addWidget(self.line_10)
+
+        self.la_valuesgroup = QLabel(self.wdg_contractterms)
+        self.la_valuesgroup.setObjectName(u"la_valuesgroup")
+        self.la_valuesgroup.setFont(font)
+
+        self.verticalLayout.addWidget(self.la_valuesgroup)
 
         self.pb_fillwithvalues = QPushButton(self.wdg_contractterms)
         self.pb_fillwithvalues.setObjectName(u"pb_fillwithvalues")
@@ -603,6 +610,9 @@ class Ui_EventDialog(object):
         self.rb_typerefund.setText(QCoreApplication.translate("EventDialog", u"\u0432\u043e&\u0437\u0432\u0440\u0430\u0442", None))
         self.label_7.setText(QCoreApplication.translate("EventDialog", u"&\u041e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439:", None))
 #if QT_CONFIG(tooltip)
+        self.cmb_responsible.setToolTip(QCoreApplication.translate("EventDialog", u"\u0412 \u043d\u043e\u0432\u043e\u043c \u043f\u043b\u0430\u0442\u0435\u0436\u0435 \u043f\u043e\u0434\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438: \u0438\u0437 \u043f\u0440\u0438\u0432\u044f\u0437\u0430\u043d\u043d\u043e\u0433\u043e \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430 \u0438\u043b\u0438 \u0441\u0430\u043c\u044b\u0439 \u0447\u0430\u0441\u0442\u044b\u0439 \u043e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u043f\u043e \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0438. \u041c\u043e\u0436\u043d\u043e \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c", None))
+#endif // QT_CONFIG(tooltip)
+#if QT_CONFIG(tooltip)
         self.tb_responsible.setToolTip(QCoreApplication.translate("EventDialog", u"\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u043e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0433\u043e \u043f\u043e \u0437\u0430\u043d\u0438\u043c\u0430\u0435\u043c\u043e\u0439 \u0434\u043e\u043b\u0436\u043d\u043e\u0441\u0442\u0438", None))
 #endif // QT_CONFIG(tooltip)
         self.tb_responsible.setText(QCoreApplication.translate("EventDialog", u"\u041f\u043e \u0434\u043e\u043b\u0436\u043d\u043e\u0441\u0442\u0438\u2026", None))
@@ -611,17 +621,27 @@ class Ui_EventDialog(object):
         self.label_15.setText(QCoreApplication.translate("EventDialog", u"\u041a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442:", None))
         self.label_14.setText(QCoreApplication.translate("EventDialog", u"\u0414\u043e\u0433\u043e\u0432\u043e\u0440:", None))
         self.label_18.setText(QCoreApplication.translate("EventDialog", u"\u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442:", None))
-        self.pb_bindcontract.setText(QCoreApplication.translate("EventDialog", u"\u041f\u0440\u0438\u0432\u044f\u0437\u0430\u0442\u044c \u043f\u043b\u0430\u0442\u0435\u0436 \u043a \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443", None))
+#if QT_CONFIG(tooltip)
+        self.pb_bindcontract.setToolTip(QCoreApplication.translate("EventDialog", u"\u0417\u0430\u043f\u043e\u043c\u043d\u0438\u0442\u044c, \u0447\u0442\u043e \u043f\u043b\u0430\u0442\u0435\u0436 \u043e\u0442\u043d\u043e\u0441\u0438\u0442\u0441\u044f \u043a \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u043c\u0443 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443. \u041d\u0443\u0436\u043d\u0430 \u0434\u043b\u044f \u043f\u043e\u0434\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 \u0441\u0440\u043e\u043a\u0430 \u043e\u043f\u043b\u0430\u0442\u044b", None))
+#endif // QT_CONFIG(tooltip)
+        self.pb_bindcontract.setText(QCoreApplication.translate("EventDialog", u"\u041f\u0440\u0438\u0432\u044f\u0437\u0430\u0442\u044c \u043a \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443", None))
         self.label_20.setText(QCoreApplication.translate("EventDialog", u"\u0423\u0441\u043b\u043e\u0432\u0438\u044f \u043e\u043f\u043b\u0430\u0442\u044b:", None))
         self.label_19.setText(QCoreApplication.translate("EventDialog", u"\u0414\u0430\u0442\u0430 \u0432\u043e\u0437\u043d\u0438\u043a\u043d\u043e\u0432\u0435\u043d\u0438\u044f:", None))
         self.label_21.setText(QCoreApplication.translate("EventDialog", u"\u041e\u0442\u0447\u0435\u0442\u043d\u044b\u0439 \u043c\u0435\u0441\u044f\u0446:", None))
         self.label_22.setText(QCoreApplication.translate("EventDialog", u"\u0420\u0430\u0441\u0447\u0435\u0442\u043d\u0430\u044f \u0434\u0430\u0442\u0430:", None))
         self.la_calculatedpaymentdate.setText(QCoreApplication.translate("EventDialog", u"\u2014", None))
 #if QT_CONFIG(tooltip)
-        self.pb_applypaymentdate.setToolTip(QCoreApplication.translate("EventDialog", u"\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u043e, \u043a\u043e\u0433\u0434\u0430 \u043f\u043b\u0430\u0442\u0435\u0436 \u043f\u0440\u0438\u0432\u044f\u0437\u0430\u043d \u043a \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u043c\u0443 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443", None))
+        self.pb_applypaymentdate.setToolTip(QCoreApplication.translate("EventDialog", u"\u041f\u043e\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0440\u0430\u0441\u0447\u0435\u0442\u043d\u0443\u044e \u0434\u0430\u0442\u0443 \u0432 \u0441\u0440\u043e\u043a \u043e\u043f\u043b\u0430\u0442\u044b \u043f\u043b\u0430\u0442\u0435\u0436\u0430. \u0414\u043e\u0441\u0442\u0443\u043f\u043d\u043e, \u043a\u043e\u0433\u0434\u0430 \u043f\u043b\u0430\u0442\u0435\u0436 \u043f\u0440\u0438\u0432\u044f\u0437\u0430\u043d \u043a \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u043c\u0443 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443", None))
 #endif // QT_CONFIG(tooltip)
-        self.pb_applypaymentdate.setText(QCoreApplication.translate("EventDialog", u"\u2190 \u041f\u043e\u0434\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0434\u0430\u0442\u0443", None))
+        self.pb_applypaymentdate.setText(QCoreApplication.translate("EventDialog", u"\u2190 \u041f\u043e\u0434\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0441\u0440\u043e\u043a \u043e\u043f\u043b\u0430\u0442\u044b", None))
+        self.la_valuesgroup.setText(QCoreApplication.translate("EventDialog", u"\u0417\u043d\u0430\u0447\u0435\u043d\u0438\u044f \u043f\u043e\u043b\u0435\u0439", None))
+#if QT_CONFIG(tooltip)
+        self.pb_fillwithvalues.setToolTip(QCoreApplication.translate("EventDialog", u"\u041f\u0435\u0440\u0435\u0437\u0430\u043f\u0438\u0441\u0430\u0442\u044c \u043f\u043e\u043b\u044f \u043f\u043b\u0430\u0442\u0435\u0436\u0430 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f\u043c\u0438, \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043d\u044b\u043c\u0438 \u0434\u043b\u044f \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430", None))
+#endif // QT_CONFIG(tooltip)
         self.pb_fillwithvalues.setText(QCoreApplication.translate("EventDialog", u"\u2190 \u0417\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u044c \u043f\u043e\u043b\u044f \u0438\u0437 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430", None))
+#if QT_CONFIG(tooltip)
+        self.pb_savevalues.setToolTip(QCoreApplication.translate("EventDialog", u"\u0417\u0430\u043f\u043e\u043c\u043d\u0438\u0442\u044c \u0442\u0435\u043a\u0443\u0449\u0438\u0435 \u043f\u043e\u043b\u044f \u043f\u043b\u0430\u0442\u0435\u0436\u0430 \u043a\u0430\u043a \u043e\u0431\u0440\u0430\u0437\u0435\u0446 \u0434\u043b\u044f \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430", None))
+#endif // QT_CONFIG(tooltip)
         self.pb_savevalues.setText(QCoreApplication.translate("EventDialog", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u043f\u043e\u043b\u044f \u0432 \u0434\u043e\u0433\u043e\u0432\u043e\u0440 \u2192", None))
 #if QT_CONFIG(tooltip)
         self.pb_toggle.setToolTip(QCoreApplication.translate("EventDialog", u"\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0438\u043b\u0438 \u0441\u043a\u0440\u044b\u0442\u044c \u043f\u0430\u043d\u0435\u043b\u044c \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430", None))
