@@ -41,9 +41,9 @@ def check_pushed() -> str:
     return branch
 
 
-def build_mac(branch: str) -> None:
+def build_mac(branch: str, intel: bool) -> None:
     started = time.time()
-    run("gh", "workflow", "run", WORKFLOW, "--ref", branch)
+    run("gh", "workflow", "run", WORKFLOW, "--ref", branch, "-f", f"intel={str(intel).lower()}")
     run_id = None
     for _ in range(30):
         time.sleep(5)
@@ -66,6 +66,7 @@ def main() -> None:
     parser.add_argument("--notes", default="", help="Текст «Что нового» для version*.json")
     parser.add_argument("--skip-tests", action="store_true", help="Не запускать тесты")
     parser.add_argument("--skip-mac", action="store_true", help="Не собирать macOS через GitHub Actions")
+    parser.add_argument("--mac-intel", action="store_true", help="Собрать также версию для Mac Intel")
     args = parser.parse_args()
 
     mac_branch = None
@@ -88,7 +89,7 @@ def main() -> None:
 
     if mac_branch is not None:
         step("Сборка для macOS (GitHub Actions)")
-        build_mac(mac_branch)
+        build_mac(mac_branch, args.mac_intel)
 
     step("Готово")
     print(f"Windows: {ROOT / 'dist' / 'release'}")

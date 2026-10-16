@@ -1,13 +1,19 @@
 name: macos-build
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      intel:
+        description: Собрать также версию для Mac Intel
+        type: boolean
+        default: false
 
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-15-intel]
+        os: ${{ fromJSON(inputs.intel && '["macos-14", "macos-15-intel"]' || '["macos-14"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
