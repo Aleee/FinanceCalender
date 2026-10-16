@@ -26,6 +26,23 @@ class Payment:
 
 
 @dataclass()
+class PaymentInfo:
+    payment_id: int
+    event_id: int
+    payment_date: date
+    payment_sum: Decimal
+    name: str
+    receiver: str
+    due_date: date | None
+    total_amount: Decimal
+    paid_amount: Decimal
+
+    @property
+    def paid_before(self) -> Decimal:
+        return self.paid_amount - self.payment_sum
+
+
+@dataclass()
 class PaymentEntry:
     amount: Decimal
     descr: str

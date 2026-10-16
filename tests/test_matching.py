@@ -9,10 +9,10 @@ from base.formatting import records_word
 from base.liability import LiabilityCategory
 from base.payment import PaymentEntry
 from base.paymentmacther import (CONTRACT_TAX_DESCRIPTION, DateDiscrepancy, ProbablePair, ReconciliationMarks,
-                                  ReconciliationResult, _pair_probable_matches, _regroup_contract_payments,
+                                  ReconciliationResult, _merge_split_payments, _pair_probable_matches,
+                                  _regroup_contract_payments,
                                   extract_statement_payments, pair_confidence, pair_reasons,
                                   reconcile_statement_with_calendar)
-from tests.test_audit_fixes import query_all
 from tests.test_readpath import add_event, add_payment, db_file, models, open_models  # noqa: F401
 
 
@@ -137,31 +137,6 @@ def test_calendar_entries_carry_ids_for_correction(db_file, shared_dbh, open_mod
         payment_id, event_id, "ЗАО Санитарная оборона")
 
 
-def test_correction_changes_payment_and_event_sum(db_file, shared_dbh, open_models):
-    event_id = add_event(db_file, total="1828.0")
-    payment_id = add_payment(db_file, event_id, "2026-10-10", "1828.0")
-    open_models(db_file)
-    assert shared_dbh.correct_payment_sum(payment_id, Decimal("1846.00"))
-    assert Decimal(query_all(db_file, "SELECT sum FROM payment WHERE id = ?", payment_id)[0][0]) == Decimal("1846.00")
-    assert Decimal(query_all(db_file, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1846.00")
-
-
-def test_correction_keeps_remainder_of_partially_paid_event(db_file, shared_dbh, open_models):
-    event_id = add_event(db_file, total="5000.00")
-    payment_id = add_payment(db_file, event_id, "2026-10-10", "1000.00")
-    add_payment(db_file, event_id, "2026-10-09", "500.00")
-    open_models(db_file)
-    assert shared_dbh.correct_payment_sum(payment_id, Decimal("980.00"))
-    assert Decimal(query_all(db_file, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("4980.00")
-
-
-def test_correction_of_missing_payment_changes_nothing(db_file, shared_dbh, open_models):
-    event_id = add_event(db_file, total="100.00")
-    open_models(db_file)
-    assert not shared_dbh.correct_payment_sum(9999, Decimal("90.00"))
-    assert Decimal(query_all(db_file, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("100.00")
-
-
 def fee_categories(total: str):
     daily = {date(2026, 10, 10): DailyFees(1, Decimal(total), [Decimal(total)])}
     return [(daily, LiabilityCategory.BANKING, ""), ({}, LiabilityCategory.COMMISSION, "")]
@@ -200,7 +175,7 @@ def test_standalone_fee_dialog_does_not_check_totals(monkeypatch):
     assert confirm_fee_totals(monkeypatch, None, "1156.92") == []
 
 
-def statement_with(tmp_path, *descriptions_and_debits: tuple[str, str]):
+def statement_with(tmp_path, *descriptions_and_debits: tuple[str, str], extra_settings: dict | None = None):
     rows = [[""] * 10 for _ in range(8)]
     rows[0][0] = "ВЫПИСКА ПО СЧЕТУ С 06.10.2026 ПО 06.10.2026"
     for number, (descr, debit) in enumerate(descriptions_and_debits):
@@ -209,7 +184,7 @@ def statement_with(tmp_path, *descriptions_and_debits: tuple[str, str]):
     path.write_text("\n".join(";".join(row) for row in rows) + "\n", encoding="windows-1251")
     settings = {"CSVparser/columnstoparse": "0,2,5,8,7,9,6", "CSVparser/rowperiod": "1",
                 "CSVparser/rowtransactionstart": "9", "CSVparser/knownunp": "", "CSVparser/patterns": "",
-                "CSVparser/nomatchpatterns": ""}
+                "CSVparser/nomatchpatterns": "", **(extra_settings or {})}
     dbh = SimpleNamespace(get_setting=lambda key, default="": settings.get(key, default))
     return extract_statement_payments(str(path), dbh).by_date[date(2026, 10, 6)]
 
@@ -242,6 +217,26 @@ def test_material_aid_is_included_in_payroll(tmp_path):
                              ("ОТПУСКНЫЕ ЗА ОКТЯБРЬ 2026", "6 430,44"))
     assert [(e.descr, e.amount) for e in entries] == [
         ("Выплаты работникам (зарплата/отпускные/ФСЗН/налог)", Decimal("7430.44"))]
+
+
+def test_default_payroll_patterns_cover_word_forms(tmp_path):
+    entries = statement_with(tmp_path,
+                             ("ОТЧИСЛЕНИЯ НА ППС ИЗ ЗАРАБОТНОЙ ПЛАТЫ ЗА СЕНТЯБРЬ 2026", "376,31"),
+                             ("ОТЧИСЛЕНИЯ ОТ ЧЛЕНСКИХ ВЗНОСОВ ИЗ ЗАРПЛАТЫ ЗА СЕНТЯБРЬ 2026", "4 256,01"),
+                             ("ОПЛАТА ЧЛЕНСКИХ ВЗНОСОВ ЗА ОКТЯБРЬ 2026", "300,00"))
+    amounts = {entry.descr.removesuffix(" (Контрагент)"): entry.amount for entry in entries}
+    assert amounts["Выплаты работникам (зарплата/отпускные/ФСЗН/налог)"] == Decimal("4632.32")
+    assert amounts["ОПЛАТА ЧЛЕНСКИХ ВЗНОСОВ ЗА ОКТЯБРЬ 2026"] == Decimal("300.00")
+
+
+def test_payroll_patterns_are_taken_from_settings(tmp_path):
+    entries = statement_with(tmp_path,
+                             ("ХОЗЯЙСТВЕННЫЕ РАСХОДЫ ЗА ОКТЯБРЬ СОГЛ. СПИСКУ N 194", "194,14"),
+                             ("ОТПУСКНЫЕ ЗА ОКТЯБРЬ 2026", "6 430,44"),
+                             extra_settings={"CSVparser/payrollpatterns": " Хозяйственные расходы ,, "})
+    amounts = {entry.descr.removesuffix(" (Контрагент)"): entry.amount for entry in entries}
+    assert amounts["Выплаты работникам (зарплата/отпускные/ФСЗН/налог)"] == Decimal("194.14")
+    assert amounts["ОТПУСКНЫЕ ЗА ОКТЯБРЬ 2026"] == Decimal("6430.44")
 
 
 def contract_case(net="700.90", tax="391.20", gross="815.00", insurance="277.10"):
@@ -287,6 +282,70 @@ def test_group_key_does_not_depend_on_entry_order():
     first = _regroup_contract_payments(date(2026, 10, 6), statement, calendar)[0][0]
     second = _regroup_contract_payments(date(2026, 10, 6), statement[::-1], calendar[::-1])[0][0]
     assert first.key == second.key
+
+
+FEE_DATE = date(2026, 10, 15)
+
+
+def split_case():
+    statement = [entry("1026.46", "ЮРСПЕКТР ООО", "ОПЛАТА ПО СЧЕТУ 57041 ОТ 08.09.2026"),
+                 entry("2.00", "ЮРСПЕКТР ООО", "ОПЛАТА ПО СЧЕТУ 57041 ОТ 08.09.2026 (ДОПЛАТА)")]
+    calendar = [entry("1028.46", "ООО ЮрСпектр", "Информационные услуги Счет на оплату № 57041 от 08.09.2026")]
+    return statement, calendar
+
+
+def test_one_calendar_payment_paid_in_parts_is_grouped():
+    statement, calendar = split_case()
+    groups, rest_statement, rest_calendar = _merge_split_payments(FEE_DATE, statement, calendar)
+    assert len(groups) == 1 and rest_statement == [] and rest_calendar == []
+    assert groups[0].statement == statement and groups[0].calendar == calendar
+    assert groups[0].explanation.splitlines() == [
+        "ООО ЮрСпектр: один платёж в календаре оплачен несколькими платежами в выписке",
+        "Выписка: 1 026,46 + 2,00 = 1 028,46",
+        "Календарь: 1 028,46 = 1 028,46",
+    ]
+
+
+def test_one_statement_payment_for_several_calendar_payments_is_grouped():
+    statement, calendar = split_case()
+    groups, rest_statement, rest_calendar = _merge_split_payments(FEE_DATE, calendar, statement)
+    assert len(groups) == 1 and rest_statement == [] and rest_calendar == []
+    assert groups[0].statement == calendar and groups[0].calendar == statement
+    assert groups[0].explanation.splitlines()[0] == (
+        "ООО ЮрСпектр: один платёж в выписке соответствует нескольким платежам в календаре")
+
+
+def test_split_with_different_total_is_not_grouped():
+    statement, calendar = split_case()
+    statement[1] = entry("2.10", "ЮРСПЕКТР ООО")
+    groups, rest_statement, rest_calendar = _merge_split_payments(FEE_DATE, statement, calendar)
+    assert groups == [] and rest_statement == statement and rest_calendar == calendar
+
+
+def test_split_needs_the_same_counterparty():
+    statement, calendar = split_case()
+    statement[1] = entry("2.00", "ООО Василёк")
+    assert _merge_split_payments(FEE_DATE, statement, calendar)[0] == []
+
+
+def test_split_takes_only_needed_parts():
+    statement, calendar = split_case()
+    extra = entry("5.00", "ЮРСПЕКТР ООО")
+    groups, rest_statement, _ = _merge_split_payments(FEE_DATE, statement + [extra], calendar)
+    assert len(groups) == 1 and rest_statement == [extra]
+
+
+def test_split_ignores_fee_entries():
+    statement, calendar = split_case()
+    statement[1].fee_category = LiabilityCategory.BANKING
+    assert _merge_split_payments(FEE_DATE, statement, calendar)[0] == []
+
+
+def test_rejected_split_returns_entries_to_the_lists():
+    statement, calendar = split_case()
+    group = _merge_split_payments(FEE_DATE, statement, calendar)[0][0]
+    groups, rest_statement, rest_calendar = _merge_split_payments(FEE_DATE, statement, calendar, rejected={group.key})
+    assert groups == [] and rest_statement == statement and rest_calendar == calendar
 
 
 def test_year_is_not_a_document_number():
@@ -404,6 +463,15 @@ def test_rejected_pair_returns_entries_to_the_lists(tmp_path):
     rejected = reconcile_case(tmp_path, statement_rows, calendar_rows, ReconciliationMarks(rejected={pair.key}))
     assert rejected.discrepancies[0].probable_pairs == []
     assert len(rejected.unmatched_statement) == 1 and len(rejected.unmatched_calendar) == 1
+
+
+def test_split_group_is_found_before_probable_pairs(tmp_path):
+    result = reconcile_case(tmp_path, [(15, "1026,46", "ЮРСПЕКТР ООО", "ОПЛАТА ПО СЧЕТУ 57041"),
+                                       (15, "2,00", "ЮРСПЕКТР ООО", "ДОПЛАТА ПО СЧЕТУ 57041")],
+                            [(15, "1028.46", "ООО ЮрСпектр", "Информационные услуги Счет № 57041")])
+    discrepancy = result.discrepancies[0]
+    assert len(discrepancy.groups) == 1 and discrepancy.probable_pairs == []
+    assert discrepancy.only_in_statement == [] and discrepancy.only_in_calendar == []
 
 
 def test_rejected_group_returns_entries_to_the_lists():

@@ -22,7 +22,7 @@ from base.formatting import (dec_html, dec_strcommaspace, records_word, COLOR_ST
 from base.payment import PaymentEntry
 from base.paymentmacther import (reconcile_statement_with_calendar, ReconciliationMarks, ReconciliationResult,
                                  ProbablePair, RegroupedPayments, ManualLink)
-from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
+from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.settings import SettingsHandler
 from gui.ui.matchingdialog_ui import Ui_matchingdialog
 
@@ -35,7 +35,10 @@ CONFIDENCE_HIGH = 0.75
 CONFIDENCE_MEDIUM = 0.5
 SAVED_FILES_LIMIT = 10
 MAX_DESCR_LENGTH = 200
-MAX_PROPOSALS_TABLE_HEIGHT = 300
+MAX_PROPOSALS_TABLE_HEIGHT = 200
+DEFAULT_HEIGHT = 480
+MIN_LIST_ROWS = 5
+MAX_LIST_ROWS = 7
 EMPTY_HINT = "<p align='center' style='font-size:14pt;'>Выберите CSV-файл выписки или перетащите его в это окно</p>"
 
 
@@ -62,7 +65,7 @@ class MatchingDialog(QDialog):
     ACTION_COLUMN = 7
 
     def __init__(self, settings_handler, db_handler, create_event: Callable[[Decimal, date, QDialog], bool],
-                 edit_event: Callable[[PaymentEntry, date, QDialog], bool],
+                 edit_event: Callable[[PaymentEntry, Decimal | None, QDialog], bool],
                  create_fees: Callable[[str, dict, QDialog], None], parent=None):
         super(MatchingDialog, self).__init__(parent)
         self.ui = Ui_matchingdialog()
@@ -73,7 +76,7 @@ class MatchingDialog(QDialog):
         self.sh: SettingsHandler = settings_handler
         self.dbh: DBHandler = db_handler
         self.create_event: Callable[[Decimal, date, QDialog], bool] = create_event
-        self.edit_event: Callable[[PaymentEntry, date, QDialog], bool] = edit_event
+        self.edit_event: Callable[[PaymentEntry, Decimal | None, QDialog], bool] = edit_event
         self.create_fees: Callable[[str, dict, QDialog], None] = create_fees
 
         self.match_result: ReconciliationResult | None = None
@@ -89,7 +92,8 @@ class MatchingDialog(QDialog):
         self.difference_font.setBold(True)
 
         self.setup_table(self.ui.tw_proposals, self.PROPOSAL_HEADERS, (2, 5), {1: COLOR_STATEMENT, 2: COLOR_STATEMENT,
-                                                                                4: COLOR_CALENDAR, 5: COLOR_CALENDAR})
+                                                                                4: COLOR_CALENDAR, 5: COLOR_CALENDAR},
+                         keep_selection_color=False)
         self.setup_table(self.ui.tw_statement, self.LIST_HEADERS, (2,), {1: COLOR_STATEMENT, 2: COLOR_STATEMENT})
         self.setup_table(self.ui.tw_calendar, self.LIST_HEADERS, (2,), {1: COLOR_CALENDAR, 2: COLOR_CALENDAR})
         self.setup_table(self.ui.tw_hidden, self.HIDDEN_HEADERS, (3,))
@@ -165,7 +169,7 @@ class MatchingDialog(QDialog):
         self.update_file_label()
 
     def setup_table(self, table: QTableWidget, headers: tuple[str, ...], stretch_columns: tuple[int, ...],
-                    colors: dict[int, str] | None = None):
+                    colors: dict[int, str] | None = None, keep_selection_color: bool = True):
         table.setColumnCount(len(headers))
         table.setHorizontalHeaderLabels(headers)
         table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -179,6 +183,8 @@ class MatchingDialog(QDialog):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
         for column, color in (colors or {}).items():
             table.horizontalHeaderItem(column).setForeground(QBrush(QColor(color)))
+        if not keep_selection_color:
+            return
         palette = table.palette()
         for role in (QPalette.ColorRole.Highlight, QPalette.ColorRole.HighlightedText):
             palette.setColor(QPalette.ColorGroup.Inactive, role, palette.color(QPalette.ColorGroup.Active, role))
@@ -188,6 +194,8 @@ class MatchingDialog(QDialog):
         geometry = self.sh.settings.value("Matching/geometry")
         if geometry:
             self.restoreGeometry(geometry)
+            if not self.isMaximized():
+                self.resize(self.width(), DEFAULT_HEIGHT)
         self.ui.spl_lists.setSizes([1, 1])
         state = self.sh.settings.value("Matching/listssplitter")
         if state:
@@ -210,6 +218,28 @@ class MatchingDialog(QDialog):
         height_before = self.height()
         self.resize(self.width(), max(min(height_before + delta, available), 0))
         return self.height() - height_before
+
+    def lists_height(self) -> int:
+        statement, calendar = self.ui.tw_statement, self.ui.tw_calendar
+        rows = min(max(statement.rowCount(), calendar.rowCount(), MIN_LIST_ROWS), MAX_LIST_ROWS)
+
+        def table_height(table: QTableWidget) -> int:
+            header = table.verticalHeader()
+            body = sum(header.sectionSize(row) if row < table.rowCount() else header.defaultSectionSize()
+                       for row in range(rows))
+            return table.horizontalHeader().height() + body + 2 * table.frameWidth()
+
+        return (self.ui.w_unmatched.sizeHint().height() - statement.sizeHint().height()
+                + max(table_height(statement), table_height(calendar)))
+
+    def fit_lists_height(self):
+        splitter = self.ui.spl_main
+        self.layout().activate()
+        proposals_size, lists_size = splitter.sizes()
+        needed = self.lists_height()
+        self.resize_height(needed - lists_size)
+        self.layout().activate()
+        splitter.setSizes([proposals_size, needed])
 
     def proposals_height(self) -> int:
         table = self.ui.tw_proposals
@@ -276,6 +306,7 @@ class MatchingDialog(QDialog):
             return
         self.sh.settings.setValue("CSVparser/lastloadpath", str(Path(file_path).parent))
         self.set_data_available(True)
+        self.fit_lists_height()
 
     def read_saved_marks(self) -> dict:
         try:
@@ -592,7 +623,7 @@ class MatchingDialog(QDialog):
         self.set_button_state(
             self.ui.pb_open, len(calendar_entries) == 1 and not statement_entries
             and calendar_entries[0].event_id is not None,
-            "Открыть окно редактирования выбранного платежа из календаря",
+            "Изменить сумму выбранной оплаты из календаря (и, при необходимости, общую сумму платежа)",
             "Выберите один платеж в списке «Только в календаре» (в списке выписки ничего выбранного быть не должно)")
 
     @staticmethod
@@ -626,7 +657,7 @@ class MatchingDialog(QDialog):
             choice = self.ask_link_with_difference(statement_sum, calendar_sum, can_correct)
             if choice is None:
                 return
-            if choice == "correct" and not self.correct_amount(calendar_entries[0], statement_entries[0].amount):
+            if choice == "correct" and not self.edit_event(calendar_entries[0], statement_entries[0].amount, self):
                 return
         self.link_keys(tuple(e.key for e in statement_entries + calendar_entries))
 
@@ -648,12 +679,6 @@ class MatchingDialog(QDialog):
         if box.clickedButton() is link_button:
             return "link"
         return None
-
-    def correct_amount(self, calendar_entry: PaymentEntry, new_amount: Decimal) -> bool:
-        if not self.dbh.correct_payment_sum(calendar_entry.payment_id, new_amount):
-            ErrorInfoMessageBox("Не удалось изменить сумму платежа (подробнее см. лог)", parent=self).exec()
-            return False
-        return True
 
     def show_explanation(self, text: str):
         ErrorInfoMessageBox(text, is_info=True, parent=self).exec()
@@ -702,14 +727,14 @@ class MatchingDialog(QDialog):
 
     def open_selected(self):
         entry = self.selected_entries(self.ui.tw_calendar)[0]
-        self.edit_calendar_payment(entry, entry.fee_date)
+        self.edit_calendar_payment(entry)
 
     def create_payment(self, amount: Decimal, fee_date: date):
         self.create_event(amount, fee_date, self)
         self.reconcile()
 
-    def edit_calendar_payment(self, entry: PaymentEntry, fee_date: date):
-        self.edit_event(entry, fee_date, self)
+    def edit_calendar_payment(self, entry: PaymentEntry, new_amount: Decimal | None = None):
+        self.edit_event(entry, new_amount, self)
         self.reconcile()
 
     def make_fee_payments(self):
@@ -717,11 +742,4 @@ class MatchingDialog(QDialog):
         self.reconcile()
 
     def accept_statement_amount(self, pair: ProbablePair):
-        text = (f"Сумма платежа в календаре будет изменена: {dec_strcommaspace(pair.calendar.amount, add_rub=True)} → "
-                f"{dec_strcommaspace(pair.statement.amount, add_rub=True)}")
-        if pair.calendar.event_id is not None:
-            text += " Сумма связанного платежа изменится на ту же разницу."
-        if YesNoMessagebox(f"{text}\nПродолжить?", self).exec() != YesNoMessagebox.YES_RETURN_VALUE:
-            return
-        if self.correct_amount(pair.calendar, pair.statement.amount):
-            self.reconcile()
+        self.edit_calendar_payment(pair.calendar, pair.statement.amount)

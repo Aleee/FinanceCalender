@@ -13,6 +13,7 @@ from gui.manualdialog import add_help_shortcut, open_manual
 from base.backup import restore_backup
 from base.casting import str_bool, str_int
 from base.dbhandler import DBHandler
+from base.paymentmacther import DEF_PAYROLL_PATTERNS
 from base.updater import UpdateChecker, UpdateInfo
 from base.workcalendar import load_calendar_exceptions, save_calendar_exceptions, ALLOWED_WEEKDAYS, WEEKDAY_ABBR
 from gui.commonwidgets.datepickerdialog import DatePickerDialog
@@ -691,6 +692,8 @@ class SettingsDialog(QDialog):
                 self.ui.cmb_csv_responsible.setCurrentIndex(row)
                 break
         self.ui.te_csv_nomatchpatterns.setPlainText(self.db_handler.get_setting("CSVparser/nomatchpatterns"))
+        self.ui.te_csv_payrollpatterns.setPlainText(
+            self.db_handler.get_setting("CSVparser/payrollpatterns", DEF_PAYROLL_PATTERNS))
         # Календарь
         self.calendar_data = {}
         for row in range(self.ui.cmb_calender_year.count()):
@@ -744,6 +747,7 @@ class SettingsDialog(QDialog):
         if responsible_id is not None:
             self.db_handler.set_setting("CSVparser/responsible", responsible_id)
         self.db_handler.set_setting("CSVparser/nomatchpatterns", self.ui.te_csv_nomatchpatterns.toPlainText())
+        self.db_handler.set_setting("CSVparser/payrollpatterns", self.ui.te_csv_payrollpatterns.toPlainText())
         # Календарь
         for year, year_data in self.calendar_data.items():
             save_calendar_exceptions(self.db_handler, year, year_data)

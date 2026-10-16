@@ -238,7 +238,6 @@ class EventDialog(QDialog):
         self.copy_mode: bool = copy_mode
         self.non_editable_values: dict = {"id": 0, "paidamount": Decimal(0)}
         self.sidepanel_visibility: bool = False
-        self.today_payment: tuple[int, Decimal] | None = None
         self.operation_date: date | None = payment_date
 
         self.index: QModelIndex = current_index if current_index is not None else QModelIndex()
@@ -268,15 +267,7 @@ class EventDialog(QDialog):
         self.chb_statement: QCheckBox | None = None
         if from_statement and not edit_mode:
             self.chb_statement = QCheckBox("Оплатить датой операции")
-        elif from_statement:
-            self.chb_statement = QCheckBox("Исправить сумму оплаты")
-            self.today_payment = self.dbh.get_payment_of_day(
-                self.index.siblingAtColumn(Col.ID).data(LiabilitySqlTableModel.qtValueRole), payment_date)
-            if self.today_payment is None:
-                self.chb_statement.setToolTip("В день операции оплаты по этому платежу нет")
-        if self.chb_statement:
-            self.chb_statement.setChecked(not edit_mode or self.today_payment is not None)
-            self.chb_statement.setEnabled(not edit_mode or self.today_payment is not None)
+            self.chb_statement.setChecked(True)
             self.ui.horizontalLayout_3.insertSpacing(1, 15)
             self.ui.horizontalLayout_3.insertWidget(2, self.chb_statement)
 
@@ -684,7 +675,7 @@ class EventDialog(QDialog):
             text, focus_widget = "Наименование платежа должно быть указано", self.ui.te_name
         elif self.ui.dsb_totalamount.value() == 0.0:
             text, focus_widget = "Сумма платежа не может быть равна нулю", self.ui.dsb_totalamount
-        elif self.non_editable_values["paidamount"] + self.payment_shift() > Decimal(str(self.ui.dsb_totalamount.value())):
+        elif self.non_editable_values["paidamount"] > Decimal(str(self.ui.dsb_totalamount.value())):
             text, focus_widget = "Новая общая сумма платежа превышает сумму уже сделанных по нему оплат", self.ui.dsb_totalamount
         elif self.ui.de_incurrencedate.date() > self.ui.de_duedate.date():
             text, focus_widget = "Дата возникновения не может быть больше срока оплаты", self.ui.de_incurrencedate
@@ -694,8 +685,6 @@ class EventDialog(QDialog):
             text, focus_widget = "Подкатегория платежа не выбрана", self.ui.cmb_subcategory
         elif self.ui.cmb_responsible.currentData() == 0:
             text, focus_widget = "Ответственный не назначен", self.ui.cmb_responsible
-        elif self.corrected_payment_sum() == 0:
-            text, focus_widget = "Исправленная сумма оплаты не может быть равна нулю", self.ui.dsb_totalamount
         if text:
             self.mark_invalid(focus_widget)
             if focus_widget is self.ui.de_incurrencedate and self.ui.de_incurrencedate.date() > self.ui.de_duedate.date():
@@ -719,17 +708,6 @@ class EventDialog(QDialog):
             if msg.exec() == YesNoMessagebox.NO_RETURN_VALUE:
                 return False
         return True
-
-    def payment_shift(self) -> Decimal:
-        if not (self.today_payment and self.chb_statement and self.chb_statement.isChecked()):
-            return Decimal(0)
-        old_total = Decimal(str(self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilitySqlTableModel.qtValueRole)))
-        return Decimal(str(self.ui.dsb_totalamount.value())) - old_total
-
-    def corrected_payment_sum(self) -> Decimal | None:
-        if not (self.today_payment and self.chb_statement and self.chb_statement.isChecked()):
-            return None
-        return self.today_payment[1] + self.payment_shift()
 
     def source_row(self) -> int:
         if self.index.model() is model_atlevel(-2, self.model):
@@ -814,8 +792,5 @@ class EventDialog(QDialog):
                 return
             QDialog.accept(self)
         else:
-            new_payment_sum = self.corrected_payment_sum()
             original_model.edit_row(self.source_row(), data)
-            if new_payment_sum is not None and not self.dbh.set_payment_sum(self.today_payment[0], new_payment_sum):
-                ErrorInfoMessageBox("Не удалось исправить сумму оплаты (подробности см. в логе)", parent=self).exec()
             QDialog.accept(self)

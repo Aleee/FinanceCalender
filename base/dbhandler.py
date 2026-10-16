@@ -18,7 +18,7 @@ from base.formatting import str_decimal
 from base.liability import LiabilityCategory, RowType
 from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
 from base.paths import db_path, backup_dir
-from base.payment import Payment, PaymentEntry
+from base.payment import Payment, PaymentEntry, PaymentInfo
 from base.syncdiff import (DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, KEY_COLUMNS, REFERENCES,
                            TABLE_DERIVED_COLUMNS, key_sql, table_key)
 from base.workcalendar import clear_calendar_cache
@@ -923,65 +923,56 @@ class DBHandler:
 
         return by_date
 
-    def get_payment_of_day(self, event_id: int, day: date) -> tuple[int, Decimal] | None:
+    def read_payment_info(self, payment_id: int) -> PaymentInfo | None:
         if not self.is_db_connected():
             return None
-        query: QSqlQuery = QSqlQuery()
-        query.prepare("SELECT id, sum FROM payment WHERE eventid = ? AND paymentdate = ? ORDER BY id DESC LIMIT 1")
-        query.addBindValue(event_id)
-        query.addBindValue(day.isoformat())
-        if not query.exec():
-            log.e(f"Ошибка SQL при попытке найти оплату платежа {event_id} за {day}: {query.lastError().text()}")
-            return None
-        if not query.next():
-            return None
-        return query.value(0), str_decimal(query.value(1))
-
-    def set_payment_sum(self, payment_id: int, new_sum: Decimal) -> bool:
-        if not self.is_db_connected():
-            return False
-        query: QSqlQuery = QSqlQuery()
-        query.prepare("UPDATE payment SET sum = ? WHERE id = ?")
-        query.addBindValue(str(new_sum))
+        query = QSqlQuery()
+        query.prepare("SELECT payment.paymentdate, payment.sum, payment.eventid, event.name, event.receiver, "
+                      "event.duedate, event.totalamount "
+                      "FROM payment JOIN event ON event.id = payment.eventid WHERE payment.id = ?")
         query.addBindValue(payment_id)
-        if not query.exec():
-            log.e(f"Ошибка SQL при попытке изменить сумму оплаты {payment_id}: {query.lastError().text()}")
-            return False
-        return True
+        if not query.exec() or not query.next():
+            log.e(f"Не удалось прочитать оплату {payment_id} вместе с платежом: {query.lastError().text()}")
+            return None
+        payment_date = str_date(query.value(0), python_date=True)
+        payment_sum = str_decimal(query.value(1))
+        total_amount = str_decimal(query.value(6))
+        event_id = query.value(2)
+        name = "" if self._is_null(query.value(3)) else query.value(3)
+        receiver = "" if self._is_null(query.value(4)) else query.value(4)
+        due_date = None if self._is_null(query.value(5)) else str_date(query.value(5), python_date=True)
+        if payment_date is None or payment_sum is None or total_amount is None:
+            log.e(f"Не удалось распознать данные оплаты {payment_id}")
+            return None
 
-    def correct_payment_sum(self, payment_id: int, new_sum: Decimal) -> bool:
+        query.prepare("SELECT sum FROM payment WHERE eventid = ?")
+        query.addBindValue(event_id)
+        if not query.exec():
+            log.e(f"Не удалось прочитать оплаты платежа {event_id}: {query.lastError().text()}")
+            return None
+        paid_amount = Decimal(0)
+        while query.next():
+            paid_amount += str_decimal(query.value(0)) or Decimal(0)
+        return PaymentInfo(payment_id, event_id, payment_date, payment_sum, name, receiver, due_date, total_amount,
+                           paid_amount)
+
+    def change_payment_amounts(self, payment_id: int, new_payment_sum: Decimal, new_total_amount: Decimal) -> bool:
         if not self.is_db_connected():
             return False
 
         def action() -> bool:
             query = QSqlQuery()
-            query.prepare("SELECT payment.sum, payment.eventid, event.totalamount "
-                          "FROM payment LEFT JOIN event ON event.id = payment.eventid WHERE payment.id = ?")
-            query.addBindValue(payment_id)
-            if not query.exec() or not query.next():
-                log.e(f"Не удалось прочитать платёж {payment_id} для корректировки суммы: {query.lastError().text()}")
-                return False
-            old_sum = str_decimal(query.value(0))
-            event_id = query.value(1)
-            old_total = None if self._is_null(query.value(2)) else str_decimal(query.value(2))
-            if old_sum is None:
-                log.e(f"Не удалось распознать сумму платежа {payment_id}: {query.value(0)!r}")
-                return False
-
             query.prepare("UPDATE payment SET sum = ? WHERE id = ?")
-            query.addBindValue(str(new_sum))
+            query.addBindValue(str(new_payment_sum))
             query.addBindValue(payment_id)
-            if not query.exec():
-                log.e(f"Ошибка SQL при попытке изменить сумму платежа {payment_id}: {query.lastError().text()}")
+            if not query.exec() or query.numRowsAffected() != 1:
+                log.e(f"Не удалось изменить сумму оплаты {payment_id}: {query.lastError().text()}")
                 return False
-
-            if old_total is None or self._is_null(event_id):
-                return True
-            query.prepare("UPDATE event SET totalamount = ? WHERE id = ?")
-            query.addBindValue(str(old_total + new_sum - old_sum))
-            query.addBindValue(event_id)
-            if not query.exec():
-                log.e(f"Ошибка SQL при попытке изменить сумму платежа {event_id}: {query.lastError().text()}")
+            query.prepare("UPDATE event SET totalamount = ? WHERE id = (SELECT eventid FROM payment WHERE id = ?)")
+            query.addBindValue(str(new_total_amount))
+            query.addBindValue(payment_id)
+            if not query.exec() or query.numRowsAffected() != 1:
+                log.e(f"Не удалось изменить общую сумму платежа для оплаты {payment_id}: {query.lastError().text()}")
                 return False
             return True
 

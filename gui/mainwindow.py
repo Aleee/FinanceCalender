@@ -37,6 +37,7 @@ from gui.finplandialog import FinPlanDialog
 from gui.fulfillmentoptiondialog import FulfillmentOptionDialog
 from gui.manualdialog import ManualDialog
 from gui.matchingdialog import MatchingDialog
+from gui.paymentamountdialog import PaymentAmountDialog
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
 from gui.recoverydialog import RecoveryDialog
@@ -1093,17 +1094,15 @@ class MainWindow(QMainWindow):
 
     def open_event_dialog(self, edit: bool = False, copy: bool = False, initial_amount: Decimal | None = None,
                           parent: QWidget | None = None, from_statement: bool = False,
-                          payment_entry: PaymentEntry | None = None, payment_date: date | None = None) -> bool:
+                          payment_date: date | None = None) -> bool:
         curr_index: QModelIndex = self.get_current_event_index()
-        if payment_entry is not None:
-            curr_index = self.find_event_index(payment_entry.event_id)
 
         if edit or copy:
             if not curr_index.isValid():
                 self.warn_selection_lost()
                 return False
-            selection_not_visible: bool = (payment_entry is None and is_selection_filteredout(
-                self.proxy2_model, self.ui.trw_event, two_proxies=True, current_instead=True))
+            selection_not_visible: bool = is_selection_filteredout(
+                self.proxy2_model, self.ui.trw_event, two_proxies=True, current_instead=True)
             if selection_not_visible:
                 self.warn_selection_lost()
                 return False
@@ -1143,13 +1142,6 @@ class MainWindow(QMainWindow):
             return True
         else:
             return False
-
-    def find_event_index(self, event_id: int | None) -> QModelIndex:
-        self.base_model.select()
-        for row in range(self.base_model.rowCount()):
-            if self.base_model.index(row, Col.ID).data(LiabilitySqlTableModel.qtValueRole) == event_id:
-                return self.base_model.index(row, 0)
-        return QModelIndex()
 
     def select_new_event(self, set_due_filter: bool) -> None:
         self.base_model.submitAll()
@@ -1260,13 +1252,19 @@ class MainWindow(QMainWindow):
             self.settings_handler, self.db_handler,
             lambda amount, fee_date, dialog: self.open_event_dialog(initial_amount=amount, parent=dialog, from_statement=True,
                                                                     payment_date=fee_date),
-            lambda entry, fee_date, dialog: self.open_event_dialog(edit=True, parent=dialog, from_statement=True,
-                                                                   payment_entry=entry, payment_date=fee_date),
+            lambda entry, new_amount, dialog: self.open_payment_amount_dialog(entry, new_amount, dialog),
             self.open_fees_dialog, self)
         matching_dialog.exec()
         self.base_model.select()
         self.payment_model.update_filter()
         self.update_filters_and_select()
+
+    def open_payment_amount_dialog(self, entry: PaymentEntry, new_amount: Decimal | None, parent: QWidget) -> bool:
+        info = self.db_handler.read_payment_info(entry.payment_id)
+        if info is None:
+            ErrorInfoMessageBox("Не удалось прочитать платеж для этой оплаты (подробности см. в логе)", parent=parent).exec()
+            return False
+        return PaymentAmountDialog(self.db_handler, info, new_amount, parent).exec() == QDialog.DialogCode.Accepted
 
     def open_export_dialog(self) -> bool:
         if self.proxy2_model.rowCount() == 0:

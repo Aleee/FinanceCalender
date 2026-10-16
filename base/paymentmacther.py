@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from difflib import SequenceMatcher
 from decimal import Decimal
+from itertools import combinations
 from typing import Optional
 
 import lovely_logger as log
@@ -22,13 +23,9 @@ from base.liability import LiabilityCategory
 from base.payment import PaymentEntry
 
 
-PAYROLL_KEYWORDS: tuple[str, ...] = (
-    "окончательный расчет",
-    "отпускные",
-    "заработная плата",
-    "отчисления в фсзн",
-    "подоходный налог",
-    "материальная помощь",
+DEF_PAYROLL_PATTERNS: str = (
+    "окончательный расчет, отпускные, заработн, зарплат, з/пл, отчисления в фсзн, отчисления в бгс, "
+    "отчисления на ппс, подоходный налог, материальная помощь, пособие по уходу, коллективного договора"
 )
 PAYROLL_DESCRIPTION: str = "Выплаты работникам (зарплата/отпускные/ФСЗН/налог)"
 CONTRACT_TAX_KEYWORDS: tuple[str, ...] = (
@@ -40,6 +37,7 @@ CONTRACT_TAX_KEYWORDS: tuple[str, ...] = (
 CONTRACT_TAX_DESCRIPTION: str = "Налоги и взносы по договорам подряда"
 CALENDAR_TAX_KEYWORDS: tuple[str, ...] = ("фсзн", "подоходный налог")
 GROUP_MIN_NAME_SIMILARITY: float = 0.7
+SPLIT_MAX_PARTS: int = 4
 
 PAIR_MAX_DIFF_SHARE: Decimal = Decimal("0.15")
 PAIR_MAX_DIFF_SHARE_WITH_DOCUMENT: Decimal = Decimal("0.30")
@@ -107,6 +105,11 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
         for sub in dbh.get_setting("CSVparser/nomatchpatterns").split(",")
         if sub.strip()
     }
+    payroll_templates: set[str] = {
+        sub.strip().lower()
+        for sub in dbh.get_setting("CSVparser/payrollpatterns", DEF_PAYROLL_PATTERNS).split(",")
+        if sub.strip()
+    }
 
     period: Optional[tuple[date, date]] = None
     payments = StatementPayments(period=(None, None))
@@ -161,7 +164,7 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
                 if debit_amount > 0:
                     transaction_date = parse_date(raw_date, row_index)
                     fee_kind = classify_fee(transaction_code, unp, description, bank_unp, keyword_templates)
-                    is_payroll = any(kw in description_lower for kw in PAYROLL_KEYWORDS)
+                    is_payroll = any(kw in description_lower for kw in payroll_templates)
                     is_contract_tax = is_payroll and any(kw in description_lower for kw in CONTRACT_TAX_KEYWORDS)
                     if fee_kind == FeeKind.OUTGOING:
                         outgoing_fee_totals[transaction_date] = (
@@ -424,6 +427,49 @@ def _regroup_contract_payments(fee_date: date, only_statement: list[PaymentEntry
     return [group], rest_statement, rest_calendar
 
 
+def _same_counterparty(first: PaymentEntry, second: PaymentEntry) -> bool:
+    if first.fee_category or second.fee_category:
+        return False
+    return (_name_similarity(first.receiver, second.receiver) >= GROUP_MIN_NAME_SIMILARITY
+            or _document_evidence(first.details, second.details) >= EVIDENCE_NUMBER)
+
+
+def _find_parts(whole: PaymentEntry, candidates: list[PaymentEntry]) -> list[PaymentEntry] | None:
+    related = [e for e in candidates if e.amount < whole.amount and _same_counterparty(whole, e)]
+    for size in range(2, min(SPLIT_MAX_PARTS, len(related)) + 1):
+        for parts in combinations(related, size):
+            if sum(e.amount for e in parts) == whole.amount:
+                return list(parts)
+    return None
+
+
+def _merge_split_payments(fee_date: date, only_statement: list[PaymentEntry], only_calendar: list[PaymentEntry],
+                          rejected: frozenset | set = frozenset()
+                          ) -> tuple[list[RegroupedPayments], list[PaymentEntry], list[PaymentEntry]]:
+
+    groups: list[RegroupedPayments] = []
+    used: set[int] = set()
+
+    def free(entries: list[PaymentEntry]) -> list[PaymentEntry]:
+        return [e for e in entries if id(e) not in used]
+
+    for calendar_entry in only_calendar:
+        parts = _find_parts(calendar_entry, free(only_statement))
+        group = parts and RegroupedPayments(fee_date, parts, [calendar_entry], [])
+        if group and group.key not in rejected:
+            groups.append(group)
+            used.update(id(e) for e in parts + [calendar_entry])
+    for statement_entry in only_statement:
+        if id(statement_entry) in used:
+            continue
+        parts = _find_parts(statement_entry, free(only_calendar))
+        group = parts and RegroupedPayments(fee_date, [statement_entry], parts, [])
+        if group and group.key not in rejected:
+            groups.append(group)
+            used.update(id(e) for e in parts + [statement_entry])
+    return groups, free(only_statement), free(only_calendar)
+
+
 def pair_key(statement_entry: PaymentEntry, calendar_entry: PaymentEntry) -> str:
     return f"p|{statement_entry.key}|{calendar_entry.key}"
 
@@ -484,6 +530,8 @@ class RegroupedPayments:
 
     @property
     def explanation(self) -> str:
+        if not self.contracts:
+            return self._split_explanation()
         contracts_total = sum((calendar_entry.amount for _, calendar_entry in self.contracts), Decimal("0"))
         statement_taxes = [e for e in self.statement if all(e is not n for n, _ in self.contracts)]
         calendar_taxes = [e for e in self.calendar if all(e is not c for _, c in self.contracts)]
@@ -509,6 +557,18 @@ class RegroupedPayments:
         lines.append(f"Календарь: {' + '.join(calendar_parts)} = "
                      f"{dec_strcommaspace(sum((e.amount for e in self.calendar), Decimal('0')))}")
         return "\n".join(lines)
+
+    def _split_explanation(self) -> str:
+        def side(entries: list[PaymentEntry]) -> str:
+            return " + ".join(dec_strcommaspace(e.amount) for e in entries)
+
+        total = dec_strcommaspace(sum((e.amount for e in self.statement), Decimal("0")))
+        if len(self.calendar) == 1:
+            title = f"{self.calendar[0].receiver}: один платёж в календаре оплачен несколькими платежами в выписке"
+        else:
+            title = f"{self.statement[0].receiver}: один платёж в выписке соответствует нескольким платежам в календаре"
+        return "\n".join([title, f"Выписка: {side(self.statement)} = {total}",
+                          f"Календарь: {side(self.calendar)} = {total}"])
 
 
 @dataclass
@@ -657,9 +717,12 @@ def reconcile_statement_with_calendar(csv_filename: str, dbh: DBHandler,
     for fee_date, (only_statement, only_calendar) in leftovers.items():
         only_statement = [e for e in only_statement if e.key not in skipped_keys]
         only_calendar = [e for e in only_calendar if e.key not in skipped_keys]
+        split_groups, only_statement, only_calendar = _merge_split_payments(
+            fee_date, only_statement, only_calendar, marks.rejected)
         pairs, only_statement, only_calendar = _pair_probable_matches(only_statement, only_calendar, marks.rejected)
         groups, only_statement, only_calendar = _regroup_contract_payments(
             fee_date, only_statement, only_calendar, marks.rejected)
+        groups = split_groups + groups
         if only_statement or only_calendar or pairs or groups:
             discrepancies.append(DateDiscrepancy(fee_date, only_statement, only_calendar, pairs, groups))
 

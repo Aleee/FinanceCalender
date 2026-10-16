@@ -234,7 +234,7 @@
                 <bool>false</bool>
                </property>
                <property name="text">
-                <string>Открыть платеж</string>
+                <string>Изменить сумму оплаты</string>
                </property>
               </widget>
              </item>

@@ -166,6 +166,16 @@ class Ui_settingsdialog(object):
 
         self.gridLayout_24.addWidget(self.label_24, 0, 0, 1, 1)
 
+        self.label_payrollpatterns = QLabel(self.groupBox_15)
+        self.label_payrollpatterns.setObjectName(u"label_payrollpatterns")
+
+        self.gridLayout_24.addWidget(self.label_payrollpatterns, 2, 0, 1, 1)
+
+        self.te_csv_payrollpatterns = QPlainTextEdit(self.groupBox_15)
+        self.te_csv_payrollpatterns.setObjectName(u"te_csv_payrollpatterns")
+
+        self.gridLayout_24.addWidget(self.te_csv_payrollpatterns, 3, 0, 1, 1)
+
 
         self.gridLayout_11.addWidget(self.groupBox_15, 1, 0, 1, 1)
 
@@ -1074,6 +1084,7 @@ class Ui_settingsdialog(object):
         self.label_22.setText(QCoreApplication.translate("settingsdialog", u"\u0414\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0435 \u043f\u0430\u0442\u0442\u0435\u0440\u043d\u044b:", None))
         self.groupBox_15.setTitle(QCoreApplication.translate("settingsdialog", u"\u041f\u0430\u0440\u0441\u0435\u0440 \u043c\u043e\u0434\u0443\u043b\u044f \u0441\u0432\u0435\u0440\u043a\u0438", None))
         self.label_24.setText(QCoreApplication.translate("settingsdialog", u"\u0418\u0441\u043a\u043b\u044e\u0447\u0430\u044e\u0449\u0438\u0435 \u043f\u0430\u0442\u0442\u0435\u0440\u043d\u044b \u0434\u043b\u044f \u0432\u044b\u043f\u0438\u0441\u043a\u0438:", None))
+        self.label_payrollpatterns.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u0430\u0442\u0442\u0435\u0440\u043d\u044b \u0433\u0440\u0443\u043f\u043f\u044b \u00ab\u0412\u044b\u043f\u043b\u0430\u0442\u044b \u0440\u0430\u0431\u043e\u0442\u043d\u0438\u043a\u0430\u043c\u00bb (\u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e):", None))
         self.groupBox.setTitle(QCoreApplication.translate("settingsdialog", u"\u0420\u0430\u0437\u043c\u0435\u0440 \u0448\u0440\u0438\u0444\u0442\u0430", None))
         self.rb_fontsize_1.setText(QCoreApplication.translate("settingsdialog", u"\u041e\u0431\u044b\u0447\u043d\u044b\u0439", None))
         self.rb_fontsize_2.setText(QCoreApplication.translate("settingsdialog", u"\u0411\u043e\u043b\u044c\u0448\u043e\u0439", None))
