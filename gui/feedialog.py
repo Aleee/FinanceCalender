@@ -15,7 +15,7 @@ from base.dbhandler import DBHandler
 from base.feeparser import CSVParseError, DailyFees, FeeCategoryResult, StatementParseResult, read_transaction_csv
 from base.formatting import dec_strcommaspace, dec_html, COLOR_HEADER_BG, COLOR_WARNING, COLOR_WARNING_BG
 from base.liability import LiabilityCategory, RowType
-from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
+from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox, show_status_message
 from gui.eventsqlmodel import LiabilitySqlTableModel, Col
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.settings import SettingsHandler
@@ -247,7 +247,7 @@ class FeeDialog(QDialog):
                     return False
                 created_count += 1
 
-        ErrorInfoMessageBox("Операция завершена успешно", is_info=True).exec()
+        show_status_message(self, f"Комиссии добавлены в календарь: {created_count}")
         self.close()
         return True
 

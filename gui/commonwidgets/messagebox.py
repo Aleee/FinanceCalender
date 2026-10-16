@@ -1,4 +1,14 @@
-from PySide6.QtWidgets import QPushButton, QMessageBox
+from PySide6.QtWidgets import QMainWindow, QPushButton, QMessageBox, QWidget
+
+
+def show_status_message(widget: QWidget, text: str, timeout_ms: int = 5000) -> None:
+    parent = widget
+    while parent is not None and not isinstance(parent, QMainWindow):
+        parent = parent.parentWidget()
+    if parent is None:
+        ErrorInfoMessageBox(text, is_info=True, parent=widget).exec()
+        return
+    parent.statusBar().showMessage(text, timeout_ms)
 
 
 class YesNoMessagebox(QMessageBox):
