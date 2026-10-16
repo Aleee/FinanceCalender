@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Any, Callable
 import lovely_logger as log
 
-from PySide6.QtCore import QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
+from PySide6.QtCore import QEvent, QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
 from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPalette, QShortcut
 from PySide6.QtSql import QSqlTableModel
 from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QStyle, QWidget, QListView, QToolButton, QSizePolicy
@@ -445,13 +445,22 @@ class MainWindow(QMainWindow):
         self.sync_status_timer.timeout.connect(self.refresh_sync_status)
         self.sync_status_timer.start(3000)
 
-        sync_spacer = QWidget(self)
-        sync_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        right_margin = QWidget(self)
-        right_margin.setFixedWidth(6)
-        self.ui.tlbr.addWidget(sync_spacer)
-        self.ui.tlbr.addWidget(self.tb_sync)
-        self.ui.tlbr.addWidget(right_margin)
+        self.tb_sync.setParent(self.ui.tlbr)
+        self.ui.tlbr.installEventFilter(self)
+        self.place_sync_button()
+
+    def place_sync_button(self) -> None:
+        button_width: int = self.tb_sync.sizeHint().width()
+        right_margin: int = 6
+        self.ui.tlbr.setContentsMargins(0, 0, button_width + right_margin, 0)
+        self.tb_sync.setGeometry(self.ui.tlbr.width() - button_width - right_margin, 0,
+                                 button_width, self.ui.tlbr.height())
+        self.tb_sync.show()
+
+    def eventFilter(self, watched, event) -> bool:
+        if watched is self.ui.tlbr and event.type() == QEvent.Type.Resize:
+            self.place_sync_button()
+        return super().eventFilter(watched, event)
 
     def on_sync_button_clicked(self) -> None:
         if self.settings_handler.sync_enabled():
@@ -467,6 +476,7 @@ class MainWindow(QMainWindow):
             palette.setColor(QPalette.ColorRole.WindowText, color)
         self.tb_sync.setPalette(palette)
         self.tb_sync.setIcon(create_sync_icon(palette.buttonText().color() if icon_color is None else icon_color))
+        self.place_sync_button()
 
     def update_sync_status(self) -> None:
         self.update_sync_statusbar()
