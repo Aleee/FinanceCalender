@@ -217,6 +217,24 @@ def test_gui_conflict_choice_take_master_keeps_conflict_copy(connected, channel,
     assert any(read_meta(copy)["marker"] == "from a" for copy in backup_folder.glob("conflict_*.db"))
 
 
+def test_gui_take_master_discards_unsent_changes_without_conflict(connected, channel, backup_folder):
+    machine_a, _ = connected
+    with machine_a as dbh:
+        edit(dbh, "from a")
+        assert take_master(dbh, channel) == SyncAction.PULL
+        assert dbh.get_setting("marker") != "from a"
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.NOTHING
+    assert machine_a.meta()["change_counter"] == "0"
+    assert any(read_meta(copy)["marker"] == "from a" for copy in backup_folder.glob("conflict_*.db"))
+
+
+def test_gui_take_master_refused_when_nothing_to_discard(connected, channel):
+    machine_a, _ = connected
+    with machine_a as dbh:
+        with pytest.raises(SyncError):
+            take_master(dbh, channel)
+
+
 def test_gui_conflict_choice_overwrite_keeps_conflict_copy(connected, channel, backup_folder):
     machine_a, machine_b = connected
     with machine_b as dbh:

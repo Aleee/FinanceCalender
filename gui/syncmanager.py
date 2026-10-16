@@ -110,7 +110,7 @@ def connect_to_master(dbh: DBHandler, channel: SyncChannel) -> SyncAction:
 
 def take_master(dbh: DBHandler, channel: SyncChannel) -> SyncAction:
     save_conflict_copy(dbh)
-    pull_master(dbh, channel, (SyncAction.CONFLICT,))
+    pull_master(dbh, channel, (SyncAction.CONFLICT, SyncAction.PUSH))
     return SyncAction.PULL
 
 

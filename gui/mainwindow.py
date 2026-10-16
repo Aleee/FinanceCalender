@@ -417,10 +417,13 @@ class MainWindow(QMainWindow):
     def _init_toolbar_sync(self) -> None:
         self.act_sync_now = QAction("Синхронизировать сейчас", self)
         self.act_sync_settings = QAction("Настройки синхронизации...", self)
+        self.act_sync_discard = QAction("Отказаться от моих изменений...", self)
         self.act_sync_now.setShortcut(QKeySequence("F5"))
         self.addAction(self.act_sync_now)
         sync_menu = QMenu(self)
         sync_menu.addAction(self.act_sync_now)
+        sync_menu.addAction(self.act_sync_discard)
+        sync_menu.addSeparator()
         sync_menu.addAction(self.act_sync_settings)
         self.tb_sync = SyncToolButton()
         self.tb_sync.setAutoRaise(True)
@@ -431,6 +434,7 @@ class MainWindow(QMainWindow):
         self.tb_sync.clicked.connect(self.on_sync_button_clicked)
         self.act_sync_now.triggered.connect(lambda: self.run_sync())
         self.act_sync_settings.triggered.connect(self.open_sync_settings_dialog)
+        self.act_sync_discard.triggered.connect(self.discard_local_changes)
         self.sync_channel: SyncChannel | None = None
         self.sync_channel_settings: tuple | None = None
         self.sync_timer = QTimer(self)
@@ -485,6 +489,7 @@ class MainWindow(QMainWindow):
             self.set_sync_button_state("Синхронизация:\nвыключена",self.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText))
             self.tb_sync.setToolTip("Синхронизация выключена. Нажмите, чтобы открыть настройки синхронизации")
             self.act_sync_now.setEnabled(False)
+            self.act_sync_discard.setEnabled(False)
             return
         self.act_sync_now.setEnabled(True)
         master_age: int | None = master_age_days(self.sync_master_info) if self.sync_master_info else None
@@ -497,12 +502,15 @@ class MainWindow(QMainWindow):
             token_warning = f"Токен Яндекса истекает через {days_left} дн., получите новый заранее"
         is_problem: bool = self.sync_status_text in self.SYNC_PROBLEM_STATUSES or (days_left is not None and days_left < 0)
         is_actual: bool = self.sync_status_text == SYNC_STATUS_TEXT[SyncAction.NOTHING]
-        has_unsent_changes: bool = False
-        if is_actual:
+        is_conflict: bool = self.sync_status_text == SYNC_STATUS_TEXT[SyncAction.CONFLICT]
+        has_local_changes: bool = False
+        if is_actual or is_conflict:
             try:
-                has_unsent_changes = read_local_state(self.db_handler).has_changes
+                has_local_changes = read_local_state(self.db_handler).has_changes
             except SyncError as e:
                 log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
+        self.act_sync_discard.setEnabled(has_local_changes)
+        has_unsent_changes: bool = has_local_changes and is_actual
         is_warning: bool = is_master_stale or bool(token_warning) or has_unsent_changes
         status_text: str = f"Синхронизация:\n{'есть неотправленные' if has_unsent_changes else self.sync_status_text}"
         if not is_problem and is_warning and not has_unsent_changes:
@@ -658,6 +666,25 @@ class MainWindow(QMainWindow):
             if conflict_dlg.overwrite_chosen():
                 return self._run_sync_step(channel, lambda: overwrite_master(self.db_handler, channel, params))
         return action
+
+    def discard_local_changes(self) -> None:
+        if YesNoMessagebox("Все ваши изменения, не отправленные в общую базу, будут отменены, а вместо них загрузится общая база.\n\n"
+                           "Текущая локальная копия сохранится в папке резервных копий. Продолжить?",
+                           self).exec() != YesNoMessagebox.YES_RETURN_VALUE:
+            return
+        self.save_note()
+        channel = self.get_sync_channel()
+        action: SyncAction | None = self._run_sync_step(channel, lambda: take_master(self.db_handler, channel))
+        self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
+        if action is None:
+            self.sync_status_text = self.sync_failure_text
+            self.update_sync_status()
+            ErrorInfoMessageBox(f"Не удалось загрузить общую базу: {self.sync_error}", parent=self).exec()
+            return
+        self.sync_succeeded_at = QDateTime.currentDateTime()
+        self.sync_status_text = SYNC_STATUS_TEXT[action]
+        self.reload_after_sync_pull()
+        self.update_sync_status()
 
     def confirm_exit_with_sync(self) -> bool:
         if not self.settings_handler.sync_enabled():
