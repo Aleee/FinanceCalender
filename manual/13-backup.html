@@ -56,17 +56,22 @@ th { color: #1f3a5f; }
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;"><code>conflict_…</code></td>
-<td style="border-bottom: 1px solid #d9e0e9;">Перед автообъединением и перед выбором в окне «Конфликт синхронизации». В копии ваша версия данных (<a href="14-sync.html">раздел 14</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Перед автообъединением, перед выбором в окне «Конфликт синхронизации». В копии ваша версия данных (<a href="14-sync.html">раздел 14</a>)</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Нет</td>
 </tr>
 <tr>
+<td style="border-bottom: 1px solid #d9e0e9;"><code>discarded_…</code></td>
+<td style="border-bottom: 1px solid #d9e0e9;">Перед командой «Отказаться от моих изменений…». В копии ваши отменённые изменения (<a href="14-sync.html">раздел 14</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нет</td>
+</tr>
+<tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;"><code>before_migration_v….db</code></td>
 <td style="border-bottom: 1px solid #d9e0e9;">Перед автоматическим обновлением базы после обновления программы; в названии прежняя версия базы</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Нет</td>
 </tr>
 </tbody>
 </table>
-<p>Копии <code>before_sync_</code>, <code>before_restore_</code>, <code>conflict_</code> и <code>before_migration_</code> всегда сохраняются в <code>data\backup</code>. Автоочистка работает только в выбранной папке копий: если это не <code>data\backup</code>, <code>before_sync_</code> и <code>before_restore_</code> сами не удаляются.</p>
+<p>Копии <code>before_sync_</code>, <code>before_restore_</code>, <code>conflict_</code>, <code>discarded_</code> и <code>before_migration_</code> всегда сохраняются в <code>data\backup</code>. Автоочистка работает только в выбранной папке копий: если это не <code>data\backup</code>, <code>before_sync_</code> и <code>before_restore_</code> сами не удаляются.</p>
 <p>Копии самой общей базы хранятся отдельно, в облаке или общей папке (<a href="14-sync.html">раздел 14</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Если копию создать не удалось</h2></td></tr></table>
 <p>В строке состояния появится красная надпись.</p>

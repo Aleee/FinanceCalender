@@ -33,7 +33,7 @@ th { color: #1f3a5f; }
 <tbody>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">«Ошибка»</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Действие не выполнено</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Действие не выполнено. Красный значок с крестом — сбой («Не удалось…», «ошибка», «см. в логе»), жёлтый треугольник — неверно введённые данные</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">«Информация»</td>
@@ -45,7 +45,9 @@ th { color: #1f3a5f; }
 </tr>
 </tbody>
 </table>
-<p>Если в сообщении есть «см. лог» или «в логе», подробности записаны в журнал работы; он нужен тому, кто разбирается с проблемой (см. «Что приложить к обращению»).</p>
+<p>Если в сообщении есть «см. лог» или «в логе», подробности записаны в журнал работы; он нужен тому, кто разбирается с проблемой (см. «Что приложить к обращению»). В таком окне есть кнопка «Открыть папку логов» (откроется папка с журналом) и кнопка «Показать подробности…»: по ней раскрывается текст ошибки или последние строки журнала. Его можно выделить, скопировать и приложить к обращению.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Сообщение об ошибке с подробностями" src="images/18-troubleshooting/error-box.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 58. Сообщение об ошибке с кнопками «Открыть папку логов» и «Показать подробности…».</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Где искать сообщение</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
@@ -72,7 +74,7 @@ th { color: #1f3a5f; }
 <td style="border-bottom: 1px solid #d9e0e9;">4</td>
 </tr>
 <tr>
-<td style="border-bottom: 1px solid #d9e0e9;">Не создаётся контрагент, договор или документ; неактивна кнопка «← Подставить дату»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не создаётся контрагент, договор или документ; неактивна кнопка «← Подставить срок оплаты»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">6, 7</td>
 </tr>
 <tr bgcolor="#f7f9fc">
@@ -118,7 +120,7 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
-<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если данные пропали или изменились после синхронизации или восстановления, прежняя версия не потеряна: программа сохраняет её в <code>data\backup</code> как <code>before_sync_…</code>, <code>conflict_…</code> или <code>before_restore_…</code> (<a href="13-backup.html">раздел 13</a>).</p>
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если данные пропали или изменились после синхронизации или восстановления, прежняя версия не потеряна: программа сохраняет её в <code>data\backup</code> как <code>before_sync_…</code>, <code>conflict_…</code>, <code>discarded_…</code> или <code>before_restore_…</code> (<a href="13-backup.html">раздел 13</a>).</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Что приложить к обращению</h2></td></tr></table>
 <p>Если сообщение не помогло, обратитесь к ответственному за программу, и приложите:</p>

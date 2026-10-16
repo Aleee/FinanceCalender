@@ -195,6 +195,9 @@ class SyncChannel(ABC):
     def last_master_info(self) -> MasterInfo | None:
         return self.read_master_info()
 
+    def last_master_info(self) -> MasterInfo | None:
+        return self.read_master_info()
+
     @abstractmethod
     def download_master(self, destination: Path) -> None:
         ...
@@ -592,10 +595,18 @@ def merge_into_master(dbh: "DBHandler", channel: SyncChannel, master: MasterInfo
     return True
 
 
-def save_conflict_copy(dbh: "DBHandler") -> None:
-    copy_path = Path(backup_dir()) / f"conflict_{datetime.now().strftime(PRECISE_BACKUP_TIME_FORMAT)}.db"
+def save_local_copy(dbh: "DBHandler", prefix: str, error_text: str) -> None:
+    copy_path = Path(backup_dir()) / f"{prefix}{datetime.now().strftime(PRECISE_BACKUP_TIME_FORMAT)}.db"
     if not dbh.copy_db_file(str(copy_path)):
-        raise SyncError("Не удалось сохранить локальную копию перед разрешением конфликта")
+        raise SyncError(error_text)
+
+
+def save_conflict_copy(dbh: "DBHandler") -> None:
+    save_local_copy(dbh, "conflict_", "Не удалось сохранить локальную копию перед разрешением конфликта")
+
+
+def save_discard_copy(dbh: "DBHandler") -> None:
+    save_local_copy(dbh, "discarded_", "Не удалось сохранить локальную копию перед отказом от изменений")
 
 
 def elapsed_ms(started: float) -> int:

@@ -110,7 +110,7 @@ th { color: #1f3a5f; }
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">«План-факт»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Кнопка — «Исполнение финансового плана». В меню: «Финансовый план», «Исполнение финансового плана», «Графики»</td>
-<td style="border-bottom: 1px solid #d9e0e9;"></td>
+<td style="border-bottom: 1px solid #d9e0e9;"><strong>Ctrl+P</strong> («Исполнение финансового плана»), <strong>Ctrl+Shift+P</strong> («Финансовый план»), <strong>Ctrl+G</strong> («Графики»)</td>
 <td style="border-bottom: 1px solid #d9e0e9;"><a href="11-planfact.html">Раздел 11</a></td>
 </tr>
 <tr bgcolor="#f7f9fc">
@@ -122,7 +122,7 @@ th { color: #1f3a5f; }
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">«Договоры»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Команда «Контрагенты и договоры»</td>
-<td style="border-bottom: 1px solid #d9e0e9;"></td>
+<td style="border-bottom: 1px solid #d9e0e9;"><strong>Ctrl+K</strong></td>
 <td style="border-bottom: 1px solid #d9e0e9;"><a href="06-contractors.html">Раздел 6</a></td>
 </tr>
 <tr bgcolor="#f7f9fc">
@@ -140,7 +140,7 @@ th { color: #1f3a5f; }
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">«Настройки»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Окно настроек</td>
-<td style="border-bottom: 1px solid #d9e0e9;"></td>
+<td style="border-bottom: 1px solid #d9e0e9;"><strong>Ctrl+,</strong> (Ctrl и запятая)</td>
 <td style="border-bottom: 1px solid #d9e0e9;"><a href="12-settings.html">Раздел 12</a></td>
 </tr>
 <tr>
@@ -154,9 +154,9 @@ th { color: #1f3a5f; }
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Панель инструментов" src="images/03-main-window/toolbar.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 4. Панель инструментов. Меню раскрываются у кнопок: 1 — «Копия» (по стрелке), 2 — «План-факт» (по стрелке), 3 — «Выписка», 4 — «Вид».</em></span></p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Меню кнопок панели инструментов" src="images/03-main-window/toolbar-menus.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 5. Меню кнопок. В меню «Вид» включённый пункт обведён рамкой вокруг значка, на кадре так выделены «Заголовки разделов» и «Итого по разделам»; у выключенного пункта («На контроле») рамки нет.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 5. Меню кнопок. Справа от пунктов показаны горячие клавиши. В меню «Вид» включённый пункт обведён рамкой вокруг значка, на кадре так выделены «Заголовки разделов» и «Итого по разделам»; у выключенного пункта («На контроле») рамки нет.</em></span></p>
 <p>«Копировать платеж», «Редактировать платеж» и «Удалить платеж» недоступны, если не выбран платеж (в том числе выбрана строка раздела или итога).</p>
-<p>Кнопка синхронизации показывает состояние («данные актуальны», «выключена» и т. д.); по нажатию открываются настройки, если синхронизация выключена. Меню по стрелке: «Синхронизировать сейчас», «Настройки синхронизации…». Подробнее — в <a href="14-sync.html">разделе 14</a>.</p>
+<p>Кнопка синхронизации показывает состояние («данные актуальны», «выключена» и т. д.); по нажатию открываются настройки, если синхронизация выключена. Меню по стрелке: «Синхронизировать сейчас», «Отказаться от моих изменений…», «Настройки синхронизации…». Подробнее — в <a href="14-sync.html">разделе 14</a>.</p>
 <p>Все горячие клавиши собраны в <a href="P3-hotkeys.html">приложении 3</a>.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Боковая панель</h2></td></tr></table>
 <p>Боковая панель: кнопка «Сбросить фильтры», поиск и группы фильтров.</p>
@@ -296,12 +296,13 @@ th { color: #1f3a5f; }
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 7. Правая часть той же таблицы. 1 — скрепка (платеж привязан к договору); 2 — отметка «На контроле»; 3 — отметка «Скрытый платеж».</em></span></p>
 <ul>
 <li><strong>Скрепка</strong> рядом с основанием платежа (1) означает, что платеж привязан к документу договора (подсказка: договор, контрагент и документ).</li>
-<li><strong>Звёздочка</strong> (2). Серая ☆ — обычный платеж, жёлтая ★ — «на контроле». Щелчок меняет отметку, изменение сохраняется сразу (<a href="05-filters.html">раздел 5</a>).</li>
-<li><strong>Замок</strong> (3). Замок 🔒 — скрытый платеж, пустой кружок — обычный. Щелчок меняет отметку, изменение сохраняется сразу. В таблице скрытые платежи видны всегда; отметка нужна при экспорте (<a href="10-export.html">раздел 10</a>).</li>
+<li><strong>Звёздочка</strong> (2). Серая ☆ — обычный платеж, жёлтая ★ — «на контроле». Щелчок или клавиша <strong>Пробел</strong> меняет отметку, изменение сохраняется сразу (<a href="05-filters.html">раздел 5</a>).</li>
+<li><strong>Замок</strong> (3). Замок 🔒 — скрытый платеж, бледная точка — обычный. Щелчок или клавиша <strong>Ctrl+H</strong> меняет отметку, изменение сохраняется сразу. В таблице скрытые платежи видны всегда; отметка нужна при экспорте (<a href="10-export.html">раздел 10</a>).</li>
 </ul>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
 <p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Звёздочка и замок меняются одним щелчком, без подтверждения.</p>
 </td></tr></table>
+<p><strong>Пробел</strong> и <strong>Ctrl+H</strong> действуют на выбранный платеж, пока курсор находится в таблице платежей.</p>
 <h3 id="s12">Контекстное меню</h3>
 <p>Команды платежа доступны и по правой кнопке мыши.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Контекстное меню таблицы" src="images/03-main-window/context-menu.png" /></p>

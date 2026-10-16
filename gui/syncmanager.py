@@ -9,7 +9,7 @@ from base.dbhandler import DBHandler
 from base.httpclient import QtHttpClient
 from base.sync import (STAGE_COMPARE, STAGE_CONNECT, AuthError, FolderChannel, MasterInfo, MasterUpdatingError, NetworkError,
                        SyncAction, SyncCancelledError, SyncChannel, SyncError, SyncParams, SyncReport, collect_conflict_report,
-                       pull_master, push_master, restore_master_info, save_conflict_copy)
+                       pull_master, push_master, restore_master_info, save_conflict_copy, save_discard_copy)
 from base.syncdiff import DbDiff, format_warnings
 from base.version import APP_VERSION
 from base.yandexchannel import YandexDiskApiChannel
@@ -112,6 +112,12 @@ def connect_to_master(dbh: DBHandler, channel: SyncChannel) -> SyncAction:
 
 def take_master(dbh: DBHandler, channel: SyncChannel) -> SyncAction:
     save_conflict_copy(dbh)
+    pull_master(dbh, channel, (SyncAction.CONFLICT,))
+    return SyncAction.PULL
+
+
+def discard_unsent_changes(dbh: DBHandler, channel: SyncChannel) -> SyncAction:
+    save_discard_copy(dbh)
     pull_master(dbh, channel, (SyncAction.CONFLICT, SyncAction.PUSH))
     return SyncAction.PULL
 

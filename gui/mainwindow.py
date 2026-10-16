@@ -47,7 +47,7 @@ from gui.syncchangesdialog import SyncChangesDialog
 from gui.syncconflictdialog import SyncConflictDialog
 from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PLANNED_STAGES, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS,
                              SYNC_STAGE_CHANGES_NOTICE, SYNC_STAGE_CONFLICT_RESOLUTION, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_tabs, connect_to_master,
-                             create_master, create_sync_channel, create_sync_params, describe_master, failure_status_text,
+                             create_master, create_sync_channel, create_sync_params, describe_master, discard_unsent_changes, failure_status_text,
                              master_age_days, merge_message, merge_tabs, merge_warning_lines, overwrite_master, pull_message,
                              pull_tabs, restore_master, take_master, token_days_left)
 from gui.ui.syncicon import SyncToolButton, create_sync_icon
@@ -682,7 +682,7 @@ class MainWindow(QMainWindow):
             return
         self.save_note()
         channel = self.get_sync_channel()
-        action: SyncAction | None = self._run_sync_step(channel, lambda: take_master(self.db_handler, channel))
+        action: SyncAction | None = self._run_sync_step(channel, lambda: discard_unsent_changes(self.db_handler, channel))
         self.sync_checked_at = QDateTime.currentDateTime().toString("dd.MM.yyyy HH:mm")
         if action is None:
             self.sync_status_text = self.sync_failure_text
