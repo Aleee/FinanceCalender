@@ -88,7 +88,7 @@ def failure_status_text(error: SyncError) -> str:
         return "токен недействителен"
     if isinstance(error, MasterUpdatingError):
         return "общая база обновляется"
-    return "ОШИБКА"
+    return "ошибка"
 
 
 def token_days_left(settings_handler: SettingsHandler) -> int | None:

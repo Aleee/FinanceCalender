@@ -61,7 +61,7 @@ class MainWindow(QMainWindow):
 
     CONTRACT_NOTBOUND_TEXT = '<span style="color: #808080;">не привязан</span>'
     SYNC_PROBLEM_STATUSES = (SYNC_STATUS_TEXT[SyncAction.CONFLICT], SYNC_STATUS_TEXT[SyncAction.FOREIGN_DB],
-                             SYNC_STATUS_TEXT[SyncAction.CLIENT_OUTDATED], "токен недействителен", "ОШИБКА")
+                             SYNC_STATUS_TEXT[SyncAction.CLIENT_OUTDATED], "токен недействителен", "ошибка")
     SYNC_SUCCESS_ACTIONS = (SyncAction.NOTHING, SyncAction.PULL, SyncAction.PUSH, SyncAction.MERGE)
     SYNC_PROBLEM_COLOR = QColor("#C62828")
     SYNC_WARNING_COLOR = QColor("#B26A00")
@@ -84,7 +84,7 @@ class MainWindow(QMainWindow):
         self.sync_cancelled: bool = False
         self.sync_info_unreadable: bool = False
         self.sync_retry_text: str = ""
-        self.sync_failure_text: str = "ОШИБКА"
+        self.sync_failure_text: str = "ошибка"
         self.sync_master_info: MasterInfo | None = None
         self.sync_checked_at: str = ""
         self.sync_succeeded_at: QDateTime = QDateTime()
@@ -140,7 +140,8 @@ class MainWindow(QMainWindow):
         ## Обновление структуры до актуальной версии: при сбое файл остаётся прежним, восстановление не предлагаем
         if not self.db_handler.migrate_db() and self.db_handler.migration_failed:
             ErrorInfoMessageBox("Не удалось обновить структуру базы данных до версии этой программы. "
-                                "Файл базы данных не изменён (подробности см. в логе)").exec()
+                                "Файл базы данных не изменён, программа будет закрыта. "
+                                "Передайте разработчику файлы из папки логов (подробности см. в логе)").exec()
             sys.exit()
         ## Проверка файла
         if not self.db_handler.check_db_file_integrity():

@@ -291,7 +291,8 @@ class YandexDiskApiChannel(SyncChannel):
         except (ValueError, AttributeError):
             pass
         if response.status == 401:
-            return AuthError("Токен недействителен или истёк")
+            return AuthError("Токен недействителен или истёк. Получите новый у ответственного за программу "
+                             "и укажите его в настройках синхронизации")
         if response.status == 403:
             return AuthError("Нет доступа к Яндекс.Диску: проверьте токен и права приложения")
         if response.status == 507:

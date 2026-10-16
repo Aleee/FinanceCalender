@@ -267,10 +267,11 @@ class BaseXlsWriter:
             ErrorInfoMessageBox(str(e)).exec()
             log.x(f"Ошибка при конвертации в PDF: {e}")
         except Exception as e:
-            ErrorInfoMessageBox(
-                "Во время записи, переноса или удаления файлов произошла ошибка (см. подробности в логе)"
-            ).exec()
             log.x(f"Ошибка в процессе экспорта: {e}")
+            ErrorInfoMessageBox(
+                "Во время записи, переноса или удаления файлов произошла ошибка (см. подробности в логе)",
+                details=str(e)
+            ).exec()
         finally:
             for temp_path in (temp_xlsx_path, temp_pdf_path):
                 try:

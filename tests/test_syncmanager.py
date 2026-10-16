@@ -81,7 +81,7 @@ def test_failure_status_texts():
     assert failure_status_text(NetworkError("x")) == "нет связи"
     assert failure_status_text(AuthError("x")) == "токен недействителен"
     assert failure_status_text(MasterUpdatingError("x")) == "общая база обновляется"
-    assert failure_status_text(SyncError("x")) == "ОШИБКА"
+    assert failure_status_text(SyncError("x")) == "ошибка"
 
 
 def test_channel_type_follows_settings(settings_handler, tmp_path):
