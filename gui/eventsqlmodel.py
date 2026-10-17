@@ -1,7 +1,6 @@
 import decimal
 from dataclasses import dataclass, astuple
 from decimal import Decimal
-from enum import IntEnum
 from typing import Any
 
 import lovely_logger as log
@@ -14,7 +13,7 @@ from base.contract import DocumentTitle
 from base.date import date_displstr, str_date
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
-from base.liability import (CATEGORY_NAMES, FilterFlags, RowType, HeaderFooterSubtype, TermCategory, LiabilityRow,
+from base.liability import (CATEGORY_NAMES, Col, FilterFlags, RowType, HeaderFooterSubtype, TermCategory, LiabilityRow,
                              PAYMENTTYPE_NAMES, calculate_filterflags, paid_threshold, matches_term, matches_category,
                              matches_details)
 
@@ -41,30 +40,6 @@ class RowFormatting:
     footer_subsection_backcolor: str = "#e9dcdb"
 
     vertical_grid: bool = True
-
-
-class Col(IntEnum):
-    RECEIVER = 0
-    ID = 1
-    TYPE = 2
-    CONTRACTDOCUMENTID = 3
-    CATEGORY = 4
-    SUBCATEGORY = 5
-    NAME = 6
-    REMAINAMOUNT = 7
-    TOTALAMOUNT = 8
-    NDS = 9
-    DUEDATE = 10
-    INCURRENCEDATE = 11
-    PAYMENTTYPE = 12
-    DESCR = 13
-    RESPONSIBLE = 14
-    NOTES = 15
-    TODAYSHARE = 16
-    LASTPAYMENTDATE = 17
-    FILTERFLAGS = 18
-    FEATURED = 19
-    HIDDEN = 20
 
 
 class LiabilitySqlTableModel(QSqlTableModel):

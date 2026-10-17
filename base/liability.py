@@ -135,6 +135,30 @@ PAYMENTTYPE_NAMES = {
 }
 
 
+class Col(IntEnum):
+    RECEIVER = 0
+    ID = 1
+    TYPE = 2
+    CONTRACTDOCUMENTID = 3
+    CATEGORY = 4
+    SUBCATEGORY = 5
+    NAME = 6
+    REMAINAMOUNT = 7
+    TOTALAMOUNT = 8
+    NDS = 9
+    DUEDATE = 10
+    INCURRENCEDATE = 11
+    PAYMENTTYPE = 12
+    DESCR = 13
+    RESPONSIBLE = 14
+    NOTES = 15
+    TODAYSHARE = 16
+    LASTPAYMENTDATE = 17
+    FILTERFLAGS = 18
+    FEATURED = 19
+    HIDDEN = 20
+
+
 def calculate_filterflags(remainamount: Decimal, duedate: QDate, are_today_payments_present: bool, current_date: QDate) -> FilterFlags:
     filter_flags: FilterFlags = FilterFlags.NONE
     # Проверка на оплаченность

@@ -1018,6 +1018,24 @@ class DBHandler:
                                       "" if self._is_null(last_date) else str(last_date))
         return totals
 
+    def load_events(self, threshold: str | None = None) -> list[tuple] | None:
+        if not self.is_db_connected():
+            return None
+        sql = ("SELECT receiver, id, type, contractdocument_id, category, subcategory, name, totalamount, nds, duedate, "
+               "createdate, paymenttype, descr, responsible, notes, featured, hidden FROM event")
+        if threshold:
+            sql += f" WHERE {self.paid_load_filter(threshold)}"
+        query = QSqlQuery()
+        if not query.exec(sql + " ORDER BY id"):
+            log.e(f"Ошибка SQL при попытке получить данные из таблицы event: {query.lastError().text()}")
+            return None
+        column_count = query.record().count()
+        events: list[tuple] = []
+        while query.next():
+            events.append(tuple(None if self._is_null(query.value(column)) else query.value(column)
+                                for column in range(column_count)))
+        return events
+
     @staticmethod
     def paid_load_filter(threshold: str) -> str:
         cents = "CAST(ROUND(CAST({}.{} AS REAL) * 100) AS INTEGER)"
