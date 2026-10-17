@@ -225,5 +225,6 @@ class CopyDocDialog(QDialog):
 
         if original_model.insert_row(data) is None:
             log.e(f"Не удалось вставить новую строку в таблицу event со следующими данными: {data}")
+            ErrorInfoMessageBox("Не удалось сохранить платеж (подробности см. в логе)", parent=self).exec()
             return
         QDialog.accept(self)

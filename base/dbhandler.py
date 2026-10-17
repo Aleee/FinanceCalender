@@ -43,6 +43,7 @@ class DBHandler:
         self.personal_data_max_id: int = 0
         self.after_commit_actions: list[Callable[[], None]] = []
         self.migration_failed: bool = False
+        self.in_transaction: bool = False
 
     @staticmethod
     def _is_null(value: Any) -> bool:
@@ -591,20 +592,26 @@ class DBHandler:
         return self.db.isOpen()
 
     def run_in_transaction(self, action: Callable[[], bool]) -> bool:
+        if self.in_transaction:
+            return action()
         if not self.db.transaction():
             log.e(f"Не удалось начать транзакцию: {self.db.lastError().text()}")
             return False
+        self.in_transaction = True
         try:
-            succeeded: bool = action()
-        except Exception as e:
-            log.x(f"Ошибка внутри транзакции, изменения отменены: {e}")
+            try:
+                succeeded: bool = action()
+            except Exception as e:
+                log.x(f"Ошибка внутри транзакции, изменения отменены: {e}")
+                self.db.rollback()
+                return False
+            if succeeded and self.db.commit():
+                return True
+            log.e(f"Транзакция отменена: {self.db.lastError().text()}")
             self.db.rollback()
             return False
-        if succeeded and self.db.commit():
-            return True
-        log.e(f"Транзакция отменена: {self.db.lastError().text()}")
-        self.db.rollback()
-        return False
+        finally:
+            self.in_transaction = False
 
     def delete_payments_by_event(self, event_id: int) -> bool:
         query = QSqlQuery()

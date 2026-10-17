@@ -1,3 +1,12 @@
+"""
+Ключи:
+    --notes ТЕКСТ    текст «Что нового» для version*.json
+    --win-only       собрать только версию для Windows (без macOS и проверки git/gh);
+                     то же самое делает --skip-mac
+    --skip-tests     не запускать тесты
+    --mac-intel      собрать также версию для Mac Intel
+"""
+
 import argparse
 import json
 import shutil
@@ -65,7 +74,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Тесты, руководство и сборка релизов для Windows и macOS")
     parser.add_argument("--notes", default="", help="Текст «Что нового» для version*.json")
     parser.add_argument("--skip-tests", action="store_true", help="Не запускать тесты")
-    parser.add_argument("--skip-mac", action="store_true", help="Не собирать macOS через GitHub Actions")
+    parser.add_argument("--win-only", "--skip-mac", dest="skip_mac", action="store_true",
+                        help="Собрать только версию для Windows, без macOS")
     parser.add_argument("--mac-intel", action="store_true", help="Собрать также версию для Mac Intel")
     args = parser.parse_args()
 

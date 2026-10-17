@@ -789,8 +789,11 @@ class EventDialog(QDialog):
                 saved = original_model.insert_row(data) is not None
             if not saved:
                 log.e(f"Не удалось вставить новую строку в таблицу event со следующими данными: {data}")
+                ErrorInfoMessageBox("Не удалось сохранить платеж (подробности см. в логе)", parent=self).exec()
                 return
             QDialog.accept(self)
         else:
-            original_model.edit_row(self.source_row(), data)
+            if original_model.edit_row(self.source_row(), data) is None:
+                ErrorInfoMessageBox("Не удалось сохранить изменения (подробности см. в логе)", parent=self).exec()
+                return
             QDialog.accept(self)

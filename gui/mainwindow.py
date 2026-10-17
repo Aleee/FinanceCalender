@@ -119,6 +119,11 @@ class MainWindow(QMainWindow):
         self.settings_handler.apply_settings(apply_geometry=True)
         self.ui.stw_eventinfo.setCurrentIndex(1)
 
+        # Смена даты при долго открытой программе
+        self.date_timer = QTimer(self)
+        self.date_timer.timeout.connect(self.refresh_on_date_change)
+        self.date_timer.start(60000)
+
         # Первая синхронизация после запуска
         QTimer.singleShot(100, lambda: self.auto_sync(is_first=True))
 
@@ -780,6 +785,14 @@ class MainWindow(QMainWindow):
         self.base_model.select()
         self.payment_model.select()
         self.update_responsible_models(update_widgets=True)
+        self.update_filters_and_select()
+        self.base_model.cacheUpdateNeeded.emit()
+        self.on_currentevent_change()
+
+    def refresh_on_date_change(self) -> None:
+        if QDate.currentDate() == self.base_model.current_date or QApplication.activeModalWidget() is not None:
+            return
+        self.base_model.select()
         self.update_filters_and_select()
         self.base_model.cacheUpdateNeeded.emit()
         self.on_currentevent_change()

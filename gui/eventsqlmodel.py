@@ -445,22 +445,26 @@ class LiabilitySqlTableModel(QSqlTableModel):
         return result
 
     def insert_row(self, data: list) -> int | None:
-        new_row_position: int = self.rowCount()
-        self.insertRow(new_row_position)
         if len(data) != len(self.stored_columns()):
             raise IndexError("В новую строку передано неверное количество данных")
-        result = self.insert_data_in_row(new_row_position, data)
-        if result is not None:
-            if self.submitAll():
-                self.last_inserted_id = self.index(new_row_position, Col.ID).data(self.qtValueRole)
-            else:
-                self.revertAll()
-                result = None
+        new_row_position: int = self.rowCount()
+        self.insertRow(new_row_position)
+        result: int | None = new_row_position
+        if self.db_handler.run_in_transaction(
+                lambda: self.insert_data_in_row(new_row_position, data) is not None and self.submitAll()):
+            self.last_inserted_id = self.index(new_row_position, Col.ID).data(self.qtValueRole)
+        else:
+            self.revertAll()
+            result = None
         self.cacheUpdateNeeded.emit()
         return result
 
     def edit_row(self, row: int, data: list) -> int | None:
-        result = self.insert_data_in_row(row, data)
+        result: int | None = row
+        if not self.db_handler.run_in_transaction(lambda: self.insert_data_in_row(row, data) is not None):
+            log.e(f"Не удалось сохранить изменения строки {row} в таблице event: {self.lastError().text()}")
+            self.select()
+            result = None
         self.cacheUpdateNeeded.emit()
         return result
 

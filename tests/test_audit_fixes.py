@@ -80,6 +80,38 @@ def test_failed_submit_reverts_insert(models, monkeypatch):
     assert models.base.last_inserted_id == 0
 
 
+def test_failed_edit_rolls_back_every_field(models, monkeypatch):
+    ids = prepare_events_with_payments(models)
+    row = models.source_row(ids[0])
+    before = query_all(models.path, "SELECT * FROM event WHERE id = ?", ids[0])
+    original_set_data = type(models.base).setData
+    calls = {"count": 0}
+
+    def failing_set_data(index, value, role=2):
+        calls["count"] += 1
+        if calls["count"] == 4:
+            return False
+        return original_set_data(models.base, index, value, role)
+
+    monkeypatch.setattr(models.base, "setData", failing_set_data)
+    assert models.base.edit_row(row, new_event_data("ООО Другое")) is None
+    assert query_all(models.path, "SELECT * FROM event WHERE id = ?", ids[0]) == before
+
+
+def test_nested_transaction_is_committed_once_by_outer(models, shared_dbh):
+    shared_dbh.set_setting("marker", "original")
+
+    def outer() -> bool:
+        assert shared_dbh.run_in_transaction(lambda: shared_dbh.set_setting("marker", "inner"))
+        return False
+
+    assert not shared_dbh.run_in_transaction(outer)
+    assert shared_dbh.get_setting("marker") == "original"
+    assert not shared_dbh.in_transaction
+    assert shared_dbh.run_in_transaction(lambda: shared_dbh.set_setting("marker", "next"))
+    assert shared_dbh.get_setting("marker") == "next"
+
+
 def test_deleting_event_removes_its_payments_only(models, shared_dbh):
     ids = prepare_events_with_payments(models)
     target, other = ids[1], ids[2]
