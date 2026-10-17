@@ -5,8 +5,8 @@ from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import QStyleOptionViewItem
 
 from gui.commonwidgets.itemdelegate import EventItemDelegate
-from gui.eventsqlmodel import Col, LiabilitySqlTableModel
-from base.liability import RowType
+from gui.liabilitytablemodel import LiabilityTableModel
+from base.liability import Col, RowType
 
 
 class BoolDelegate(EventItemDelegate):
@@ -21,7 +21,7 @@ class BoolDelegate(EventItemDelegate):
         self.uncheck_color = uncheck_color
 
     def _is_liability_row(self, index: QModelIndex) -> bool:
-        return index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.qtValueRole) == RowType.LIABILITY
+        return index.siblingAtColumn(Col.TYPE).data(LiabilityTableModel.qtValueRole) == RowType.LIABILITY
 
     def draw_content(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
         if self._is_liability_row(index):

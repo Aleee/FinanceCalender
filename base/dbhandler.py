@@ -15,7 +15,7 @@ import lovely_logger as log
 
 from base.date import str_date, date_str, date_displstr
 from base.formatting import str_decimal
-from base.liability import LiabilityCategory, RowType
+from base.liability import EVENT_COLUMN_NAMES, LiabilityCategory, RowType
 from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
 from base.paths import db_path, backup_dir
 from base.payment import Payment, PaymentEntry, PaymentInfo
@@ -997,7 +997,7 @@ class DBHandler:
             results.append(query.value(0))
         return results if not as_set else set(results)
 
-    def load_payment_totals(self, current_date: QDate) -> dict[int, tuple[Decimal, Decimal, str]] | None:
+    def load_payment_totals(self, current_date: QDate, event_id: int | None = None) -> dict[int, tuple[Decimal, Decimal, str]] | None:
         if not self.is_db_connected():
             return None
         cents = "CAST(ROUND(CAST(payment.sum AS REAL) * 100) AS INTEGER)"
@@ -1005,8 +1005,10 @@ class DBHandler:
         query.prepare(f"SELECT eventid, SUM({cents}), "
                       f"SUM(CASE WHEN paymentdate = ? THEN {cents} ELSE 0 END), "
                       f"MAX(paymentdate) "
-                      f"FROM payment GROUP BY eventid")
+                      f"FROM payment {'' if event_id is None else 'WHERE eventid = ? '}GROUP BY eventid")
         query.addBindValue(date_str(current_date))
+        if event_id is not None:
+            query.addBindValue(event_id)
         if not query.exec():
             log.e(f"Ошибка SQL при попытке получить итоги по платежам из таблицы payment: {query.lastError().text()}")
             return None
@@ -1018,12 +1020,13 @@ class DBHandler:
                                       "" if self._is_null(last_date) else str(last_date))
         return totals
 
-    def load_events(self, threshold: str | None = None) -> list[tuple] | None:
+    def load_events(self, threshold: str | None = None, event_id: int | None = None) -> list[tuple] | None:
         if not self.is_db_connected():
             return None
-        sql = ("SELECT receiver, id, type, contractdocument_id, category, subcategory, name, totalamount, nds, duedate, "
-               "createdate, paymenttype, descr, responsible, notes, featured, hidden FROM event")
-        if threshold:
+        sql = f"SELECT {', '.join(EVENT_COLUMN_NAMES)} FROM event"
+        if event_id is not None:
+            sql += f" WHERE id = {int(event_id)}"
+        elif threshold:
             sql += f" WHERE {self.paid_load_filter(threshold)}"
         query = QSqlQuery()
         if not query.exec(sql + " ORDER BY id"):
@@ -1035,6 +1038,92 @@ class DBHandler:
             values = [query.value(column) for column in range(column_count)]
             events.append(tuple(None if self._is_null(value) else value for value in values))
         return events
+
+    @staticmethod
+    def _event_value(value: Any) -> Any:
+        return value.rstrip() if isinstance(value, str) else value
+
+    def insert_event(self, data: list) -> int | None:
+        if len(data) != len(EVENT_COLUMN_NAMES):
+            raise IndexError("В новую строку передано неверное количество данных")
+        if not self.is_db_connected():
+            return None
+        columns = [name for name in EVENT_COLUMN_NAMES if name != "id"]
+        values = [self._event_value(value) for name, value in zip(EVENT_COLUMN_NAMES, data) if name != "id"]
+        new_ids: list[int] = []
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare(f"INSERT INTO event ({', '.join(columns)}) VALUES ({', '.join('?' * len(columns))})")
+            for value in values:
+                query.addBindValue(value)
+            if not query.exec():
+                log.e(f"Не удалось добавить строку в таблицу event: {query.lastError().text()}")
+                return False
+            new_ids.append(int(query.lastInsertId()))
+            return True
+
+        return new_ids[0] if self.run_in_transaction(action) and new_ids else None
+
+    def update_event(self, event_id: int, data: list) -> bool:
+        if len(data) != len(EVENT_COLUMN_NAMES):
+            raise IndexError("В строку передано неверное количество данных")
+        if not self.is_db_connected():
+            return False
+        columns = [name for name in EVENT_COLUMN_NAMES if name != "id"]
+        values = [self._event_value(value) for name, value in zip(EVENT_COLUMN_NAMES, data) if name != "id"]
+
+        def action() -> bool:
+            stored = self.load_events(event_id=event_id)
+            if not stored:
+                log.e(f"Не удалось изменить строку {event_id} в таблице event: строка не найдена")
+                return False
+            if [value for name, value in zip(EVENT_COLUMN_NAMES, stored[0]) if name != "id"] == values:
+                return True
+            query = QSqlQuery()
+            query.prepare(f"UPDATE event SET {', '.join(f'{name} = ?' for name in columns)} WHERE id = ?")
+            for value in values:
+                query.addBindValue(value)
+            query.addBindValue(event_id)
+            if not query.exec() or query.numRowsAffected() != 1:
+                log.e(f"Не удалось сохранить изменения строки {event_id} в таблице event: {query.lastError().text()}")
+                return False
+            return True
+
+        return self.run_in_transaction(action)
+
+    def update_event_field(self, event_id: int, field: str, value: Any) -> bool:
+        if field not in EVENT_COLUMN_NAMES or field == "id":
+            raise ValueError(f"Недопустимый столбец таблицы event: {field}")
+        if not self.is_db_connected():
+            return False
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare(f"UPDATE event SET {field} = ? WHERE id = ?")
+            query.addBindValue(self._event_value(value))
+            query.addBindValue(event_id)
+            if not query.exec() or query.numRowsAffected() != 1:
+                log.e(f"Не удалось изменить поле {field} строки {event_id} в таблице event: {query.lastError().text()}")
+                return False
+            return True
+
+        return self.run_in_transaction(action)
+
+    def delete_event(self, event_id: int) -> bool:
+        if not self.is_db_connected():
+            return False
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare("DELETE FROM event WHERE id = ?")
+            query.addBindValue(event_id)
+            if not query.exec() or query.numRowsAffected() != 1:
+                log.e(f"Не удалось удалить строку {event_id} из таблицы event: {query.lastError().text()}")
+                return False
+            return True
+
+        return self.run_in_transaction(action)
 
     @staticmethod
     def paid_load_filter(threshold: str) -> str:

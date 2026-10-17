@@ -24,11 +24,9 @@ from PySide6.QtWidgets import QApplication, QTableView, QFileDialog, QTreeView
 
 from base.casting import str_bool
 from base.date import date_purestr, date_displstr
-from gui.common import model_atlevel
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
-from gui.eventsqlmodel import LiabilitySqlTableModel, Col, RowFormatting
-from gui.liabilitytablemodel import LiabilityTableModel
-from base.liability import FilterFlags, RowType, HeaderFooterSubtype
+from gui.liabilitytablemodel import LiabilityTableModel, RowFormatting
+from base.liability import Col, FilterFlags, RowType, HeaderFooterSubtype
 from base.paths import export_dir
 from gui.settings import SettingsHandler
 from gui.commonwidgets.itemdelegate import EventItemDelegate
@@ -368,10 +366,10 @@ class LiabilityXlsWriter(BaseXlsWriter):
         self.model: LiabilityTableModel = model
         self.view: QTableView = view
         # Индексы столбцов с финансовыми данными
-        self.decimalcolumns_numbers = LiabilitySqlTableModel.DECIMAL_COLUMNS
+        self.decimalcolumns_numbers = LiabilityTableModel.DECIMAL_COLUMNS
 
     def write(self, export_format: ExportFormat, columns_to_export: list[bool], show_hidden: HiddenDisplayMode) -> bool:
-        row_formatting: RowFormatting = model_atlevel(-1, self.model).row_formatting
+        row_formatting: RowFormatting = self.model.row_formatting
         current_date_str = date_purestr(QDate().currentDate())
 
         default_xls_filename = self._default_file_path(f"ПлатежныйКалендарь_{current_date_str}.xlsx")
@@ -430,15 +428,15 @@ class LiabilityXlsWriter(BaseXlsWriter):
         worksheet.merge_range(0, 0, 0, len(columns_to_export) - 1, "ПЛАТЕЖНЫЙ КАЛЕНДАРЬ", f_fileheader1)
         worksheet.merge_range(1, 0, 1, len(columns_to_export) - 1, f"по состоянию на {date_displstr(QDate().currentDate())}", f_fileheader2)
         for col in range(len(columns_to_export)):
-            worksheet.write(self.HEADER_ROWS_NUMBER - 1, col, LiabilitySqlTableModel.COLUMN_DATA[col][0])
+            worksheet.write(self.HEADER_ROWS_NUMBER - 1, col, LiabilityTableModel.COLUMN_DATA[col][0])
         ##########################
 
         ### ОСНОВНАЯ ЧАСТЬ ###
         for row in range(self.model.rowCount()):
-            row_type: RowType = self.model.index(row, Col.TYPE, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
+            row_type: RowType = self.model.index(row, Col.TYPE, QModelIndex()).data(LiabilityTableModel.qtValueRole)
             row_format: Format
             if row_type == RowType.LIABILITY:
-                term_flags: FilterFlags = self.model.index(row, Col.FILTERFLAGS, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
+                term_flags: FilterFlags = self.model.index(row, Col.FILTERFLAGS, QModelIndex()).data(LiabilityTableModel.qtValueRole)
                 if FilterFlags.DUE in term_flags:
                     row_format = f_event_due
                 elif FilterFlags.TODAY in term_flags:
@@ -446,10 +444,10 @@ class LiabilityXlsWriter(BaseXlsWriter):
                 else:
                     row_format = f_event_normal
             elif row_type == RowType.HEADER:
-                row_subtype: HeaderFooterSubtype = self.model.index(row, Col.SUBCATEGORY, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
+                row_subtype: HeaderFooterSubtype = self.model.index(row, Col.SUBCATEGORY, QModelIndex()).data(LiabilityTableModel.qtValueRole)
                 row_format = f_header_sub if row_subtype == HeaderFooterSubtype.ORDINARY else f_header_top
             elif row_type == RowType.FOOTER:
-                row_subtype: HeaderFooterSubtype = self.model.index(row, Col.SUBCATEGORY, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
+                row_subtype: HeaderFooterSubtype = self.model.index(row, Col.SUBCATEGORY, QModelIndex()).data(LiabilityTableModel.qtValueRole)
                 row_format = f_footer_sub if row_subtype == HeaderFooterSubtype.ORDINARY else f_footer_top
             elif row_type == RowType.FINALFOOTER:
                 row_format = f_footer_final
@@ -467,12 +465,12 @@ class LiabilityXlsWriter(BaseXlsWriter):
                         if row_type in (RowType.FOOTER, RowType.FINALFOOTER):
                             value = self.model.index(row, col, QModelIndex()).data(self.model.decimalValueRole)
                         else:
-                            value = self.model.index(row, col, QModelIndex()).data(LiabilitySqlTableModel.qtValueRole)
+                            value = self.model.index(row, col, QModelIndex()).data(LiabilityTableModel.qtValueRole)
                         if value == 0 and col == Col.TODAYSHARE:
                             value = ""
                         worksheet.write(row + self.HEADER_ROWS_NUMBER, col, value, row_format)
                     else:
-                        if show_hidden == HiddenDisplayMode.SUMONLY and self.model.index(row, Col.HIDDEN).data(LiabilitySqlTableModel.qtValueRole) == 1:
+                        if show_hidden == HiddenDisplayMode.SUMONLY and self.model.index(row, Col.HIDDEN).data(LiabilityTableModel.qtValueRole) == 1:
                             value = ""
                         else:
                             value = self.model.index(row, col, QModelIndex()).data(Qt.ItemDataRole.DisplayRole)

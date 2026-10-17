@@ -1,104 +1,200 @@
-import random
 import sqlite3
 from decimal import Decimal
-from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QItemSelectionModel, QPersistentModelIndex, Qt
 
-from base.liability import Col, HeaderFooterSubtype, PaymentType, RowType, TermCategory
-from base.liabilitystore import LiabilityStore
-from gui.eventsqlmodel import RowFormatting
+from base.liability import Col, FilterFlags, HeaderFooterSubtype, PaymentType, RowType, TermCategory
 from gui.eventwidget import EventWidget
-from gui.liabilitytablemodel import LiabilityTableModel
+from gui.liabilitytablemodel import LiabilityTableModel, RowFormatting
 from tests.test_liabilitystore import fill_rich_db
 from tests.test_readpath import DB_VALUE, QT_VALUE, add_event, add_payment, day, db_file, models, open_models, run_sql
 
 PERSONAL = {1: ("Иванов",), 2: ("Петров",)}
-CELL_ROLES = (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole, DB_VALUE, QT_VALUE,
-              LiabilityTableModel.decimalValueRole)
+DISPLAY = Qt.ItemDataRole.DisplayRole
+EDIT = Qt.ItemDataRole.EditRole
+STYLE = LiabilityTableModel.styleRole
+DECIMAL = LiabilityTableModel.decimalValueRole
 
 
-class Pair:
-
-    def __init__(self, models):
-        self.models = models
-        models.base.personal_dict = PERSONAL
-        self.table = LiabilityTableModel(LiabilityStore(models.base.db_handler), models.base)
-        self.table.set_header_filter(True)
-        self.table.set_footer_filter(True)
-        self.args: dict = {}
-        self.apply()
-
-    def apply(self, term=TermCategory.UNPAID, category=0, search="", responsible=0, paid_today=False,
-              featured=False, months=3) -> None:
-        self.args = dict(term=term, category=category, search=search, responsible=responsible, paid_today=paid_today,
-                         featured=featured, months=months)
-        self.models.apply(**self.args)
-        self.table.set_filters(term, category, search, responsible, paid_today, months, featured)
+def cell(models, event_id: int, column: int, role=DISPLAY):
+    return models.table.index_by_id(event_id, column).data(role)
 
 
 @pytest.fixture
 def rich(db_file, open_models):
     fill_rich_db(db_file)
     run_sql(db_file, "UPDATE event SET contractdocument_id = 5 WHERE id % 9 = 0 AND type = 2")
-    return Pair(open_models(db_file))
+    models = open_models(db_file)
+    models.table.personal_dict = PERSONAL
+    return models
 
 
-def style_tuple(style) -> tuple:
-    def color(value):
-        return None if value is None else value.name()
-
-    brush = None if style.background_brush is None else style.background_brush.color().name()
-    return (color(style.text_color), color(style.highlighted_text_color), color(style.highlight_color), brush,
-            color(style.vertical_grid_color), style.font_bold)
-
-
-def font_bold(value):
-    return None if value is None else value.bold()
-
-
-def assert_cells_equal_chain(pair: Pair, label=None) -> int:
-    chain, table = pair.models.proxy2, pair.table
-    assert table.rowCount() == chain.rowCount(), label
-    assert table.columnCount() == chain.columnCount() == len(Col)
-    assert table.stored_count == chain.stored_count
-    base = pair.models.base
-    for row in range(chain.rowCount()):
-        for column in range(len(Col)):
-            expected, actual = chain.index(row, column), table.index(row, column)
-            for role in CELL_ROLES:
-                assert actual.data(role) == expected.data(role), (label, row, column, role)
-            assert font_bold(actual.data(Qt.ItemDataRole.FontRole)) == font_bold(expected.data(Qt.ItemDataRole.FontRole)), (label, row, column)
-            assert style_tuple(actual.data(LiabilityTableModel.styleRole)) == style_tuple(expected.data(LiabilityTableModel.styleRole)), (label, row, column)
-            tooltip = expected.data(Qt.ItemDataRole.ToolTipRole)
-            assert actual.data(Qt.ItemDataRole.ToolTipRole) == tooltip, (label, row, column)
-            decoration = expected.data(Qt.ItemDataRole.DecorationRole)
-            if decoration is None:
-                assert actual.data(Qt.ItemDataRole.DecorationRole) is None
-            else:
-                assert actual.data(Qt.ItemDataRole.DecorationRole).cacheKey() == decoration.cacheKey()
-            for flag in (Qt.ItemFlag.ItemIsEnabled, Qt.ItemFlag.ItemIsSelectable):
-                assert bool(table.flags(actual) & flag) == bool(chain.flags(expected) & flag), (label, row, column)
-    return chain.rowCount()
+def make_kinds(path) -> dict[str, int]:
+    ids = {
+        "liability": add_event(path, category=1101, total="1234.5", due=day(-3), receiver="ООО Ромашка", responsible="2"),
+        "header": add_event(path, row_type=RowType.HEADER, category=1101, total=None, subcategory=HeaderFooterSubtype.ORDINARY),
+        "footer": add_event(path, row_type=RowType.FOOTER, category=1101, total=None, subcategory=HeaderFooterSubtype.ORDINARY),
+        "final": add_event(path, row_type=RowType.FINALFOOTER, category=None, total=None),
+    }
+    add_payment(path, ids["liability"], day(0), "200.50")
+    run_sql(path, "UPDATE event SET name = 'Аренда', descr = 'Договор 1', createdate = ?, nds = 20, notes = 'заметка' WHERE id = ?",
+            day(-10), ids["liability"])
+    run_sql(path, "UPDATE event SET receiver = 'Раздел 1.1' WHERE id = ?", ids["header"])
+    return ids
 
 
-def test_cells_match_chain_for_filters_and_formatting(rich):
-    rnd = random.Random(5)
-    checked = 0
-    formattings = (RowFormatting(), RowFormatting(due_textbold=True, today_textbold=False, header_textbold=True, footer_textbold=True,
-                                                  due_backcolor="#ffeeee", today_backcolor="#eeffee"))
-    for formatting in formattings:
-        rich.models.base.set_row_formatting(formatting)
-        for term in TermCategory:
-            rich.apply(term)
-            checked += assert_cells_equal_chain(rich, term)
-        for _ in range(25):
-            rich.apply(rnd.choice(list(TermCategory)), category=rnd.choice((0, 1000, 1101, 1103, 2100)),
-                       search=rnd.choice(("", "", "ромашка", "аренда 1")), responsible=rnd.choice((0, 1, 2)),
-                       paid_today=rnd.random() < 0.3, featured=rnd.random() < 0.3, months=rnd.choice((3, 12)))
-            checked += assert_cells_equal_chain(rich, rich.args)
-    assert checked > 300
+def test_liability_cells_in_every_role(db_file, open_models):
+    ids = make_kinds(db_file)
+    models = open_models(db_file)
+    models.table.personal_dict = PERSONAL
+    event_id = ids["liability"]
+    due, created = models.table.index_by_id(event_id, Col.DUEDATE), models.table.index_by_id(event_id, Col.INCURRENCEDATE)
+
+    assert [cell(models, event_id, column) for column in (Col.RECEIVER, Col.NAME, Col.DESCR)] == ["ООО Ромашка", "Аренда", "Договор 1"]
+    assert cell(models, event_id, Col.REMAINAMOUNT) == "1 034,00"
+    assert cell(models, event_id, Col.TOTALAMOUNT) == "1 234,50"
+    assert cell(models, event_id, Col.TODAYSHARE) == "200,50"
+    assert cell(models, event_id, Col.PAYMENTTYPE) == "По факту"
+    assert cell(models, event_id, Col.RESPONSIBLE) == "Петров"
+    assert due.data(DISPLAY) == models.table.index_by_id(event_id, Col.DUEDATE).data(DISPLAY)
+    assert due.data(QT_VALUE).toString("yyyy-MM-dd") == day(-3)
+    assert created.data(QT_VALUE).toString("yyyy-MM-dd") == day(-10)
+    assert cell(models, event_id, Col.REMAINAMOUNT, QT_VALUE) == Decimal("1034.00")
+    assert cell(models, event_id, Col.REMAINAMOUNT, DB_VALUE) == "1034.0"
+    assert cell(models, event_id, Col.TODAYSHARE, QT_VALUE) == Decimal("200.50")
+    assert cell(models, event_id, Col.LASTPAYMENTDATE, DB_VALUE) == day(0)
+    assert cell(models, event_id, Col.FILTERFLAGS, QT_VALUE) & FilterFlags.DUE
+    assert cell(models, event_id, Col.FILTERFLAGS, DB_VALUE) == int(cell(models, event_id, Col.FILTERFLAGS, QT_VALUE))
+    assert cell(models, event_id, Col.NDS, QT_VALUE) == 20
+    assert cell(models, event_id, Col.NOTES, DB_VALUE) == "заметка"
+    assert cell(models, event_id, Col.CATEGORY, QT_VALUE) == 1101
+    assert cell(models, event_id, Col.RESPONSIBLE, QT_VALUE) == 2
+    assert cell(models, event_id, Col.FEATURED, EDIT) == 0
+    assert cell(models, event_id, Col.TOTALAMOUNT, EDIT) == "1234.5"
+    assert cell(models, event_id, Col.REMAINAMOUNT, EDIT) is None
+    assert cell(models, event_id, Col.TOTALAMOUNT, DECIMAL) is None
+    assert cell(models, event_id, Col.NAME, Qt.ItemDataRole.ToolTipRole) is None
+    assert cell(models, event_id, Col.NAME, Qt.ItemDataRole.TextAlignmentRole) is None
+
+
+def test_unknown_responsible_is_shown_as_not_available(db_file, open_models):
+    ids = make_kinds(db_file)
+    models = open_models(db_file)
+    models.table.personal_dict = {7: ("Кто-то",)}
+    assert cell(models, ids["liability"], Col.RESPONSIBLE) == "Н/Д"
+
+
+def test_service_rows_cells(db_file, open_models):
+    ids = make_kinds(db_file)
+    models = open_models(db_file)
+    models.table.personal_dict = PERSONAL
+
+    assert cell(models, ids["header"], Col.RECEIVER) == "Раздел 1.1"
+    assert all(cell(models, ids["header"], column) == "" for column in range(len(Col)) if column != Col.RECEIVER)
+
+    assert cell(models, ids["footer"], Col.RECEIVER) == "Всего по 1.1. "
+    assert cell(models, ids["footer"], Col.TOTALAMOUNT) == "1 234,50"
+    assert cell(models, ids["footer"], Col.REMAINAMOUNT) == "1 034,00"
+    assert cell(models, ids["footer"], Col.TODAYSHARE) == "200,50"
+    assert cell(models, ids["footer"], Col.NAME) == ""
+    assert [cell(models, ids["footer"], column, DECIMAL) for column in (Col.TOTALAMOUNT, Col.REMAINAMOUNT, Col.TODAYSHARE)] == \
+           [Decimal("1234.50"), Decimal("1034.00"), Decimal("200.50")]
+
+    assert [cell(models, ids["final"], column, DECIMAL) for column in (Col.TOTALAMOUNT, Col.REMAINAMOUNT, Col.TODAYSHARE)] == \
+           [Decimal("1234.50"), Decimal("1034.00"), Decimal("200.50")]
+    assert cell(models, ids["final"], Col.TOTALAMOUNT) == "1 234,50"
+    assert cell(models, ids["final"], Col.NAME) == ""
+
+    for key in ("header", "footer", "final"):
+        assert cell(models, ids[key], Col.FILTERFLAGS, QT_VALUE) == FilterFlags.NONE
+        assert cell(models, ids[key], Col.LASTPAYMENTDATE, DB_VALUE) == ""
+        assert cell(models, ids[key], Col.TODAYSHARE, DB_VALUE) == "0.0"
+
+
+def test_empty_totals_are_shown_as_blank(db_file, open_models):
+    add_event(db_file, row_type=RowType.FOOTER, category=1101, total=None, subcategory=HeaderFooterSubtype.ORDINARY)
+    add_event(db_file, row_type=RowType.FINALFOOTER, category=None, total=None)
+    paid = add_event(db_file, category=1101, total="10.00")
+    add_payment(db_file, paid, day(-1), "10.00")
+    models = open_models(db_file)
+    models.apply(TermCategory.PAID)
+    table = models.table
+    footer_row = next(row for row in table.rows if row.row_type == RowType.FOOTER)
+    assert cell(models, footer_row.event_id, Col.TOTALAMOUNT) == "10,00"
+    assert cell(models, footer_row.event_id, Col.REMAINAMOUNT) == ""
+    assert cell(models, footer_row.event_id, Col.TODAYSHARE) == ""
+
+
+def test_row_styles_follow_formatting_and_filters(db_file, open_models):
+    due = add_event(db_file, category=1101, due=day(-1))
+    today = add_event(db_file, category=1101, due=day(0))
+    future = add_event(db_file, category=1101, due=day(10))
+    top_header = add_event(db_file, row_type=RowType.HEADER, category=1000, total=None, subcategory=HeaderFooterSubtype.TOPLEVELNOEVENTS)
+    sub_header = add_event(db_file, row_type=RowType.HEADER, category=1101, total=None, subcategory=HeaderFooterSubtype.ORDINARY)
+    top_footer = add_event(db_file, row_type=RowType.FOOTER, category=1000, total=None, subcategory=HeaderFooterSubtype.TOPLEVELNOEVENTS)
+    sub_footer = add_event(db_file, row_type=RowType.FOOTER, category=1101, total=None, subcategory=HeaderFooterSubtype.ORDINARY)
+    final = add_event(db_file, row_type=RowType.FINALFOOTER, category=None, total=None)
+    models = open_models(db_file)
+    formatting = RowFormatting(due_textbold=True, due_forecolor="#112233", due_backcolor="#ffeeee",
+                               today_forecolor="#445566", today_backcolor="#eeffee",
+                               header_section_forecolor="#010101", header_section_backcolor="#020202",
+                               header_subsection_backcolor="#030303", footer_section_backcolor="#040404",
+                               footer_subsection_backcolor="#050505")
+    assert models.table.set_row_formatting(formatting)
+    models.apply()
+
+    def style(event_id: int):
+        return cell(models, event_id, Col.NAME, STYLE)
+
+    assert style(due).text_color.name() == "#112233" and style(due).background_brush.color().name() == "#ffeeee"
+    assert style(due).font_bold is True
+    assert style(today).text_color.name() == "#445566" and style(today).font_bold is True
+    assert style(future).background_brush.color().name() == "#ffffff" and style(future).font_bold is None
+    assert style(future).highlight_color.name() == "#cde8ff"
+    assert style(top_header).text_color.name() == "#010101" and style(top_header).background_brush.color().name() == "#020202"
+    assert style(sub_header).background_brush.color().name() == "#030303"
+    assert style(top_footer).background_brush.color().name() == "#040404"
+    assert style(sub_footer).background_brush.color().name() == "#050505"
+    assert style(final).background_brush.color().name() == LiabilityTableModel.FINALFOOTER_BACK_COLOR.name()
+    assert style(final).font_bold is True
+
+    models.apply(TermCategory.DUE)
+    assert style(due).font_bold is None and style(due).text_color is None
+    models.apply(TermCategory.UNPAID, paid_today=True)
+    assert models.table.rowCount() == 0
+
+    assert not models.table.set_row_formatting(RowFormatting(due_forecolor=None))
+    assert models.table.row_formatting is formatting
+
+
+def test_contract_marker_and_tooltip(db_file, open_models):
+    bound = add_event(db_file, category=1101)
+    unbound = add_event(db_file, category=1101)
+    missing = add_event(db_file, category=1101)
+    con = sqlite3.connect(db_file)
+    try:
+        con.execute("INSERT INTO contractor (id, name) VALUES (1, 'ООО Поставщик')")
+        con.execute("INSERT INTO contract (id, contractor_id, name, date) VALUES (1, 1, '15/А', '2026-02-03')")
+        con.execute("INSERT INTO contractdocument (id, contract_id, document_type, document_name) VALUES (1, 1, 1, 'Счет №7')")
+        con.execute("UPDATE event SET contractdocument_id = 1 WHERE id = ?", (bound,))
+        con.execute("UPDATE event SET contractdocument_id = 99 WHERE id = ?", (missing,))
+        con.commit()
+    finally:
+        con.close()
+    models = open_models(db_file)
+    table = models.table
+
+    assert table.index_by_id(bound, Col.DESCR).data(Qt.ItemDataRole.DecorationRole).cacheKey() == table.contract_icon.cacheKey()
+    assert table.index_by_id(unbound, Col.DESCR).data(Qt.ItemDataRole.DecorationRole).cacheKey() == table.empty_icon.cacheKey()
+    assert table.index_by_id(bound, Col.DESCR).data(Qt.ItemDataRole.ToolTipRole) == \
+           "Договор № 15/А от 03.02.2026\nКонтрагент: ООО Поставщик\nДокумент: Счет №7"
+    assert table.index_by_id(unbound, Col.DESCR).data(Qt.ItemDataRole.ToolTipRole) is None
+    assert "данные договора не найдены" in table.index_by_id(missing, Col.DESCR).data(Qt.ItemDataRole.ToolTipRole)
+    assert table.index_by_id(bound, Col.NAME).data(Qt.ItemDataRole.DecorationRole) is None
+    assert table.document_title(1).document_name == "Счет №7"
+    table.document_titles.clear()
+    assert table.document_title(99) is None
 
 
 def test_headers_and_header_rows(rich):
@@ -106,25 +202,12 @@ def test_headers_and_header_rows(rich):
     positions = table.header_rows()
     assert positions and all(table.index(row, Col.TYPE).data(DB_VALUE) == RowType.HEADER for row in positions)
     assert positions == [row for row in range(table.rowCount()) if table.index(row, Col.TYPE).data(DB_VALUE) == RowType.HEADER]
-    chain = rich.models.proxy2
-    for column in range(len(Col)):
-        for role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole, Qt.ItemDataRole.TextAlignmentRole):
-            assert table.headerData(column, Qt.Orientation.Horizontal, role) == chain.headerData(column, Qt.Orientation.Horizontal, role)
-
-
-def test_map_to_source_and_back(rich):
-    table, base = rich.table, rich.models.base
-    for row in range(table.rowCount()):
-        index = table.index(row, Col.NAME)
-        source = table.mapToSource(index)
-        assert source.model() is base and source.column() == Col.NAME
-        assert base.index(source.row(), Col.ID).data(DB_VALUE) == index.siblingAtColumn(Col.ID).data(DB_VALUE)
-        assert table.mapFromSource(source) == index
-    hidden_by_filter = [event_id for event_id in rich.table.store.events if rich.table.store.position_of(event_id) is None]
-    assert hidden_by_filter
-    source_row = table.source_row(hidden_by_filter[0])
-    assert source_row is not None
-    assert not table.mapFromSource(base.index(source_row, 0)).isValid()
+    assert table.headerData(Col.RECEIVER, Qt.Orientation.Horizontal, DISPLAY) == "Получатель платежа"
+    assert table.headerData(Col.ID, Qt.Orientation.Horizontal, DISPLAY) == ""
+    assert table.headerData(Col.TODAYSHARE, Qt.Orientation.Horizontal, Qt.ItemDataRole.ToolTipRole) == ""
+    assert table.headerData(Col.NAME, Qt.Orientation.Horizontal, Qt.ItemDataRole.TextAlignmentRole) == Qt.AlignmentFlag.AlignHCenter
+    assert table.columnCount() == len(Col) == len(table.COLUMN_DATA)
+    assert table.rowCount(table.index(0, 0)) == 0
 
 
 def test_layout_change_keeps_persistent_index_of_surviving_row(rich):
@@ -165,13 +248,44 @@ def test_view_selection_survives_filter_change_if_row_stays_visible(rich):
     assert not view.currentIndex().isValid()
 
 
-def test_set_data_writes_through_base_model_and_refreshes(db_file, open_models):
+def test_save_and_restore_selection_around_reload(rich, qapp):
+    view = EventWidget()
+    table = rich.table
+    view.setModel(table)
+    target = next(row for row in table.store.visible_rows() if row.row_type == RowType.LIABILITY)
+    view.selectionModel().setCurrentIndex(table.index_by_id(target.event_id),
+                                          QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
+    table.beforeReload.connect(view.save_selection)
+    table.afterReload.connect(view.restore_selection)
+
+    table.reload()
+    assert not view.currentIndex().isValid()
+    for _ in range(3):
+        qapp.processEvents()
+    assert view.currentIndex().siblingAtColumn(Col.ID).data(DB_VALUE) == target.event_id
+
+
+def test_reload_emits_signals_and_resets(db_file, open_models, qapp):
+    add_event(db_file, category=1101)
+    models = open_models(db_file)
+    events: list[str] = []
+    models.table.beforeReload.connect(lambda: events.append("before"))
+    models.table.afterReload.connect(lambda: events.append("after"))
+    models.table.modelAboutToBeReset.connect(lambda: events.append("about"))
+    models.table.modelReset.connect(lambda: events.append("reset"))
+    models.table.reload()
+    assert events == ["before", "about", "reset"]
+    qapp.processEvents()
+    assert events[-1] == "after"
+
+
+def test_set_data_writes_to_database_and_refreshes(db_file, open_models):
     event_id = add_event(db_file, category=1101, featured=0, hidden=0)
     other = add_event(db_file, category=1101, featured=1)
-    pair = Pair(open_models(db_file))
-    table = pair.table
+    models = open_models(db_file)
+    table = models.table
     index = table.index_by_id(event_id, Col.FEATURED)
-    assert index.data(Qt.ItemDataRole.EditRole) == 0
+    assert index.data(EDIT) == 0
 
     assert table.setData(index, 1)
     con = sqlite3.connect(db_file)
@@ -179,10 +293,13 @@ def test_set_data_writes_through_base_model_and_refreshes(db_file, open_models):
         assert con.execute("SELECT featured FROM event WHERE id = ?", (event_id,)).fetchone()[0] == 1
     finally:
         con.close()
-    assert table.index_by_id(event_id, Col.FEATURED).data(Qt.ItemDataRole.EditRole) == 1
-    assert table.index_by_id(other, Col.FEATURED).data(Qt.ItemDataRole.EditRole) == 1
+    assert table.index_by_id(event_id, Col.FEATURED).data(EDIT) == 1
+    assert table.index_by_id(other, Col.FEATURED).data(EDIT) == 1
 
     assert not table.setData(table.index_by_id(event_id, Col.REMAINAMOUNT), "5")
+    assert not table.setData(table.index_by_id(event_id, Col.ID), 77)
+    assert not table.setData(table.index_by_id(event_id, Col.NOTES), "x", Qt.ItemDataRole.DisplayRole)
+    assert not table.setData(table.index(-1, 0), "x")
     assert table.setData(table.index_by_id(event_id, Col.NOTES), "заметка  ")
     assert table.index_by_id(event_id, Col.NOTES).data(DB_VALUE) == "заметка"
 
@@ -190,58 +307,71 @@ def test_set_data_writes_through_base_model_and_refreshes(db_file, open_models):
 def test_set_data_that_changes_filter_membership_moves_row_out(db_file, open_models):
     event_id = add_event(db_file, category=1101, featured=0)
     keep = add_event(db_file, category=1101, featured=1)
-    pair = Pair(open_models(db_file))
-    pair.apply(featured=True)
-    assert [row.event_id for row in pair.table.store.visible_rows() if row.row_type == RowType.LIABILITY] == [keep]
-    assert pair.table.setData(pair.table.index_by_id(keep, Col.FEATURED), 0)
-    pair.table.set_filters(TermCategory.UNPAID, 0, "", 0, False, 3, True)
-    assert pair.table.rowCount() == 0
-    assert pair.table.stored_count == 0
+    models = open_models(db_file)
+    models.apply(featured=True)
+    assert models.visible() == [keep]
+    assert models.table.setData(models.table.index_by_id(keep, Col.FEATURED), 0)
+    assert models.table.rowCount() == 0
+    assert models.table.stored_count == 0
+    assert event_id not in models.visible()
 
 
-def test_select_of_base_model_resets_table_with_new_rows(db_file, open_models):
+def test_reload_picks_up_external_changes(db_file, open_models):
     add_event(db_file, category=1101)
-    pair = Pair(open_models(db_file))
-    resets: list[str] = []
-    pair.table.modelReset.connect(lambda: resets.append("reset"))
+    models = open_models(db_file)
     new_id = add_event(db_file, category=1102, total="77.00")
-    run_sql(db_file, "UPDATE event SET hidden = 1 WHERE category = 1101")
-    assert pair.table.index_by_id(new_id).isValid() is False
-
-    pair.models.base.select()
-    assert resets == ["reset"]
-    assert pair.table.index_by_id(new_id, Col.TOTALAMOUNT).data(QT_VALUE) == Decimal("77.00")
-    assert pair.table.stored_count == 2
+    assert not models.table.index_by_id(new_id).isValid()
+    models.table.reload()
+    models.apply()
+    assert models.table.index_by_id(new_id, Col.TOTALAMOUNT).data(QT_VALUE) == Decimal("77.00")
+    assert models.table.stored_count == 2
 
 
-def test_insert_edit_and_delete_through_base_model_update_table(db_file, open_models):
+def test_insert_edit_and_delete_update_table(db_file, open_models):
     existing = add_event(db_file, category=1101, total="100.00")
-    pair = Pair(open_models(db_file))
-    table, base = pair.table, pair.models.base
+    models = open_models(db_file)
+    table = models.table
+    layouts: list[str] = []
+    table.layoutChanged.connect(lambda *_: layouts.append("layout"))
 
     data = ["ООО Ромашка", 0, int(RowType.LIABILITY), 0, 1102, 0, "name", "250.00", 0, day(5), day(0),
             int(PaymentType.NORMAL), "descr", "1", "", 0, 0]
-    assert base.insert_row(data) is not None
-    new_id = base.last_inserted_id
+    new_id = table.insert_event(data)
+    assert new_id is not None and table.last_inserted_id == new_id
     index = table.index_by_id(new_id, Col.REMAINAMOUNT)
     assert index.isValid() and index.data(QT_VALUE) == Decimal("250.00")
     assert table.stored_count == 2
+    assert len(layouts) == 1
 
     data = ["ИП Иванов", existing, int(RowType.LIABILITY), 0, 1101, 0, "changed", "300.00", 0, day(7), day(0),
             int(PaymentType.NORMAL), "descr", "2", "", 0, 0]
-    assert base.edit_row(table.mapToSource(table.index_by_id(existing)).row(), data) is not None
-    assert table.index_by_id(existing, Col.RECEIVER).data(Qt.ItemDataRole.DisplayRole) == "ИП Иванов"
+    assert table.edit_event(existing, data)
+    assert table.index_by_id(existing, Col.RECEIVER).data(DISPLAY) == "ИП Иванов"
     assert table.index_by_id(existing, Col.REMAINAMOUNT).data(QT_VALUE) == Decimal("300.00")
 
-    assert base.delete_row(table.mapToSource(table.index_by_id(new_id)).row()) == new_id
+    assert table.delete_event(new_id)
     assert not table.index_by_id(new_id).isValid()
     assert table.stored_count == 1
+    assert not table.delete_event(new_id)
+    assert not table.edit_event(new_id, data)
+
+
+def test_edit_that_makes_row_paid_moves_it_between_terms(db_file, open_models):
+    event_id = add_event(db_file, category=1101, total="100.00", due=day(-1))
+    add_payment(db_file, event_id, day(-1), "100.00")
+    models = open_models(db_file)
+    assert models.visible() == []
+    data = list(models.store.event_values(event_id))
+    data[7] = "500.00"
+    assert models.table.edit_event(event_id, data)
+    assert models.visible() == [event_id]
+    assert models.table.index_by_id(event_id, Col.REMAINAMOUNT).data(QT_VALUE) == Decimal("400.00")
 
 
 def test_payment_totals_are_applied_after_load_payment_totals_and_relayout(db_file, open_models):
     event_id = add_event(db_file, category=1101, total="500.00", due=day(-1))
-    pair = Pair(open_models(db_file))
-    table = pair.table
+    models = open_models(db_file)
+    table = models.table
     assert table.index_by_id(event_id, Col.REMAINAMOUNT).data(QT_VALUE) == Decimal("500.00")
     add_payment(db_file, event_id, day(0), "500.00")
     table.load_payment_totals()
@@ -250,35 +380,36 @@ def test_payment_totals_are_applied_after_load_payment_totals_and_relayout(db_fi
     assert table.index_by_id(event_id, Col.TODAYSHARE).data(QT_VALUE) == Decimal("500.00")
 
 
-def test_flags_make_only_liability_rows_selectable(db_file, open_models):
-    liability = add_event(db_file)
-    service = {row_type: add_event(db_file, row_type=row_type, total=None, subcategory=HeaderFooterSubtype.ORDINARY)
-               for row_type in (RowType.HEADER, RowType.FOOTER, RowType.FINALFOOTER)}
-    pair = Pair(open_models(db_file))
-    table = pair.table
-    assert table.flags(table.index(-1, 0)) == Qt.ItemFlag.NoItemFlags
-    for event_id, row_type in [(liability, RowType.LIABILITY)] + [(event_id, row_type) for row_type, event_id in service.items()]:
-        for column in range(len(Col)):
-            flags = table.flags(table.index_by_id(event_id, column))
-            assert bool(flags & Qt.ItemFlag.ItemIsSelectable) == (row_type == RowType.LIABILITY), (row_type, column)
-            assert flags & Qt.ItemFlag.ItemIsEnabled
+def test_set_sort_through_model(db_file, open_models):
+    first = add_event(db_file, category=1101, total="30.00", due=day(1))
+    second = add_event(db_file, category=1101, total="10.00", due=day(2))
+    models = open_models(db_file)
+
+    def order() -> list[int]:
+        return [models.table.index(row, Col.ID).data(DB_VALUE) for row in range(models.table.rowCount())
+                if models.table.index(row, Col.ID).data(DB_VALUE) in (first, second)]
+
+    assert order() == [first, second]
+    models.table.set_sort(Col.TOTALAMOUNT, Qt.SortOrder.AscendingOrder)
+    assert order() == [second, first]
+    models.table.set_sort(Col.TOTALAMOUNT, Qt.SortOrder.DescendingOrder)
+    assert order() == [first, second]
 
 
-def test_table_reading_does_not_write(db_file, open_models):
-    fill_rich_db(db_file)
-    pair = Pair(open_models(db_file))
-    monitor = sqlite3.connect(db_file)
+def test_table_reading_does_not_write(rich):
+    monitor = sqlite3.connect(rich.path)
     try:
         version_before = monitor.execute("PRAGMA data_version").fetchone()[0]
         content_before = list(monitor.iterdump())
         for term in TermCategory:
-            pair.apply(term)
-            for row in range(pair.table.rowCount()):
+            rich.apply(term)
+            for row in range(rich.table.rowCount()):
                 for column in range(len(Col)):
-                    for role in CELL_ROLES + (Qt.ItemDataRole.FontRole, LiabilityTableModel.styleRole):
-                        pair.table.index(row, column).data(role)
-        pair.models.base.select()
-        pair.table.set_sort(Col.TOTALAMOUNT, Qt.SortOrder.DescendingOrder)
+                    for role in (DISPLAY, EDIT, DB_VALUE, QT_VALUE, DECIMAL, STYLE, Qt.ItemDataRole.FontRole,
+                                 Qt.ItemDataRole.DecorationRole, Qt.ItemDataRole.ToolTipRole):
+                        rich.table.index(row, column).data(role)
+        rich.table.reload()
+        rich.table.set_sort(Col.TOTALAMOUNT, Qt.SortOrder.DescendingOrder)
         assert monitor.execute("PRAGMA data_version").fetchone()[0] == version_before
         assert list(monitor.iterdump()) == content_before
     finally:

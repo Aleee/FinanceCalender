@@ -18,7 +18,7 @@ from base.updater import UpdateChecker, UpdateInfo
 from base.workcalendar import load_calendar_exceptions, save_calendar_exceptions, ALLOWED_WEEKDAYS, WEEKDAY_ABBR
 from gui.commonwidgets.datepickerdialog import DatePickerDialog
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
-from gui.eventsqlmodel import RowFormatting
+from gui.liabilitytablemodel import RowFormatting
 from gui.personaltablemodel import PersonalTableModel, PersonalSortFilterModel, PersonalCol
 from gui.settings import SettingsHandler
 from gui.ui.settingsdialog_ui import Ui_settingsdialog

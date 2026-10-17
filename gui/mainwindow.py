@@ -21,7 +21,6 @@ from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, Sy
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
-from gui.common import map_to_source
 from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparator
 from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
@@ -29,8 +28,7 @@ from gui.contractdialog import ContractDocumentDialog
 from gui.contractordialog import ContractorDialog
 from gui.copydocdialog import CopyDocDialog
 from gui.eventdialog import EventDialog
-from gui.eventsqlmodel import LiabilitySqlTableModel, Col
-from base.liability import FilterFlags, RowType, PaymentType
+from base.liability import Col, FilterFlags, RowType, PaymentType
 from base.liabilitystore import LiabilityStore
 from gui.feedialog import FeeDialog
 from gui.finplandialog import FinPlanDialog
@@ -164,15 +162,9 @@ class MainWindow(QMainWindow):
             sys.exit()
 
     def _init_models(self) -> None:
-        # Модель записи в таблицу event + плоская модель таблицы обязательств над хранилищем LiabilityStore
-        self.base_model: LiabilitySqlTableModel = LiabilitySqlTableModel(self.db_handler, self)
-        self.base_model.setTable("event")
-        self.base_model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
-        self.base_model.set_paid_load_months(self.settings_handler.paid_load_months())
-        self.base_model.select()
-
+        # Плоская модель таблицы обязательств над хранилищем LiabilityStore
         self.liability_store = LiabilityStore(self.db_handler)
-        self.table_model = LiabilityTableModel(self.liability_store, self.base_model, self)
+        self.table_model = LiabilityTableModel(self.liability_store, self.settings_handler.paid_load_months(), self)
 
         self.ui.trw_event.setModel(self.table_model)
         self.ui.trw_event.hide_columns()
@@ -341,10 +333,10 @@ class MainWindow(QMainWindow):
 
         ## Действия после перезагрузки модели
         # Сохранение выделения
-        self.base_model.beforeSelect.connect(self.ui.trw_event.save_selection)
-        self.base_model.afterSelect.connect(self.ui.trw_event.restore_selection)
+        self.table_model.beforeReload.connect(self.ui.trw_event.save_selection)
+        self.table_model.afterReload.connect(self.ui.trw_event.restore_selection)
         # Расширение заголовочных строк
-        self.base_model.afterSelect.connect(self.ui.trw_event.span_columns)
+        self.table_model.afterReload.connect(self.ui.trw_event.span_columns)
 
         # Обновление отображения при фильтрации/сортировке/изменении
         self.table_model.layoutChanged.connect(self.check_event_selection_visibility)
@@ -379,8 +371,6 @@ class MainWindow(QMainWindow):
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.ui.trw_event.span_columns() if checked else None)
         self.ui.act_togglefooters.toggled.connect(self.table_model.set_footer_filter)
 
-        # Сигналы обновления кэша сортировки
-        self.base_model.cacheUpdateNeeded.connect(self.base_model.invalidate_sort_cache)
 
     def _init_statusbar(self) -> None:
         self.la_sbar_sync = QLabel("")
@@ -768,16 +758,16 @@ class MainWindow(QMainWindow):
 
     def reload_after_sync_pull(self) -> None:
         clear_calendar_cache()
-        self.base_model.select()
+        self.table_model.reload()
         self.payment_model.select()
         self.update_responsible_models(update_widgets=True)
         self.update_filters_and_select()
         self.on_currentevent_change()
 
     def refresh_on_date_change(self) -> None:
-        if QDate.currentDate() == self.base_model.current_date or QApplication.activeModalWidget() is not None:
+        if QDate.currentDate() == self.table_model.current_date or QApplication.activeModalWidget() is not None:
             return
-        self.base_model.select()
+        self.table_model.reload()
         self.update_filters_and_select()
         self.on_currentevent_change()
 
@@ -853,13 +843,10 @@ class MainWindow(QMainWindow):
         self.set_backup_status("" if backup_datetime.isValid() else "Резервная копия: ОШИБКА СОЗДАНИЯ")
 
 
-    def get_current_event_index(self, source_model_index: bool = False) -> QModelIndex:
-        if source_model_index:
-            return map_to_source(-1, self.ui.trw_event.selectionModel().currentIndex())
-        else:
-            return self.ui.trw_event.selectionModel().currentIndex()
+    def get_current_event_index(self) -> QModelIndex:
+        return self.ui.trw_event.selectionModel().currentIndex()
 
-    def current_data(self, column: Col, role: int = LiabilitySqlTableModel.dbValueRole) -> Any:
+    def current_data(self, column: Col, role: int = LiabilityTableModel.dbValueRole) -> Any:
         curr_index: QModelIndex = self.get_current_event_index()
         if not curr_index.isValid():
             return None
@@ -904,7 +891,7 @@ class MainWindow(QMainWindow):
         # Активировать/деактивировать кнопку удаления платежа и
         self.check_payment_selection_visibility()
         # Отобразить только оплаты, относящиеся к текущему платежу
-        self.payment_model.update_filter(self.current_data(Col.ID, LiabilitySqlTableModel.qtValueRole))
+        self.payment_model.update_filter(self.current_data(Col.ID, LiabilityTableModel.qtValueRole))
         self.check_event_selection_visibility()
         if row_type != RowType.LIABILITY:
             for act in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete):
@@ -924,13 +911,13 @@ class MainWindow(QMainWindow):
         if not current_index.isValid():
             self.ui.stw_eventinfo.setCurrentIndex(1)
             return False
-        row_type: int = current_index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole)
+        row_type: int = current_index.siblingAtColumn(Col.TYPE).data(LiabilityTableModel.dbValueRole)
         is_event_selected: bool = (row_type == RowType.LIABILITY)
         # Информационная часть отображается только для платежей
         self.ui.stw_eventinfo.setCurrentIndex(int(not is_event_selected))
         # Значения для информационной части
         if row_type == RowType.LIABILITY:
-            remain_amount: Decimal = current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilitySqlTableModel.qtValueRole)
+            remain_amount: Decimal = current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilityTableModel.qtValueRole)
             self.ui.la_remainsum.setText(dec_strcommaspace(remain_amount, add_rub=True))
             self.update_contractbound_field(current_index)
             self.ui.la_createdate.setText(str(current_index.siblingAtColumn(Col.INCURRENCEDATE).data()))
@@ -938,7 +925,7 @@ class MainWindow(QMainWindow):
             self.ui.te_descr.setPlainText(str(current_index.siblingAtColumn(Col.DESCR).data()))
             self.ui.te_notes.setPlainText(str(current_index.siblingAtColumn(Col.NOTES).data()))
             # Сумма платежа по умолчанию равна остатку
-            self.ui.dsb_paymentsum.setValue(current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilitySqlTableModel.qtValueRole))
+            self.ui.dsb_paymentsum.setValue(current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilityTableModel.qtValueRole))
             # Обновить дату платежа по умолчанию
             self.ui.de_paymentdate.setDate(QDate.currentDate())
         return True
@@ -949,8 +936,8 @@ class MainWindow(QMainWindow):
         self.ui.act_copydoc.setEnabled(bool(document_id) and self.current_data(Col.PAYMENTTYPE) != PaymentType.REFUND)
 
     def update_contractbound_field(self, index: QModelIndex) -> None:
-        document_id: int = index.siblingAtColumn(Col.CONTRACTDOCUMENTID).data(LiabilitySqlTableModel.qtValueRole)
-        title = self.base_model.document_title(document_id) if document_id else None
+        document_id: int = index.siblingAtColumn(Col.CONTRACTDOCUMENTID).data(LiabilityTableModel.qtValueRole)
+        title = self.table_model.document_title(document_id) if document_id else None
         self.set_bound_document(document_id if title else 0)
         if title is None:
             self.ui.la_contractbound.setText(self.CONTRACT_NOTBOUND_TEXT)
@@ -963,7 +950,7 @@ class MainWindow(QMainWindow):
         self.ui.la_contractbound.setToolTip("Открыть документ договора")
 
     def open_bound_document(self, _=None) -> None:
-        title = self.base_model.document_title(self.bound_document_id) if self.bound_document_id else None
+        title = self.table_model.document_title(self.bound_document_id) if self.bound_document_id else None
         if title is None:
             return
         contract = ContractInfo(contractor_id=title.contractor_id,
@@ -973,7 +960,7 @@ class MainWindow(QMainWindow):
                                 contract_date=title.contract_date)
         dlg = ContractDocumentDialog(self.db_handler, self.settings_handler.settings, self.bound_document_id, contract, self)
         if dlg.exec():
-            self.base_model.document_titles.clear()
+            self.table_model.document_titles.clear()
             self.update_eventinfo()
 
     # Общий набор аргументов для set_filters, чтобы не дублировать список из 7 параметров
@@ -1038,10 +1025,10 @@ class MainWindow(QMainWindow):
         note_index: QModelIndex = self.get_current_event_index() if index is None else index
         if not note_index.isValid():
             return False
-        if note_index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole) != RowType.LIABILITY:
+        if note_index.siblingAtColumn(Col.TYPE).data(LiabilityTableModel.dbValueRole) != RowType.LIABILITY:
             return False
         note_text: str = self.ui.te_notes.toPlainText()
-        if note_index.siblingAtColumn(Col.NOTES).data(LiabilitySqlTableModel.dbValueRole) == note_text:
+        if note_index.siblingAtColumn(Col.NOTES).data(LiabilityTableModel.dbValueRole) == note_text:
             return False
         return self.set_data_to_event(note_index, Col.NOTES, note_text)
 
@@ -1051,9 +1038,9 @@ class MainWindow(QMainWindow):
 
         if amount == 0:
             return False
-        if (amount - self.current_data(Col.REMAINAMOUNT, LiabilitySqlTableModel.qtValueRole)) > 0.01:
+        if (amount - self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole)) > 0.01:
             msg_box = YesNoMessagebox(f"Сумма оплаты ({dec_strcommaspace(amount)}) превышает остаток задолженности ({dec_strcommaspace(
-                self.current_data(Col.REMAINAMOUNT, LiabilitySqlTableModel.qtValueRole))}). Уверены, что хотите продолжить?", self)
+                self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole))}). Уверены, что хотите продолжить?", self)
             if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:
                 return False
         if date > QDate.currentDate():
@@ -1101,13 +1088,7 @@ class MainWindow(QMainWindow):
             if not curr_index.isValid():
                 self.warn_selection_lost()
                 return False
-            selection_not_visible: bool = is_selection_filteredout(
-                self.table_model, self.ui.trw_event, current_instead=True)
-            if selection_not_visible:
-                self.warn_selection_lost()
-                return False
-
-            is_current_paid = True if FilterFlags.PAID in curr_index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole) else False
+            is_current_paid = True if FilterFlags.PAID in curr_index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilityTableModel.qtValueRole) else False
 
         responsible_model: ResponsibleCategorySortModel = self.responsible_partial_sorted_model
         if edit or copy:
@@ -1115,7 +1096,7 @@ class MainWindow(QMainWindow):
             if not self.responsible_partial_model:
                 self.warn_personal_unavailable()
                 return False
-            responsible_id = curr_index.siblingAtColumn(Col.RESPONSIBLE).data(LiabilitySqlTableModel.qtValueRole)
+            responsible_id = curr_index.siblingAtColumn(Col.RESPONSIBLE).data(LiabilityTableModel.qtValueRole)
             matches = self.responsible_partial_model.match(self.responsible_partial_model.index(0, 0), Qt.ItemDataRole.UserRole,
                                                            responsible_id, hits=1, flags=Qt.MatchFlag.MatchExactly)
             if not matches:
@@ -1143,14 +1124,13 @@ class MainWindow(QMainWindow):
             return False
 
     def select_new_event(self, set_due_filter: bool) -> None:
-        self.base_model.submitAll()
         self.table_model.load_payment_totals()
         self.ui.trw_event.selectionModel().clear()
         if set_due_filter:
             self.ui.lw_term.setCurrentRow(0)
         self.update_filters_and_select()
         # ищем и выделяем новую строку
-        last_id: int = self.base_model.last_inserted_id
+        last_id: int = self.table_model.last_inserted_id
 
         index_to_select: QModelIndex = self.table_model.index_by_id(last_id)
         if index_to_select.isValid():
@@ -1159,14 +1139,14 @@ class MainWindow(QMainWindow):
 
     def open_copydoc_dialog(self) -> bool:
         curr_index: QModelIndex = self.get_current_event_index()
-        if not curr_index.isValid() or is_selection_filteredout(self.table_model, self.ui.trw_event, current_instead=True):
+        if not curr_index.isValid():
             self.warn_selection_lost()
             return False
-        title = self.base_model.document_title(self.bound_document_id) if self.bound_document_id else None
+        title = self.table_model.document_title(self.bound_document_id) if self.bound_document_id else None
         if title is None:
             return False
 
-        is_current_paid = FilterFlags.PAID in curr_index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)
+        is_current_paid = FilterFlags.PAID in curr_index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilityTableModel.qtValueRole)
         copydoc_dialog = CopyDocDialog(final_proxy_model=self.table_model, db_handler=self.db_handler, settings_handler=self.settings_handler,
                                        current_index=curr_index, title=title, parent=self)
         if not copydoc_dialog.exec():
@@ -1189,19 +1169,14 @@ class MainWindow(QMainWindow):
         if not curr_index.isValid():
             self.warn_selection_lost()
             return False
-        selection_not_visible: bool = is_selection_filteredout(self.table_model, self.ui.trw_event, current_instead=True)
-        if selection_not_visible:
-            self.warn_selection_lost()
-            return False
         msg_box = YesNoMessagebox("Удаление платежа - необратимое действие. Уверены, что хотите продолжить?",
                                   self, cancel_by_default=True)
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
-            event_id: int = self.current_data(Col.ID, LiabilitySqlTableModel.qtValueRole)
-            row: int = self.table_model.mapToSource(curr_index).row()
+            event_id: int = self.current_data(Col.ID, LiabilityTableModel.qtValueRole)
             deleted: bool = self.db_handler.run_in_transaction(
-                lambda: self.db_handler.delete_payments_by_event(event_id) and self.base_model.delete_row(row) != 0)
+                lambda: self.db_handler.delete_payments_by_event(event_id) and self.table_model.delete_event(event_id))
             if not deleted:
-                self.base_model.select()
+                self.table_model.reload()
                 self.update_filters_and_select()
                 ErrorInfoMessageBox("Не удалось удалить платеж (подробности см. в логе)", parent=self).exec()
                 return False
@@ -1215,7 +1190,7 @@ class MainWindow(QMainWindow):
         settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, self.db_handler, self)
         settings_dialog.exec()
         self.on_currentevent_change()
-        self.base_model.select()
+        self.table_model.reload()
         self.update_filters_and_select()
         self.update_sync_status()
 
@@ -1232,10 +1207,10 @@ class MainWindow(QMainWindow):
 
     def open_fees_dialog(self, csv_path: str = "", statement_fee_totals: dict | None = None,
                          parent: QWidget | None = None) -> None:
-        fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.base_model, self.payment_model,
+        fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.table_model, self.payment_model,
                                            parent or self, csv_path, statement_fee_totals)
         fees_dialog.exec()
-        self.base_model.select()
+        self.table_model.reload()
         self.update_filters_and_select()
 
     def open_matching_dialog(self) -> None:
@@ -1246,7 +1221,7 @@ class MainWindow(QMainWindow):
             lambda entry, new_amount, dialog: self.open_payment_amount_dialog(entry, new_amount, dialog),
             self.open_fees_dialog, self)
         matching_dialog.exec()
-        self.base_model.select()
+        self.table_model.reload()
         self.payment_model.update_filter()
         self.update_filters_and_select()
 
@@ -1285,17 +1260,17 @@ class MainWindow(QMainWindow):
 
     def update_responsible_models(self, update_widgets: bool) -> bool:
         personal_data = self.db_handler.load_personal_data(as_dict=True)
-        if not (personal_data and self.base_model):
+        if not (personal_data and self.table_model):
             log.w("Не удалось обновить модели ответственных: данные персонала недоступны")
             return False
 
-        self.base_model.personal_dict = personal_data[0]
+        self.table_model.personal_dict = personal_data[0]
         self.personal_frequency_bycategory_dict = personal_data[1]
 
         self.responsible_partial_model = ResponsibleModel(only_active_personal=True)
-        self.responsible_partial_model.setup_model(self.base_model.personal_dict)
+        self.responsible_partial_model.setup_model(self.table_model.personal_dict)
         self.responsible_full_model = ResponsibleModel(only_active_personal=False)
-        self.responsible_full_model.setup_model(self.base_model.personal_dict)
+        self.responsible_full_model.setup_model(self.table_model.personal_dict)
 
         self.responsible_partial_sorted_model: ResponsibleCategorySortModel = ResponsibleCategorySortModel(
             self.personal_frequency_bycategory_dict)

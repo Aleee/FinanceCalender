@@ -16,7 +16,7 @@ from base.feeparser import CSVParseError, DailyFees, FeeCategoryResult, Statemen
 from base.formatting import dec_strcommaspace, dec_html, COLOR_HEADER_BG, COLOR_WARNING, COLOR_WARNING_BG
 from base.liability import LiabilityCategory, RowType
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox, show_status_message
-from gui.eventsqlmodel import LiabilitySqlTableModel, Col
+from gui.liabilitytablemodel import LiabilityTableModel
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.settings import SettingsHandler
 from gui.ui.feedialog_ui import Ui_feedialog
@@ -28,7 +28,7 @@ COMMISSION_DESCRIPTION: str = "[A] Комиссионное вознагражд
 
 
 class FeeDialog(QDialog):
-    def __init__(self, settings_handler, db_handler, base_model, payment_model, parent=None,
+    def __init__(self, settings_handler, db_handler, table_model, payment_model, parent=None,
                  csv_path: str = "", statement_fee_totals: dict[tuple[date, LiabilityCategory], Decimal] | None = None):
         super(FeeDialog, self).__init__(parent)
         self.ui = Ui_feedialog()
@@ -37,7 +37,7 @@ class FeeDialog(QDialog):
 
         self.sh: SettingsHandler = settings_handler
         self.dbh: DBHandler = db_handler
-        self.base_model: LiabilitySqlTableModel = base_model
+        self.table_model: LiabilityTableModel = table_model
         self.payment_model: PaymentHistoryTableModel = payment_model
 
         self.parse_result: Optional[StatementParseResult] = None
@@ -325,15 +325,14 @@ class FeeDialog(QDialog):
             0,
         ]
 
-        new_event_row = self.base_model.insert_row(event_data)
-        if not new_event_row:
+        new_event_id = self.table_model.insert_event(event_data)
+        if new_event_id is None:
             ErrorInfoMessageBox("При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)").exec()
             log.e(f"Не удалось вставить новую строку в таблицу event со следующими данными: {event_data}")
             return False
-        self.base_model.submitAll()
 
         payment_data: list = [
-            self.base_model.index(new_event_row, Col.ID).data(LiabilitySqlTableModel.qtValueRole),
+            new_event_id,
             fee_date_str,
             str(agg.total),
             today_str,

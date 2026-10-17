@@ -5,22 +5,19 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QDate, QModelIndex, Qt
-from PySide6.QtSql import QSqlTableModel
 
 from base.date import date_str
-from base.liabilitystore import LiabilityStore
-from base.liability import (CATEGORY_NAMES, FilterFlags, HeaderFooterSubtype, LiabilityCategory, PaymentType, RowType,
-                            TermCategory, category_section, is_top_level_category)
+from base.liability import (CATEGORY_NAMES, Col, FilterFlags, HeaderFooterSubtype, LiabilityCategory, PaymentType, RowType,
+                            STORED_INDEX, TermCategory, category_section, is_top_level_category)
+from base.liabilitystore import LiabilityStore, VisibleRow
 from base.version import DB_VERSION
-from gui.eventproxymodel import Filter, LiabilitySortFilterProxyModel, LiabilityTotalsProxyModel
-from gui.liabilitytablemodel import LiabilityTableModel
 from gui.eventwidget import EventWidget
 from base.formatting import dec_strcommaspace
-from gui.eventsqlmodel import Col, LiabilitySqlTableModel, RowFormatting
+from gui.liabilitytablemodel import LiabilityTableModel, RowFormatting
 from tests.dbtools import create_db
 
-QT_VALUE = LiabilitySqlTableModel.qtValueRole
-DB_VALUE = LiabilitySqlTableModel.dbValueRole
+QT_VALUE = LiabilityTableModel.qtValueRole
+DB_VALUE = LiabilityTableModel.dbValueRole
 TODAY = QDate.currentDate()
 
 
@@ -69,38 +66,31 @@ class Models:
 
     def __init__(self, dbh, path: Path):
         self.path = path
-        self.base = LiabilitySqlTableModel(dbh)
-        self.base.setTable("event")
-        self.base.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
+        self.store = LiabilityStore(dbh)
+        self.table = LiabilityTableModel(self.store)
+        self.table.set_header_filter(True)
+        self.table.set_footer_filter(True)
         self.labels: tuple[dict, dict] | None = None
-        self.base.filterwidget_labels_changed.connect(lambda term, category: setattr(self, "labels", (dict(term), dict(category))))
-        self.base.select()
-        self.proxy1 = LiabilitySortFilterProxyModel()
-        self.proxy1.setSourceModel(self.base)
-        self.proxy1.set_filter(Filter.HEADER, True, invalidate=False)
-        self.proxy1.set_filter(Filter.FOOTER, True, invalidate=False)
-        self.proxy2 = LiabilityTotalsProxyModel()
-        self.proxy2.setSourceModel(self.proxy1)
-        self.proxy1.layoutChanged.connect(self.proxy2.recalculate_totals)
         self.apply()
 
     def apply(self, term=TermCategory.UNPAID, category=0, search="", responsible=0, paid_today=False,
               featured=False, months=3) -> None:
-        args = (term, category, search, responsible, paid_today, months, featured)
-        self.proxy1.set_filters(*args)
-        self.base.send_filterwidget_labeldata(*args)
+        self.table.set_filters(term, category, search, responsible, paid_today, months, featured)
+        self.labels = tuple(dict(counters) for counters in self.table.filter_counters())
 
-    def source_row(self, event_id: int) -> int:
-        for row in range(self.base.rowCount()):
-            if self.base.index(row, Col.ID).data(DB_VALUE) == event_id:
-                return row
-        raise LookupError(event_id)
+    def row_of(self, event_id: int) -> VisibleRow:
+        values = self.store.event_values(event_id)
+        if values is None:
+            raise LookupError(event_id)
+        return VisibleRow(RowType(values[STORED_INDEX[Col.TYPE]]), event_id, values[STORED_INDEX[Col.CATEGORY]] or 0,
+                          values[STORED_INDEX[Col.SUBCATEGORY]] or 0)
 
     def value(self, event_id: int, column: int, role: int = QT_VALUE):
-        return self.base.index(self.source_row(event_id), column).data(role)
+        row = self.row_of(event_id)
+        return self.table.qt_value(row, column) if role == QT_VALUE else self.table.db_value(row, column)
 
     def visible(self, row_type: RowType = RowType.LIABILITY, model=None) -> list[int]:
-        model = model or self.proxy2
+        model = model or self.table
         return sorted(model.index(row, Col.ID).data(DB_VALUE) for row in range(model.rowCount())
                       if model.index(row, Col.TYPE).data(DB_VALUE) == row_type)
 
@@ -132,7 +122,7 @@ def models(db_file, open_models):
 
 
 def reload(models: Models) -> None:
-    models.base.select()
+    models.table.reload()
     models.apply()
 
 
@@ -234,13 +224,13 @@ def test_adding_and_deleting_payment(models):
     assert models.value(event_id, Col.REMAINAMOUNT) == Decimal("800.00")
 
     payment_id = add_payment(models.path, event_id, day(0), "800.00")
-    models.base.load_payment_totals()
+    models.table.load_payment_totals()
     assert models.value(event_id, Col.REMAINAMOUNT) == Decimal(0)
     assert models.value(event_id, Col.TODAYSHARE) == Decimal("800.00")
     assert models.value(event_id, Col.LASTPAYMENTDATE) == day(0)
 
     run_sql(models.path, "DELETE FROM payment WHERE id = ?", payment_id)
-    models.base.load_payment_totals()
+    models.table.load_payment_totals()
     assert models.value(event_id, Col.REMAINAMOUNT) == Decimal("800.00")
     assert models.value(event_id, Col.TODAYSHARE) == Decimal(0)
     assert models.value(event_id, Col.LASTPAYMENTDATE) == ""
@@ -252,7 +242,7 @@ def test_payment_moves_row_between_terms(models):
     reload(models)
     assert event_id in models.visible()
     add_payment(models.path, event_id, day(-1), "800.00")
-    models.base.load_payment_totals()
+    models.table.load_payment_totals()
     models.apply()
     assert event_id not in models.visible()
     models.apply(term=TermCategory.PAID)
@@ -422,9 +412,9 @@ def test_responsible_featured_and_hidden_filters(db_file, open_models):
     models.apply(featured=True)
     assert models.visible() == [first]
     models.apply()
-    models.proxy1.set_hidden_filter(True)
+    models.table.set_hidden_filter(True)
     assert models.visible() == [first]
-    models.proxy1.set_hidden_filter(False)
+    models.table.set_hidden_filter(False)
     assert models.visible() == sorted([first, second])
 
 
@@ -440,8 +430,8 @@ def test_service_rows_follow_toolbar_flags(db_file, open_models):
         assert len(models.visible(row_type)) == 1, row_type
     assert models.visible() == [liability]
 
-    models.proxy1.set_filter(Filter.HEADER, False)
-    models.proxy1.set_filter(Filter.FOOTER, False)
+    models.table.set_header_filter(False)
+    models.table.set_footer_filter(False)
     assert models.visible(RowType.HEADER) == []
     assert models.visible(RowType.FOOTER) == []
     assert models.visible(RowType.FINALFOOTER) == []
@@ -472,12 +462,12 @@ def test_totals_follow_filtered_liabilities(db_file, open_models):
     add_payment(db_file, first, day(-1), "30.00")
     models = open_models(db_file)
     models.apply(TermCategory.DUE)
-    assert models.proxy2.stored_count == 1
-    assert models.proxy2.stored_total[1101] == Decimal("100.00")
-    assert models.proxy2.stored_remain[1101] == Decimal("70.00")
+    assert models.store.totals().count == 1
+    assert models.store.totals().total[1101] == Decimal("100.00")
+    assert models.store.totals().remain[1101] == Decimal("70.00")
     models.apply(TermCategory.UNPAID)
-    assert models.proxy2.stored_count == 2
-    assert models.proxy2.stored_total[models.proxy2.TOTAL_CATEGORY] == Decimal("140.00")
+    assert models.store.totals().count == 2
+    assert models.store.totals().total[models.store.TOTAL_CATEGORY] == Decimal("140.00")
 
 
 def test_sidebar_counters(db_file, open_models):
@@ -526,7 +516,7 @@ def test_sidebar_counters_match_visible_rows(db_file, open_models):
             models.apply(term, category=category)
             term_labels, category_labels = models.labels
             assert term_labels[term] == len(models.visible()), (term, category)
-            assert models.proxy2.stored_count == len(models.visible())
+            assert models.table.stored_count == len(models.visible())
 
 
 def file_hash(path: Path) -> str:
@@ -534,19 +524,20 @@ def file_hash(path: Path) -> str:
 
 
 def exercise_read_path(models: Models) -> None:
-    models.base.select()
+    models.table.reload()
     for term in TermCategory:
         models.apply(term)
         models.visible()
     models.apply(TermCategory.UNPAID, category=1101, search="ромаш", responsible=1, paid_today=True, featured=True)
-    models.base.load_payment_totals()
-    models.base.select()
-    models.proxy1.set_hidden_filter(True)
-    models.proxy1.set_hidden_filter(False)
-    for row in range(models.base.rowCount()):
-        for column in range(models.base.columnCount()):
-            models.base.index(row, column).data(Qt.ItemDataRole.DisplayRole)
-            models.base.index(row, column).data(DB_VALUE)
+    models.table.load_payment_totals()
+    models.table.reload()
+    models.table.set_hidden_filter(True)
+    models.table.set_hidden_filter(False)
+    models.apply()
+    for row in range(models.table.rowCount()):
+        for column in range(models.table.columnCount()):
+            models.table.index(row, column).data(Qt.ItemDataRole.DisplayRole)
+            models.table.index(row, column).data(DB_VALUE)
 
 
 def fill_sample_db(path: Path) -> None:
@@ -599,7 +590,6 @@ def test_app_works_with_read_only_database(db_file, shared_dbh):
         exercise_read_path(models)
         models.apply(TermCategory.UNPAID)
         assert len(models.visible()) == expected_unpaid
-        assert models.base.lastError().text() == ""
     finally:
         shared_dbh.db.close()
         shared_dbh.db.setConnectOptions("")
@@ -628,7 +618,7 @@ def test_model_after_migration_matches_computed_values(dbh, work_db_path, open_m
     add_payment(work_db_path, 1, day(-1), "400.00")
     assert dbh.migrate_db()
     models = open_models(work_db_path)
-    assert models.base.columnCount() == len(Col)
+    assert models.table.columnCount() == len(Col)
     assert models.value(1, Col.REMAINAMOUNT) == Decimal("600.00")
     assert models.value(1, Col.TODAYSHARE) == Decimal(0)
     assert models.value(1, Col.LASTPAYMENTDATE) == day(-1)
@@ -639,35 +629,33 @@ def test_model_after_migration_matches_computed_values(dbh, work_db_path, open_m
 def test_virtual_columns_are_read_only_and_selectable(models):
     event_id = add_event(models.path)
     reload(models)
-    row = models.source_row(event_id)
-    for column in LiabilitySqlTableModel.DERIVED_COLUMNS:
-        index = models.base.index(row, column)
-        flags = models.base.flags(index)
+    for column in (Col.REMAINAMOUNT, Col.TODAYSHARE, Col.LASTPAYMENTDATE, Col.FILTERFLAGS):
+        index = models.table.index_by_id(event_id, column)
+        flags = models.table.flags(index)
         assert flags & Qt.ItemFlag.ItemIsEnabled
         assert flags & Qt.ItemFlag.ItemIsSelectable
-        assert not models.base.setData(index, "1")
-    assert models.base.columnCount() == len(Col)
+        assert not models.table.setData(index, "1")
+    assert models.table.columnCount() == len(Col)
 
 
-def test_insert_row_takes_only_stored_columns(models):
+def test_insert_event_takes_only_stored_columns(models):
     data = ["ООО Ромашка", 0, int(RowType.LIABILITY), 0, 1101, 0, "name", "100.00", 0, day(5), day(0),
             int(PaymentType.NORMAL), "descr", "1", "", 0, 0]
-    assert models.base.insert_row(data) is not None
-    assert models.base.submitAll()
+    event_id = models.table.insert_event(data)
+    assert event_id is not None
     reload(models)
-    event_id = models.base.index(models.base.rowCount() - 1, Col.ID).data(DB_VALUE)
     assert models.value(event_id, Col.REMAINAMOUNT) == Decimal("100.00")
     assert models.value(event_id, Col.TOTALAMOUNT) == Decimal("100.00")
     with pytest.raises(IndexError):
-        models.base.insert_row(data + [0])
+        models.table.insert_event(data + [0])
 
 
-def test_edit_row_writes_every_stored_column(models):
+def test_edit_event_writes_every_stored_column(models):
     event_id = add_event(models.path, total="100.00")
     reload(models)
     data = ["ИП Иванов", event_id, int(RowType.LIABILITY), 5, 1102, 0, "new name", "250.00", 1, day(7), day(1),
             int(PaymentType.ADVANCE), "new descr", "3", "note", 1, 1]
-    assert models.base.edit_row(models.source_row(event_id), data) is not None
+    assert models.table.edit_event(event_id, data)
     reload(models)
     con = sqlite3.connect(models.path)
     try:
@@ -681,7 +669,7 @@ def test_edit_row_writes_every_stored_column(models):
 
 
 def loaded_ids(models: Models) -> set[int]:
-    return {models.base.index(row, Col.ID).data(DB_VALUE) for row in range(models.base.rowCount())}
+    return set(models.store.events)
 
 
 def test_old_paid_rows_are_not_loaded_but_everything_else_is(db_file, open_models):
@@ -703,59 +691,60 @@ def test_old_paid_rows_are_not_loaded_but_everything_else_is(db_file, open_model
     models = open_models(db_file)
     assert loaded_ids(models) == {old_paid, old_overpaid, old_split_paid, old_partial, recent_paid, paid_today, unpaid, header}
 
-    models.base.set_paid_load_months(3)
+    models.table.set_paid_load_months(3)
     assert loaded_ids(models) == {old_partial, recent_paid, paid_today, unpaid, header}
 
-    models.base.set_paid_load_months(12)
+    models.table.set_paid_load_months(12)
     assert loaded_ids(models) == {old_paid, old_overpaid, old_split_paid, old_partial, recent_paid, paid_today, unpaid, header}
 
 
-def test_select_runs_once_per_call(models, monkeypatch):
+def test_reload_runs_store_reload_once_per_call(models, monkeypatch):
     calls: list[int] = []
-    original = LiabilitySqlTableModel.select
+    original = LiabilityStore.reload
 
-    def counting_select(self):
+    def counting_reload(self):
         calls.append(1)
-        return original(self) if len(calls) < 5 else False
+        return original(self)
 
-    monkeypatch.setattr(LiabilitySqlTableModel, "select", counting_select)
-    models.base.select()
+    monkeypatch.setattr(LiabilityStore, "reload", counting_reload)
+    models.table.reload()
     assert len(calls) == 1
+    models.table.set_paid_load_months(5)
+    assert len(calls) == 2
+    models.table.set_paid_load_months(5)
+    assert len(calls) == 2
 
 
-def test_select_in_batches_builds_event_cache_once_and_matches_full_build(db_file, open_models):
-    for number in range(600):
-        event_id = add_event(db_file, total="100.00", due=day(number % 20))
+def test_incremental_updates_match_full_reload(db_file, open_models):
+    for number in range(120):
+        event_id = add_event(db_file, total="100.00", due=day(number % 20), category=1101 + number % 3)
         if number % 3 == 0:
             add_payment(db_file, event_id, day(-1), "40.00")
     models = open_models(db_file)
-    full_builds: list[int] = []
-    original = models.base.build_event_cache
+    store = models.store
 
-    def counting_build(rows=None):
-        if rows is None:
-            full_builds.append(1)
-        return original(rows)
+    changed = add_event(db_file, total="55.00", due=day(-2))
+    add_payment(db_file, changed, day(0), "5.00")
+    store.refresh_event(changed)
+    run_sql(db_file, "UPDATE event SET totalamount = '70.00', duedate = ? WHERE id = ?", day(3), 10)
+    store.refresh_event(10)
+    run_sql(db_file, "DELETE FROM event WHERE id = ?", 20)
+    run_sql(db_file, "DELETE FROM payment WHERE eventid = ?", 20)
+    store.remove_event(20)
+    add_payment(db_file, 30, day(0), "10.00")
+    store.load_payment_totals()
+    store.set_filters(TermCategory.UNPAID, 0, "", 0, False, 3, False)
+    incremental = (dict(store.liabilities), dict(store.events), store.visible_rows(), store.totals(), store.filter_counters())
 
-    models.base.build_event_cache = counting_build
-    models.base.select()
-    models.apply()
-    assert models.base.rowCount() >= 600
-    assert len(full_builds) == 1
-    cached = dict(models.base.liability_rows())
-    models.base.invalidate_liability_cache()
-    assert cached == models.base.liability_rows()
-
-
-def proxy_row(models: Models, event_id: int) -> int:
-    for row in range(models.proxy2.rowCount()):
-        if models.proxy2.index(row, Col.ID).data(DB_VALUE) == event_id:
-            return row
-    raise LookupError(event_id)
+    fresh = LiabilityStore(store.db_handler)
+    fresh.reload()
+    fresh.set_filters(TermCategory.UNPAID, 0, "", 0, False, 3, False)
+    assert incremental == (dict(fresh.liabilities), dict(fresh.events), fresh.visible_rows(), fresh.totals(), fresh.filter_counters())
+    assert 20 not in store.events and changed in store.liabilities
 
 
 def row_font_bold(models: Models, event_id: int, column: int = Col.RECEIVER) -> bool | None:
-    font = models.proxy2.index(proxy_row(models, event_id), column).data(Qt.ItemDataRole.FontRole)
+    font = models.table.index_by_id(event_id, column).data(Qt.ItemDataRole.FontRole)
     return None if font is None else font.bold()
 
 
@@ -768,12 +757,12 @@ def test_row_fonts_follow_formatting_and_term(db_file, open_models):
     final_footer = add_event(db_file, row_type=RowType.FINALFOOTER, category=None, total=None)
     models = open_models(db_file)
 
-    models.base.set_row_formatting(RowFormatting(due_textbold=True, today_textbold=True, header_textbold=True, footer_textbold=True))
+    models.table.set_row_formatting(RowFormatting(due_textbold=True, today_textbold=True, header_textbold=True, footer_textbold=True))
     models.apply()
     assert [row_font_bold(models, event_id) for event_id in (due, today, future, header, footer, final_footer)] == \
            [True, True, None, True, True, True]
 
-    models.base.set_row_formatting(RowFormatting(due_textbold=False, today_textbold=True, header_textbold=False, footer_textbold=False))
+    models.table.set_row_formatting(RowFormatting(due_textbold=False, today_textbold=True, header_textbold=False, footer_textbold=False))
     models.apply()
     assert [row_font_bold(models, event_id) for event_id in (due, today, future, header, footer, final_footer)] == \
            [False, True, None, False, False, True]
@@ -790,41 +779,38 @@ def test_totals_cells_only_differ_in_footer_total_columns(db_file, open_models):
     event_id = add_event(db_file, category=1101, total="100.00", due=day(10))
     footer = add_event(db_file, row_type=RowType.FOOTER, category=1101, total=None, subcategory=HeaderFooterSubtype.ORDINARY)
     models = open_models(db_file)
-    models.base.set_row_formatting(RowFormatting(footer_textbold=False))
+    models.table.set_row_formatting(RowFormatting(footer_textbold=False))
     models.apply()
-    proxy = models.proxy2
-    decimal_role = proxy.decimalValueRole
-    footer_row, liability_row = proxy_row(models, footer), proxy_row(models, event_id)
+    table = models.table
+    decimal_role = table.decimalValueRole
 
-    assert proxy.index(footer_row, Col.TOTALAMOUNT).data(Qt.ItemDataRole.DisplayRole) == dec_strcommaspace(Decimal("100.00"))
-    assert proxy.index(footer_row, Col.TOTALAMOUNT).data(decimal_role) == Decimal("100.00")
-    assert proxy.index(footer_row, Col.REMAINAMOUNT).data(decimal_role) == Decimal("100.00")
-    assert proxy.index(footer_row, Col.TODAYSHARE).data(Qt.ItemDataRole.DisplayRole) == ""
-    assert proxy.index(footer_row, Col.TOTALAMOUNT).data(Qt.ItemDataRole.FontRole).bold()
-    assert not proxy.index(footer_row, Col.RECEIVER).data(Qt.ItemDataRole.FontRole).bold()
-    assert proxy.index(footer_row, Col.RECEIVER).data(decimal_role) is None
+    assert table.index_by_id(footer, Col.TOTALAMOUNT).data(Qt.ItemDataRole.DisplayRole) == dec_strcommaspace(Decimal("100.00"))
+    assert table.index_by_id(footer, Col.TOTALAMOUNT).data(decimal_role) == Decimal("100.00")
+    assert table.index_by_id(footer, Col.REMAINAMOUNT).data(decimal_role) == Decimal("100.00")
+    assert table.index_by_id(footer, Col.TODAYSHARE).data(Qt.ItemDataRole.DisplayRole) == ""
+    assert table.index_by_id(footer, Col.TOTALAMOUNT).data(Qt.ItemDataRole.FontRole).bold()
+    assert not table.index_by_id(footer, Col.RECEIVER).data(Qt.ItemDataRole.FontRole).bold()
+    assert table.index_by_id(footer, Col.RECEIVER).data(decimal_role) is None
 
-    assert proxy.index(liability_row, Col.TOTALAMOUNT).data(Qt.ItemDataRole.DisplayRole) == dec_strcommaspace(Decimal("100.00"))
-    assert proxy.index(liability_row, Col.TOTALAMOUNT).data(decimal_role) is None
-    assert proxy.index(liability_row, Col.TOTALAMOUNT).data(Qt.ItemDataRole.FontRole) is None
+    assert table.index_by_id(event_id, Col.TOTALAMOUNT).data(Qt.ItemDataRole.DisplayRole) == dec_strcommaspace(Decimal("100.00"))
+    assert table.index_by_id(event_id, Col.TOTALAMOUNT).data(decimal_role) is None
+    assert table.index_by_id(event_id, Col.TOTALAMOUNT).data(Qt.ItemDataRole.FontRole) is None
 
 
 def liability_order(models: Models) -> list[int]:
-    proxy = models.proxy2
-    return [proxy.index(row, Col.ID).data(DB_VALUE) for row in range(proxy.rowCount())
-            if proxy.index(row, Col.TYPE).data(DB_VALUE) == RowType.LIABILITY]
+    table = models.table
+    return [table.index(row, Col.ID).data(DB_VALUE) for row in range(table.rowCount())
+            if table.index(row, Col.TYPE).data(DB_VALUE) == RowType.LIABILITY]
 
 
-def test_sort_order_follows_changed_due_date_after_cache_invalidation(db_file, open_models):
+def test_sort_order_follows_changed_due_date(db_file, open_models):
     first = add_event(db_file, due=day(1))
     second = add_event(db_file, due=day(2))
     third = add_event(db_file, due=day(3))
     models = open_models(db_file)
     assert liability_order(models) == [first, second, third]
 
-    assert models.base.setData(models.base.index(models.source_row(first), Col.DUEDATE), day(10))
-    models.base.invalidate_sort_cache()
-    models.proxy1.invalidate()
+    assert models.table.setData(models.table.index_by_id(first, Col.DUEDATE), day(10))
     assert liability_order(models) == [second, third, first]
 
 
@@ -835,15 +821,14 @@ def test_sort_order_is_correct_after_rows_shift_on_row_removal(db_file, open_mod
     models = open_models(db_file)
     assert liability_order(models) == [second, third, first]
 
-    assert models.base.delete_row(models.source_row(first)) == first
-    models.proxy1.invalidate()
+    assert models.table.delete_event(first)
     assert liability_order(models) == [second, third]
 
 
-def totals_by_cells(proxy) -> tuple:
+def totals_by_cells(proxy, total_category: int) -> tuple:
     stored = {name: {category: 0 for category in LiabilityCategory} for name in ("total", "remain", "today")}
     for values in stored.values():
-        values[proxy.TOTAL_CATEGORY] = 0
+        values[total_category] = 0
     count = 0
     for row in range(proxy.rowCount()):
         if proxy.index(row, Col.TYPE).data(DB_VALUE) != RowType.LIABILITY:
@@ -861,7 +846,7 @@ def totals_by_cells(proxy) -> tuple:
                 values[category] = sum((value for key, value in values.items() if category_section(key) == section), Decimal(0))
             if category != LiabilityCategory.TOP_CURRENT:
                 total_total += values[category]
-        values[proxy.TOTAL_CATEGORY] = total_total
+        values[total_category] = total_total
     return count, stored["total"], stored["remain"], stored["today"]
 
 
@@ -891,8 +876,7 @@ def test_totals_match_cell_by_cell_calculation(db_file, open_models):
         for term in TermCategory:
             for paytoday in (False, True):
                 models.apply(term, search=search, paid_today=paytoday)
-                assert (models.proxy2.stored_count, models.proxy2.stored_total, models.proxy2.stored_remain,
-                        models.proxy2.stored_today) == totals_by_cells(models.proxy2), (search, term, paytoday)
+                assert tuple(models.store.totals()) == totals_by_cells(models.table, models.store.TOTAL_CATEGORY), (search, term, paytoday)
                 checked += 1
     assert checked == 48
 
@@ -902,18 +886,17 @@ def test_flags_make_only_liability_rows_selectable(db_file, open_models):
     service = {row_type: add_event(db_file, row_type=row_type, total=None, subcategory=HeaderFooterSubtype.ORDINARY)
                for row_type in (RowType.HEADER, RowType.FOOTER, RowType.FINALFOOTER)}
     models = open_models(db_file)
-    base = models.base
+    table = models.table
 
-    assert base.flags(base.index(-1, 0)) == Qt.ItemFlag.NoItemFlags
+    assert table.flags(table.index(-1, 0)) == Qt.ItemFlag.NoItemFlags
     checked = 0
     for event_id, row_type in [(liability, RowType.LIABILITY)] + [(event_id, row_type) for row_type, event_id in service.items()]:
-        row = models.source_row(event_id)
-        for column in range(base.columnCount()):
-            flags = base.flags(base.index(row, column))
+        for column in range(table.columnCount()):
+            flags = table.flags(table.index_by_id(event_id, column))
             assert bool(flags & Qt.ItemFlag.ItemIsSelectable) == (row_type == RowType.LIABILITY), (row_type, column)
-            assert flags & ~Qt.ItemFlag.ItemIsSelectable == base.stored_flags(base.index(row, column)) & ~Qt.ItemFlag.ItemIsSelectable
+            assert flags & Qt.ItemFlag.ItemIsEnabled
             checked += 1
-    assert checked == 4 * base.columnCount()
+    assert checked == 4 * table.columnCount()
 
 
 def spanned_rows(view: EventWidget) -> list[int]:
@@ -933,8 +916,7 @@ def test_span_columns_spans_exactly_the_visible_header_rows(db_file, open_models
         add_payment(db_file, paid, day(-1), "10.00")
         run_sql(db_file, "UPDATE event SET name = 'special' WHERE id = ?", paid)
     models = open_models(db_file)
-    table = LiabilityTableModel(LiabilityStore(models.base.db_handler), models.base)
-    table.set_footer_filter(True)
+    table = models.table
     view = EventWidget()
     view.setModel(table)
 
@@ -954,7 +936,7 @@ def test_span_columns_spans_exactly_the_visible_header_rows(db_file, open_models
     table.set_filters(TermCategory.UNPAID, 0, "", 0, False, 3, False)
     table.set_header_filter(True)
     new_header = add_event(db_file, row_type=RowType.HEADER, category=1102, total=None, subcategory=HeaderFooterSubtype.ORDINARY)
-    models.base.select()
+    models.table.reload()
     view.span_columns()
     assert new_header in [table.index(row, Col.ID).data(DB_VALUE) for row in header_rows(table)]
     assert spanned_rows(view) == header_rows(table)

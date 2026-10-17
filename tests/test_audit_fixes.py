@@ -5,6 +5,7 @@ import pytest
 from PySide6.QtSql import QSqlTableModel
 
 from base.backup import save_backup
+from base.migrations import change_counter_triggers
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from tests.dbtools import create_db, read_meta
 from tests.test_readpath import add_event, add_payment, day, db_file, models, open_models, run_sql  # noqa: F401
@@ -35,26 +36,27 @@ def prepare_events_with_payments(models) -> list[int]:
     for event_id in ids:
         for _ in range(3):
             add_payment(models.path, event_id, day(-1), "1.00")
-    models.base.select()
+    models.table.reload()
     return ids
 
 
 def test_inserted_event_id_is_known_right_after_insert(models):
     prepare_events_with_payments(models)
-    assert models.base.insert_row(new_event_data()) is not None
+    event_id = models.table.insert_event(new_event_data())
     stored = query_all(models.path, "SELECT MAX(id) FROM event")[0][0]
-    assert models.base.last_inserted_id == stored
+    assert event_id == stored == models.table.last_inserted_id
+    assert models.store.event_values(event_id) is not None
 
 
 def test_refund_keeps_event_id_even_though_payment_is_inserted_after(models, shared_dbh):
     prepare_events_with_payments(models)
     payment_model = make_payment_model()
     assert shared_dbh.run_in_transaction(
-        lambda: models.base.insert_row(new_event_data()) is not None
-        and payment_model.append_row([models.base.last_inserted_id, day(5), "-100.00", day(0)]))
+        lambda: models.table.insert_event(new_event_data()) is not None
+        and payment_model.append_row([models.table.last_inserted_id, day(5), "-100.00", day(0)]))
     event_id = query_all(models.path, "SELECT MAX(id) FROM event")[0][0]
     payment_id = query_all(models.path, "SELECT MAX(id) FROM payment")[0][0]
-    assert models.base.last_inserted_id == event_id != payment_id
+    assert models.table.last_inserted_id == event_id != payment_id
     assert query_all(models.path, "SELECT eventid, sum FROM payment WHERE id = ?", payment_id) == [(event_id, "-100.00")]
 
 
@@ -63,39 +65,48 @@ def test_failed_refund_payment_leaves_no_event(models, shared_dbh):
     events_before = query_all(models.path, "SELECT COUNT(*) FROM event")[0][0]
     payment_model = make_payment_model()
     assert not shared_dbh.run_in_transaction(
-        lambda: models.base.insert_row(new_event_data()) is not None
-        and payment_model.append_row([models.base.last_inserted_id, day(5), "-100.00", day(0)])
+        lambda: models.table.insert_event(new_event_data()) is not None
+        and payment_model.append_row([models.table.last_inserted_id, day(5), "-100.00", day(0)])
         and False)
-    models.base.select()
+    models.table.reload()
     assert query_all(models.path, "SELECT COUNT(*) FROM event")[0][0] == events_before
-    assert models.base.rowCount() == events_before
+    assert len(models.store.events) == events_before
 
 
-def test_failed_submit_reverts_insert(models, monkeypatch):
+def test_failed_insert_leaves_no_event_and_keeps_last_inserted_id(models):
     prepare_events_with_payments(models)
-    rows_before = models.base.rowCount()
-    monkeypatch.setattr(models.base, "submitAll", lambda: False)
-    assert models.base.insert_row(new_event_data()) is None
-    assert models.base.rowCount() == rows_before
-    assert models.base.last_inserted_id == 0
+    events_before = len(models.store.events)
+    run_sql(models.path, "CREATE TRIGGER block_insert BEFORE INSERT ON event BEGIN SELECT RAISE(ABORT, 'blocked'); END")
+    assert models.table.insert_event(new_event_data()) is None
+    assert len(models.store.events) == events_before
+    assert query_all(models.path, "SELECT COUNT(*) FROM event")[0][0] == events_before
+    assert models.table.last_inserted_id == 0
 
 
-def test_failed_edit_rolls_back_every_field(models, monkeypatch):
+def test_failed_edit_changes_nothing_and_reloads_table(models):
     ids = prepare_events_with_payments(models)
-    row = models.source_row(ids[0])
     before = query_all(models.path, "SELECT * FROM event WHERE id = ?", ids[0])
-    original_set_data = type(models.base).setData
-    calls = {"count": 0}
-
-    def failing_set_data(index, value, role=2):
-        calls["count"] += 1
-        if calls["count"] == 4:
-            return False
-        return original_set_data(models.base, index, value, role)
-
-    monkeypatch.setattr(models.base, "setData", failing_set_data)
-    assert models.base.edit_row(row, new_event_data("ООО Другое")) is None
+    run_sql(models.path, "CREATE TRIGGER block_update BEFORE UPDATE ON event BEGIN SELECT RAISE(ABORT, 'blocked'); END")
+    assert not models.table.edit_event(ids[0], new_event_data("ООО Другое"))
     assert query_all(models.path, "SELECT * FROM event WHERE id = ?", ids[0]) == before
+    assert models.value(ids[0], 0) == "ООО Ромашка"
+
+
+def test_edit_without_changes_does_not_touch_change_counter(models):
+    ids = prepare_events_with_payments(models)
+    run_sql(models.path, "INSERT INTO meta (key, value) VALUES ('change_counter', '0')")
+    for trigger in change_counter_triggers():
+        run_sql(models.path, trigger)
+    counter_before = read_meta(models.path)["change_counter"]
+    assert models.table.edit_event(ids[0], list(models.store.event_values(ids[0])))
+    assert read_meta(models.path)["change_counter"] == counter_before
+    assert models.table.edit_event(ids[0], new_event_data("ООО Другое"))
+    assert int(read_meta(models.path)["change_counter"]) > int(counter_before)
+
+
+def test_edit_event_that_does_not_exist_fails(models):
+    prepare_events_with_payments(models)
+    assert not models.table.edit_event(99999, new_event_data())
 
 
 def test_nested_transaction_is_committed_once_by_outer(models, shared_dbh):
@@ -115,8 +126,8 @@ def test_nested_transaction_is_committed_once_by_outer(models, shared_dbh):
 def test_deleting_event_removes_its_payments_only(models, shared_dbh):
     ids = prepare_events_with_payments(models)
     target, other = ids[1], ids[2]
-    row = models.source_row(target)
-    assert shared_dbh.run_in_transaction(lambda: shared_dbh.delete_payments_by_event(target) and models.base.delete_row(row) != 0)
+    assert shared_dbh.run_in_transaction(lambda: shared_dbh.delete_payments_by_event(target) and models.table.delete_event(target))
+    assert models.store.event_values(target) is None
     assert query_all(models.path, "SELECT COUNT(*) FROM event WHERE id = ?", target)[0][0] == 0
     assert query_all(models.path, "SELECT COUNT(*) FROM payment WHERE eventid = ?", target)[0][0] == 0
     assert query_all(models.path, "SELECT COUNT(*) FROM payment WHERE eventid = ?", other)[0][0] == 3

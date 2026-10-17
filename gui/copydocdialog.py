@@ -17,9 +17,9 @@ from base.dbhandler import DBHandler
 from base.liability import RowType, PaymentType
 from base.paymentdate import calculate_payment_date
 from base.workcalendar import WEEKDAY_ABBR
-from gui.common import model_atlevel
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
-from gui.eventsqlmodel import LiabilitySqlTableModel, Col
+from gui.liabilitytablemodel import LiabilityTableModel
+from base.liability import Col
 from gui.settings import SettingsHandler
 from gui.ui.copydocdialog_ui import Ui_CopyDocDialog
 
@@ -99,7 +99,7 @@ class CopyDocDialog(QDialog):
         return math.ceil(2 * text_edit.fontMetrics().lineSpacing() + margins) + 6
 
     def source_value(self, column: Col):
-        return self.index.siblingAtColumn(column).data(LiabilitySqlTableModel.qtValueRole)
+        return self.index.siblingAtColumn(column).data(LiabilityTableModel.qtValueRole)
 
     def needs_period(self) -> bool:
         if self.terms is None:
@@ -201,7 +201,6 @@ class CopyDocDialog(QDialog):
         amount = Decimal(str(self.ui.dsb_amount.value()))
         due_date: QDate = self.ui.de_duedate.date()
         receiver: str = self.source_value(Col.RECEIVER)
-        original_model: LiabilitySqlTableModel = model_atlevel(-1, self.model)
 
         data: list = [
             receiver,
@@ -223,7 +222,7 @@ class CopyDocDialog(QDialog):
             int(bool(self.source_value(Col.HIDDEN))),
         ]
 
-        if original_model.insert_row(data) is None:
+        if self.model.insert_event(data) is None:
             log.e(f"Не удалось вставить новую строку в таблицу event со следующими данными: {data}")
             ErrorInfoMessageBox("Не удалось сохранить платеж (подробности см. в логе)", parent=self).exec()
             return

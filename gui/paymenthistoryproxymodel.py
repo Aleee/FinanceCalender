@@ -1,7 +1,6 @@
 from PySide6.QtCore import QSortFilterProxyModel, Qt, QDate
 
 from base.payment import PaymentField
-from gui.common import model_atlevel
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 
 
@@ -14,17 +13,12 @@ class PaymentHistoryProxyModel(QSortFilterProxyModel):
         self.setDynamicSortFilter(True)
         self.current_event_id: int = 0
 
-    # def filterAcceptsRow(self, source_row, source_parent, /):
-    #     return model_atlevel(-1, self).index(source_row, PaymentField.EVENT, source_parent).data(PaymentHistoryTableModel.internalValueRole) == self.current_event_id
 
     def headerData(self, section, orientation, /, role=...):
         if orientation == Qt.Orientation.Vertical and role == Qt.ItemDataRole.DisplayRole:
             return section + 1
         return super().headerData(section, orientation, role)
 
-    # def reset_filter(self, event_id: int):
-    #     self.current_event_id = event_id
-    #     self.invalidate()
 
     def get_last_paymentdate(self, new_paymentdate: QDate | None) -> QDate:
         last_paymentdate: QDate = QDate()

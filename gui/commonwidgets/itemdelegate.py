@@ -3,11 +3,9 @@ from PySide6.QtGui import QPainter, QColor, QPen, QPalette
 from PySide6.QtCore import QModelIndex, QSize
 
 from gui.commonwidgets.common import RowStyle
-from gui.eventsqlmodel import Col, RowFormatting, LiabilitySqlTableModel
-from gui.liabilitytablemodel import LiabilityTableModel
-from base.liability import RowType
+from gui.liabilitytablemodel import LiabilityTableModel, RowFormatting
+from base.liability import Col, RowType
 
-from gui.common import model_atlevel
 from gui.fulfilmentmodel import FulfilmentModel
 
 
@@ -57,7 +55,7 @@ class EventItemDelegate(QStyledItemDelegate):
         style: RowStyle = index.data(LiabilityTableModel.styleRole)
         super(EventItemDelegate, self).initStyleOption(option, index)
         self.apply_style(option, style)
-        row_formatting: RowFormatting = model_atlevel(-1, index).row_formatting
+        row_formatting: RowFormatting = index.model().row_formatting
         vertical_grid_color = self.draw_background(option, style)
         self.draw_content(painter, option, index)
         self.draw_borders(painter, option, index, row_formatting, vertical_grid_color)
@@ -75,7 +73,7 @@ class EventItemDelegate(QStyledItemDelegate):
     def draw_borders(self, painter, option, index, row_formatting, vertical_grid_color):
         painter.save()
         painter.setClipRect(option.rect)
-        row_type: RowType = index.siblingAtColumn(Col.TYPE).data(LiabilitySqlTableModel.dbValueRole)
+        row_type: RowType = index.siblingAtColumn(Col.TYPE).data(LiabilityTableModel.dbValueRole)
         if row_formatting.vertical_grid and row_type == RowType.LIABILITY:
             pen: QPen = QPen(vertical_grid_color, self.BORDER_WIDTH)
             painter.setPen(pen)
@@ -85,7 +83,7 @@ class EventItemDelegate(QStyledItemDelegate):
             pen: QPen = QPen(QColor("grey"), self.BORDER_WIDTH)
             painter.setPen(pen)
             painter.drawLine(option.rect.bottomRight(), option.rect.bottomLeft())
-            if row_type == RowType.FOOTER and index.siblingAtColumn(Col.CATEGORY).data(LiabilitySqlTableModel.dbValueRole) % 1000 != 0:
+            if row_type == RowType.FOOTER and index.siblingAtColumn(Col.CATEGORY).data(LiabilityTableModel.dbValueRole) % 1000 != 0:
                 painter.drawLine(option.rect.topRight(), option.rect.topLeft())
         painter.restore()
 

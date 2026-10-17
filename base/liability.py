@@ -159,6 +159,13 @@ class Col(IntEnum):
     HIDDEN = 20
 
 
+DERIVED_COLUMNS = (Col.REMAINAMOUNT, Col.TODAYSHARE, Col.LASTPAYMENTDATE, Col.FILTERFLAGS)
+STORED_COLUMNS = tuple(column for column in Col if column not in DERIVED_COLUMNS)
+STORED_INDEX = {column: index for index, column in enumerate(STORED_COLUMNS)}
+EVENT_COLUMN_NAMES = ("receiver", "id", "type", "contractdocument_id", "category", "subcategory", "name", "totalamount",
+                      "nds", "duedate", "createdate", "paymenttype", "descr", "responsible", "notes", "featured", "hidden")
+
+
 def calculate_filterflags(remainamount: Decimal, duedate: QDate, are_today_payments_present: bool, current_date: QDate) -> FilterFlags:
     filter_flags: FilterFlags = FilterFlags.NONE
     # Проверка на оплаченность

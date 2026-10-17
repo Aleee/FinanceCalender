@@ -9,7 +9,8 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from base.casting import str_bool, str_int
 from base.paths import settings_path, backup_dir, to_stored_path, from_stored_path
-from gui.eventsqlmodel import Col, RowFormatting
+from base.liability import Col
+from gui.liabilitytablemodel import RowFormatting
 
 
 MIN_WINDOW_WIDTH = 1000
@@ -92,7 +93,7 @@ class SettingsHandler:
     def apply_settings(self, apply_geometry: bool = False) -> None:
         # Основные настройки
         ## Отображение оплаченных
-        self.mw.base_model.set_paid_load_months(self.paid_load_months())
+        self.mw.table_model.set_paid_load_months(self.paid_load_months())
         ## Размер шрифта
         self.change_fontsize()
         ## Ширина столбцов
@@ -144,7 +145,7 @@ class SettingsHandler:
         self.mw.ui.trw_event.hide_columns(hidden_columns)
 
         ## Форматирование строк
-        if not self.mw.base_model.set_row_formatting(RowFormatting(
+        if not self.mw.table_model.set_row_formatting(RowFormatting(
                 str_bool(self.settings.value("Tableformat/boldforegrounddue")),
                 str_bool(self.settings.value("Tableformat/boldforegroundtoday")),
                 self.settings.value("Tableformat/foregrounddue"),
@@ -166,7 +167,7 @@ class SettingsHandler:
 
                 str_bool(self.settings.value("Tableformat/verticalgrid")),
                 )):
-            self.mw.base_model.set_row_formatting(RowFormatting())
+            self.mw.table_model.set_row_formatting(RowFormatting())
 
         ## Отображение заголовков/футеров
         self.mw.ui.act_toggleheaders.setChecked(str_bool(self.settings.value("Appearance/headersenabled"), True))

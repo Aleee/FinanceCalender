@@ -1,56 +1,123 @@
+from dataclasses import astuple, dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
-from PySide6.QtGui import QBrush, QColor, QFont
+from PySide6.QtCore import QAbstractTableModel, QDate, QModelIndex, Qt, QTimer, Signal
+from PySide6.QtGui import QBrush, QColor, QFont, QIcon, QPixmap
 
+from base.contract import DocumentTitle
 from base.date import date_displstr, str_date
 from base.formatting import dec_strcommaspace
-from base.liability import (CATEGORY_NAMES, Col, FilterFlags, HeaderFooterSubtype, PAYMENTTYPE_NAMES, RowType,
-                            TermCategory)
-from base.liabilitystore import DERIVED_COLUMNS, LiabilityStore, STORED_INDEX, VisibleRow
+from base.liability import (CATEGORY_NAMES, Col, DERIVED_COLUMNS, EVENT_COLUMN_NAMES, FilterFlags, HeaderFooterSubtype,
+                            PAYMENTTYPE_NAMES, RowType, STORED_INDEX, TermCategory)
+from base.liabilitystore import LiabilityStore, VisibleRow
 from gui.commonwidgets.common import RowStyle
-from gui.eventsqlmodel import LiabilitySqlTableModel
+
+
+@dataclass()
+class RowFormatting:
+    due_textbold: bool = False
+    today_textbold: bool = True
+    due_forecolor: str = "#aa0000"
+    today_forecolor: str = "black"
+    due_backcolor: str = "white"
+    today_backcolor: str = "white"
+
+    header_textbold: bool = False
+    header_section_forecolor: str = "black"
+    header_section_backcolor: str = "#ccdce3"
+    header_subsection_forecolor: str = "black"
+    header_subsection_backcolor: str = "#e4e0d9"
+
+    footer_textbold: bool = False
+    footer_section_forecolor: str = "black"
+    footer_section_backcolor: str = "#decbc9"
+    footer_subsection_forecolor: str = "black"
+    footer_subsection_backcolor: str = "#e9dcdb"
+
+    vertical_grid: bool = True
 
 
 class LiabilityTableModel(QAbstractTableModel):
+
+    beforeReload = Signal()
+    afterReload = Signal()
+
+    # 0 = заголовок, #1 = видимость
+    COLUMN_DATA = {
+        Col.RECEIVER: ("Получатель платежа", True),
+        Col.ID: ("", False),
+        Col.TYPE: ("", False),
+        Col.CONTRACTDOCUMENTID: ("", False),
+        Col.CATEGORY: ("Категория", False),
+        Col.SUBCATEGORY: ("", False),
+        Col.NAME: ("Наименование (предмет) платежа", True),
+        Col.REMAINAMOUNT: ("Остаток платежа", True),
+        Col.TOTALAMOUNT: ("Сумма платежа", True),
+        Col.NDS: ("", False),
+        Col.DUEDATE: ("Срок оплаты", True),
+        Col.INCURRENCEDATE: ("Дата возникновения", True),
+        Col.PAYMENTTYPE: ("Вид платежа", True),
+        Col.DESCR: ("Основание платежа", True),
+        Col.RESPONSIBLE: ("Ответственный", True),
+        Col.NOTES: ("", False),
+        Col.TODAYSHARE: ("Оплата сегодня", True),
+        Col.LASTPAYMENTDATE: ("", False),
+        Col.FILTERFLAGS: ("", False),
+        Col.FEATURED: ("", True),
+        Col.HIDDEN: ("", True),
+    }
+
+    DECIMAL_COLUMNS = [
+        Col.REMAINAMOUNT, Col.TOTALAMOUNT, Col.TODAYSHARE
+    ]
+
+    NON_LIABILITY_VALUES = {Col.TODAYSHARE: "0.0", Col.LASTPAYMENTDATE: "", Col.FILTERFLAGS: int(FilterFlags.NONE)}
+    TOTAL_COLUMNS = (Col.TOTALAMOUNT, Col.REMAINAMOUNT, Col.TODAYSHARE)
+    INT_COLUMNS = (Col.ID, Col.TYPE, Col.CONTRACTDOCUMENTID, Col.CATEGORY, Col.SUBCATEGORY, Col.PAYMENTTYPE, Col.NDS,
+                   Col.FEATURED, Col.RESPONSIBLE)
+
+    ICON_SIZE = 16
 
     dbValueRole = Qt.ItemDataRole.UserRole + 1
     qtValueRole = Qt.ItemDataRole.UserRole + 2
     decimalValueRole = Qt.ItemDataRole.UserRole + 4
     styleRole = Qt.ItemDataRole.UserRole + 20
 
-    COLUMN_DATA = LiabilitySqlTableModel.COLUMN_DATA
-    DECIMAL_COLUMNS = LiabilitySqlTableModel.DECIMAL_COLUMNS
-    NON_LIABILITY_VALUES = LiabilitySqlTableModel.NON_LIABILITY_VALUES
-    TOTAL_COLUMNS = (Col.TOTALAMOUNT, Col.REMAINAMOUNT, Col.TODAYSHARE)
-    INT_COLUMNS = (Col.ID, Col.TYPE, Col.CONTRACTDOCUMENTID, Col.CATEGORY, Col.SUBCATEGORY, Col.PAYMENTTYPE, Col.NDS,
-                   Col.FEATURED, Col.RESPONSIBLE)
-
     VERTICAL_GRID_COLOR: QColor = QColor("#EEEEEE")
     FINALFOOTER_BACK_COLOR: QColor = QColor("#D2DABE")
     DARKER_RATIO: int = 110
 
-    def __init__(self, store: LiabilityStore, base_model: LiabilitySqlTableModel, parent=None):
+    def __init__(self, store: LiabilityStore, paid_load_months: int | None = None, parent=None):
         super().__init__(parent)
 
         self.store = store
-        self.base_model = base_model
+        self.db_handler = store.db_handler
+        self.paid_load_months: int | None = paid_load_months
         self.rows: list[VisibleRow] = []
         self.stored_count: int = 0
         self.style_cache: dict[int, RowStyle] = {}
         self.fonts: dict[bool, QFont] = {}
-        self.source_rows: dict[int, int] | None = None
+        self.personal_dict: dict = {}
+        self.document_titles: dict[int, DocumentTitle] = {}
+        self.last_inserted_id: int = 0
+        self.contract_icon = QIcon(":/icon-table/designer/icons/attachment.svg")
+        empty_pixmap = QPixmap(self.ICON_SIZE, self.ICON_SIZE)
+        empty_pixmap.fill(Qt.GlobalColor.transparent)
+        self.empty_icon = QIcon(empty_pixmap)
+        # temp
+        self.row_formatting = RowFormatting()
 
         self.load_store()
-        base_model.modelReset.connect(self.reload)
-        base_model.cacheUpdateNeeded.connect(self.reload_layout)
-        for signal in (base_model.modelReset, base_model.rowsInserted, base_model.rowsRemoved, base_model.cacheUpdateNeeded):
-            signal.connect(self.invalidate_source_rows)
+
+    @property
+    def current_date(self) -> QDate:
+        return self.store.current_date
 
     def load_store(self) -> None:
-        if self.base_model.paid_load_months is not None:
-            self.store.set_paid_load_months(self.base_model.paid_load_months)
+        self.document_titles.clear()
+        if self.paid_load_months is not None:
+            self.store.set_paid_load_months(self.paid_load_months)
         self.store.reload()
         self.take_rows()
 
@@ -59,13 +126,18 @@ class LiabilityTableModel(QAbstractTableModel):
         self.stored_count = self.store.totals().count
         self.style_cache.clear()
 
-    def invalidate_source_rows(self, *_) -> None:
-        self.source_rows = None
-
     def reload(self) -> None:
+        self.beforeReload.emit()
         self.beginResetModel()
         self.load_store()
         self.endResetModel()
+        QTimer.singleShot(0, self, self.afterReload.emit)
+
+    def set_paid_load_months(self, months: int) -> None:
+        if months == self.paid_load_months:
+            return
+        self.paid_load_months = months
+        self.reload()
 
     def change_layout(self, change: Callable[[], None]) -> None:
         self.layoutAboutToBeChanged.emit()
@@ -77,9 +149,6 @@ class LiabilityTableModel(QAbstractTableModel):
         self.changePersistentIndexList(persistent_indexes,
                                        [self.index_by_id(event_id, column) for event_id, column in old_positions])
         self.layoutChanged.emit()
-
-    def reload_layout(self) -> None:
-        self.change_layout(self.load_store)
 
     def load_payment_totals(self) -> None:
         self.store.load_payment_totals()
@@ -111,24 +180,50 @@ class LiabilityTableModel(QAbstractTableModel):
         position = self.store.position_of(event_id)
         return QModelIndex() if position is None else self.index(position, column)
 
-    def source_row(self, event_id: int) -> int | None:
-        if self.source_rows is None:
-            self.source_rows = {self.base_model.raw_value(row, Col.ID): row for row in range(self.base_model.rowCount())}
-        return self.source_rows.get(event_id)
+    def insert_event(self, data: list) -> int | None:
+        event_id = self.db_handler.insert_event(data)
+        if event_id is None:
+            return None
+        self.last_inserted_id = event_id
+        self.change_layout(lambda: self.store.refresh_event(event_id))
+        return event_id
 
-    def sourceModel(self) -> LiabilitySqlTableModel:
-        return self.base_model
+    def edit_event(self, event_id: int, data: list) -> bool:
+        if not self.db_handler.update_event(event_id, data):
+            self.reload()
+            return False
+        self.change_layout(lambda: self.store.refresh_event(event_id))
+        return True
 
-    def mapToSource(self, index: QModelIndex) -> QModelIndex:
-        if not index.isValid():
-            return QModelIndex()
-        source_row = self.source_row(self.rows[index.row()].event_id)
-        return QModelIndex() if source_row is None else self.base_model.index(source_row, index.column())
+    def delete_event(self, event_id: int) -> bool:
+        if not self.db_handler.delete_event(event_id):
+            return False
+        self.change_layout(lambda: self.store.remove_event(event_id))
+        return True
 
-    def mapFromSource(self, source_index: QModelIndex) -> QModelIndex:
-        if not source_index.isValid():
-            return QModelIndex()
-        return self.index_by_id(self.base_model.raw_value(source_index.row(), Col.ID), source_index.column())
+    def document_title(self, document_id: int) -> DocumentTitle | None:
+        if not self.document_titles:
+            self.document_titles = self.db_handler.load_document_titles() or {}
+        return self.document_titles.get(document_id)
+
+    def document_tooltip(self, document_id: int) -> str:
+        title = self.document_title(document_id)
+        if title is None:
+            return "Платеж привязан к договору (данные договора не найдены)"
+        lines = [f"Договор № {title.contract_number} от {date_displstr(title.contract_date)}"]
+        if title.contractor_name:
+            lines.append(f"Контрагент: {title.contractor_name}")
+        if title.document_name:
+            lines.append(f"Документ: {title.document_name}")
+        return "\n".join(lines)
+
+    def set_row_formatting(self, row_formatting: RowFormatting) -> bool:
+        for var in astuple(row_formatting):
+            if var is None:
+                return False
+        self.row_formatting = row_formatting
+        self.style_cache.clear()
+        return True
 
     def rowCount(self, parent=QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self.rows)
@@ -155,10 +250,12 @@ class LiabilityTableModel(QAbstractTableModel):
         return flags
 
     def setData(self, index, value, /, role=Qt.ItemDataRole.EditRole) -> bool:
-        source_index = self.mapToSource(index)
-        if not source_index.isValid() or not self.base_model.setData(source_index, value, role):
+        if not index.isValid() or role != Qt.ItemDataRole.EditRole or index.column() in (*DERIVED_COLUMNS, Col.ID):
             return False
-        self.reload_layout()
+        event_id = self.rows[index.row()].event_id
+        if not self.db_handler.update_event_field(event_id, EVENT_COLUMN_NAMES[STORED_INDEX[index.column()]], value):
+            return False
+        self.change_layout(lambda: self.store.refresh_event(event_id))
         return True
 
     def data(self, index, /, role=Qt.ItemDataRole.DisplayRole) -> Any:
@@ -194,8 +291,8 @@ class LiabilityTableModel(QAbstractTableModel):
                 return None
             document_id: int = self.qt_value(row, Col.CONTRACTDOCUMENTID)
             if role == Qt.ItemDataRole.DecorationRole:
-                return self.base_model.contract_icon if document_id else self.base_model.empty_icon
-            return self.base_model.document_tooltip(document_id) if document_id else None
+                return self.contract_icon if document_id else self.empty_icon
+            return self.document_tooltip(document_id) if document_id else None
 
         elif role == Qt.ItemDataRole.EditRole:
             return self.stored_value(row, column)
@@ -281,7 +378,7 @@ class LiabilityTableModel(QAbstractTableModel):
                 return date_displstr(self.qt_value(row, column))
             elif column == Col.RESPONSIBLE:
                 try:
-                    return self.base_model.personal_dict[self.qt_value(row, column)][0]
+                    return self.personal_dict[self.qt_value(row, column)][0]
                 except KeyError:
                     return "Н/Д"
         return self.stored_value(row, column)
@@ -294,7 +391,7 @@ class LiabilityTableModel(QAbstractTableModel):
         return style
 
     def compute_style(self, row: VisibleRow) -> RowStyle:
-        row_formatting = self.base_model.row_formatting
+        row_formatting = self.row_formatting
         style = RowStyle(vertical_grid_color=self.VERTICAL_GRID_COLOR)
 
         if row.row_type == RowType.LIABILITY:

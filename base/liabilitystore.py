@@ -4,17 +4,13 @@ from typing import Any, NamedTuple, TYPE_CHECKING
 from PySide6.QtCore import QDate, Qt
 
 from base.date import str_date
-from base.liability import (CATEGORY_NAMES, Col, HeaderFooterSubtype, LiabilityCategory, LiabilityRow, RowType,
-                            TermCategory, calculate_filterflags, category_section, is_top_level_category,
-                            matches_category, matches_details, matches_filters, matches_term, paid_threshold)
+from base.liability import (CATEGORY_NAMES, Col, HeaderFooterSubtype, LiabilityCategory, LiabilityRow,
+                            RowType, STORED_INDEX, TermCategory, calculate_filterflags, category_section,
+                            is_top_level_category, matches_category, matches_details, matches_filters, matches_term,
+                            paid_threshold)
 
 if TYPE_CHECKING:
     from base.dbhandler import DBHandler
-
-
-DERIVED_COLUMNS = (Col.REMAINAMOUNT, Col.TODAYSHARE, Col.LASTPAYMENTDATE, Col.FILTERFLAGS)
-STORED_COLUMNS = tuple(column for column in Col if column not in DERIVED_COLUMNS)
-STORED_INDEX = {column: index for index, column in enumerate(STORED_COLUMNS)}
 
 
 def to_int(value: Any) -> int:
@@ -104,6 +100,25 @@ class LiabilityStore:
     def load_payment_totals(self) -> None:
         previous = self.snapshot()
         self.payment_totals = self.db_handler.load_payment_totals(self.current_date) or {}
+        self.refresh_derived(*previous)
+
+    def refresh_event(self, event_id: int) -> None:
+        events = self.db_handler.load_events(event_id=event_id)
+        if not events:
+            self.remove_event(event_id)
+            return
+        previous = self.snapshot()
+        payments = self.db_handler.load_payment_totals(self.current_date, event_id) or {}
+        self.events = dict(self.events)
+        self.events[event_id] = events[0]
+        self.payment_totals = {key: value for key, value in self.payment_totals.items() if key != event_id}
+        self.payment_totals.update(payments)
+        self.refresh_derived(*previous)
+
+    def remove_event(self, event_id: int) -> None:
+        previous = self.snapshot()
+        self.events = {key: value for key, value in self.events.items() if key != event_id}
+        self.payment_totals = {key: value for key, value in self.payment_totals.items() if key != event_id}
         self.refresh_derived(*previous)
 
     def snapshot(self) -> tuple:

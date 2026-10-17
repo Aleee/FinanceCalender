@@ -4,7 +4,8 @@ from PySide6.QtGui import QPainter, QColor, QShortcut, QKeySequence
 
 from gui.commonwidgets.eventfilter import TooltipFilter
 from gui.commonwidgets.itemdelegate import EventItemDelegate
-from gui.eventsqlmodel import Col, LiabilitySqlTableModel
+from gui.liabilitytablemodel import LiabilityTableModel
+from base.liability import Col
 from gui.booldelegate import BoolDelegate
 
 
@@ -117,7 +118,7 @@ class EventWidget(QTreeView):
     def save_selection(self) -> None:
         selected = self.selectionModel().selectedRows()
         if selected:
-            self.selected_row_id = self.model().data(self.model().index(selected[0].row(), Col.ID), LiabilitySqlTableModel.dbValueRole)
+            self.selected_row_id = self.model().data(self.model().index(selected[0].row(), Col.ID), LiabilityTableModel.dbValueRole)
         else:
             self.selected_row_id = None
 
