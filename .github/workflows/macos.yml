@@ -9,12 +9,8 @@ on:
         default: false
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJSON(inputs.intel && '[{"os": "macos-14", "arch": "arm64"}, {"os": "macos-15-intel", "arch": "x86_64"}]' || '[{"os": "macos-14", "arch": "arm64"}]') }}
-    runs-on: ${{ matrix.os }}
+  build-arm64:
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,5 +20,20 @@ jobs:
       - run: python tools/build_release_mac.py
       - uses: actions/upload-artifact@v4
         with:
-          name: FinanceCalender-mac-${{ matrix.arch }}
+          name: FinanceCalender-mac-arm64
+          path: dist/release/*
+
+  build-x86_64:
+    if: ${{ inputs.intel }}
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: python -m pip install -r requirements.txt pyinstaller==6.22.2 pillow==12.3.0
+      - run: python tools/build_release_mac.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FinanceCalender-mac-x86_64
           path: dist/release/*
