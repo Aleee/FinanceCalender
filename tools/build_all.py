@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -108,4 +109,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit as error:
+        if error.code not in (None, 0):
+            print(f"\nОшибка: {error.code}", file=sys.stderr)
+    except Exception:
+        traceback.print_exc()
+    input("\nНажмите Enter, чтобы закрыть окно...")
