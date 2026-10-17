@@ -201,7 +201,7 @@ class CopyDocDialog(QDialog):
         amount = Decimal(str(self.ui.dsb_amount.value()))
         due_date: QDate = self.ui.de_duedate.date()
         receiver: str = self.source_value(Col.RECEIVER)
-        original_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
+        original_model: LiabilitySqlTableModel = model_atlevel(-1, self.model)
 
         data: list = [
             receiver,

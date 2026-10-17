@@ -93,35 +93,50 @@ class LiabilityStore:
         self.paid_load_months = months
 
     def reload(self) -> None:
+        previous = self.snapshot()
         self.current_date = QDate.currentDate()
         self.payment_totals = self.db_handler.load_payment_totals(self.current_date) or {}
         threshold = None if self.paid_load_months is None else paid_threshold(self.current_date, self.paid_load_months)
         events = self.db_handler.load_events(threshold) or []
         self.events = {values[STORED_INDEX[Col.ID]]: values for values in events}
-        self.due_dates = {}
-        self.sort_dates = {}
-        for event_id, values in self.events.items():
-            due = values[STORED_INDEX[Col.DUEDATE]]
-            if to_int(values[STORED_INDEX[Col.TYPE]]) == RowType.LIABILITY:
-                self.due_dates[event_id] = str_date(due)
-                self.sort_dates[event_id] = self.date_key(self.due_dates[event_id])
-            else:
-                self.sort_dates[event_id] = self.date_key(str_date(due)) if due else 0
-        self.build_liabilities()
+        self.refresh_derived(*previous)
 
     def load_payment_totals(self) -> None:
+        previous = self.snapshot()
         self.payment_totals = self.db_handler.load_payment_totals(self.current_date) or {}
-        self.build_liabilities()
+        self.refresh_derived(*previous)
+
+    def snapshot(self) -> tuple:
+        return (self.current_date, self.events, self.payment_totals, self.liabilities, self.due_dates, self.sort_dates)
 
     @staticmethod
     def date_key(due_date: QDate) -> int:
         return due_date.toJulianDay() if due_date else 0
 
-    def build_liabilities(self) -> None:
+    def refresh_derived(self, previous_date: QDate, previous_events: dict, previous_payments: dict,
+                        previous_liabilities: dict, previous_due_dates: dict, previous_sort_dates: dict) -> None:
+        same_day = previous_date == self.current_date
         self.liabilities = {}
+        self.due_dates = {}
+        self.sort_dates = {}
         for event_id, values in self.events.items():
+            unchanged = same_day and previous_events.get(event_id) == values
+            due = values[STORED_INDEX[Col.DUEDATE]]
             if to_int(values[STORED_INDEX[Col.TYPE]]) != RowType.LIABILITY:
+                if unchanged:
+                    self.sort_dates[event_id] = previous_sort_dates[event_id]
+                else:
+                    self.sort_dates[event_id] = self.date_key(str_date(due)) if due else 0
                 continue
+            if unchanged:
+                self.due_dates[event_id] = previous_due_dates[event_id]
+                self.sort_dates[event_id] = previous_sort_dates[event_id]
+                if previous_payments.get(event_id) == self.payment_totals.get(event_id):
+                    self.liabilities[event_id] = previous_liabilities[event_id]
+                    continue
+            else:
+                self.due_dates[event_id] = str_date(due)
+                self.sort_dates[event_id] = self.date_key(self.due_dates[event_id])
             self.liabilities[event_id] = self.build_liability(event_id, values)
         self.invalidate()
 

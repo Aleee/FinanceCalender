@@ -90,9 +90,6 @@ class SettingsHandler:
         return str_int(self.settings.value("Common/paidloadperiod"), 3)
 
     def apply_settings(self, apply_geometry: bool = False) -> None:
-        # Отключение фильтра на время применения настроек
-        self.mw.ui.trw_event.model().sourceModel().enable_sortfilter(False)
-
         # Основные настройки
         ## Отображение оплаченных
         self.mw.base_model.set_paid_load_months(self.paid_load_months())
@@ -178,8 +175,6 @@ class SettingsHandler:
         ## Перезагрузить список персонала
         self.mw.update_responsible_models(update_widgets=True)
 
-        ## Включение фильтра после применения настроек
-        self.mw.ui.trw_event.model().sourceModel().enable_sortfilter(True)
         ## Обновление статистики и сортировки
         self.mw.update_filters_and_select()
         ## Обновить отрисовку

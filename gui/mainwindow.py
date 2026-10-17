@@ -29,12 +29,13 @@ from gui.contractdialog import ContractDocumentDialog
 from gui.contractordialog import ContractorDialog
 from gui.copydocdialog import CopyDocDialog
 from gui.eventdialog import EventDialog
-from gui.eventproxymodel import LiabilitySortFilterProxyModel, Filter, LiabilityTotalsProxyModel
 from gui.eventsqlmodel import LiabilitySqlTableModel, Col
-from base.liability import FilterFlags, RowType, PaymentType, TermCategory
+from base.liability import FilterFlags, RowType, PaymentType
+from base.liabilitystore import LiabilityStore
 from gui.feedialog import FeeDialog
 from gui.finplandialog import FinPlanDialog
 from gui.fulfillmentoptiondialog import FulfillmentOptionDialog
+from gui.liabilitytablemodel import LiabilityTableModel
 from gui.manualdialog import ManualDialog
 from gui.matchingdialog import MatchingDialog
 from gui.paymentamountdialog import PaymentAmountDialog
@@ -163,20 +164,17 @@ class MainWindow(QMainWindow):
             sys.exit()
 
     def _init_models(self) -> None:
-        # Основная модель таблицы обязательств (поверх таблицы event) + две прокси-модели над ней
+        # Модель записи в таблицу event + плоская модель таблицы обязательств над хранилищем LiabilityStore
         self.base_model: LiabilitySqlTableModel = LiabilitySqlTableModel(self.db_handler, self)
         self.base_model.setTable("event")
         self.base_model.setEditStrategy(QSqlTableModel.EditStrategy.OnFieldChange)
         self.base_model.set_paid_load_months(self.settings_handler.paid_load_months())
         self.base_model.select()
 
-        self.proxy1_model = LiabilitySortFilterProxyModel()
-        self.proxy1_model.setSourceModel(self.base_model)
+        self.liability_store = LiabilityStore(self.db_handler)
+        self.table_model = LiabilityTableModel(self.liability_store, self.base_model, self)
 
-        self.proxy2_model = LiabilityTotalsProxyModel()
-        self.proxy2_model.setSourceModel(self.proxy1_model)
-
-        self.ui.trw_event.setModel(self.proxy2_model)
+        self.ui.trw_event.setModel(self.table_model)
         self.ui.trw_event.hide_columns()
         self.ui.trw_event.span_columns()
 
@@ -197,7 +195,7 @@ class MainWindow(QMainWindow):
         self.ui.tv_payment.setModel(self.payment_proxy_model)
 
         # Инициализация экспортера
-        self.xls_writer: LiabilityXlsWriter = LiabilityXlsWriter(self.proxy2_model, self.ui.tv_payment, self.settings_handler)
+        self.xls_writer: LiabilityXlsWriter = LiabilityXlsWriter(self.table_model, self.ui.tv_payment, self.settings_handler)
 
     def _init_toolbar_groups(self) -> None:
         short_labels: dict[QAction, str] = {
@@ -303,8 +301,6 @@ class MainWindow(QMainWindow):
         return button
 
     def _connect_signals(self) -> None:
-        # Пересчет итоговых строк
-        self.proxy1_model.layoutChanged.connect(self.proxy2_model.recalculate_totals)
         # Секции боковой панели: кнопка-переключатель, сам фильтр, подпись и проверка активности фильтра
         self.filter_sections: tuple = (
             (self.ui.spb_term, self.ui.lw_term, "СРОК ОПЛАТЫ",
@@ -322,11 +318,7 @@ class MainWindow(QMainWindow):
                 lambda sw_status, button=switch_button, active=is_active:
                 button.change_style_on_hiding_activefilter(sw_status, active()))
 
-        # Новые сигналы фильтров
-        self.ui.lw_term.currentRowChanged.connect(lambda row: self.proxy1_model.set_filter(Filter.TERM, list(TermCategory)[row], invalidate=False))
-        self.ui.lw_category.currentRowChanged.connect(lambda row: self.proxy1_model.set_filter(Filter.CATEGORY, row, invalidate=False))
-        self.ui.chb_paytoday.checkStateChanged.connect(lambda state: self.proxy1_model.set_filter(Filter.PAYTODAY, state, invalidate=False))
-
+        # Сигналы фильтров
         self.ui.lw_term.currentRowChanged.connect(self.update_filters_and_select)
         self.ui.lw_category.currentRowChanged.connect(self.update_filters_and_select)
         self.ui.cmb_responsiblefilter.currentIndexChanged.connect(self.update_filters_and_select)
@@ -353,14 +345,11 @@ class MainWindow(QMainWindow):
         self.base_model.afterSelect.connect(self.ui.trw_event.restore_selection)
         # Расширение заголовочных строк
         self.base_model.afterSelect.connect(self.ui.trw_event.span_columns)
-        ## Сигнал для обновления имен категорий
-        self.base_model.filterwidget_labels_changed.connect(lambda term_labeldata, category_labeldata: self.ui.lw_term.update_labels(term_labeldata))
-        self.base_model.filterwidget_labels_changed.connect(lambda term_labeldata, category_labeldata: self.ui.lw_category.update_labels(category_labeldata))
 
         # Обновление отображения при фильтрации/сортировке/изменении
-        self.proxy1_model.layoutChanged.connect(self.check_event_selection_visibility)
+        self.table_model.layoutChanged.connect(self.check_event_selection_visibility)
         # Экспортировать нечего, если в таблице не осталось платежей
-        self.proxy2_model.layoutChanged.connect(self.check_export_availability)
+        self.table_model.layoutChanged.connect(self.check_export_availability)
         # События при смене выбранного ивента
         self.ui.trw_event.selectionModel().currentChanged.connect(self.on_currentevent_change)
         self.ui.trw_event.doubleClicked.connect(lambda: self.ui.act_edit.trigger())
@@ -386,13 +375,10 @@ class MainWindow(QMainWindow):
         self.ui.act_gotocontract.triggered.connect(self.open_bound_document)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog())
         self.ui.act_help.triggered.connect(lambda: self.open_manual_dialog())
-        self.ui.act_toggleheaders.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.HEADER, checked))
+        self.ui.act_toggleheaders.toggled.connect(self.table_model.set_header_filter)
         self.ui.act_toggleheaders.toggled.connect(lambda checked: self.ui.trw_event.span_columns() if checked else None)
-        self.ui.act_togglefooters.toggled.connect(lambda checked: self.proxy1_model.set_filter(Filter.FOOTER, checked))
+        self.ui.act_togglefooters.toggled.connect(self.table_model.set_footer_filter)
 
-        # Сигналы обновления кэша стилей
-        # self.proxy1_model.modelInvalidated.connect(self.proxy2_model.refresh_style_cache)
-        self.base_model.cacheUpdateNeeded.connect(self.proxy1_model.invalidate_style_cache)
         # Сигналы обновления кэша сортировки
         self.base_model.cacheUpdateNeeded.connect(self.base_model.invalidate_sort_cache)
 
@@ -786,7 +772,6 @@ class MainWindow(QMainWindow):
         self.payment_model.select()
         self.update_responsible_models(update_widgets=True)
         self.update_filters_and_select()
-        self.base_model.cacheUpdateNeeded.emit()
         self.on_currentevent_change()
 
     def refresh_on_date_change(self) -> None:
@@ -794,7 +779,6 @@ class MainWindow(QMainWindow):
             return
         self.base_model.select()
         self.update_filters_and_select()
-        self.base_model.cacheUpdateNeeded.emit()
         self.on_currentevent_change()
 
     def open_sync_settings_dialog(self) -> None:
@@ -871,7 +855,7 @@ class MainWindow(QMainWindow):
 
     def get_current_event_index(self, source_model_index: bool = False) -> QModelIndex:
         if source_model_index:
-            return map_to_source(-2, self.ui.trw_event.selectionModel().currentIndex())
+            return map_to_source(-1, self.ui.trw_event.selectionModel().currentIndex())
         else:
             return self.ui.trw_event.selectionModel().currentIndex()
 
@@ -882,10 +866,9 @@ class MainWindow(QMainWindow):
         return curr_index.siblingAtColumn(column).data(role)
 
     def set_data_to_event(self, index: QModelIndex, column: Col, value: Any) -> bool:
-        index_source: QModelIndex = map_to_source(-2, index)
-        if not index_source.isValid():
+        if not index.isValid():
             return False
-        return self.base_model.setData(index_source.siblingAtColumn(column), value)
+        return self.table_model.setData(index.siblingAtColumn(column), value)
 
     def set_data_to_current_event(self, column: Col, value: Any) -> bool:
         return self.set_data_to_event(self.get_current_event_index(), column, value)
@@ -1005,8 +988,10 @@ class MainWindow(QMainWindow):
 
     def update_filters_and_select(self) -> None:
         filter_args = self._current_filter_args()
-        self.proxy1_model.set_filters(*filter_args)
-        self.base_model.send_filterwidget_labeldata(*filter_args)
+        self.table_model.set_filters(*filter_args)
+        term_labeldata, category_labeldata = self.table_model.filter_counters()
+        self.ui.lw_term.update_labels(term_labeldata)
+        self.ui.lw_category.update_labels(category_labeldata)
         self.ui.trw_event.span_columns()
         self.ui.pb_resetfilters.setEnabled(self.any_filter_active())
 
@@ -1041,16 +1026,13 @@ class MainWindow(QMainWindow):
         for widget in blocked_widgets:
             widget.blockSignals(False)
 
-        self.proxy1_model.set_filter(Filter.TERM, list(TermCategory)[0], invalidate=False)
-        self.proxy1_model.set_filter(Filter.CATEGORY, 0, invalidate=False)
-        self.proxy1_model.set_filter(Filter.PAYTODAY, False, invalidate=False)
         # Заголовки свёрнутых секций могли остаться подкрашенными как активные
         for switch_button, filter_widget, label, is_active in self.filter_sections:
             switch_button.change_style_on_hiding_activefilter(switch_button.switch_state(), is_active())
         self.update_filters_and_select()
 
     def check_export_availability(self) -> None:
-        self.ui.act_export.setEnabled(self.proxy2_model.stored_count > 0)
+        self.ui.act_export.setEnabled(self.table_model.stored_count > 0)
 
     def save_note(self, index: QModelIndex | None = None) -> bool:
         note_index: QModelIndex = self.get_current_event_index() if index is None else index
@@ -1082,7 +1064,7 @@ class MainWindow(QMainWindow):
                                          date_str(date),
                                          str(amount),
                                          date_str(QDate.currentDate())]):
-            self.base_model.load_payment_totals()
+            self.table_model.load_payment_totals()
             self.update_filters_and_select()
             self.update_eventinfo()
             return True
@@ -1103,7 +1085,7 @@ class MainWindow(QMainWindow):
 
         if self.payment_model.removeRow(origin_index_row):
             self.payment_model.submitAll()
-            self.base_model.load_payment_totals()
+            self.table_model.load_payment_totals()
             self.update_filters_and_select()
             self.update_eventinfo()
             return True
@@ -1120,7 +1102,7 @@ class MainWindow(QMainWindow):
                 self.warn_selection_lost()
                 return False
             selection_not_visible: bool = is_selection_filteredout(
-                self.proxy2_model, self.ui.trw_event, two_proxies=True, current_instead=True)
+                self.table_model, self.ui.trw_event, current_instead=True)
             if selection_not_visible:
                 self.warn_selection_lost()
                 return False
@@ -1142,7 +1124,7 @@ class MainWindow(QMainWindow):
             self.warn_personal_unavailable()
             return False
 
-        event_dialog: EventDialog = EventDialog(final_proxy_model=self.proxy2_model, responsible_model=responsible_model, payment_model= self.payment_model,
+        event_dialog: EventDialog = EventDialog(final_proxy_model=self.table_model, responsible_model=responsible_model, payment_model= self.payment_model,
                                                 settings_handler=self.settings_handler, db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, initial_amount=initial_amount,
                                                 from_statement=from_statement, payment_date=payment_date, parent=parent or self)
         if event_dialog.exec():
@@ -1153,17 +1135,16 @@ class MainWindow(QMainWindow):
                         set_due_filter = True
                 self.select_new_event(set_due_filter)
             else:
-                self.base_model.load_payment_totals()
+                self.table_model.load_payment_totals()
                 self.update_filters_and_select()
                 self.update_eventinfo()
-            self.proxy1_model.invalidate()
             return True
         else:
             return False
 
     def select_new_event(self, set_due_filter: bool) -> None:
         self.base_model.submitAll()
-        self.base_model.load_payment_totals()
+        self.table_model.load_payment_totals()
         self.ui.trw_event.selectionModel().clear()
         if set_due_filter:
             self.ui.lw_term.setCurrentRow(0)
@@ -1171,20 +1152,14 @@ class MainWindow(QMainWindow):
         # ищем и выделяем новую строку
         last_id: int = self.base_model.last_inserted_id
 
-        base_index_to_select = None
-        for row in range(self.base_model.rowCount() - 1, -1, -1):
-            if self.base_model.index(row, Col.ID).data(LiabilitySqlTableModel.qtValueRole) == last_id:
-                base_index_to_select = self.base_model.index(row, 0)
-                break
-        if base_index_to_select:
-            index_to_select: QModelIndex = self.proxy2_model.mapFromSource(self.proxy1_model.mapFromSource(base_index_to_select))
-            if index_to_select.isValid():
-                self.ui.trw_event.skip_restore_selection = True
-                self.ui.trw_event.selectionModel().setCurrentIndex(index_to_select, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
+        index_to_select: QModelIndex = self.table_model.index_by_id(last_id)
+        if index_to_select.isValid():
+            self.ui.trw_event.skip_restore_selection = True
+            self.ui.trw_event.selectionModel().setCurrentIndex(index_to_select, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
 
     def open_copydoc_dialog(self) -> bool:
         curr_index: QModelIndex = self.get_current_event_index()
-        if not curr_index.isValid() or is_selection_filteredout(self.proxy2_model, self.ui.trw_event, two_proxies=True, current_instead=True):
+        if not curr_index.isValid() or is_selection_filteredout(self.table_model, self.ui.trw_event, current_instead=True):
             self.warn_selection_lost()
             return False
         title = self.base_model.document_title(self.bound_document_id) if self.bound_document_id else None
@@ -1192,12 +1167,11 @@ class MainWindow(QMainWindow):
             return False
 
         is_current_paid = FilterFlags.PAID in curr_index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilitySqlTableModel.qtValueRole)
-        copydoc_dialog = CopyDocDialog(final_proxy_model=self.proxy2_model, db_handler=self.db_handler, settings_handler=self.settings_handler,
+        copydoc_dialog = CopyDocDialog(final_proxy_model=self.table_model, db_handler=self.db_handler, settings_handler=self.settings_handler,
                                        current_index=curr_index, title=title, parent=self)
         if not copydoc_dialog.exec():
             return False
         self.select_new_event(is_current_paid)
-        self.proxy1_model.invalidate()
         return True
 
     def warn_selection_lost(self) -> None:
@@ -1215,7 +1189,7 @@ class MainWindow(QMainWindow):
         if not curr_index.isValid():
             self.warn_selection_lost()
             return False
-        selection_not_visible: bool = is_selection_filteredout(self.proxy2_model, self.ui.trw_event, two_proxies=True, current_instead=True)
+        selection_not_visible: bool = is_selection_filteredout(self.table_model, self.ui.trw_event, current_instead=True)
         if selection_not_visible:
             self.warn_selection_lost()
             return False
@@ -1223,7 +1197,7 @@ class MainWindow(QMainWindow):
                                   self, cancel_by_default=True)
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
             event_id: int = self.current_data(Col.ID, LiabilitySqlTableModel.qtValueRole)
-            row: int = self.proxy1_model.mapToSource(self.proxy2_model.mapToSource(curr_index)).row()
+            row: int = self.table_model.mapToSource(curr_index).row()
             deleted: bool = self.db_handler.run_in_transaction(
                 lambda: self.db_handler.delete_payments_by_event(event_id) and self.base_model.delete_row(row) != 0)
             if not deleted:
@@ -1243,7 +1217,6 @@ class MainWindow(QMainWindow):
         self.on_currentevent_change()
         self.base_model.select()
         self.update_filters_and_select()
-        self.base_model.cacheUpdateNeeded.emit()
         self.update_sync_status()
 
     def open_manual_dialog(self, page: str = "", owner: QWidget | None = None) -> None:
@@ -1285,7 +1258,7 @@ class MainWindow(QMainWindow):
         return PaymentAmountDialog(self.db_handler, info, new_amount, parent).exec() == QDialog.DialogCode.Accepted
 
     def open_export_dialog(self) -> bool:
-        if self.proxy2_model.rowCount() == 0:
+        if self.table_model.rowCount() == 0:
             msg = ErrorInfoMessageBox("Экспортировать нечего: в таблице нет ни одного платежа. "
                                       "Измените условия фильтрации или поиска.", is_info=True, parent=self)
             msg.exec()

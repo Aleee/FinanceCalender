@@ -1032,8 +1032,8 @@ class DBHandler:
         column_count = query.record().count()
         events: list[tuple] = []
         while query.next():
-            events.append(tuple(None if self._is_null(query.value(column)) else query.value(column)
-                                for column in range(column_count)))
+            values = [query.value(column) for column in range(column_count)]
+            events.append(tuple(None if self._is_null(value) else value for value in values))
         return events
 
     @staticmethod

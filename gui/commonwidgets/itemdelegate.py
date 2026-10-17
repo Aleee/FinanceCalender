@@ -3,8 +3,8 @@ from PySide6.QtGui import QPainter, QColor, QPen, QPalette
 from PySide6.QtCore import QModelIndex, QSize
 
 from gui.commonwidgets.common import RowStyle
-from gui.eventproxymodel import LiabilityTotalsProxyModel
 from gui.eventsqlmodel import Col, RowFormatting, LiabilitySqlTableModel
+from gui.liabilitytablemodel import LiabilityTableModel
 from base.liability import RowType
 
 from gui.common import model_atlevel
@@ -21,7 +21,7 @@ class EventItemDelegate(QStyledItemDelegate):
 
     def initStyleOption(self, option, index, /):
         super(EventItemDelegate, self).initStyleOption(option, index)
-        self.apply_style(option, index.data(LiabilityTotalsProxyModel.RowStyleRole))
+        self.apply_style(option, index.data(LiabilityTableModel.styleRole))
 
     def apply_style(self, option, style: RowStyle):
         if not style:
@@ -54,10 +54,10 @@ class EventItemDelegate(QStyledItemDelegate):
         return option.widget.style().sizeFromContents(QStyle.ContentsType.CT_ItemViewItem, option, QSize(), option.widget)
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
-        style: RowStyle = index.data(LiabilityTotalsProxyModel.RowStyleRole)
+        style: RowStyle = index.data(LiabilityTableModel.styleRole)
         super(EventItemDelegate, self).initStyleOption(option, index)
         self.apply_style(option, style)
-        row_formatting: RowFormatting = model_atlevel(-2, index).row_formatting
+        row_formatting: RowFormatting = model_atlevel(-1, index).row_formatting
         vertical_grid_color = self.draw_background(option, style)
         self.draw_content(painter, option, index)
         self.draw_borders(painter, option, index, row_formatting, vertical_grid_color)

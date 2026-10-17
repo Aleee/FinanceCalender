@@ -710,9 +710,9 @@ class EventDialog(QDialog):
         return True
 
     def source_row(self) -> int:
-        if self.index.model() is model_atlevel(-2, self.model):
+        if self.index.model() is model_atlevel(-1, self.model):
             return self.index.row()
-        return map_to_source(-2, self.index).row()
+        return map_to_source(-1, self.index).row()
 
     def _insert_paid(self, original_model: LiabilitySqlTableModel, data: list, total_amount: Decimal,
                      payment_date: QDate) -> bool:
@@ -773,7 +773,7 @@ class EventDialog(QDialog):
         # hidden
         data.append(int(self.ui.chb_hidden.isChecked()))
 
-        original_model: LiabilitySqlTableModel = model_atlevel(-2, self.model)
+        original_model: LiabilitySqlTableModel = model_atlevel(-1, self.model)
         if not self.edit_mode:
             paid_date: QDate | None = None
             if self.ui.rb_typerefund.isChecked():

@@ -8,10 +8,12 @@ from PySide6.QtCore import QDate, QModelIndex, Qt
 from PySide6.QtSql import QSqlTableModel
 
 from base.date import date_str
+from base.liabilitystore import LiabilityStore
 from base.liability import (CATEGORY_NAMES, FilterFlags, HeaderFooterSubtype, LiabilityCategory, PaymentType, RowType,
                             TermCategory, category_section, is_top_level_category)
 from base.version import DB_VERSION
 from gui.eventproxymodel import Filter, LiabilitySortFilterProxyModel, LiabilityTotalsProxyModel
+from gui.liabilitytablemodel import LiabilityTableModel
 from gui.eventwidget import EventWidget
 from base.formatting import dec_strcommaspace
 from gui.eventsqlmodel import Col, LiabilitySqlTableModel, RowFormatting
@@ -918,9 +920,8 @@ def spanned_rows(view: EventWidget) -> list[int]:
     return [row for row in range(view.model().rowCount()) if view.isFirstColumnSpanned(row, QModelIndex())]
 
 
-def header_proxy_rows(models: Models) -> list[int]:
-    proxy = models.proxy2
-    return [row for row in range(proxy.rowCount()) if proxy.index(row, Col.TYPE).data(DB_VALUE) == RowType.HEADER]
+def header_rows(table: LiabilityTableModel) -> list[int]:
+    return [row for row in range(table.rowCount()) if table.index(row, Col.TYPE).data(DB_VALUE) == RowType.HEADER]
 
 
 def test_span_columns_spans_exactly_the_visible_header_rows(db_file, open_models):
@@ -932,26 +933,28 @@ def test_span_columns_spans_exactly_the_visible_header_rows(db_file, open_models
         add_payment(db_file, paid, day(-1), "10.00")
         run_sql(db_file, "UPDATE event SET name = 'special' WHERE id = ?", paid)
     models = open_models(db_file)
+    table = LiabilityTableModel(LiabilityStore(models.base.db_handler), models.base)
+    table.set_footer_filter(True)
     view = EventWidget()
-    view.setModel(models.proxy2)
+    view.setModel(table)
 
     checked_with_headers = 0
     for search in ("", "special"):
         for header_flag in (True, False):
-            models.proxy1.set_filter(Filter.HEADER, header_flag)
+            table.set_header_filter(header_flag)
             for term in TermCategory:
                 for category in (0, 1101):
-                    models.apply(term, category=category, search=search)
+                    table.set_filters(term, category, search, 0, False, 3, False)
                     view.span_columns()
-                    expected = header_proxy_rows(models)
+                    expected = header_rows(table)
                     assert spanned_rows(view) == expected, (search, header_flag, term, category)
                     checked_with_headers += bool(expected)
     assert checked_with_headers > 0
 
-    models.apply()
-    models.proxy1.set_filter(Filter.HEADER, True)
+    table.set_filters(TermCategory.UNPAID, 0, "", 0, False, 3, False)
+    table.set_header_filter(True)
     new_header = add_event(db_file, row_type=RowType.HEADER, category=1102, total=None, subcategory=HeaderFooterSubtype.ORDINARY)
-    reload(models)
+    models.base.select()
     view.span_columns()
-    assert new_header in [models.proxy2.index(row, Col.ID).data(DB_VALUE) for row in header_proxy_rows(models)]
-    assert spanned_rows(view) == header_proxy_rows(models)
+    assert new_header in [table.index(row, Col.ID).data(DB_VALUE) for row in header_rows(table)]
+    assert spanned_rows(view) == header_rows(table)

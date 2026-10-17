@@ -26,8 +26,8 @@ from base.casting import str_bool
 from base.date import date_purestr, date_displstr
 from gui.common import model_atlevel
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
-from gui.eventproxymodel import LiabilityTotalsProxyModel
 from gui.eventsqlmodel import LiabilitySqlTableModel, Col, RowFormatting
+from gui.liabilitytablemodel import LiabilityTableModel
 from base.liability import FilterFlags, RowType, HeaderFooterSubtype
 from base.paths import export_dir
 from gui.settings import SettingsHandler
@@ -363,15 +363,15 @@ class LiabilityXlsWriter(BaseXlsWriter):
         Col.HIDDEN: 0,
     }
 
-    def __init__(self, model: LiabilityTotalsProxyModel, view: QTableView, settings_handler: SettingsHandler):
+    def __init__(self, model: LiabilityTableModel, view: QTableView, settings_handler: SettingsHandler):
         super().__init__(settings_handler, settings_key="Export/lastpath")
-        self.model: LiabilityTotalsProxyModel = model
+        self.model: LiabilityTableModel = model
         self.view: QTableView = view
         # Индексы столбцов с финансовыми данными
         self.decimalcolumns_numbers = LiabilitySqlTableModel.DECIMAL_COLUMNS
 
     def write(self, export_format: ExportFormat, columns_to_export: list[bool], show_hidden: HiddenDisplayMode) -> bool:
-        row_formatting: RowFormatting = model_atlevel(-2, self.model).row_formatting
+        row_formatting: RowFormatting = model_atlevel(-1, self.model).row_formatting
         current_date_str = date_purestr(QDate().currentDate())
 
         default_xls_filename = self._default_file_path(f"ПлатежныйКалендарь_{current_date_str}.xlsx")
@@ -423,7 +423,7 @@ class LiabilityXlsWriter(BaseXlsWriter):
 
         ### Временная смена фильтров модели ###
         if show_hidden == HiddenDisplayMode.NONE:
-            model_atlevel(-1, self.model).set_hidden_filter(True)
+            self.model.set_hidden_filter(True)
         ########################################
 
         ### ЗАГОЛОВОЧНАЯ ЧАСТЬ ###
@@ -497,7 +497,7 @@ class LiabilityXlsWriter(BaseXlsWriter):
 
         ### Возврат фильтра модели ###
         if show_hidden == HiddenDisplayMode.NONE:
-            model_atlevel(-1, self.model).set_hidden_filter(False)
+            self.model.set_hidden_filter(False)
         ###############################
 
         if str_bool(self.settings_handler.settings.value("Export/frozenheader", 1)):

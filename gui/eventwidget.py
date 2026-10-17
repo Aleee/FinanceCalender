@@ -2,7 +2,6 @@ from PySide6.QtWidgets import QTreeView, QAbstractItemView
 from PySide6.QtCore import Qt, QModelIndex, QItemSelectionModel, QTimer, Signal
 from PySide6.QtGui import QPainter, QColor, QShortcut, QKeySequence
 
-from gui.common import model_atlevel
 from gui.commonwidgets.eventfilter import TooltipFilter
 from gui.commonwidgets.itemdelegate import EventItemDelegate
 from gui.eventsqlmodel import Col, LiabilitySqlTableModel
@@ -96,7 +95,7 @@ class EventWidget(QTreeView):
             painter.drawText(self.viewport().rect(), Qt.AlignmentFlag.AlignCenter, self.EMPTY_TABLE_TEXT)
 
     def hide_columns(self, to_hide: list[Col] | None = None) -> None:
-        columns_to_hide: list = [key for key, val in model_atlevel(-2, self.model()).COLUMN_DATA.items() if not val[1]]
+        columns_to_hide: list = [key for key, val in self.model().COLUMN_DATA.items() if not val[1]]
         if to_hide:
             columns_to_hide.extend(to_hide)
         # Сперва все столбцы восстанавливаются (скрытые - с шириной по умолчанию)
@@ -112,17 +111,8 @@ class EventWidget(QTreeView):
         return [not self.isColumnHidden(col) for col in range(self.model().columnCount())]
 
     def span_columns(self) -> None:
-        # Каждое применение setFirstColumnSpanned() вызывает фильтрацию, поэтому на время она отключается
-        proxy1_model = model_atlevel(-1, self.model())
-        base_model = model_atlevel(-2, self.model())
-        proxy1_model.enable_sortfilter(False)
-        try:
-            for source_row in base_model.header_rows():
-                index = self.model().mapFromSource(proxy1_model.mapFromSource(base_model.index(source_row, 0)))
-                if index.isValid():
-                    self.setFirstColumnSpanned(index.row(), QModelIndex(), True)
-        finally:
-            proxy1_model.enable_sortfilter(True)
+        for row in self.model().header_rows():
+            self.setFirstColumnSpanned(row, QModelIndex(), True)
 
     def save_selection(self) -> None:
         selected = self.selectionModel().selectedRows()
@@ -137,18 +127,13 @@ class EventWidget(QTreeView):
             return
         if self.selected_row_id is None:
             return
-        source_model = model_atlevel(-2, self.model())
-        for row in range(source_model.rowCount()):
-            liability_index = source_model.index(row, Col.ID)
-            liability_id = liability_index.data(LiabilitySqlTableModel.dbValueRole)
-            if liability_id == self.selected_row_id:
-                QTimer.singleShot(0, lambda: QTimer.singleShot(0, lambda: self._apply_selection(liability_index, source_model)))
-                break
+        selected_row_id = self.selected_row_id
+        QTimer.singleShot(0, lambda: QTimer.singleShot(0, lambda: self._apply_selection(selected_row_id)))
 
-    def _apply_selection(self, idx: QModelIndex, source_model: LiabilitySqlTableModel) -> None:
-        if not idx.isValid():
+    def _apply_selection(self, event_id: int) -> None:
+        proxy_index = self.model().index_by_id(event_id)
+        if not proxy_index.isValid():
             return
-        proxy_index = self.model().mapFromSource(model_atlevel(-1, self.model()).mapFromSource(idx))
         sm = self.selectionModel()
         self.setCurrentIndex(proxy_index)
         sm.select(proxy_index, QItemSelectionModel.SelectionFlag.Rows | QItemSelectionModel.SelectionFlag.ClearAndSelect)
