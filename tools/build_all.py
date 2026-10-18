@@ -51,9 +51,10 @@ def check_pushed() -> str:
     return branch
 
 
-def build_mac(branch: str, intel: bool) -> None:
+def build_mac(branch: str, intel: bool, notes: str) -> None:
     started = time.time()
-    run("gh", "workflow", "run", WORKFLOW, "--ref", branch, "-f", f"intel={str(intel).lower()}")
+    run("gh", "workflow", "run", WORKFLOW, "--ref", branch, "-f", f"intel={str(intel).lower()}",
+        "-f", f"notes={notes}")
     run_id = None
     for _ in range(30):
         time.sleep(5)
@@ -100,7 +101,7 @@ def main() -> None:
 
     if mac_branch is not None:
         step("Сборка для macOS (GitHub Actions)")
-        build_mac(mac_branch, args.mac_intel)
+        build_mac(mac_branch, args.mac_intel, args.notes)
 
     step("Готово")
     print(f"Windows: {ROOT / 'dist' / 'release'}")
