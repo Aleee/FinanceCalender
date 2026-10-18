@@ -565,11 +565,11 @@ class MainWindow(QMainWindow):
             self.sync_channel_settings = current_settings
         return self.sync_channel
 
-    def auto_sync(self, retries_left: int = SYNC_RETRY_ATTEMPTS, is_first: bool = False) -> None:
+    def auto_sync(self, retries_left: int = SYNC_RETRY_ATTEMPTS, is_first: bool = False, quiet: bool = True) -> None:
         if (not self.settings_handler.sync_enabled() or not self.tb_sync.isEnabled()
                 or self.sync_progress is not None or QApplication.activeModalWidget() is not None):
             return
-        self.run_sync(interactive=False, pause_when_done=is_first)
+        self.run_sync(interactive=False, pause_when_done=is_first, quiet=quiet and not is_first)
         if self.sync_network_failed and retries_left > 0:
             delay_seconds: int = SYNC_RETRY_DELAY_MS // 1000
             log.i(f"Повтор синхронизации через {delay_seconds} с, осталось попыток: {retries_left}")
@@ -580,7 +580,7 @@ class MainWindow(QMainWindow):
                                           SYNC_RETRY_DELAY_MS)
             QTimer.singleShot(SYNC_RETRY_DELAY_MS, lambda: self.auto_sync(retries_left - 1))
 
-    def run_sync(self, interactive: bool = True, pause_when_done: bool = True) -> None:
+    def run_sync(self, interactive: bool = True, pause_when_done: bool = True, quiet: bool = False) -> None:
         if not self.settings_handler.sync_enabled():
             return
         self.save_note()
@@ -589,8 +589,11 @@ class MainWindow(QMainWindow):
         previous_status_text: str = self.sync_status_text
         report = SyncReport()
         action: SyncAction | None = None
-        self.sync_progress = SyncProgressDialog(self, planned_stages=SYNC_PLANNED_STAGES)
+        self.sync_progress = SyncProgressDialog(self, planned_stages=SYNC_PLANNED_STAGES, quiet=quiet)
         self.sync_progress.start()
+        if quiet:
+            self.ui.statusBar.showMessage("Идет синхронизация...")
+            self.ui.statusBar.repaint()
         try:
             action = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True))
             if action is None and interactive and self.sync_info_unreadable:
@@ -606,6 +609,8 @@ class MainWindow(QMainWindow):
             if action in (SyncAction.PULL, SyncAction.MERGE):
                 self.reload_after_sync_pull()
             self.update_sync_status()
+            if quiet:
+                self.ui.statusBar.clearMessage()
             if is_changed_by_other:
                 if is_merged:
                     changes_dlg = SyncChangesDialog(merge_message(report), merge_tabs(report), self, warnings=merge_warning_lines(report))
@@ -614,6 +619,8 @@ class MainWindow(QMainWindow):
                 self.sync_progress.show_stage_now(SYNC_STAGE_CHANGES_NOTICE)
                 changes_dlg.exec()
         finally:
+            if quiet:
+                self.ui.statusBar.clearMessage()
             self._close_sync_progress(pause=pause_when_done and action is not None)
         if interactive:
             if action is None and not self.sync_cancelled:
@@ -775,7 +782,7 @@ class MainWindow(QMainWindow):
         if SyncSettingsDialog(self.settings_handler, self).exec() == QDialog.DialogCode.Accepted:
             self.apply_sync_timer()
             self.update_sync_status()
-            QTimer.singleShot(1000, self.auto_sync)
+            QTimer.singleShot(1000, lambda: self.auto_sync(quiet=False))
 
     def set_update_status(self, text: str) -> None:
         self.la_sbar_update.setText(text)

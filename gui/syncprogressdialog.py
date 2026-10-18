@@ -7,7 +7,7 @@ from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel, QLayout, QProgressBar, QPushButton, QStackedWidget,
                                QVBoxLayout, QWidget)
 
-from base.sync import STAGE_CONNECT
+from base.sync import STAGE_CONNECT, STAGE_DOWNLOAD
 
 STAGE_RECONNECT = "Переподключение к общей базе"
 
@@ -171,10 +171,12 @@ class StageRow(QWidget):
 
 class SyncProgressDialog(QDialog):
     SHOW_DELAY_MS = 350
+    QUIET_SHOW_DELAY_MS = 3000
     DONE_PAUSE_MS = 500
 
-    def __init__(self, parent=None, text: str = "Синхронизация…", planned_stages: tuple[str, ...] = ()):
+    def __init__(self, parent=None, text: str = "Синхронизация…", planned_stages: tuple[str, ...] = (), quiet: bool = False):
         super().__init__(parent)
+        self.quiet = quiet
         self.setWindowTitle("Синхронизация")
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
         self.setWindowModality(Qt.WindowModality.WindowModal)
@@ -223,7 +225,14 @@ class SyncProgressDialog(QDialog):
 
         self.delay_timer = QTimer(self)
         self.delay_timer.setSingleShot(True)
-        self.delay_timer.timeout.connect(self.show)
+        self.delay_timer.timeout.connect(self.show_unless_minimized)
+
+    def is_parent_minimized(self) -> bool:
+        return self.quiet and self.parent() is not None and self.parent().isMinimized()
+
+    def show_unless_minimized(self) -> None:
+        if not self.is_parent_minimized():
+            self.show()
 
     def add_row(self, text: str) -> StageRow:
         row = StageRow(text, self)
@@ -247,6 +256,9 @@ class SyncProgressDialog(QDialog):
         row.set_state(StageState.ACTIVE)
         self.current_row = row
         self.fit_size()
+        if self.quiet and text == STAGE_DOWNLOAD:
+            self.delay_timer.stop()
+            self.show_unless_minimized()
         self.repaint()
 
     def set_attempt(self, attempt: int, total: int) -> None:
@@ -266,6 +278,8 @@ class SyncProgressDialog(QDialog):
         self.fit_size()
 
     def show_waiting(self, cancellable: bool) -> None:
+        if self.quiet and (self.delay_timer.isActive() or self.is_parent_minimized()):
+            return
         self.btn_cancel.setEnabled(cancellable)
         self.delay_timer.stop()
         self.show()
@@ -305,7 +319,7 @@ class SyncProgressDialog(QDialog):
             time.sleep(self.DONE_PAUSE_MS / 1000)
 
     def start(self) -> None:
-        self.delay_timer.start(self.SHOW_DELAY_MS)
+        self.delay_timer.start(self.QUIET_SHOW_DELAY_MS if self.quiet else self.SHOW_DELAY_MS)
 
     def hide_for_question(self) -> None:
         self.delay_timer.stop()
