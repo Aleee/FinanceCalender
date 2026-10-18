@@ -150,6 +150,7 @@ class StageRow(QWidget):
             self.spinner.stop()
         if state != StageState.ACTIVE:
             self.bar.setVisible(False)
+            self.layout().invalidate()
         if state == StageState.DONE:
             self.label.setText(self.text)
 
@@ -164,6 +165,7 @@ class StageRow(QWidget):
         shown_before: bool = self.bar.isVisible()
         self.bar.setValue(min(done * 100 // total, 100))
         self.bar.setVisible(True)
+        self.layout().invalidate()
         return not shown_before
 
 
