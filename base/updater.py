@@ -5,8 +5,6 @@ import platform
 import shutil
 import subprocess
 import sys
-import threading
-import time
 import zipfile
 from dataclasses import dataclass
 from typing import Optional
@@ -14,8 +12,9 @@ from typing import Optional
 import lovely_logger as log
 from PySide6.QtCore import QObject, QUrl, QUrlQuery, QFile, QIODevice, QDateTime, QTimer, Signal
 from PySide6.QtNetwork import (QNetworkAccessManager, QNetworkReply, QNetworkRequest, QNetworkProxy,
-                               QNetworkProxyFactory, QNetworkProxyQuery, QSslSocket)
+                               QSslSocket)
 
+from base.httpclient import MAX_ATTEMPTS, RESPONSE_TIMEOUT_MS, RETRY_PAUSE_MS
 from base.macupdate import APP_BUNDLE, install_location_problem, launch_mac_updater
 from base.paths import app_dir, update_dir
 from base.version import APP_VERSION, DB_VERSION, is_newer
@@ -23,17 +22,17 @@ from base.version import APP_VERSION, DB_VERSION, is_newer
 API_URL = "https://cloud-api.yandex.net/v1/disk/public/resources/download"
 PUBLIC_KEY = "https://disk.yandex.by/d/-feulMjOLlZpoA"
 VERSION_FILE = f"version-mac-{platform.machine()}.json" if sys.platform == "darwin" else "version.json"
-CHECK_TIMEOUT_MS = 60000
+CHECK_TIMEOUT_MS = RESPONSE_TIMEOUT_MS
 DOWNLOAD_TIMEOUT_MS = 90000
 NETWORK_ATTEMPTS = 3
 RETRY_DELAY_MS = 3000
+CHECK_ATTEMPTS = MAX_ATTEMPTS
+CHECK_RETRY_DELAY_MS = RETRY_PAUSE_MS
 APP_EXE = "FinanceCalender.exe"
 DETACHED_PROCESS = 0x00000008
 CREATE_NEW_PROCESS_GROUP = 0x00000200
 CREATE_NO_WINDOW = 0x08000000
 DIAG_HOSTS = ("cloud-api.yandex.net", "downloader.disk.yandex.ru", "api.github.com")
-DIAG_TIMEOUT_MS = 8000
-DIAG_COMMAND_TIMEOUT = 30
 INTERNET_SETTINGS_KEY = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings"
 PROXY_SETTINGS_SCRIPT = (f"Get-ItemProperty '{INTERNET_SETTINGS_KEY}' | "
                          f"Select-Object ProxyEnable,ProxyServer,ProxyOverride,AutoConfigURL | Format-List; "
@@ -123,71 +122,6 @@ def describe_proxy(proxy: QNetworkProxy) -> str:
     return f"{proxy.type().name} {proxy.hostName()}:{proxy.port()}"
 
 
-def probe_host(host: str, proxy: QNetworkProxy, label: str) -> None:
-    socket = QSslSocket()
-    socket.setProxy(proxy)
-    start = time.monotonic()
-    socket.connectToHost(host, 443)
-    if not socket.waitForConnected(DIAG_TIMEOUT_MS):
-        log.w(f"Диагностика [{label}] {host}: TCP не установлен за {(time.monotonic() - start) * 1000:.0f} мс: "
-              f"{socket.error().name}, {socket.errorString()}")
-        return
-    tcp_ms = (time.monotonic() - start) * 1000
-    socket.startClientEncryption()
-    if not socket.waitForEncrypted(DIAG_TIMEOUT_MS):
-        errors = [e.errorString() for e in socket.sslHandshakeErrors()]
-        log.w(f"Диагностика [{label}] {host}: TCP за {tcp_ms:.0f} мс, TLS не завершён: "
-              f"{socket.errorString()} {errors}")
-        return
-    log.i(f"Диагностика [{label}] {host}: TCP за {tcp_ms:.0f} мс, TLS ок за {(time.monotonic() - start) * 1000:.0f} мс")
-    socket.disconnectFromHost()
-
-
-def run_command(label: str, args: list[str]) -> None:
-    windows = sys.platform == "win32"
-    try:
-        result = subprocess.run(args, capture_output=True, stdin=subprocess.DEVNULL, timeout=DIAG_COMMAND_TIMEOUT,
-                                creationflags=CREATE_NO_WINDOW if windows else 0,
-                                encoding="oem" if windows else "utf-8", errors="replace")
-    except subprocess.TimeoutExpired:
-        log.w(f"Диагностика, команда [{label}]: нет ответа за {DIAG_COMMAND_TIMEOUT} с")
-        return
-    except OSError as e:
-        log.w(f"Диагностика, команда [{label}]: не удалось запустить: {e}")
-        return
-    output = (result.stdout + result.stderr).strip()
-    log.i(f"Диагностика, команда [{label}], код {result.returncode}:\n{output[:4000]}")
-
-
-def run_command_diagnostics() -> None:
-    api_link = f"{API_URL}?public_key={PUBLIC_KEY}&path=/{VERSION_FILE}"
-    windows = sys.platform == "win32"
-    curl = ["curl.exe" if windows else "curl", "-v", "-sS", "-m", "20", "-o", "NUL" if windows else "/dev/null"]
-    proxy_vars = {name: os.environ[name] for name in ("HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY")
-                  if name in os.environ}
-    log.i(f"Диагностика, переменные прокси: {proxy_vars}")
-    run_command("curl API", curl + [api_link])
-    run_command("curl API без прокси", curl + ["--noproxy", "*", api_link])
-    run_command("curl GitHub", curl + ["https://api.github.com"])
-    run_command("nslookup", ["nslookup", DIAG_HOSTS[0]])
-    if not windows:
-        return
-    run_command("netsh winhttp", ["netsh", "winhttp", "show", "proxy"])
-    run_command("настройки прокси", ["powershell", "-NoProfile", "-NonInteractive", "-Command", PROXY_SETTINGS_SCRIPT])
-    run_command("антивирус", ["powershell", "-NoProfile", "-NonInteractive", "-Command", ANTIVIRUS_SCRIPT])
-
-
-def run_network_diagnostics() -> None:
-    log.i(f"Диагностика сети: версия {APP_VERSION}, SSL {QSslSocket.supportsSsl()} ({QSslSocket.activeBackend()}), "
-          f"системные настройки прокси {QNetworkProxyFactory.usesSystemConfiguration()}")
-    for host in DIAG_HOSTS:
-        system_proxy = QNetworkProxyFactory.systemProxyForQuery(QNetworkProxyQuery(host, 443, "https"))[0]
-        probe_host(host, QNetworkProxy(QNetworkProxy.ProxyType.NoProxy), "без прокси")
-        probe_host(host, system_proxy, f"системный прокси: {describe_proxy(system_proxy)}")
-    run_command_diagnostics()
-    log.i("Диагностика сети завершена")
-
-
 def read_download_link(reply: QNetworkReply) -> str:
     if reply.error() != QNetworkReply.NetworkError.NoError:
         raise NetworkError(f"Не удалось получить ссылку на скачивание: {reply.error().name}, {reply.errorString()}")
@@ -226,6 +160,7 @@ class UpdateChecker(QObject):
         self.checking = True
         self.attempt = 1
         log.i(f"Проверка обновлений: TLS-библиотека {QSslSocket.activeBackend()}")
+        self.manager.clearConnectionCache()
         self.request_link()
 
     def request_link(self) -> None:
@@ -233,13 +168,13 @@ class UpdateChecker(QObject):
         reply.finished.connect(lambda: self.on_link_received(reply))
 
     def on_failure(self, error: Exception) -> None:
-        log.w(f"Проверка обновлений (попытка {self.attempt} из {NETWORK_ATTEMPTS}): {error}")
+        log.w(f"Проверка обновлений (попытка {self.attempt} из {CHECK_ATTEMPTS}): {error}")
         if isinstance(error, NetworkError):
-            if self.attempt < NETWORK_ATTEMPTS:
+            if self.attempt < CHECK_ATTEMPTS:
                 self.attempt += 1
-                QTimer.singleShot(RETRY_DELAY_MS, self.request_link)
+                self.manager.clearConnectionCache()
+                QTimer.singleShot(CHECK_RETRY_DELAY_MS, self.request_link)
                 return
-            threading.Thread(target=run_network_diagnostics, daemon=True).start()
         self.finish("Не удалось проверить обновления (подробности в логе)", "Обновления: ошибка")
 
     def on_link_received(self, reply: QNetworkReply) -> None:
