@@ -4,15 +4,16 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6 import QtGui
-from PySide6.QtGui import QPalette, QRegularExpressionValidator, QShortcut, QKeySequence
+from PySide6.QtGui import QPalette, QRegularExpressionValidator, QShortcut, QKeySequence, QDesktopServices
 from PySide6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QLineEdit, QFileDialog, QButtonGroup, QWidget, \
     QInputDialog, QPushButton, QApplication
-from PySide6.QtCore import Qt, QSize, QRegularExpression, QModelIndex, QDate, QTimer
+from PySide6.QtCore import Qt, QSize, QRegularExpression, QModelIndex, QDate, QTimer, QUrl
 
 from gui.manualdialog import add_help_shortcut, open_manual
 from base.backup import restore_backup
 from base.casting import str_bool, str_int
 from base.dbhandler import DBHandler
+from base.paths import logs_dir
 from base.paymentmacther import DEF_PAYROLL_PATTERNS
 from base.updater import UpdateChecker, UpdateInfo
 from base.workcalendar import load_calendar_exceptions, save_calendar_exceptions, ALLOWED_WEEKDAYS, WEEKDAY_ABBR
@@ -117,6 +118,7 @@ class SettingsDialog(QDialog):
         # Сигналы
         self.ui.pb_ok.clicked.connect(self.accept)
         self.ui.pb_hotkeys.clicked.connect(lambda: open_manual(self, "P3-hotkeys.html"))
+        self.ui.pb_openlogs.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(logs_dir())))
         self.ui.pb_cancel.clicked.connect(self.reject)
         self.ui.lw_menu.currentItemChanged.connect(self.change_stw_page)
         self.ui.pb_backuppath.clicked.connect(lambda: self.change_path(self.ui.le_backuppath))

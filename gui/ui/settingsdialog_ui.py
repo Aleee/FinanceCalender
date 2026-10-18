@@ -924,7 +924,7 @@ class Ui_settingsdialog(object):
 
         self.verticalSpacer_10 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout_25.addItem(self.verticalSpacer_10, 4, 0, 1, 1)
+        self.gridLayout_25.addItem(self.verticalSpacer_10, 5, 0, 1, 1)
 
         self.horizontalLayout_hotkeys = QHBoxLayout()
         self.horizontalLayout_hotkeys.setObjectName(u"horizontalLayout_hotkeys")
@@ -939,6 +939,20 @@ class Ui_settingsdialog(object):
 
 
         self.gridLayout_25.addLayout(self.horizontalLayout_hotkeys, 3, 0, 1, 1)
+
+        self.horizontalLayout_openlogs = QHBoxLayout()
+        self.horizontalLayout_openlogs.setObjectName(u"horizontalLayout_openlogs")
+        self.pb_openlogs = QPushButton(self.pg_build)
+        self.pb_openlogs.setObjectName(u"pb_openlogs")
+
+        self.horizontalLayout_openlogs.addWidget(self.pb_openlogs)
+
+        self.horizontalSpacer_openlogs = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_openlogs.addItem(self.horizontalSpacer_openlogs)
+
+
+        self.gridLayout_25.addLayout(self.horizontalLayout_openlogs, 4, 0, 1, 1)
 
         self.groupBox_16 = QGroupBox(self.pg_build)
         self.groupBox_16.setObjectName(u"groupBox_16")
@@ -1187,6 +1201,7 @@ class Ui_settingsdialog(object):
         self.la_updatestatus.setText(QCoreApplication.translate("settingsdialog", u"<status>", None))
         self.pb_checkupdates.setText(QCoreApplication.translate("settingsdialog", u"\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0441\u0435\u0439\u0447\u0430\u0441", None))
         self.pb_hotkeys.setText(QCoreApplication.translate("settingsdialog", u"  \u0413\u043e\u0440\u044f\u0447\u0438\u0435 \u043a\u043b\u0430\u0432\u0438\u0448\u0438...  ", None))
+        self.pb_openlogs.setText(QCoreApplication.translate("settingsdialog", u"  \u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0430\u043f\u043a\u0443 \u0441 \u043b\u043e\u0433\u0430\u043c\u0438  ", None))
         self.groupBox_16.setTitle(QCoreApplication.translate("settingsdialog", u"\u041e \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0435", None))
         self.la_appdescr.setText(QCoreApplication.translate("settingsdialog", u"\u0423\u0447\u0451\u0442 \u0438 \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0435\u0439", None))
         self.la_buildnumber.setText(QCoreApplication.translate("settingsdialog", u"<ver>", None))
