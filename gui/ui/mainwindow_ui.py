@@ -330,6 +330,7 @@ class Ui_MainWindow(object):
         self.dsb_paymentsum.setObjectName(u"dsb_paymentsum")
         self.dsb_paymentsum.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.dsb_paymentsum.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.dsb_paymentsum.setMinimum(-9999999999.000000000000000)
         self.dsb_paymentsum.setMaximum(9999999999.000000000000000)
 
         self.gridLayout_5.addWidget(self.dsb_paymentsum, 2, 0, 1, 1)

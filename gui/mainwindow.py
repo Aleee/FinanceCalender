@@ -938,7 +938,7 @@ class MainWindow(QMainWindow):
             self.ui.te_descr.setPlainText(str(current_index.siblingAtColumn(Col.DESCR).data()))
             self.ui.te_notes.setPlainText(str(current_index.siblingAtColumn(Col.NOTES).data()))
             # Сумма платежа по умолчанию равна остатку
-            self.ui.dsb_paymentsum.setValue(current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilityTableModel.qtValueRole))
+            self.ui.dsb_paymentsum.setValue(max(current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilityTableModel.qtValueRole), Decimal(0)))
             # Обновить дату платежа по умолчанию
             self.ui.de_paymentdate.setDate(QDate.currentDate())
         return True
@@ -1051,7 +1051,11 @@ class MainWindow(QMainWindow):
 
         if amount == 0:
             return False
-        if (amount - self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole)) > 0.01:
+        paid = self.current_data(Col.TOTALAMOUNT, LiabilityTableModel.qtValueRole) - self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole)
+        if paid + amount < 0:
+            ErrorInfoMessageBox(f"Сумма возврата ({dec_strcommaspace(-amount)}) превышает сумму оплат по платежу ({dec_strcommaspace(paid)})", parent=self).exec()
+            return False
+        if amount > 0 and (amount - self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole)) > 0.01:
             msg_box = YesNoMessagebox(f"Сумма оплаты ({dec_strcommaspace(amount)}) превышает остаток задолженности ({dec_strcommaspace(
                 self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole))}). Уверены, что хотите продолжить?", self)
             if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:

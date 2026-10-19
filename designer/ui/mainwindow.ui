@@ -401,6 +401,9 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
               <property name="buttonSymbols">
                <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
               </property>
+              <property name="minimum">
+               <double>-9999999999.000000000000000</double>
+              </property>
               <property name="maximum">
                <double>9999999999.000000000000000</double>
               </property>

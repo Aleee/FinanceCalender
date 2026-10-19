@@ -96,6 +96,27 @@ def test_dialog_refund_keeps_sign(db_file, open_models, shared_dbh):
     assert dialog.problem_text() == ""
 
 
+def test_dialog_partial_refund_keeps_payment_sign(event_with_payments):
+    dbh, path, event_id, _, second = event_with_payments
+    refund = add_payment(path, event_id, day(0), "-100.00")
+    dialog = PaymentAmountDialog(dbh, dbh.read_payment_info(refund))
+    assert dialog.ui.dsb_payment.value() == 100
+    dialog.ui.chb_changetotal.setChecked(False)
+    dialog.ui.dsb_payment.setValue(150)
+    assert dialog.payment_sum() == Decimal("-150")
+    assert dialog.total_amount() == Decimal("1000")
+    assert dialog.problem_text() == ""
+
+
+def test_dialog_rejects_refund_above_paid(event_with_payments):
+    dbh, path, event_id, _, second = event_with_payments
+    refund = add_payment(path, event_id, day(0), "-100.00")
+    dialog = PaymentAmountDialog(dbh, dbh.read_payment_info(refund))
+    dialog.ui.chb_changetotal.setChecked(False)
+    dialog.ui.dsb_payment.setValue(600)
+    assert dialog.problem_text() != ""
+
+
 def test_dialog_prefilled_with_statement_amount(event_with_payments):
     dbh, _, _, _, second = event_with_payments
     dialog = PaymentAmountDialog(dbh, dbh.read_payment_info(second), Decimal("246.50"))

@@ -21,14 +21,15 @@ class PaymentAmountDialog(QDialog):
         self.dbh = db_handler
         self.info = info
         self.sign = -1 if info.total_amount < 0 else 1
+        self.payment_sign = -1 if info.payment_sum < 0 else 1
 
         self.ui.lbl_receiver.setText(info.receiver)
         self.ui.lbl_name.setText(info.name)
         self.ui.lbl_duedate.setText(f"{info.due_date:%d.%m.%Y}" if info.due_date else "не указан")
         self.ui.lbl_paidbefore.setText(dec_strcommaspace(self.sign * info.paid_before))
         self.ui.lbl_payment.setText(f"Оплата {info.payment_date:%d.%m.%Y}:")
-        shown_sum = info.payment_sum if new_payment_sum is None else self.sign * abs(new_payment_sum)
-        self.ui.dsb_payment.setValue(float(self.sign * shown_sum))
+        shown_sum = info.payment_sum if new_payment_sum is None else new_payment_sum
+        self.ui.dsb_payment.setValue(float(abs(shown_sum)))
 
         self.ui.dsb_payment.valueChanged.connect(self.update_total)
         self.ui.chb_changetotal.toggled.connect(self.update_total)
@@ -41,7 +42,7 @@ class PaymentAmountDialog(QDialog):
         self.ui.dsb_payment.selectAll()
 
     def payment_sum(self) -> Decimal:
-        return self.sign * Decimal(str(self.ui.dsb_payment.value()))
+        return self.payment_sign * Decimal(str(self.ui.dsb_payment.value()))
 
     def total_amount(self) -> Decimal:
         return self.sign * Decimal(str(self.ui.dsb_total.value()))
@@ -66,6 +67,8 @@ class PaymentAmountDialog(QDialog):
             return "Общая сумма платежа не может быть равна нулю"
         if self.sign * (self.total_amount() - self.info.paid_before - self.payment_sum()) < 0:
             return "Общая сумма платежа не может быть меньше суммы всех оплат по нему"
+        if self.sign * (self.info.paid_before + self.payment_sum()) < 0:
+            return "Сумма возврата не может превышать сумму остальных оплат по платежу"
         return ""
 
     def accept(self) -> None:
