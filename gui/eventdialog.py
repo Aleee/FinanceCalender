@@ -252,6 +252,7 @@ class EventDialog(QDialog):
         self.button_group.addButton(self.ui.rb_typenormal, PaymentType.NORMAL)
         self.button_group.addButton(self.ui.rb_typeadvance, PaymentType.ADVANCE)
         self.button_group.addButton(self.ui.rb_typerefund, PaymentType.REFUND)
+        self.ui.rb_typerefund.setEnabled(not edit_mode)
         self.responsible_chosen_manually: bool = False
         self.ui.cmb_responsible.activated.connect(self.mark_responsible_chosen)
         self.ui.cmb_category.activated.connect(lambda: self.resort_responsible_cmb(self.ui.cmb_category.currentData(Qt.ItemDataRole.UserRole), auto_choice=True))
