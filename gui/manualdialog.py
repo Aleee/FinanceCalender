@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel, QLine
                                QStackedWidget, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QTextBrowser, QTextEdit,
                                QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
+from base.edition import is_viewer
 from base.paths import manual_dir
 from gui.settings import SettingsHandler
 
@@ -485,6 +486,8 @@ class ManualDialog(QDialog):
 
 
 def open_manual(owner: QWidget, page: str = "") -> None:
+    if is_viewer():
+        return
     main_window: QWidget = owner
     while main_window.parentWidget() is not None:
         main_window = main_window.parentWidget()
@@ -494,4 +497,6 @@ def open_manual(owner: QWidget, page: str = "") -> None:
 
 
 def add_help_shortcut(dialog: QDialog, page: str) -> None:
+    if is_viewer():
+        return
     QShortcut(QKeySequence("F1"), dialog, lambda: open_manual(dialog, page))

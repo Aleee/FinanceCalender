@@ -74,8 +74,10 @@ class FinPlanTableModel(QAbstractTableModel):
     EditableRole: int = Qt.ItemDataRole.UserRole + 1
     internalValueRole: int = Qt.ItemDataRole.UserRole + 2
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, read_only: bool = False):
         super(FinPlanTableModel, self).__init__(parent)
+
+        self.read_only: bool = read_only
 
         self.categories: list[int] = list(self.FINPLAN_STRUCTURE.keys())
         self.values: dict[int, list[Optional[int]]] = {
@@ -196,7 +198,7 @@ class FinPlanTableModel(QAbstractTableModel):
         return None
 
     def _assign_value(self, index: QModelIndex, value: Any) -> bool:
-        if index.column() == 0:
+        if self.read_only or index.column() == 0:
             return False
 
         category = self._category_at_row(index.row())
@@ -236,6 +238,6 @@ class FinPlanTableModel(QAbstractTableModel):
         return changed
 
     def flags(self, index) -> Qt.ItemFlag:
-        if index.data(self.EditableRole):
+        if index.data(self.EditableRole) and not self.read_only:
             return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
         return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled

@@ -13,12 +13,14 @@ from gui.manualdialog import add_help_shortcut, open_manual
 from base.backup import restore_backup
 from base.casting import str_bool, str_int
 from base.dbhandler import DBHandler
+from base.edition import is_viewer
 from base.paths import logs_dir
 from base.paymentmacther import DEF_PAYROLL_PATTERNS
 from base.updater import UpdateChecker, UpdateInfo
 from base.workcalendar import load_calendar_exceptions, save_calendar_exceptions, ALLOWED_WEEKDAYS, WEEKDAY_ABBR
 from gui.commonwidgets.datepickerdialog import DatePickerDialog
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
+from gui.commonwidgets.readonly import make_read_only
 from gui.liabilitytablemodel import RowFormatting
 from gui.personaltablemodel import PersonalTableModel, PersonalSortFilterModel, PersonalCol
 from gui.settings import SettingsHandler
@@ -162,6 +164,25 @@ class SettingsDialog(QDialog):
         self.ui.lw_menu.setCurrentRow(last_page)
 
         self.load_settings_values()
+
+        if is_viewer():
+            self.setup_viewer_mode()
+
+    def setup_viewer_mode(self) -> None:
+        self.ui.lw_menu.item(self.MENU_ROW_STORAGE).setHidden(True)
+        if self.ui.lw_menu.currentItem().isHidden():
+            self.ui.lw_menu.setCurrentRow(0)
+        self.ui.pb_hotkeys.hide()
+        self.ui.la_positions_note.hide()
+        for button in (self.ui.pb_pers_add, self.ui.pb_pers_rename, self.ui.pb_pers_changetype,
+                       self.ui.pb_position_add, self.ui.pb_position_rename, self.ui.pb_position_remove,
+                       *self.calendar_add_buttons.values(), *self.calendar_remove_buttons.values()):
+            button.hide()
+        self.ui.lv_personal.doubleClicked.disconnect()
+        self.ui.lw_positions.itemDoubleClicked.disconnect()
+        make_read_only(self.ui.pg_common)
+        make_read_only(self.ui.page_2, keep=(self.ui.cmb_calender_year,))
+        make_read_only(self.ui.page, keep=(self.ui.cmb_positions_department,))
 
     def prepare_personalpage(self):
         self.personal_model = PersonalTableModel(self.db_handler, self)
@@ -545,6 +566,11 @@ class SettingsDialog(QDialog):
         self.refresh_calendar_lists()
 
     def accept(self):
+        if is_viewer():
+            self.save_settings_values()
+            self.settings_handler.apply_settings()
+            QDialog.accept(self)
+            return
         if not self.ui.le_backuppath.text() or not Path(self.ui.le_backuppath.text()).is_dir():
             self.show_error("Папка для резервного копирования не указана или указана неверно",
                             self.MENU_ROW_STORAGE, self.ui.pb_backuppath)
@@ -588,6 +614,8 @@ class SettingsDialog(QDialog):
         le_widget.setStyleSheet("" if le_widget.hasAcceptableInput() else "border: 1px solid #cc0000;")
 
     def add_delete_shortcut(self, widget: QWidget, handler) -> None:
+        if is_viewer():
+            return
         shortcut = QShortcut(QKeySequence(QKeySequence.StandardKey.Delete), widget)
         shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
         shortcut.activated.connect(handler)
@@ -739,6 +767,9 @@ class SettingsDialog(QDialog):
         # Хранение
         self.settings_handler.settings.setValue("Backup/cleanupperiod", self.ui.cmb_backupautodelete.currentData(Qt.ItemDataRole.UserRole))
         self.settings_handler.set_backup_path(self.ui.le_backuppath.text())
+        if is_viewer():
+            self.settings_handler.settings.sync()
+            return
         # CSV-парсер
         self.db_handler.set_setting("CSVparser/rowperiod", self.ui.spb_csv_rowperiod.value())
         self.db_handler.set_setting("CSVparser/rowtransactionstart", self.ui.spb_csv_rowfirsttransaction.value())

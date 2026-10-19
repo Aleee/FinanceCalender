@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QHBoxLayout, 
 
 from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
+from base.edition import is_viewer
 from base.feeparser import CSVParseError
 from base.formatting import (dec_html, dec_strcommaspace, records_word, COLOR_STATEMENT, COLOR_CALENDAR,
                              COLOR_HEADER_BG, COLOR_OK, COLOR_WARNING)
@@ -133,6 +134,10 @@ class MatchingDialog(QDialog):
         self.ui.lb_summary.setText(EMPTY_HINT)
         self.update_selection_state()
         self.ui.lb_file.setMinimumWidth(50)
+
+        if is_viewer():
+            self.ui.pb_create.hide()
+            self.ui.pb_open.setText("Открыть платеж")
 
         self.restore_layout()
         self.finished.connect(self.save_layout)
@@ -453,14 +458,20 @@ class MatchingDialog(QDialog):
         self.set_cell(table, row, self.CONFIDENCE_COLUMN, f"{level}\n{pair.confidence:.0%}", level_color, CENTER_ALIGN,
                       tooltip=f"Совпало: {reasons}")
 
-        table.setCellWidget(row, self.ACTION_COLUMN, self.make_actions(
-            "Принять сумму",
-            f"Сумма платежа в календаре будет изменена: {dec_strcommaspace(calendar_entry.amount)} → "
-            f"{dec_strcommaspace(statement_entry.amount)}",
-            partial(self.accept_statement_amount, pair),
-            [("Сверено, суммы не менять", partial(self.link_keys, (statement_entry.key, calendar_entry.key))),
-             ("Это не пара", partial(self.reject_proposal, pair.key)),
-             ("Скрыть", partial(self.hide_keys, (statement_entry.key, calendar_entry.key)))]))
+        link_action = ("Сверено, суммы не менять", partial(self.link_keys, (statement_entry.key, calendar_entry.key)))
+        other_actions = [("Это не пара", partial(self.reject_proposal, pair.key)),
+                         ("Скрыть", partial(self.hide_keys, (statement_entry.key, calendar_entry.key)))]
+        if is_viewer():
+            table.setCellWidget(row, self.ACTION_COLUMN, self.make_actions(
+                "Сверено", "Считать эти записи сверенными (запоминается для этой выписки)", link_action[1],
+                other_actions))
+        else:
+            table.setCellWidget(row, self.ACTION_COLUMN, self.make_actions(
+                "Принять сумму",
+                f"Сумма платежа в календаре будет изменена: {dec_strcommaspace(calendar_entry.amount)} → "
+                f"{dec_strcommaspace(statement_entry.amount)}",
+                partial(self.accept_statement_amount, pair),
+                [link_action] + other_actions))
 
     def add_group_row(self, group: RegroupedPayments):
         table = self.ui.tw_proposals
@@ -623,7 +634,8 @@ class MatchingDialog(QDialog):
         self.set_button_state(
             self.ui.pb_open, len(calendar_entries) == 1 and not statement_entries
             and calendar_entries[0].event_id is not None,
-            "Изменить сумму выбранной оплаты из календаря (и, при необходимости, общую сумму платежа)",
+            "Открыть платеж, к которому относится выбранная оплата из календаря" if is_viewer()
+            else "Изменить сумму выбранной оплаты из календаря (и, при необходимости, общую сумму платежа)",
             "Выберите один платеж в списке «Только в календаре» (в списке выписки ничего выбранного быть не должно)")
 
     @staticmethod
@@ -651,7 +663,7 @@ class MatchingDialog(QDialog):
         zero = Decimal("0")
         statement_sum = sum((e.amount for e in statement_entries), zero)
         calendar_sum = sum((e.amount for e in calendar_entries), zero)
-        can_correct = len(statement_entries) == 1 and len(calendar_entries) == 1
+        can_correct = len(statement_entries) == 1 and len(calendar_entries) == 1 and not is_viewer()
 
         if statement_sum != calendar_sum:
             choice = self.ask_link_with_difference(statement_sum, calendar_sum, can_correct)

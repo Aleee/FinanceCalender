@@ -5,6 +5,7 @@ from PySide6.QtGui import QPainter, QColor, QShortcut, QKeySequence
 from gui.commonwidgets.eventfilter import TooltipFilter
 from gui.commonwidgets.itemdelegate import EventItemDelegate
 from gui.liabilitytablemodel import LiabilityTableModel
+from base.edition import is_viewer
 from base.liability import Col
 from gui.booldelegate import BoolDelegate
 
@@ -77,10 +78,11 @@ class EventWidget(QTreeView):
         self.setItemDelegateForColumn(Col.HIDDEN, hidden_delegate)
         hidden_delegate.state_changed.connect(lambda: self.filter_conditions_changed.emit())
 
-        for key, column in (("Space", Col.FEATURED), ("Ctrl+H", Col.HIDDEN)):
-            shortcut = QShortcut(QKeySequence(key), self)
-            shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-            shortcut.activated.connect(lambda col=column: self.toggle_flag(col))
+        if not is_viewer():
+            for key, column in (("Space", Col.FEATURED), ("Ctrl+H", Col.HIDDEN)):
+                shortcut = QShortcut(QKeySequence(key), self)
+                shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+                shortcut.activated.connect(lambda col=column: self.toggle_flag(col))
 
     def toggle_flag(self, column: Col) -> None:
         index = self.currentIndex().siblingAtColumn(column)
@@ -97,6 +99,8 @@ class EventWidget(QTreeView):
 
     def hide_columns(self, to_hide: list[Col] | None = None) -> None:
         columns_to_hide: list = [key for key, val in self.model().COLUMN_DATA.items() if not val[1]]
+        if is_viewer():
+            columns_to_hide.extend((Col.FEATURED, Col.HIDDEN))
         if to_hide:
             columns_to_hide.extend(to_hide)
         # Сперва все столбцы восстанавливаются (скрытые - с шириной по умолчанию)

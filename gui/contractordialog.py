@@ -9,6 +9,7 @@ from gui.manualdialog import add_help_shortcut
 from base.contract import ContractInfo
 from base.date import str_date, date_displstr, date_str
 from base.dbhandler import DBHandler
+from base.edition import is_viewer
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.contractdialog import ContractDocumentDialog
 from gui.ui.contractordialog_ui import Ui_ContractorDialog
@@ -116,6 +117,9 @@ class ContractorDialog(QDialog):
 
     @staticmethod
     def _sort_below_new_item(list_widget: QListWidget) -> None:
+        if is_viewer():
+            list_widget.sortItems(Qt.SortOrder.AscendingOrder)
+            return
         top_item = list_widget.takeItem(0)
         list_widget.sortItems(Qt.SortOrder.AscendingOrder)
         list_widget.insertItem(0, top_item)
@@ -145,7 +149,8 @@ class ContractorDialog(QDialog):
             ErrorInfoMessageBox("Не удалось загрузить список контрагентов (см. подробнее лог)", False, self).exec()
             self.ui.pb_continue_to_contracts.setEnabled(False)
             return
-        self.ui.lw_contractor.addItem(self._make_new_item("Новый контрагент"))
+        if not is_viewer():
+            self.ui.lw_contractor.addItem(self._make_new_item("Новый контрагент"))
         for contractor in contractors:
             new_item = QListWidgetItem(contractor[1])
             new_item.setData(Qt.ItemDataRole.UserRole, contractor[0])
@@ -155,12 +160,14 @@ class ContractorDialog(QDialog):
 
     def on_filter_change(self) -> None:
         filter_text = self.ui.le_filter.text().lower()
-        for i in range(1, self.ui.lw_contractor.count()):
+        first_row = 0 if is_viewer() else 1
+        for i in range(first_row, self.ui.lw_contractor.count()):
             item = self.ui.lw_contractor.item(i)
             item.setHidden(filter_text not in item.data(Qt.ItemDataRole.DisplayRole).lower())
         current_item = self.ui.lw_contractor.currentItem()
         if not current_item or current_item.isHidden():
-            self.ui.lw_contractor.setCurrentRow(0)
+            visible_rows = [i for i in range(self.ui.lw_contractor.count()) if not self.ui.lw_contractor.item(i).isHidden()]
+            self.ui.lw_contractor.setCurrentRow(visible_rows[0] if visible_rows else -1)
 
     def ask_contractor_name(self) -> str | None:
         dialog = QInputDialog(self)
@@ -215,7 +222,8 @@ class ContractorDialog(QDialog):
             self.ui.lw_contract.addItem(new_item)
         self.ui.lw_contract.sortItems(Qt.SortOrder.AscendingOrder)
 
-        self.ui.lw_contract.insertItem(0, self._make_new_item("Новый договор"))
+        if not is_viewer():
+            self.ui.lw_contract.insertItem(0, self._make_new_item("Новый договор"))
 
         self._select_by_id(self.ui.lw_contract, select_id)
 
@@ -265,7 +273,8 @@ class ContractorDialog(QDialog):
             self.ui.lw_document.addItem(new_item)
         self.ui.lw_document.sortItems(Qt.SortOrder.AscendingOrder)
 
-        self.ui.lw_document.insertItem(0, self._make_new_item("Новый документ"))
+        if not is_viewer():
+            self.ui.lw_document.insertItem(0, self._make_new_item("Новый документ"))
 
         self._select_by_id(self.ui.lw_document, select_id)
 

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox, QProgressDialog, QPushB
 
 from base.backup import save_backup
 from base.dbhandler import DBHandler
+from base.edition import is_viewer
 from base.updater import UpdateDownloader, UpdateError, UpdateInfo, is_frozen, launch_updater
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.settings import SettingsHandler
@@ -21,8 +22,8 @@ class UpdateAvailableMessageBox(QMessageBox):
         self.setIcon(QMessageBox.Icon.Information)
         self.setText(f"Доступно обновление {info.version}")
         notes: str = info.notes.strip() or "Описание не указано."
-        self.setInformativeText(f"Что нового:\n{notes}\n\nПрограмма будет закрыта и запущена снова. "
-                                f"Перед обновлением будет создана резервная копия базы данных.")
+        backup_note: str = "" if is_viewer() else " Перед обновлением будет создана резервная копия базы данных."
+        self.setInformativeText(f"Что нового:\n{notes}\n\nПрограмма будет закрыта и запущена снова.{backup_note}")
 
         self.update_button: QPushButton = QPushButton("Обновить", self)
         self.later_button: QPushButton = QPushButton("Позже", self)
@@ -59,7 +60,7 @@ class UpdateController(QObject):
         if not is_frozen():
             ErrorInfoMessageBox("Обновление работает только в собранной версии программы.", parent=self.window).exec()
             return
-        if not save_backup(self.settings_handler, self.db_handler).isValid():
+        if not is_viewer() and not save_backup(self.settings_handler, self.db_handler).isValid():
             question = YesNoMessagebox("Не удалось создать резервную копию базы данных. "
                                        "Продолжить обновление без неё?", self.window)
             question.exec()

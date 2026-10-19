@@ -14,6 +14,7 @@ from PySide6.QtCore import QObject, QUrl, QUrlQuery, QFile, QIODevice, QDateTime
 from PySide6.QtNetwork import (QNetworkAccessManager, QNetworkReply, QNetworkRequest, QNetworkProxy,
                                QSslSocket)
 
+from base.edition import is_viewer
 from base.httpclient import MAX_ATTEMPTS, RESPONSE_TIMEOUT_MS, RETRY_PAUSE_MS
 from base.macupdate import APP_BUNDLE, install_location_problem, launch_mac_updater
 from base.paths import app_dir, update_dir
@@ -21,14 +22,19 @@ from base.version import APP_VERSION, DB_VERSION, is_newer
 
 API_URL = "https://cloud-api.yandex.net/v1/disk/public/resources/download"
 PUBLIC_KEY = "https://disk.yandex.by/d/-feulMjOLlZpoA"
-VERSION_FILE = f"version-mac-{platform.machine()}.json" if sys.platform == "darwin" else "version.json"
+if is_viewer():
+    VERSION_FILE = "version-viewer.json"
+elif sys.platform == "darwin":
+    VERSION_FILE = f"version-mac-{platform.machine()}.json"
+else:
+    VERSION_FILE = "version.json"
 CHECK_TIMEOUT_MS = RESPONSE_TIMEOUT_MS
 DOWNLOAD_TIMEOUT_MS = 90000
 NETWORK_ATTEMPTS = 3
 RETRY_DELAY_MS = 3000
 CHECK_ATTEMPTS = MAX_ATTEMPTS
 CHECK_RETRY_DELAY_MS = RETRY_PAUSE_MS
-APP_EXE = "FinanceCalender.exe"
+APP_EXE = "FinanceCalenderViewer.exe" if is_viewer() else "FinanceCalender.exe"
 DETACHED_PROCESS = 0x00000008
 CREATE_NEW_PROCESS_GROUP = 0x00000200
 CREATE_NO_WINDOW = 0x08000000
@@ -94,7 +100,8 @@ def launch_updater() -> None:
             launch_mac_updater(new_dir())
             return
         shutil.copy2(os.path.join(new_dir(), "updater.exe"), updater_path)
-        subprocess.Popen([updater_path, "--pid", str(os.getpid()), "--app-dir", app_dir(), "--new-dir", new_dir()],
+        subprocess.Popen([updater_path, "--pid", str(os.getpid()), "--app-dir", app_dir(), "--new-dir", new_dir(),
+                          "--app-exe", APP_EXE],
                          cwd=update_dir(), close_fds=True, creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
     except OSError as e:
         log.x(f"Не удалось запустить {updater_path}: {e}")

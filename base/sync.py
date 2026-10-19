@@ -15,6 +15,7 @@ from uuid import uuid4
 import lovely_logger as log
 
 from base.backup import replace_db_file
+from base.edition import is_viewer
 from base.paths import backup_dir, sync_base_path
 from base.syncdiff import Conflict, DbDiff, MergeWarnings, plan_merge
 from base.syncjournal import JOURNAL_AUTO, JOURNAL_DIR, add_journal_entry, upload_journal_if_due
@@ -142,6 +143,11 @@ class MasterInfo:
             raise MasterInfoError(f"Файл {MASTER_INFO_NAME} повреждён или имеет неизвестный формат: {e}") from e
 
 
+def ensure_master_writable() -> None:
+    if is_viewer():
+        raise SyncError("Версия для просмотра не может изменять общую базу")
+
+
 def read_local_state(dbh: "DBHandler") -> LocalState:
     return state_from_values({key: dbh.get_setting(key, None) for key in STATE_KEYS})
 
@@ -158,7 +164,8 @@ def state_from_values(values: dict[str, str | None]) -> LocalState:
     if missing:
         raise SyncError(f"В базе данных нет служебных ключей синхронизации: {', '.join(missing)}")
     try:
-        return LocalState(values["db_uuid"], values["sync_token"], int(values["db_version"]), int(values["change_counter"]))
+        return LocalState(values["db_uuid"], values["sync_token"], int(values["db_version"]),
+                          0 if is_viewer() else int(values["change_counter"]))
     except ValueError as e:
         raise SyncError(f"Служебные ключи синхронизации содержат недопустимые значения: {e}") from e
 
@@ -256,6 +263,7 @@ class FolderChannel(SyncChannel):
             raise SyncError("Скопированный файл общей базы не совпадает с исходным")
 
     def upload_master(self, source: Path, info: MasterInfo) -> None:
+        ensure_master_writable()
         temp_db_path = self.master_db_path.with_name(MASTER_DB_NAME + TEMP_SUFFIX)
         temp_info_path = self.master_info_path.with_name(MASTER_INFO_NAME + TEMP_SUFFIX)
         try:
@@ -273,6 +281,7 @@ class FolderChannel(SyncChannel):
             temp_info_path.unlink(missing_ok=True)
 
     def write_master_info(self, info: MasterInfo) -> None:
+        ensure_master_writable()
         temp_info_path = self.master_info_path.with_name(MASTER_INFO_NAME + TEMP_SUFFIX)
         try:
             self.folder.mkdir(parents=True, exist_ok=True)
@@ -300,6 +309,7 @@ class FolderChannel(SyncChannel):
         return self.folder / MASTER_LONG_BACKUPS_DIR
 
     def backup_master(self) -> None:
+        ensure_master_writable()
         if not self.master_db_path.is_file():
             return
         backup_name = master_backup_name()
@@ -317,6 +327,7 @@ class FolderChannel(SyncChannel):
         return [item.name for item in folder.iterdir()] if folder.is_dir() else []
 
     def remove_old_backups(self, long_keep_days: int) -> None:
+        ensure_master_writable()
         try:
             self.remove_old_backups_in(self.backups_path, SHORT_BACKUPS_KEEP_DAYS)
             self.remove_old_backups_in(self.long_backups_path, long_keep_days)
@@ -417,6 +428,7 @@ def find_sync_base(dbh: "DBHandler", local: LocalState) -> Path | None:
 
 def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, overwrite: bool = False,
                 master: MasterInfo | None = None) -> None:
+    ensure_master_writable()
     local = read_local_state(dbh)
     if master is None:
         report_stage(STAGE_CONNECT)
@@ -520,7 +532,7 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
             new_file = Path(migrated_path)
         local_copy = Path(backup_dir()) / f"before_sync_{datetime.now().strftime(PRECISE_BACKUP_TIME_FORMAT)}.db"
         try:
-            if not dbh.copy_db_file(str(local_copy)):
+            if not is_viewer() and not dbh.copy_db_file(str(local_copy)):
                 raise SyncError("Не удалось сохранить локальную копию перед заменой")
             if report is not None and action == SyncAction.PULL:
                 report.their_changes = dbh.read_db_diff(dbh.local_db_path(), str(new_file))
@@ -534,6 +546,7 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
 
 
 def restore_master_info(dbh: "DBHandler", channel: SyncChannel, params: SyncParams) -> MasterInfo:
+    ensure_master_writable()
     try:
         existing = channel.read_master_info()
     except MasterInfoError as e:

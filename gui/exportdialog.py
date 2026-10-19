@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QDialog, QButtonGroup, QCheckBox
 
+from base.edition import is_viewer
 from gui.manualdialog import add_help_shortcut
 from base.xlswriter import LiabilityXlsWriter, ExportFormat, HiddenDisplayMode, get_pdf_converter
 from base.liability import Col
@@ -30,6 +31,8 @@ class ExportDialog(QDialog):
         self.rbg_hidden.addButton(self.ui.rb_hidden_none, HiddenDisplayMode.NONE)
         self.rbg_hidden.addButton(self.ui.rb_hidden_full, HiddenDisplayMode.FULL)
         self.rbg_hidden.addButton(self.ui.rb_hidden_sumonly, HiddenDisplayMode.SUMONLY)
+        if is_viewer():
+            self.ui.gb_hidden.hide()
 
         self.column_checkboxes: dict[Col, QCheckBox] = {
             Col.NAME: self.ui.chb_name,

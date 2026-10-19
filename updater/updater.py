@@ -67,6 +67,12 @@ def rename_with_retries(source: Path, target: Path) -> None:
             time.sleep(MOVE_PAUSE)
 
 
+def set_app_exe(name: str) -> None:
+    global APP_EXE, ITEMS
+    APP_EXE = name
+    ITEMS = (APP_EXE, "_internal")
+
+
 def check_new_files(new_dir: Path) -> None:
     for name in ITEMS:
         if not (new_dir / name).exists():
@@ -175,10 +181,12 @@ def main() -> int:
     parser.add_argument("--new-dir", required=True)
     parser.add_argument("--wait-timeout", type=float, default=60)
     parser.add_argument("--silent", action="store_true")
+    parser.add_argument("--app-exe", default=APP_EXE)
     args = parser.parse_args()
 
     global silent
     silent = args.silent
+    set_app_exe(args.app_exe)
     app_dir = Path(args.app_dir).resolve()
     new_dir = Path(args.new_dir).resolve()
     setup_logging(app_dir)

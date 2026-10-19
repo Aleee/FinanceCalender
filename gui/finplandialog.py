@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QDialog, QApplication
 
 from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
+from base.edition import is_viewer
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.finplanmodel import FinPlanTableModel
 from gui.settings import SettingsHandler
@@ -25,7 +26,7 @@ class FinPlanDialog(QDialog):
         self._load_failed: bool = False
         self._saved_values: dict = {}
 
-        self.model = FinPlanTableModel()
+        self.model = FinPlanTableModel(read_only=is_viewer())
         if not self.load_year(year):
             self._load_failed = True
             return
@@ -43,6 +44,9 @@ class FinPlanDialog(QDialog):
 
         self.ui.pb_cancel.clicked.connect(self.reject)
         self.ui.pb_save.clicked.connect(self.accept)
+        if is_viewer():
+            self.ui.pb_save.hide()
+            self.ui.pb_cancel.setText("Закрыть")
 
     def load_year(self, year: int) -> bool:
         values = self.db_handler.load_finplan_from_db(year, self.model.FINPLAN_STRUCTURE)
@@ -110,6 +114,9 @@ class FinPlanDialog(QDialog):
             i += 1
 
     def accept(self, /):
+        if is_viewer():
+            QDialog.reject(self)
+            return
         if not self.db_handler.save_finplan_to_db(self.year, self.model.FINPLAN_STRUCTURE, self.model):
             msg_box = ErrorInfoMessageBox("К сожалению, данные не удалось сохранить (см. подробности в логе)")
             msg_box.exec()

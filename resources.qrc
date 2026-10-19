@@ -31,6 +31,7 @@
     <file alias="icon-toolbar/designer/icons/featured_yes.svg">designer/icons/featured_yes.svg</file>
     <file alias="icon-toolbar/designer/icons/chart.svg">designer/icons/chart.svg</file>
     <file alias="icon-toolbar/designer/icons/edit.svg">designer/icons/edit.svg</file>
+    <file alias="icon-toolbar/designer/icons/viewdoc.svg">designer/icons/viewdoc.svg</file>
     <file alias="icon-toolbar/designer/icons/itemtop.svg">designer/icons/itemtop.svg</file>
     <file alias="icon-toolbar/designer/icons/fees.svg">designer/icons/fees.svg</file>
     <file alias="icon-toolbar/designer/icons/view.svg">designer/icons/view.svg</file>

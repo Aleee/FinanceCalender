@@ -14,6 +14,7 @@ from PySide6.QtSql import QSqlDatabase, QSqlQuery
 import lovely_logger as log
 
 from base.date import str_date, date_str, date_displstr
+from base.edition import is_viewer
 from base.formatting import str_decimal
 from base.liability import EVENT_COLUMN_NAMES, LiabilityCategory, RowType
 from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
@@ -58,6 +59,11 @@ class DBHandler:
     def _enum_to_db(member: Optional[Enum]) -> Optional[str]:
         return None if member is None else member.value
 
+    def _open_connection(self, path: str, read_only: bool = False) -> bool:
+        self.db.setConnectOptions("QSQLITE_OPEN_READONLY" if read_only else "")
+        self.db.setDatabaseName(path)
+        return self.db.open()
+
     def check_db_files_exists(self) -> bool:
         if not Path(db_path()).is_file():
             log.e(f"Не удалось открыть базу данных по стандартному пути (файла не существует): {db_path()}")
@@ -80,8 +86,7 @@ class DBHandler:
         return version
 
     def is_db_newer_than_client(self) -> bool:
-        self.db.setDatabaseName(db_path())
-        if not self.db.open():
+        if not self._open_connection(db_path()):
             return False
         version = self.get_db_version()
         self.db.close()
@@ -89,8 +94,7 @@ class DBHandler:
 
     def check_db_file_integrity(self, alternative_path: str = "") -> bool:
         checked_path: str = alternative_path if alternative_path else db_path()
-        self.db.setDatabaseName(checked_path)
-        if not self.db.open():
+        if not self._open_connection(checked_path):
             log.e(f"Не удалось открыть базу данных по указанному пути (неизвестная ошибка): {checked_path}")
             return False
         version = self.get_db_version()
@@ -125,8 +129,7 @@ class DBHandler:
         migrated_path: str = alternative_path if alternative_path else db_path()
         self.after_commit_actions.clear()
         self.migration_failed = False
-        self.db.setDatabaseName(migrated_path)
-        if not self.db.open():
+        if not self._open_connection(migrated_path):
             log.e(f"Не удалось открыть базу данных для обновления структуры: {migrated_path}")
             return False
         version = self.get_db_version()
@@ -192,8 +195,7 @@ class DBHandler:
         return True
 
     def mark_db_changed(self, path: str) -> bool:
-        self.db.setDatabaseName(path)
-        if not self.db.open():
+        if not self._open_connection(path):
             log.e(f"Не удалось открыть базу данных, чтобы отметить изменение: {path}")
             return False
         marked = self._increase_change_counter()
@@ -548,8 +550,7 @@ class DBHandler:
         return None
 
     def open_db_connection(self) -> bool:
-        self.db.setDatabaseName(db_path())
-        if not self.db.open():
+        if not self._open_connection(db_path(), read_only=is_viewer()):
             log.c(f"Не удалось открыть базу данных по указанному пути (неизвестная ошибка): {db_path()}")
             return False
         clear_calendar_cache()
@@ -727,6 +728,7 @@ class DBHandler:
         query = QSqlQuery(f"SELECT E.category, P.sum, P.paymentdate, E.receiver, E.name, E.subcategory, E.nds, E.hidden FROM payment AS P "
                           f"INNER JOIN event AS E ON P.eventid = E.id "
                           f"WHERE P.paymentdate BETWEEN \'{date_str(start_date)}\' AND \'{date_str(end_date)}\' "
+                          f"{'AND COALESCE(E.hidden, 0) = 0 ' if is_viewer() else ''}"
                           f"ORDER BY E.category ASC, CAST(P.sum AS decimal) DESC")
         if not query.exec():
             log.e(f"Ошибка SQL при попытке загрузить платежи для таблицы исполнения плана: {query.lastError().text()}")
@@ -909,6 +911,7 @@ class DBHandler:
             "FROM payment "
             "LEFT JOIN event ON event.id = payment.eventid "
             "WHERE payment.paymentdate BETWEEN ? AND ?"
+            f"{' AND COALESCE(event.hidden, 0) = 0' if is_viewer() else ''}"
         )
         query.addBindValue(date_from.isoformat())
         query.addBindValue(date_to.isoformat())
@@ -989,7 +992,7 @@ class DBHandler:
         if not self.is_db_connected():
             return None
         results: list = []
-        query: QSqlQuery = QSqlQuery(f"SELECT {column} FROM event WHERE type = 2")
+        query: QSqlQuery = QSqlQuery(f"SELECT {column} FROM event WHERE type = 2{' AND COALESCE(hidden, 0) = 0' if is_viewer() else ''}")
         if query.lastError().isValid():
             log.e(f"Ошибка SQL при попытке получить значения столбца {column} из таблицы event: {query.lastError().text()}")
             return None
@@ -1024,10 +1027,15 @@ class DBHandler:
         if not self.is_db_connected():
             return None
         sql = f"SELECT {', '.join(EVENT_COLUMN_NAMES)} FROM event"
+        conditions: list[str] = []
         if event_id is not None:
-            sql += f" WHERE id = {int(event_id)}"
+            conditions.append(f"id = {int(event_id)}")
         elif threshold:
-            sql += f" WHERE {self.paid_load_filter(threshold)}"
+            conditions.append(self.paid_load_filter(threshold))
+        if is_viewer():
+            conditions.append("COALESCE(hidden, 0) = 0")
+        if conditions:
+            sql += f" WHERE {' AND '.join(conditions)}"
         query = QSqlQuery()
         if not query.exec(sql + " ORDER BY id"):
             log.e(f"Ошибка SQL при попытке получить данные из таблицы event: {query.lastError().text()}")
@@ -1420,7 +1428,7 @@ class DBHandler:
         if not self.is_db_connected():
             return None
         query = QSqlQuery()
-        query.prepare("SELECT descr FROM event WHERE type = ? AND contractdocument_id = ?")
+        query.prepare(f"SELECT descr FROM event WHERE type = ? AND contractdocument_id = ?{' AND COALESCE(hidden, 0) = 0' if is_viewer() else ''}")
         query.addBindValue(int(RowType.LIABILITY))
         query.addBindValue(document_id)
         if not query.exec():

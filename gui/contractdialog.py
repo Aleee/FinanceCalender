@@ -5,10 +5,12 @@ from PySide6.QtWidgets import QDialog, QButtonGroup, QLayout, QDialogButtonBox
 
 from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
+from base.edition import is_viewer
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, ContractInfo
 from base.paymentdate import calculate_payment_date
 from base.workcalendar import WEEKDAY_ABBR
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
+from gui.commonwidgets.readonly import make_read_only
 from gui.ui.contractdialog_ui import Ui_ContractDialog
 
 
@@ -88,6 +90,15 @@ class ContractDocumentDialog(QDialog):
             combo.currentIndexChanged.connect(self.update_terms_widgets)
         self.update_terms_widgets()
         self.ui.le_documentname.setFocus()
+        if is_viewer():
+            self.setup_view_mode()
+
+    def setup_view_mode(self) -> None:
+        make_read_only(self)
+        self.btn_save.hide()
+        cancel_button = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel)
+        cancel_button.setText("Закрыть")
+        cancel_button.setDefault(True)
 
     def exec(self) -> int:
         if self._loaded is None:
@@ -201,7 +212,7 @@ class ContractDocumentDialog(QDialog):
         )
 
     def on_save(self) -> None:
-        if self._loaded is None:
+        if self._loaded is None or is_viewer():
             return
         data = self.collect_data()
         if not data.document_name:

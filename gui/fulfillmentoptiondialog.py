@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QDialog, QButtonGroup
 from gui.manualdialog import add_help_shortcut
 from base.date import first_date_of_month, last_date_of_month
 from base.dbhandler import DBHandler
+from base.edition import is_viewer
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.fulfillmentdialog import FulfillmentDialog
 from gui.settings import SettingsHandler
@@ -104,7 +105,7 @@ class FulfillmentOptionDialog(QDialog):
 
     def save_inflow(self, begin_date: QDate, end_date: QDate):
         values = [spb.value() for spb in (self.ui.spb_10000, self.ui.spb_21000, self.ui.spb_22000, self.ui.spb_23100, self.ui.spb_23200)]
-        if any(value != 0 for value in values):
+        if any(value != 0 for value in values) and not is_viewer():
             self.db_handler.save_fulfillmentdata_to_db(begin_date, end_date, values)
 
     def get_inflow_data(self) -> list[int]:

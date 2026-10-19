@@ -11,7 +11,7 @@ from base.httpclient import HttpClient, HttpResponse
 from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INFO_NAME, MASTER_LONG_BACKUPS_DIR,
                        MasterInfo, MasterInfoError, NetworkError, SHORT_BACKUPS_KEEP_DAYS, SyncCancelledError, SyncChannel,
                        STAGE_VERIFY, SyncError, TEMP_SUFFIX, backup_time_from_name, file_md5, is_backup_of_today,
-                       master_backup_name, report_stage)
+                       master_backup_name, report_stage, ensure_master_writable)
 from base.syncjournal import JOURNAL_DIR
 
 API_URL = "https://cloud-api.yandex.net/v1/disk"
@@ -79,6 +79,7 @@ class YandexDiskApiChannel(SyncChannel):
             raise SyncError("Скачанный файл общей базы не совпадает с файлом на Яндекс.Диске")
 
     def upload_master(self, source: Path, info: MasterInfo) -> None:
+        ensure_master_writable()
         temp_db = self.remote_path(MASTER_DB_NAME + TEMP_SUFFIX)
         info_bytes = info.to_json().encode("utf-8")
         source_md5 = file_md5(source)
@@ -94,6 +95,7 @@ class YandexDiskApiChannel(SyncChannel):
         self.cached_info = (hashlib.md5(info_bytes).hexdigest(), replace(info))
 
     def write_master_info(self, info: MasterInfo) -> None:
+        ensure_master_writable()
         info_bytes = info.to_json().encode("utf-8")
         self.cached_info = None
         self.put_file(self.remote_path(MASTER_INFO_NAME), hashlib.md5(info_bytes).hexdigest(), len(info_bytes),
@@ -103,6 +105,7 @@ class YandexDiskApiChannel(SyncChannel):
             raise SyncError(f"Файл {MASTER_INFO_NAME} записан на Яндекс.Диск, но не читается обратно")
 
     def backup_master(self) -> None:
+        ensure_master_writable()
         backup_name = master_backup_name()
         if not self.copy_master_to(MASTER_BACKUPS_DIR, backup_name):
             return
@@ -138,6 +141,7 @@ class YandexDiskApiChannel(SyncChannel):
         return [str(item.get("name", "")) for item in self.parse_json(response).get("_embedded", {}).get("items", [])]
 
     def remove_old_backups(self, long_keep_days: int) -> None:
+        ensure_master_writable()
         self.remove_old_backups_in(MASTER_BACKUPS_DIR, SHORT_BACKUPS_KEEP_DAYS)
         self.remove_old_backups_in(MASTER_LONG_BACKUPS_DIR, long_keep_days)
 

@@ -13,6 +13,7 @@ from base.backup import clean_backup_folder, save_backup
 from base.casting import str_int
 from base.contract import ContractInfo
 from base.date import date_displstr, date_str
+from base.edition import is_viewer
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
 from base.payment import PaymentEntry, PaymentField
@@ -72,6 +73,8 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        if is_viewer():
+            self.setWindowTitle(f"{self.windowTitle()} — просмотр")
         self.settings_handler: SettingsHandler = SettingsHandler(self)
         self.db_handler: DBHandler = DBHandler(self.settings_handler)
 
@@ -111,6 +114,10 @@ class MainWindow(QMainWindow):
 
         # Косметика
         self._init_widget_cosmetics()
+
+        # Ограничения версии для просмотра
+        if is_viewer():
+            self._apply_viewer_restrictions()
 
         # Резервное копирование
         self.make_backup()
@@ -194,41 +201,60 @@ class MainWindow(QMainWindow):
         short_labels: dict[QAction, str] = {
             self.ui.act_new: "Создать",
             self.ui.act_copy: "Копия",
-            self.ui.act_edit: "Изменить",
+            self.ui.act_edit: "Просмотр" if is_viewer() else "Изменить",
             self.ui.act_delete: "Удалить",
             self.ui.act_export: "Экспорт",
             self.ui.act_contracts: "Договоры",
             self.ui.act_settings: "Настройки",
         }
+        if is_viewer():
+            self.ui.act_edit.setText("Просмотр")
+            self.ui.act_edit.setIcon(QIcon(":/icon-toolbar/designer/icons/viewdoc.svg"))
+            self.ui.act_edit.setToolTip("Просмотр платежа (F2)")
         for action, text in short_labels.items():
             action.setIconText(text)
         for action, key in ((self.ui.act_fulfillment, "Ctrl+P"), (self.ui.act_finplan, "Ctrl+Shift+P"),
                             (self.ui.act_chart, "Ctrl+G"), (self.ui.act_contracts, "Ctrl+K"),
                             (self.ui.act_settings, "Ctrl+,")):
+            if is_viewer() and action is self.ui.act_chart:
+                continue
             action.setShortcut(QKeySequence(key))
             action.setToolTip(f"{action.toolTip() or action.text()} ({key})")
             self.addAction(action)
         self.ui.tlbr.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
-        view_actions: list[QAction] = [self.ui.act_featured, self.ui.act_toggleheaders, self.ui.act_togglefooters]
-        bank_actions: list[QAction] = [self.ui.act_matching, self.ui.act_fees]
-        tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions,
-                                              "На контроле, заголовки и итоги разделов")
-        tb_bank = self._make_toolbar_split_button(
-            self.ui.act_matching, bank_actions, "Сверка", ":/icon-toolbar/designer/icons/matching.svg",
-            "Сверка банковской выписки и учет комиссий")
         copy_actions: list[QAction] = [self.ui.act_copy, self.ui.act_copydoc]
-        tb_copy = self._make_toolbar_split_button(self.ui.act_copy, copy_actions)
-        planfact_actions: list[QAction] = [self.ui.act_finplan, self.ui.act_fulfillment, self.ui.act_chart]
+        if is_viewer():
+            view_actions: list[QAction] = [self.ui.act_toggleheaders, self.ui.act_togglefooters]
+            bank_actions: list[QAction] = []
+            planfact_actions: list[QAction] = [self.ui.act_finplan, self.ui.act_fulfillment]
+            view_tooltip, bank_tooltip = "Заголовки и итоги разделов", "Сверка банковской выписки с календарем"
+            planfact_tooltip = "Исполнение финансового плана и финансовый план"
+        else:
+            view_actions = [self.ui.act_featured, self.ui.act_toggleheaders, self.ui.act_togglefooters]
+            bank_actions = [self.ui.act_matching, self.ui.act_fees]
+            planfact_actions = [self.ui.act_finplan, self.ui.act_fulfillment, self.ui.act_chart]
+            view_tooltip, bank_tooltip = "На контроле, заголовки и итоги разделов", "Сверка банковской выписки и учет комиссий"
+            planfact_tooltip = "Исполнение финансового плана, финансовый план и графики"
+        tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions, view_tooltip)
+        tb_bank = self._make_toolbar_split_button(
+            self.ui.act_matching, bank_actions, "Сверка", ":/icon-toolbar/designer/icons/matching.svg", bank_tooltip)
+        tb_copy = None if is_viewer() else self._make_toolbar_split_button(self.ui.act_copy, copy_actions)
         self.tb_planfact = self._make_toolbar_split_button(
             self.ui.act_fulfillment, planfact_actions, "План-факт", ":/icon-toolbar/designer/icons/fulfillment.svg",
-            "Исполнение финансового плана, финансовый план и графики")
-        self.ui.tlbr.insertWidget(self.ui.act_copy, tb_copy)
+            planfact_tooltip)
+        if tb_copy is not None:
+            self.ui.tlbr.insertWidget(self.ui.act_copy, tb_copy)
         self.ui.tlbr.insertWidget(self.ui.act_finplan, self.tb_planfact)
         self.ui.tlbr.insertWidget(self.ui.act_featured, tb_view)
         self.ui.tlbr.insertWidget(self.ui.act_fees, tb_bank)
-        for action in copy_actions + planfact_actions + view_actions + bank_actions:
+        for action in copy_actions + planfact_actions + view_actions + bank_actions + [self.ui.act_matching]:
             self.ui.tlbr.removeAction(action)
+        if is_viewer():
+            for action in (self.ui.act_new, self.ui.act_delete, self.ui.act_fees, self.ui.act_chart, self.ui.act_help,
+                           self.ui.act_featured, self.ui.act_copy, self.ui.act_copydoc):
+                self.ui.tlbr.removeAction(action)
+                action.setVisible(False)
 
         button_groups: list[list[QToolButton]] = [[]]
         for action in self.ui.tlbr.actions():
@@ -289,8 +315,9 @@ class MainWindow(QMainWindow):
         button.setIconSize(self.ui.tlbr.iconSize())
         button.setAutoRaise(True)
         button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-        button.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        button.setMenu(menu)
+        if actions:
+            button.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+            button.setMenu(menu)
         return button
 
     def _connect_signals(self) -> None:
@@ -418,13 +445,14 @@ class MainWindow(QMainWindow):
         self.addAction(self.act_sync_now)
         sync_menu = QMenu(self)
         sync_menu.addAction(self.act_sync_now)
-        sync_menu.addAction(self.act_sync_discard)
+        if not is_viewer():
+            sync_menu.addAction(self.act_sync_discard)
         sync_menu.addSeparator()
         sync_menu.addAction(self.act_sync_settings)
         self.tb_sync = SyncToolButton()
         self.tb_sync.setAutoRaise(True)
         self.tb_sync.setObjectName("tb_sync")
-        self.tb_sync.setFixedHeight(self.ui.tlbr.widgetForAction(self.ui.act_new).sizeHint().height())
+        self.tb_sync.setFixedHeight(self.ui.tlbr.widgetForAction(self.ui.act_edit if is_viewer() else self.ui.act_new).sizeHint().height())
         self.tb_sync.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
         self.tb_sync.setMenu(sync_menu)
         self.tb_sync.clicked.connect(self.on_sync_button_clicked)
@@ -650,15 +678,20 @@ class MainWindow(QMainWindow):
                              report: SyncReport) -> SyncAction | None:
         if action in (SyncAction.NO_MASTER, SyncAction.FOREIGN_DB):
             self.sync_progress.hide_for_question()
+        if action == SyncAction.NO_MASTER and is_viewer():
+            ErrorInfoMessageBox("В папке обмена нет общей базы. Версия для просмотра её не создаёт: "
+                                "обратитесь к пользователю, который ведет календарь", parent=self).exec()
+            return action
         if action == SyncAction.NO_MASTER and YesNoMessagebox(
                 "В папке обмена нет общей базы. Создать её из вашей локальной копии?",
                 self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
             self.sync_progress.start()
             return self._run_sync_step(channel, lambda: create_master(self.db_handler, channel, params))
+        foreign_db_text: str = "В папке обмена лежит общая база с другими данными. Заменить ею вашу локальную копию?"
+        if not is_viewer():
+            foreign_db_text += " Текущая локальная копия будет сохранена в папке резервных копий."
         if action == SyncAction.FOREIGN_DB and YesNoMessagebox(
-                "В папке обмена лежит общая база с другими данными. Заменить ею вашу локальную копию? "
-                "Текущая локальная копия будет сохранена в папке резервных копий.",
-                self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
+                foreign_db_text, self).exec() == YesNoMessagebox.YES_RETURN_VALUE:
             self.sync_progress.start()
             return self._run_sync_step(channel, lambda: connect_to_master(self.db_handler, channel))
         if action == SyncAction.CONFLICT and self.sync_master_info:
@@ -803,8 +836,11 @@ class MainWindow(QMainWindow):
         # Контекстное меню таблицы (ActionsContextMenu собирает его из действий виджета)
         menu_separator = QAction(self)
         menu_separator.setSeparator(True)
-        self.ui.trw_event.addActions([self.ui.act_new, self.ui.act_copy, self.ui.act_copydoc, self.ui.act_edit, self.ui.act_delete,
-                                      menu_separator, self.ui.act_gotocontract])
+        if is_viewer():
+            self.ui.trw_event.addActions([self.ui.act_edit, menu_separator, self.ui.act_gotocontract])
+        else:
+            self.ui.trw_event.addActions([self.ui.act_new, self.ui.act_copy, self.ui.act_copydoc, self.ui.act_edit,
+                                          self.ui.act_delete, menu_separator, self.ui.act_gotocontract])
         for action in self.ui.trw_event.actions():
             action.setIconVisibleInMenu(True)
         self.ui.act_copydoc.setShortcut(QKeySequence("Ctrl+Shift+D"))
@@ -824,11 +860,12 @@ class MainWindow(QMainWindow):
             search_shortcut.activated.connect(slot)
         self.ui.le_search.returnPressed.connect(self.ui.trw_event.setFocus)
         # Оплата с клавиатуры: Enter в полях даты и суммы, Del в истории оплат
-        self.ui.dsb_paymentsum.lineEdit().returnPressed.connect(self.ui.pb_addpayment.click)
-        self.ui.de_paymentdate.lineEdit().returnPressed.connect(self.ui.pb_addpayment.click)
-        delete_payment_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Delete), self.ui.tv_payment)
-        delete_payment_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-        delete_payment_shortcut.activated.connect(self.ui.pb_deletepayment.click)
+        if not is_viewer():
+            self.ui.dsb_paymentsum.lineEdit().returnPressed.connect(self.ui.pb_addpayment.click)
+            self.ui.de_paymentdate.lineEdit().returnPressed.connect(self.ui.pb_addpayment.click)
+            delete_payment_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Delete), self.ui.tv_payment)
+            delete_payment_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+            delete_payment_shortcut.activated.connect(self.ui.pb_deletepayment.click)
         # Начальное состояние: в таблице ничего не выбрано
         for element in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete,
                         self.ui.pb_addpayment, self.ui.pb_deletepayment):
@@ -846,7 +883,15 @@ class MainWindow(QMainWindow):
             clear_button.setEnabled(True)
         self.ui.cmb_responsiblefilter.lineEdit().textChanged.connect(lambda text: self.ui.cmb_responsiblefilter.setCurrentIndex(0) if text == "" else None)
 
+    def _apply_viewer_restrictions(self) -> None:
+        for widget in (self.ui.label_2, self.ui.de_paymentdate, self.ui.dsb_paymentsum, self.ui.pb_addpayment,
+                       self.ui.line, self.ui.pb_deletepayment):
+            widget.hide()
+        self.ui.te_notes.setReadOnly(True)
+
     def make_backup(self) -> None:
+        if is_viewer():
+            return
         # Очистка папки с резервными копиями
         cleanup_ok: bool = clean_backup_folder(self.settings_handler)
         if not cleanup_ok:
@@ -910,7 +955,8 @@ class MainWindow(QMainWindow):
             for act in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete):
                 act.setEnabled(False)
         if payment_type == PaymentType.REFUND:
-            self.ui.act_edit.setEnabled(False)
+            if not is_viewer():
+                self.ui.act_edit.setEnabled(False)
             self.ui.pb_addpayment.setEnabled(False)
             self.ui.pb_deletepayment.setEnabled(False)
         else:
@@ -1035,6 +1081,8 @@ class MainWindow(QMainWindow):
         self.ui.act_export.setEnabled(self.table_model.stored_count > 0)
 
     def save_note(self, index: QModelIndex | None = None) -> bool:
+        if is_viewer():
+            return False
         note_index: QModelIndex = self.get_current_event_index() if index is None else index
         if not note_index.isValid():
             return False
@@ -1046,6 +1094,8 @@ class MainWindow(QMainWindow):
         return self.set_data_to_event(note_index, Col.NOTES, note_text)
 
     def make_new_payment(self) -> bool:
+        if is_viewer():
+            return False
         date: QDate = self.ui.de_paymentdate.date()
         amount: Decimal = Decimal(str(self.ui.dsb_paymentsum.value()))
 
@@ -1076,6 +1126,8 @@ class MainWindow(QMainWindow):
             return False
 
     def delete_payment(self) -> bool:
+        if is_viewer():
+            return False
         current_index: QModelIndex = self.payment_proxy_model.mapToSource(self.ui.tv_payment.selectionModel().currentIndex())
         amount: Decimal = current_index.siblingAtColumn(PaymentField.SUM).data(PaymentHistoryTableModel.qtValueRole)
         date: QDate = current_index.siblingAtColumn(PaymentField.PAYMENT_DATE).data(PaymentHistoryTableModel.qtValueRole)
@@ -1098,8 +1150,10 @@ class MainWindow(QMainWindow):
 
     def open_event_dialog(self, edit: bool = False, copy: bool = False, initial_amount: Decimal | None = None,
                           parent: QWidget | None = None, from_statement: bool = False,
-                          payment_date: date | None = None) -> bool:
-        curr_index: QModelIndex = self.get_current_event_index()
+                          payment_date: date | None = None, current_index: QModelIndex | None = None) -> bool:
+        if is_viewer() and not edit:
+            return False
+        curr_index: QModelIndex = self.get_current_event_index() if current_index is None else current_index
 
         if edit or copy:
             if not curr_index.isValid():
@@ -1124,7 +1178,8 @@ class MainWindow(QMainWindow):
 
         event_dialog: EventDialog = EventDialog(final_proxy_model=self.table_model, responsible_model=responsible_model, payment_model= self.payment_model,
                                                 settings_handler=self.settings_handler, db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, initial_amount=initial_amount,
-                                                from_statement=from_statement, payment_date=payment_date, parent=parent or self)
+                                                from_statement=from_statement, payment_date=payment_date, view_mode=is_viewer(),
+                                                parent=parent or self)
         if event_dialog.exec():
             if not edit:
                 set_due_filter = False
@@ -1155,6 +1210,8 @@ class MainWindow(QMainWindow):
             self.ui.trw_event.selectionModel().setCurrentIndex(index_to_select, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
 
     def open_copydoc_dialog(self) -> bool:
+        if is_viewer():
+            return False
         curr_index: QModelIndex = self.get_current_event_index()
         if not curr_index.isValid():
             self.warn_selection_lost()
@@ -1182,6 +1239,8 @@ class MainWindow(QMainWindow):
         msg.exec()
 
     def delete_event(self) -> bool:
+        if is_viewer():
+            return False
         curr_index: QModelIndex = self.get_current_event_index()
         if not curr_index.isValid():
             self.warn_selection_lost()
@@ -1224,6 +1283,8 @@ class MainWindow(QMainWindow):
 
     def open_fees_dialog(self, csv_path: str = "", statement_fee_totals: dict | None = None,
                          parent: QWidget | None = None) -> None:
+        if is_viewer():
+            return
         fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.table_model, self.payment_model,
                                            parent or self, csv_path, statement_fee_totals)
         fees_dialog.exec()
@@ -1231,16 +1292,31 @@ class MainWindow(QMainWindow):
         self.update_filters_and_select()
 
     def open_matching_dialog(self) -> None:
-        matching_dialog: MatchingDialog = MatchingDialog(
-            self.settings_handler, self.db_handler,
-            lambda amount, fee_date, dialog: self.open_event_dialog(initial_amount=amount, parent=dialog, from_statement=True,
-                                                                    payment_date=fee_date),
-            lambda entry, new_amount, dialog: self.open_payment_amount_dialog(entry, new_amount, dialog),
-            self.open_fees_dialog, self)
+        if is_viewer():
+            matching_dialog: MatchingDialog = MatchingDialog(
+                self.settings_handler, self.db_handler,
+                lambda amount, fee_date, dialog: False,
+                lambda entry, new_amount, dialog: self.open_event_view(entry.event_id, dialog),
+                self.open_fees_dialog, self)
+        else:
+            matching_dialog = MatchingDialog(
+                self.settings_handler, self.db_handler,
+                lambda amount, fee_date, dialog: self.open_event_dialog(initial_amount=amount, parent=dialog, from_statement=True,
+                                                                        payment_date=fee_date),
+                lambda entry, new_amount, dialog: self.open_payment_amount_dialog(entry, new_amount, dialog),
+                self.open_fees_dialog, self)
         matching_dialog.exec()
         self.table_model.reload()
         self.payment_model.update_filter()
         self.update_filters_and_select()
+
+    def open_event_view(self, event_id: int | None, parent: QWidget) -> bool:
+        index: QModelIndex = QModelIndex() if event_id is None else self.table_model.index_by_id(event_id)
+        if not index.isValid():
+            ErrorInfoMessageBox("Этот платеж сейчас не отображается в таблице (его скрывают фильтры или он давно оплачен). "
+                                "Сбросьте фильтры и повторите.", is_info=True, parent=parent).exec()
+            return False
+        return self.open_event_dialog(edit=True, parent=parent, current_index=index)
 
     def open_payment_amount_dialog(self, entry: PaymentEntry, new_amount: Decimal | None, parent: QWidget) -> bool:
         info = self.db_handler.read_payment_info(entry.payment_id)
@@ -1268,6 +1344,8 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def open_chart_dialog(self) -> None:
+        if is_viewer():
+            return
         self.chart_choice_dialog = ChartChoiceDialog(self)
         self.chart_choice_dialog.exec()
 

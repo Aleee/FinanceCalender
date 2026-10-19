@@ -16,6 +16,7 @@ from gui.liabilitytablemodel import LiabilityTableModel
 from base.liability import Col
 from gui.commonwidgets.eventfilter import NoWheelFilter
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox, show_status_message
+from gui.commonwidgets.readonly import make_read_only
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.responsiblemodels import ResponsibleCategorySortModel
 from gui.settings import SettingsHandler
@@ -223,7 +224,7 @@ class EventDialog(QDialog):
     def __init__(self, final_proxy_model, responsible_model: ResponsibleCategorySortModel, payment_model: PaymentHistoryTableModel, db_handler: DBHandler,
                  settings_handler: SettingsHandler, edit_mode: bool = False, copy_mode: bool = False, current_index: QModelIndex | None = None,
                  initial_amount: Decimal | None = None, from_statement: bool = False,
-                 payment_date: date | None = None, parent=None):
+                 payment_date: date | None = None, view_mode: bool = False, parent=None):
         super(EventDialog, self).__init__(parent)
         self.ui = Ui_EventDialog()
         self.ui.setupUi(self)
@@ -236,6 +237,7 @@ class EventDialog(QDialog):
         self.sh = settings_handler
         self.edit_mode: bool = edit_mode
         self.copy_mode: bool = copy_mode
+        self.view_mode: bool = view_mode
         self.non_editable_values: dict = {"id": 0, "paidamount": Decimal(0)}
         self.sidepanel_visibility: bool = False
         self.operation_date: date | None = payment_date
@@ -374,8 +376,9 @@ class EventDialog(QDialog):
             self.ui.te_descr.setPlainText(self.index.siblingAtColumn(Col.DESCR).data(LiabilityTableModel.qtValueRole))
             self.ui.te_notes.setPlainText(self.index.siblingAtColumn(Col.NOTES).data(LiabilityTableModel.qtValueRole))
             self.set_subcategory_visible(self.ui.cmb_category.currentData() == LiabilityCategory.TOP_FINANCES)
-            self.ui.dsb_totalamount.setFocus()
-            QTimer.singleShot(0, self.ui.dsb_totalamount.selectAll)
+            if not self.view_mode:
+                self.ui.dsb_totalamount.setFocus()
+                QTimer.singleShot(0, self.ui.dsb_totalamount.selectAll)
             if self.contractdocument_id:
                 if self.selector.set_document_id(self.contractdocument_id):
                     self.show_bound_contract(self.selected_document_title())
@@ -406,6 +409,19 @@ class EventDialog(QDialog):
 
         self.sidepanel_visibility = str_bool(self.sh.settings.value("Eventdialog/sidepanel"), False)
         self.change_sidepanel_visibility(self.sidepanel_visibility)
+
+        if self.view_mode:
+            self.setup_view_mode()
+
+    def setup_view_mode(self) -> None:
+        self.setWindowTitle("Просмотр платежа")
+        make_read_only(self)
+        for widget in (self.ui.pb_accept, self.ui.chb_hidden, self.ui.pb_toggle, self.ui.wdg_contract,
+                       self.ui.tb_unbindcontract, self.ui.tb_responsible):
+            widget.hide()
+        self.ui.pb_cancel.setText("Закрыть")
+        self.ui.pb_cancel.setDefault(True)
+        self.adjustSize()
 
     @staticmethod
     def fit_textedit_height(*text_edits, lines: int = 2, reserve: int = 4) -> None:
@@ -719,6 +735,9 @@ class EventDialog(QDialog):
                                               date_str(QDate.currentDate())])
 
     def accept(self, /):
+        if self.view_mode:
+            QDialog.reject(self)
+            return
         if not self.check_integrity():
             return
         data: list = list()
