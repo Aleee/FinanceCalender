@@ -54,6 +54,14 @@ def sync_base_path() -> str:
     return os.path.join(_data_subdir("sync"), "base.db")
 
 
+def sync_journal_path() -> str:
+    return os.path.join(_data_subdir("sync"), "journal.jsonl")
+
+
+def sync_journal_uploaded_path() -> str:
+    return os.path.join(_data_subdir("sync"), "journal_uploaded.txt")
+
+
 def export_dir() -> str:
     return _data_subdir("export")
 

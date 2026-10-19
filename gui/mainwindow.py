@@ -18,6 +18,7 @@ from base.formatting import dec_strcommaspace
 from base.payment import PaymentEntry, PaymentField
 from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, SyncCancelledError, SyncChannel, SyncError, SyncParams,
                        SyncReport, read_local_state, set_stage_listener, synchronize)
+from base.syncjournal import JOURNAL_EXIT, JOURNAL_MANUAL, JOURNAL_START, add_journal_entry
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.chartchoicedialog import ChartChoiceDialog
@@ -569,7 +570,8 @@ class MainWindow(QMainWindow):
         if (not self.settings_handler.sync_enabled() or not self.tb_sync.isEnabled()
                 or self.sync_progress is not None or QApplication.activeModalWidget() is not None):
             return
-        self.run_sync(interactive=False, pause_when_done=is_first, quiet=quiet and not is_first)
+        self.run_sync(interactive=False, pause_when_done=is_first, quiet=quiet and not is_first,
+                      journal_tag=JOURNAL_START if is_first else None)
         if self.sync_network_failed and retries_left > 0:
             delay_seconds: int = SYNC_RETRY_DELAY_MS // 1000
             log.i(f"Повтор синхронизации через {delay_seconds} с, осталось попыток: {retries_left}")
@@ -580,7 +582,8 @@ class MainWindow(QMainWindow):
                                           SYNC_RETRY_DELAY_MS)
             QTimer.singleShot(SYNC_RETRY_DELAY_MS, lambda: self.auto_sync(retries_left - 1))
 
-    def run_sync(self, interactive: bool = True, pause_when_done: bool = True, quiet: bool = False) -> None:
+    def run_sync(self, interactive: bool = True, pause_when_done: bool = True, quiet: bool = False,
+                 journal_tag: str | None = None) -> None:
         if not self.settings_handler.sync_enabled():
             return
         self.save_note()
@@ -595,7 +598,8 @@ class MainWindow(QMainWindow):
             self.ui.statusBar.showMessage("Идет синхронизация...")
             self.ui.statusBar.repaint()
         try:
-            action = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True))
+            action = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True,
+                                                                      journal_tag=journal_tag or (JOURNAL_MANUAL if interactive else None)))
             if action is None and interactive and self.sync_info_unreadable:
                 action = self._restore_master_info_and_sync(channel, params, report)
             is_changed_by_other: bool = action in (SyncAction.PULL, SyncAction.MERGE)
@@ -693,14 +697,16 @@ class MainWindow(QMainWindow):
         if not self.settings_handler.sync_enabled():
             return True
         try:
-            if not read_local_state(self.db_handler).has_changes:
-                return True
+            has_changes: bool = read_local_state(self.db_handler).has_changes
         except SyncError as e:
             log.e(f"Не удалось проверить наличие неотправленных изменений: {e}")
             return True
-        channel = self.get_sync_channel()
         params = create_sync_params(self.settings_handler)
-        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params),
+        if not has_changes:
+            add_journal_entry(params.author, params.machine, JOURNAL_EXIT, "no_changes")
+            return True
+        channel = self.get_sync_channel()
+        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, journal_tag=JOURNAL_EXIT),
                                                         SYNC_PLANNED_STAGES)
         if action == SyncAction.PUSH:
             return True

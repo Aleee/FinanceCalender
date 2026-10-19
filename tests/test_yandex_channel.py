@@ -427,3 +427,10 @@ def test_restore_master_info_does_not_hide_network_errors(machine_a, channel, di
         disk.network_down = True
         with pytest.raises(NetworkError):
             restore_master_info(dbh, channel, PARAMS)
+
+
+def test_upload_journal(channel, disk, tmp_path):
+    source = tmp_path / "journal.jsonl"
+    source.write_bytes(b"line\n")
+    channel.upload_journal(source, "PC-1.jsonl")
+    assert disk.files["app:/journal/PC-1.jsonl"] == b"line\n"

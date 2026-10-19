@@ -17,6 +17,7 @@ import lovely_logger as log
 from base.backup import replace_db_file
 from base.paths import backup_dir, sync_base_path
 from base.syncdiff import Conflict, DbDiff, MergeWarnings, plan_merge
+from base.syncjournal import JOURNAL_AUTO, JOURNAL_DIR, add_journal_entry, upload_journal_if_due
 
 if TYPE_CHECKING:
     from base.dbhandler import DBHandler
@@ -195,9 +196,6 @@ class SyncChannel(ABC):
     def last_master_info(self) -> MasterInfo | None:
         return self.read_master_info()
 
-    def last_master_info(self) -> MasterInfo | None:
-        return self.read_master_info()
-
     @abstractmethod
     def download_master(self, destination: Path) -> None:
         ...
@@ -212,6 +210,10 @@ class SyncChannel(ABC):
 
     @abstractmethod
     def backup_master(self) -> None:
+        ...
+
+    @abstractmethod
+    def upload_journal(self, source: Path, name: str) -> None:
         ...
 
     @abstractmethod
@@ -280,6 +282,18 @@ class FolderChannel(SyncChannel):
             raise SyncError(f"Не удалось записать {MASTER_INFO_NAME} в {self.folder}: {e}") from e
         finally:
             temp_info_path.unlink(missing_ok=True)
+
+    def upload_journal(self, source: Path, name: str) -> None:
+        target = self.folder / JOURNAL_DIR / name
+        temp = target.with_name(target.name + TEMP_SUFFIX)
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, temp)
+            os.replace(temp, target)
+        except OSError as e:
+            raise SyncError(f"Не удалось записать журнал обращений в {target.parent}: {e}") from e
+        finally:
+            temp.unlink(missing_ok=True)
 
     @property
     def long_backups_path(self) -> Path:
@@ -614,7 +628,23 @@ def elapsed_ms(started: float) -> int:
 
 
 def synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, report: SyncReport | None = None,
-                merge: bool = False) -> SyncAction:
+                merge: bool = False, journal_tag: str | None = None) -> SyncAction:
+    result = "error"
+    try:
+        action = run_synchronize(dbh, channel, params, report, merge)
+        result = action.value
+    except SyncError as e:
+        result = type(e).__name__
+        raise
+    finally:
+        if journal_tag or result != SyncAction.NOTHING.value:
+            add_journal_entry(params.author, params.machine, journal_tag or JOURNAL_AUTO, result)
+    upload_journal_if_due(channel, params.machine)
+    return action
+
+
+def run_synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, report: SyncReport | None = None,
+                    merge: bool = False) -> SyncAction:
     started = time.monotonic()
     report_stage(STAGE_CONNECT)
     master = channel.read_master_info()

@@ -12,6 +12,7 @@ from base.sync import (AuthError, MASTER_BACKUPS_DIR, MASTER_DB_NAME, MASTER_INF
                        MasterInfo, MasterInfoError, NetworkError, SHORT_BACKUPS_KEEP_DAYS, SyncCancelledError, SyncChannel,
                        STAGE_VERIFY, SyncError, TEMP_SUFFIX, backup_time_from_name, file_md5, is_backup_of_today,
                        master_backup_name, report_stage)
+from base.syncjournal import JOURNAL_DIR
 
 API_URL = "https://cloud-api.yandex.net/v1/disk"
 DEFAULT_DISK_FOLDER = "app:/"
@@ -107,6 +108,14 @@ class YandexDiskApiChannel(SyncChannel):
             return
         if not any(is_backup_of_today(name) for name in self.backup_names(MASTER_LONG_BACKUPS_DIR)):
             self.copy_master_to(MASTER_LONG_BACKUPS_DIR, backup_name)
+
+    def upload_journal(self, source: Path, name: str) -> None:
+        folder = self.remote_path(JOURNAL_DIR)
+        self.api("PUT", "resources", {"path": folder}, (201, 409))
+        href = self.read_href(self.api("GET", "resources/upload", {"path": f"{folder}/{name}", "overwrite": "true"}, (200,)))
+        response = self.http.send("PUT", href, upload_file=source)
+        if response.status not in (201, 202):
+            raise self.error_from(response)
 
     def copy_master_to(self, folder_name: str, backup_name: str) -> bool:
         backups_folder = self.remote_path(folder_name)
