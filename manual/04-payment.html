@@ -45,7 +45,7 @@ th { color: #1f3a5f; }
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">3</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Поле суммы</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Сколько заплатили; по умолчанию остаток платежа</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сколько заплатили; по умолчанию остаток платежа (0,00, если платеж переплачен)</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">4</td>
@@ -117,7 +117,7 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">История оплат</h2></td></tr></table>
 <p>Внесённую оплату нельзя изменить: ошиблись в дате или сумме — удалите её и внесите заново.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">Удаление оплаты</h2></td></tr></table>
-<p>Выберите оплату в истории и нажмите «Удалить» (или <strong>Del</strong>); программа спросит: «Вы уверены, что хотите удалить запись об оплате?». Остаток увеличится на сумму оплаты, сам платеж не удаляется.</p>
+<p>Выберите оплату в истории и нажмите «Удалить» (или <strong>Del</strong>); программа спросит: «Вы уверены, что хотите удалить запись об оплате?». Остаток увеличится на сумму оплаты, сам платеж не удаляется. Оплату можно удалить и из окна сверки выписки (кнопка «Отменить оплату», <a href="08-statement-matching.html">раздел 8</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
 <p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Отменить удаление нельзя; удалили не ту — внесите заново.</p>
 </td></tr></table>
@@ -176,7 +176,7 @@ th { color: #1f3a5f; }
 <tbody>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Нажали «Оплатить», ничего не произошло, сообщения нет</td>
-<td style="border-bottom: 1px solid #d9e0e9;">В поле суммы 0,00 (остаток равен нулю)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В поле суммы 0,00 (остаток равен нулю или платеж переплачен)</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Введите сумму оплаты</td>
 </tr>
 <tr bgcolor="#f7f9fc">

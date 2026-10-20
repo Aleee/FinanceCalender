@@ -174,7 +174,7 @@ th { color: #1f3a5f; }
 <ul>
 <li>разделы идут по номерам: «1. Текущая деятельность», «2. Финансовая деятельность», «3. Инвестиционная деятельность»;</li>
 <li>подразделы внутри раздела — тоже по номерам («1.1», «1.2»);</li>
-<li>внутри подраздела платежи идут по сроку оплаты: сверху самый ранний.</li>
+<li>внутри подраздела платежи идут по сроку оплаты: сверху самый ранний; при пункте «Оплаченные» — по дате последней оплаты, сверху самая ранняя.</li>
 </ul>
 <p>Сортировки по заголовкам столбцов нет: ищите фильтрами и поиском. Подраздел без платежей не показывается. Если платежей нет совсем, видна надпись «Нет платежей, подходящих под условия фильтрации и поиска».</p>
 <h3 id="s7">Заголовки разделов</h3>
@@ -250,38 +250,42 @@ th { color: #1f3a5f; }
 <td style="border-bottom: 1px solid #d9e0e9;">Сумма платежа минус все оплаты</td>
 </tr>
 <tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Последняя оплата</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Дата последней оплаты. Показывается на месте столбца «Остаток платежа», пока выбран пункт «Оплаченные» (<a href="05-filters.html">раздел 5</a>)</td>
+</tr>
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Сумма платежа</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Полная сумма платежа</td>
 </tr>
-<tr>
+<tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">Срок оплаты</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Дата, к которой нужно заплатить</td>
 </tr>
-<tr bgcolor="#f7f9fc">
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Дата возникновения</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Дата события, от которого считается срок (например, дата счёта)</td>
 </tr>
-<tr>
+<tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">Вид платежа</td>
 <td style="border-bottom: 1px solid #d9e0e9;">«По факту», «предоплата» или «возврат» (<a href="03-event-dialog.html">раздел 3</a>)</td>
 </tr>
-<tr bgcolor="#f7f9fc">
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Основание платежа</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Документ, например «Счет № 15 от 04.10.2026»</td>
 </tr>
-<tr>
+<tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">Ответственный</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Сотрудник</td>
 </tr>
-<tr bgcolor="#f7f9fc">
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Оплата сегодня</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Сумма оплат, внесённых сегодняшним числом</td>
 </tr>
-<tr>
+<tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">★</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Отметка «На контроле»</td>
 </tr>
-<tr bgcolor="#f7f9fc">
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">🔒</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Отметка «Скрытый платеж»</td>
 </tr>
