@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Изменение суммы оплаты</string>
+   <string>Изменение оплаты</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
@@ -112,16 +112,56 @@
      </property>
      <layout class="QFormLayout" name="formLayout_amounts">
       <item row="0" column="0">
+       <widget class="QLabel" name="lbl_paymentdate">
+        <property name="text">
+         <string>Дата оплаты:</string>
+        </property>
+        <property name="buddy">
+         <cstring>de_paymentdate</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_paymentdate">
+        <item>
+         <widget class="QDateEdit" name="de_paymentdate">
+          <property name="minimumSize">
+           <size>
+            <width>130</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="calendarPopup">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_paymentdate">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
        <widget class="QLabel" name="lbl_payment">
         <property name="text">
-         <string>Оплата:</string>
+         <string>Сумма оплаты:</string>
         </property>
         <property name="buddy">
          <cstring>dsb_payment</cstring>
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
+      <item row="1" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_payment">
         <item>
          <widget class="QDoubleSpinBox" name="dsb_payment">
@@ -157,7 +197,7 @@
         </item>
        </layout>
       </item>
-      <item row="1" column="0" colspan="2">
+      <item row="2" column="0" colspan="2">
        <widget class="QCheckBox" name="chb_changetotal">
         <property name="text">
          <string>Изменить общую сумму платежа на ту же разницу</string>
@@ -167,7 +207,7 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
+      <item row="3" column="0">
        <widget class="QLabel" name="label_total">
         <property name="text">
          <string>Общая сумма платежа:</string>
@@ -177,7 +217,7 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="3" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_total">
         <item>
          <widget class="QDoubleSpinBox" name="dsb_total">
@@ -273,6 +313,7 @@
   </layout>
  </widget>
  <tabstops>
+  <tabstop>de_paymentdate</tabstop>
   <tabstop>dsb_payment</tabstop>
   <tabstop>chb_changetotal</tabstop>
   <tabstop>dsb_total</tabstop>

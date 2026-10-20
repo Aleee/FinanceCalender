@@ -378,6 +378,11 @@ class Ui_MainWindow(object):
 
         self.gridLayout_5.addItem(self.verticalSpacer_3, 6, 0, 1, 1)
 
+        self.pb_editpayment = QPushButton(self.descr)
+        self.pb_editpayment.setObjectName(u"pb_editpayment")
+
+        self.gridLayout_5.addWidget(self.pb_editpayment, 7, 0, 1, 2)
+
         self.pb_deletepayment = QPushButton(self.descr)
         self.pb_deletepayment.setObjectName(u"pb_deletepayment")
 
@@ -735,6 +740,7 @@ class Ui_MainWindow(object):
         self.chb_paytoday.setText(QCoreApplication.translate("MainWindow", u"\u041e\u041f\u041b\u0410\u0422\u0410 \u0421\u0415\u0413\u041e\u0414\u041d\u042f", None))
         self.spb_category.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041a\U00000410\U00000422\U00000415\U00000413\U0000041e\U00000420\U00000418\U0000042f", None))
         self.spb_term.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U00000421\U00000420\U0000041e\U0000041a \U0000041e\U0000041f\U0000041b\U00000410\U00000422\U0000042b", None))
+        self.pb_editpayment.setText(QCoreApplication.translate("MainWindow", u"\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c", None))
         self.pb_deletepayment.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c", None))
         self.pb_addpayment.setText(QCoreApplication.translate("MainWindow", u"\u041e\u043f\u043b\u0430\u0442\u0438\u0442\u044c", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"\u0414\u0430\u0442\u0430 \u0438 \u0441\u0443\u043c\u043c\u0430", None))

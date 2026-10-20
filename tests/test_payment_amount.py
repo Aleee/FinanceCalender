@@ -1,8 +1,9 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
 
+from base.liability import Col
 from gui.paymentamountdialog import PaymentAmountDialog
 from tests.test_audit_fixes import query_all
 from tests.test_readpath import add_event, add_payment, day, db_file, models, open_models  # noqa: F401
@@ -34,23 +35,31 @@ def test_read_payment_info_missing_payment(event_with_payments):
     assert dbh.read_payment_info(9999) is None
 
 
-def test_change_payment_amounts_changes_both(event_with_payments):
+def test_update_payment_changes_both(event_with_payments):
     dbh, path, event_id, _, second = event_with_payments
-    assert dbh.change_payment_amounts(second, Decimal("250.00"), Decimal("1050.00"))
+    assert dbh.update_payment(second, date.today(), Decimal("250.00"), Decimal("1050.00"))
     assert Decimal(query_all(path, "SELECT sum FROM payment WHERE id = ?", second)[0][0]) == Decimal("250.00")
     assert Decimal(query_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1050.00")
 
 
-def test_change_payment_amounts_only_payment(event_with_payments):
+def test_update_payment_only_payment(event_with_payments):
     dbh, path, event_id, _, second = event_with_payments
-    assert dbh.change_payment_amounts(second, Decimal("250.00"), Decimal("1000.00"))
+    assert dbh.update_payment(second, date.today(), Decimal("250.00"), Decimal("1000.00"))
     assert Decimal(query_all(path, "SELECT sum FROM payment WHERE id = ?", second)[0][0]) == Decimal("250.00")
     assert Decimal(query_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1000.00")
 
 
-def test_change_payment_amounts_missing_payment_changes_nothing(event_with_payments):
+def test_update_payment_changes_date_only(event_with_payments):
+    dbh, path, event_id, _, second = event_with_payments
+    new_date = date.today() - timedelta(days=3)
+    assert dbh.update_payment(second, new_date, Decimal("200.00"), Decimal("1000.00"))
+    assert query_all(path, "SELECT paymentdate FROM payment WHERE id = ?", second)[0][0] == new_date.isoformat()
+    assert dbh.read_payment_info(second).payment_date == new_date
+
+
+def test_update_payment_missing_payment_changes_nothing(event_with_payments):
     dbh, path, event_id, *_ = event_with_payments
-    assert not dbh.change_payment_amounts(9999, Decimal("1.00"), Decimal("5.00"))
+    assert not dbh.update_payment(9999, date.today(), Decimal("1.00"), Decimal("5.00"))
     assert Decimal(query_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1000.00")
 
 
@@ -122,3 +131,39 @@ def test_dialog_prefilled_with_statement_amount(event_with_payments):
     dialog = PaymentAmountDialog(dbh, dbh.read_payment_info(second), Decimal("246.50"))
     assert dialog.payment_sum() == Decimal("246.5")
     assert dialog.total_amount() == Decimal("1046.5")
+
+
+def test_dialog_shows_and_returns_payment_date(event_with_payments):
+    dbh, _, _, _, second = event_with_payments
+    info = dbh.read_payment_info(second)
+    dialog = PaymentAmountDialog(dbh, info)
+    assert dialog.payment_date() == info.payment_date
+    new_date = info.payment_date - timedelta(days=2)
+    dialog.ui.de_paymentdate.setDate(new_date)
+    assert dialog.payment_date() == new_date
+
+
+def test_dialog_accept_saves_new_date(event_with_payments):
+    dbh, _, _, _, second = event_with_payments
+    info = dbh.read_payment_info(second)
+    dialog = PaymentAmountDialog(dbh, info)
+    new_date = info.payment_date - timedelta(days=2)
+    dialog.ui.de_paymentdate.setDate(new_date)
+    dialog.accept()
+    updated = dbh.read_payment_info(second)
+    assert updated.payment_date == new_date
+    assert updated.payment_sum == info.payment_sum
+    assert updated.total_amount == info.total_amount
+
+
+def test_model_refresh_event_after_payment_update(db_file, open_models, shared_dbh):
+    models = open_models(db_file)
+    event_id = add_event(db_file, total="1000.00")
+    payment_id = add_payment(db_file, event_id, day(0), "200.00")
+    models.table.reload()
+    remain_before = models.table.index_by_id(event_id, Col.REMAINAMOUNT).data(models.table.qtValueRole)
+    assert shared_dbh.update_payment(payment_id, date.today(), Decimal("250.00"), Decimal("1050.00"))
+    models.table.refresh_event(event_id)
+    index = models.table.index_by_id(event_id)
+    assert index.siblingAtColumn(Col.TOTALAMOUNT).data(models.table.qtValueRole) == Decimal("1050.00")
+    assert index.siblingAtColumn(Col.REMAINAMOUNT).data(models.table.qtValueRole) == remain_before == Decimal("800.00")

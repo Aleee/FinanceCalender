@@ -16,7 +16,7 @@ from base.date import date_displstr, date_str
 from base.edition import is_viewer
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
-from base.payment import PaymentEntry, PaymentField
+from base.payment import PaymentField
 from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, SyncCancelledError, SyncChannel, SyncError, SyncParams,
                        SyncReport, read_local_state, set_stage_listener, synchronize)
 from base.syncjournal import JOURNAL_EXIT, JOURNAL_MANUAL, JOURNAL_START, add_journal_entry
@@ -381,8 +381,10 @@ class MainWindow(QMainWindow):
         self.ui.trw_event.doubleClicked.connect(lambda: self.ui.act_edit.trigger())
         # Сигналы таблицы платежей
         self.ui.tv_payment.selectionModel().selectionChanged.connect(self.check_payment_selection_visibility)
+        self.ui.tv_payment.doubleClicked.connect(self.edit_payment)
         # Cигналы информационной панели
         self.ui.pb_addpayment.clicked.connect(self.make_new_payment)
+        self.ui.pb_editpayment.clicked.connect(self.edit_payment)
         self.ui.pb_deletepayment.clicked.connect(self.delete_payment)
         # Сигналы тулбара
         self.ui.act_new.triggered.connect(lambda: self.open_event_dialog())
@@ -875,7 +877,7 @@ class MainWindow(QMainWindow):
             delete_payment_shortcut.activated.connect(self.ui.pb_deletepayment.click)
         # Начальное состояние: в таблице ничего не выбрано
         for element in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete,
-                        self.ui.pb_addpayment, self.ui.pb_deletepayment):
+                        self.ui.pb_addpayment, self.ui.pb_editpayment, self.ui.pb_deletepayment):
             element.setEnabled(False)
         self.ui.tlbr.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.ui.cmb_responsiblefilter.setView(QListView())  # переключение на натив (белая заливка на hover - баг?)
@@ -892,7 +894,7 @@ class MainWindow(QMainWindow):
 
     def _apply_viewer_restrictions(self) -> None:
         for widget in (self.ui.label_2, self.ui.de_paymentdate, self.ui.dsb_paymentsum, self.ui.pb_addpayment,
-                       self.ui.line, self.ui.pb_deletepayment):
+                       self.ui.line, self.ui.pb_editpayment, self.ui.pb_deletepayment):
             widget.hide()
         self.ui.te_notes.setReadOnly(True)
 
@@ -940,12 +942,14 @@ class MainWindow(QMainWindow):
 
     def check_payment_selection_visibility(self) -> None:
         if self.current_data(Col.PAYMENTTYPE) == PaymentType.REFUND:
+            self.ui.pb_editpayment.setDisabled(True)
             self.ui.pb_deletepayment.setDisabled(True)
         else:
             QTimer.singleShot(0, self.check_payment_selection_visibility_delayed)
 
     def check_payment_selection_visibility_delayed(self):
         filtered_out = not bool(self.ui.tv_payment.currentIndex().isValid())
+        self.ui.pb_editpayment.setDisabled(filtered_out)
         self.ui.pb_deletepayment.setDisabled(filtered_out)
 
     def on_currentevent_change(self, current: QModelIndex = QModelIndex(), previous: QModelIndex = QModelIndex()) -> None:
@@ -965,6 +969,7 @@ class MainWindow(QMainWindow):
             if not is_viewer():
                 self.ui.act_edit.setEnabled(False)
             self.ui.pb_addpayment.setEnabled(False)
+            self.ui.pb_editpayment.setEnabled(False)
             self.ui.pb_deletepayment.setEnabled(False)
         else:
             # Без выделения row_type is None - кнопку добавления платежа включаем только если выбрано обязательство
@@ -1120,11 +1125,10 @@ class MainWindow(QMainWindow):
         if paid + amount < 0:
             ErrorInfoMessageBox(f"Сумма возврата ({dec_strcommaspace(-amount)}) превышает сумму оплат по платежу ({dec_strcommaspace(paid)})", parent=self).exec()
             return False
-        if amount > 0 and (amount - self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole)) > 0.01:
-            msg_box = YesNoMessagebox(f"Сумма оплаты ({dec_strcommaspace(amount)}) превышает остаток задолженности ({dec_strcommaspace(
-                self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole))}). Уверены, что хотите продолжить?", self)
-            if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:
-                return False
+        remain = self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole)
+        if amount > remain:
+            ErrorInfoMessageBox(f"Сумма оплаты ({dec_strcommaspace(amount)}) превышает остаток задолженности ({dec_strcommaspace(remain)})", parent=self).exec()
+            return False
         if date > QDate.currentDate():
             msg_box = YesNoMessagebox(f"Выбранная дата ({date_displstr(date)}) больше текущей даты. Уверены, что хотите продолжить?", self)
             if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:
@@ -1162,6 +1166,21 @@ class MainWindow(QMainWindow):
             return True
         else:
             return False
+
+    def edit_payment(self) -> bool:
+        if is_viewer() or not self.ui.pb_editpayment.isEnabled():
+            return False
+        if is_selection_filteredout(self.payment_proxy_model, self.ui.tv_payment):
+            return False
+        current_index: QModelIndex = self.payment_proxy_model.mapToSource(self.ui.tv_payment.selectionModel().currentIndex())
+        payment_id: int = current_index.siblingAtColumn(PaymentField.ID).data(PaymentHistoryTableModel.qtValueRole)
+        if not self.open_payment_amount_dialog(payment_id, None, self):
+            return False
+        self.table_model.refresh_event(self.current_data(Col.ID, LiabilityTableModel.qtValueRole))
+        self.payment_model.update_filter()
+        self.update_filters_and_select()
+        self.update_eventinfo()
+        return True
 
     def open_event_dialog(self, edit: bool = False, copy: bool = False, initial_amount: Decimal | None = None,
                           parent: QWidget | None = None, from_statement: bool = False,
@@ -1338,7 +1357,7 @@ class MainWindow(QMainWindow):
                 self.settings_handler, self.db_handler,
                 lambda amount, fee_date, dialog: self.open_event_dialog(initial_amount=amount, parent=dialog, from_statement=True,
                                                                         payment_date=fee_date),
-                lambda entry, new_amount, dialog: self.open_payment_amount_dialog(entry, new_amount, dialog),
+                lambda entry, new_amount, dialog: self.open_payment_amount_dialog(entry.payment_id, new_amount, dialog),
                 self.open_fees_dialog, self)
         matching_dialog.exec()
         self.table_model.reload()
@@ -1353,8 +1372,8 @@ class MainWindow(QMainWindow):
             return False
         return self.open_event_dialog(edit=True, parent=parent, current_index=index)
 
-    def open_payment_amount_dialog(self, entry: PaymentEntry, new_amount: Decimal | None, parent: QWidget) -> bool:
-        info = self.db_handler.read_payment_info(entry.payment_id)
+    def open_payment_amount_dialog(self, payment_id: int, new_amount: Decimal | None, parent: QWidget) -> bool:
+        info = self.db_handler.read_payment_info(payment_id)
         if info is None:
             ErrorInfoMessageBox("Не удалось прочитать платеж для этой оплаты (подробности см. в логе)", parent=parent).exec()
             return False

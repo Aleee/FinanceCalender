@@ -966,17 +966,19 @@ class DBHandler:
         return PaymentInfo(payment_id, event_id, payment_date, payment_sum, name, receiver, due_date, total_amount,
                            paid_amount)
 
-    def change_payment_amounts(self, payment_id: int, new_payment_sum: Decimal, new_total_amount: Decimal) -> bool:
+    def update_payment(self, payment_id: int, new_payment_date: date, new_payment_sum: Decimal,
+                       new_total_amount: Decimal) -> bool:
         if not self.is_db_connected():
             return False
 
         def action() -> bool:
             query = QSqlQuery()
-            query.prepare("UPDATE payment SET sum = ? WHERE id = ?")
+            query.prepare("UPDATE payment SET paymentdate = ?, sum = ? WHERE id = ?")
+            query.addBindValue(date_str(new_payment_date))
             query.addBindValue(str(new_payment_sum))
             query.addBindValue(payment_id)
             if not query.exec() or query.numRowsAffected() != 1:
-                log.e(f"Не удалось изменить сумму оплаты {payment_id}: {query.lastError().text()}")
+                log.e(f"Не удалось изменить оплату {payment_id}: {query.lastError().text()}")
                 return False
             query.prepare("UPDATE event SET totalamount = ? WHERE id = (SELECT eventid FROM payment WHERE id = ?)")
             query.addBindValue(str(new_total_amount))

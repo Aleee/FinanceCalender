@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 from PySide6.QtWidgets import QDialog
@@ -27,7 +28,7 @@ class PaymentAmountDialog(QDialog):
         self.ui.lbl_name.setText(info.name)
         self.ui.lbl_duedate.setText(f"{info.due_date:%d.%m.%Y}" if info.due_date else "не указан")
         self.ui.lbl_paidbefore.setText(dec_strcommaspace(self.sign * info.paid_before))
-        self.ui.lbl_payment.setText(f"Оплата {info.payment_date:%d.%m.%Y}:")
+        self.ui.de_paymentdate.setDate(info.payment_date)
         shown_sum = info.payment_sum if new_payment_sum is None else new_payment_sum
         self.ui.dsb_payment.setValue(float(abs(shown_sum)))
 
@@ -41,6 +42,9 @@ class PaymentAmountDialog(QDialog):
         self.update_total()
         self.ui.dsb_payment.setFocus()
         self.ui.dsb_payment.selectAll()
+
+    def payment_date(self) -> date:
+        return self.ui.de_paymentdate.date().toPython()
 
     def payment_sum(self) -> Decimal:
         return self.payment_sign * Decimal(str(self.ui.dsb_payment.value()))
@@ -77,9 +81,15 @@ class PaymentAmountDialog(QDialog):
         if text:
             ErrorInfoMessageBox(text, parent=self).exec()
             return
-        if (self.payment_sum(), self.total_amount()) != (self.info.payment_sum, self.info.total_amount):
-            if not self.dbh.change_payment_amounts(self.info.payment_id, self.payment_sum(), self.total_amount()):
-                ErrorInfoMessageBox("Не удалось изменить суммы (подробности см. в логе)", parent=self).exec()
+        new_date = self.payment_date()
+        if new_date > date.today() and new_date != self.info.payment_date:
+            text = f"Выбранная дата ({new_date:%d.%m.%Y}) больше текущей даты. Уверены, что хотите продолжить?"
+            if YesNoMessagebox(text, self).exec() == YesNoMessagebox.NO_RETURN_VALUE:
+                return
+        if ((new_date, self.payment_sum(), self.total_amount()) !=
+                (self.info.payment_date, self.info.payment_sum, self.info.total_amount)):
+            if not self.dbh.update_payment(self.info.payment_id, new_date, self.payment_sum(), self.total_amount()):
+                ErrorInfoMessageBox("Не удалось изменить оплату (подробности см. в логе)", parent=self).exec()
                 return
         super().accept()
 

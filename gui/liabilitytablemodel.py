@@ -163,6 +163,9 @@ class LiabilityTableModel(QAbstractTableModel):
     def load_payment_totals(self) -> None:
         self.store.load_payment_totals()
 
+    def refresh_event(self, event_id: int) -> None:
+        self.change_layout(lambda: self.store.refresh_event(event_id))
+
     def set_filters(self, term: TermCategory, category: int, search: str, responsible: int, paid_today: bool,
                     paid_months_toshow: int, featured: bool, date_from: QDate | None = None,
                     date_to: QDate | None = None, period_field: PeriodField = PeriodField.DUEDATE) -> None:
