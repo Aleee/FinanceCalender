@@ -988,6 +988,21 @@ class DBHandler:
 
         return self.run_in_transaction(action)
 
+    def delete_payment(self, payment_id: int) -> bool:
+        if not self.is_db_connected():
+            return False
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare("DELETE FROM payment WHERE id = ?")
+            query.addBindValue(payment_id)
+            if not query.exec() or query.numRowsAffected() != 1:
+                log.e(f"Не удалось удалить оплату {payment_id}: {query.lastError().text()}")
+                return False
+            return True
+
+        return self.run_in_transaction(action)
+
     def load_column_values(self, column: str, as_set: bool = True) -> set | list | None:
         if not self.is_db_connected():
             return None

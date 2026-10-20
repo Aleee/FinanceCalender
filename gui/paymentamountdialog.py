@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QDialog
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
 from base.payment import PaymentInfo
-from gui.commonwidgets.messagebox import ErrorInfoMessageBox
+from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.manualdialog import add_help_shortcut
 from gui.ui.paymentamountdialog_ui import Ui_PaymentAmountDialog
 
@@ -34,6 +34,7 @@ class PaymentAmountDialog(QDialog):
         self.ui.dsb_payment.valueChanged.connect(self.update_total)
         self.ui.chb_changetotal.toggled.connect(self.update_total)
         self.ui.dsb_total.valueChanged.connect(self.update_remain)
+        self.ui.pb_deletepayment.clicked.connect(self.delete_payment)
         self.ui.pb_accept.clicked.connect(self.accept)
         self.ui.pb_cancel.clicked.connect(self.reject)
 
@@ -80,4 +81,20 @@ class PaymentAmountDialog(QDialog):
             if not self.dbh.change_payment_amounts(self.info.payment_id, self.payment_sum(), self.total_amount()):
                 ErrorInfoMessageBox("Не удалось изменить суммы (подробности см. в логе)", parent=self).exec()
                 return
+        super().accept()
+
+    def delete_payment(self) -> None:
+        if self.sign * (self.info.total_amount - self.info.paid_before) < 0:
+            ErrorInfoMessageBox("Нельзя отменить оплату: остальные оплаты по платежу превысят его общую сумму", parent=self).exec()
+            return
+        if self.sign * self.info.paid_before < 0:
+            ErrorInfoMessageBox("Нельзя отменить оплату: сумма возвратов превысит сумму остальных оплат", parent=self).exec()
+            return
+        text = (f"Отменить оплату {self.info.payment_date:%d.%m.%Y} на сумму "
+                f"{dec_strcommaspace(abs(self.info.payment_sum))}? Общая сумма платежа не изменится.")
+        if YesNoMessagebox(text, self, cancel_by_default=True).exec() != YesNoMessagebox.YES_RETURN_VALUE:
+            return
+        if not self.dbh.delete_payment(self.info.payment_id):
+            ErrorInfoMessageBox("Не удалось отменить оплату (подробности см. в логе)", parent=self).exec()
+            return
         super().accept()

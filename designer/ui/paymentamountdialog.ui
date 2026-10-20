@@ -226,6 +226,19 @@
    <item row="3" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_buttons">
      <item>
+      <widget class="QPushButton" name="pb_deletepayment">
+       <property name="toolTip">
+        <string>Удалить эту оплату: платеж вернется в неоплаченное состояние на сумму оплаты</string>
+       </property>
+       <property name="text">
+        <string>Отменить оплату</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer_buttons">
        <property name="orientation">
         <enum>Qt::Orientation::Horizontal</enum>
