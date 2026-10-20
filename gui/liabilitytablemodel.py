@@ -98,7 +98,8 @@ class LiabilityTableModel(QAbstractTableModel):
         self.stored_count: int = 0
         self.style_cache: dict[int, RowStyle] = {}
         self.fonts: dict[bool, QFont] = {}
-        self.personal_dict: dict = {}
+        self._personal_dict: dict = {}
+        self.paid_mode: bool = False
         self.document_titles: dict[int, DocumentTitle] = {}
         self.last_inserted_id: int = 0
         self.contract_icon = QIcon(":/icon-table/designer/icons/attachment.svg")
@@ -109,6 +110,15 @@ class LiabilityTableModel(QAbstractTableModel):
         self.row_formatting = RowFormatting()
 
         self.load_store()
+
+    @property
+    def personal_dict(self) -> dict:
+        return self._personal_dict
+
+    @personal_dict.setter
+    def personal_dict(self, value: dict) -> None:
+        self._personal_dict = value
+        self.store.responsible_names = {person_id: person[0] for person_id, person in value.items()}
 
     @property
     def current_date(self) -> QDate:
@@ -159,7 +169,10 @@ class LiabilityTableModel(QAbstractTableModel):
         def apply_filters() -> None:
             self.store.set_filters(term, category, search, responsible, paid_today, paid_months_toshow, featured,
                                    date_from, date_to, period_field)
-            self.store.set_sort(Col.LASTPAYMENTDATE if term == TermCategory.PAID else Col.DUEDATE, self.store.sort_order)
+            paid_mode = term == TermCategory.PAID
+            if paid_mode != self.paid_mode:
+                self.paid_mode = paid_mode
+                self.store.set_sort(Col.LASTPAYMENTDATE if paid_mode else Col.DUEDATE, self.store.sort_order)
 
         self.change_layout(apply_filters)
 

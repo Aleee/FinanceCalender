@@ -5,7 +5,7 @@ from PySide6.QtCore import QDate, Qt
 
 from base.date import str_date
 from base.liability import (CATEGORY_NAMES, Col, HeaderFooterSubtype, LiabilityCategory, LiabilityRow,
-                            PeriodField, RowType, STORED_INDEX, TermCategory, calculate_filterflags, category_section,
+                            PAYMENTTYPE_NAMES, PeriodField, RowType, STORED_INDEX, TermCategory, calculate_filterflags, category_section,
                             is_top_level_category, matches_category, matches_details, matches_filters, matches_term,
                             paid_threshold)
 
@@ -59,6 +59,7 @@ class LiabilityStore:
         self.liabilities: dict[int, LiabilityRow] = {}
         self.due_dates: dict[int, QDate] = {}
         self.sort_dates: dict[int, int] = {}
+        self.responsible_names: dict[int, str] = {}
 
         self.term_filter: int = TermCategory.UNPAID
         self.category_filter: int = 0
@@ -303,6 +304,12 @@ class LiabilityStore:
             return str(values[STORED_INDEX[column]] or "")
         if column == Col.TOTALAMOUNT:
             return to_decimal(values[STORED_INDEX[column]])
+        if column == Col.PAYMENTTYPE:
+            return PAYMENTTYPE_NAMES.get(to_int(values[STORED_INDEX[column]]), "").casefold()
+        if column == Col.RESPONSIBLE:
+            return self.responsible_names.get(to_int(values[STORED_INDEX[column]]), "Н/Д").casefold()
+        if column in (Col.FEATURED, Col.HIDDEN):
+            return to_int(values[STORED_INDEX[column]])
         if column == Col.REMAINAMOUNT:
             return liability.remain if liability else Decimal(0)
         if column == Col.TODAYSHARE:

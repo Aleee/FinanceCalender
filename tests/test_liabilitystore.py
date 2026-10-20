@@ -448,6 +448,27 @@ def test_set_sort_changes_order_only_inside_categories(db_file, case_factory):
     assert_matches_reference(case)
 
 
+def test_sort_by_responsible_paymenttype_and_flags(db_file, case_factory):
+    first = add_event(db_file, category=1101, due=day(1), responsible="1", paymenttype=PaymentType.REFUND, featured=1)
+    second = add_event(db_file, category=1101, due=day(2), responsible="2", paymenttype=PaymentType.NORMAL, hidden=1)
+    third = add_event(db_file, category=1101, due=day(3), responsible="3", paymenttype=PaymentType.ADVANCE)
+    case = case_factory(db_file)
+    store = case.store
+    store.responsible_names = {1: "Яров", 2: "Абрамов", 3: "Борисов"}
+
+    def order() -> list[int]:
+        return liabilities_by_category(store.visible_rows())[1101]
+
+    store.set_sort(Col.RESPONSIBLE, Qt.SortOrder.AscendingOrder)
+    assert order() == [second, third, first]
+    store.set_sort(Col.PAYMENTTYPE, Qt.SortOrder.AscendingOrder)
+    assert order() == [first, second, third]
+    store.set_sort(Col.FEATURED, Qt.SortOrder.DescendingOrder)
+    assert order()[0] == first
+    store.set_sort(Col.HIDDEN, Qt.SortOrder.DescendingOrder)
+    assert order()[0] == second
+
+
 def test_ties_keep_table_order(db_file, case_factory):
     ids = [add_event(db_file, category=1101, due=day(4)) for _ in range(5)]
     case = case_factory(db_file)

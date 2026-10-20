@@ -422,6 +422,13 @@ def test_paid_filter_sorts_by_last_payment_date(db_file, open_models):
     models.apply(TermCategory.UNPAID)
     assert table.store.sort_column == Col.DUEDATE
 
+    table.set_sort(Col.TOTALAMOUNT, Qt.SortOrder.DescendingOrder)
+    models.apply(TermCategory.UNPAID)
+    assert table.store.sort_column == Col.TOTALAMOUNT
+    assert table.store.sort_order == Qt.SortOrder.DescendingOrder
+    models.apply(TermCategory.PAID)
+    assert table.store.sort_column == Col.LASTPAYMENTDATE
+
 
 def test_paid_mode_swaps_remain_and_last_payment_columns(rich):
     view = EventWidget()

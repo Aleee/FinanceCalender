@@ -66,6 +66,9 @@ class EventWidget(QTreeView):
         self.header().setFirstSectionMovable(False)
         self.header().setStretchLastSection(False)
         self.header().setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.header().setSectionsClickable(True)
+        self.header().setSortIndicatorShown(True)
+        self.header().sectionClicked.connect(self.sort_by_column)
 
         self.tooltip_eventfilter = TooltipFilter(self)
         self.installEventFilter(self.tooltip_eventfilter)
@@ -103,10 +106,27 @@ class EventWidget(QTreeView):
         super().setModel(model)
         header = self.header()
         header.moveSection(header.visualIndex(Col.LASTPAYMENTDATE), header.visualIndex(Col.REMAINAMOUNT))
+        self.show_sort_indicator()
+
+    def sort_by_column(self, column: int) -> None:
+        store = self.model().store
+        order = Qt.SortOrder.AscendingOrder
+        if column == store.sort_column and store.sort_order == Qt.SortOrder.AscendingOrder:
+            order = Qt.SortOrder.DescendingOrder
+        self.model().set_sort(column, order)
+        self.show_sort_indicator()
+
+    def show_sort_indicator(self) -> None:
+        store = self.model().store
+        header = self.header()
+        header.blockSignals(True)
+        header.setSortIndicator(store.sort_column, store.sort_order)
+        header.blockSignals(False)
 
     def set_paid_mode(self, paid_mode: bool) -> None:
         if paid_mode == self.paid_mode:
             return
+        self.show_sort_indicator()
         old_column, new_column = (Col.REMAINAMOUNT, Col.LASTPAYMENTDATE) if paid_mode else (Col.LASTPAYMENTDATE, Col.REMAINAMOUNT)
         width = self.columnWidth(old_column)
         self.paid_mode = paid_mode

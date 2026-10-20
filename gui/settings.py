@@ -4,7 +4,7 @@ from enum import IntEnum
 
 import lovely_logger as log
 
-from PySide6.QtCore import QSettings, QDir, QSize, QPoint, QRect, QCoreApplication, QTimer
+from PySide6.QtCore import QSettings, QDir, QSize, QPoint, QRect, QCoreApplication, QTimer, Qt
 from PySide6.QtWidgets import QApplication, QWidget
 
 from base.casting import str_bool, str_int
@@ -174,6 +174,16 @@ class SettingsHandler:
         self.mw.ui.act_toggleheaders.setChecked(str_bool(self.settings.value("Appearance/headersenabled"), True))
         self.mw.ui.act_togglefooters.setChecked(str_bool(self.settings.value("Appearance/footersenabled"), True))
 
+        ## Сортировка
+        if apply_geometry:
+            sort_column = str_int(self.settings.value("Appearance/sortcolumn"), Col.DUEDATE)
+            if sort_column not in self.mw.table_model.COLUMN_DATA or self.mw.ui.trw_event.isColumnHidden(sort_column):
+                sort_column = Col.DUEDATE
+            descending = str_bool(self.settings.value("Appearance/sortorder"), False)
+            self.mw.table_model.set_sort(sort_column, Qt.SortOrder.DescendingOrder if descending
+                                         else Qt.SortOrder.AscendingOrder)
+            self.mw.ui.trw_event.show_sort_indicator()
+
         ## Перезагрузить список персонала
         self.mw.update_responsible_models(update_widgets=True)
 
@@ -238,6 +248,13 @@ class SettingsHandler:
             column_widths.append(str(self.mw.ui.trw_event.columnWidth(col)))
         sep: str = " "
         self.settings.setValue("Appearance/columnwidth", sep.join(column_widths))
+        ## Сортировка
+        store = self.mw.table_model.store
+        sort_column = store.sort_column
+        if self.mw.ui.trw_event.isColumnHidden(sort_column):
+            sort_column = Col.DUEDATE
+        self.settings.setValue("Appearance/sortcolumn", int(sort_column))
+        self.settings.setValue("Appearance/sortorder", int(store.sort_order == Qt.SortOrder.DescendingOrder))
         ## Отображение разделов/подразделов
         self.settings.setValue("Appearance/headersenabled", int(self.mw.ui.act_toggleheaders.isChecked()))
         self.settings.setValue("Appearance/footersenabled", int(self.mw.ui.act_togglefooters.isChecked()))
