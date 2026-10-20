@@ -186,6 +186,12 @@ def calculate_filterflags(remainamount: Decimal, duedate: QDate, are_today_payme
     return filter_flags
 
 
+class PeriodField(IntEnum):
+    DUEDATE = 0
+    INCURRENCEDATE = 1
+    LASTPAYMENTDATE = 2
+
+
 class LiabilityRow(NamedTuple):
     category: int
     search_text: str
@@ -196,6 +202,8 @@ class LiabilityRow(NamedTuple):
     today_share: Decimal
     last_payment_date: str
     filter_flags: FilterFlags
+    due_date: QDate = QDate()
+    incurrence_date: QDate = QDate()
 
 
 TERM_FLAGS = {
@@ -223,8 +231,30 @@ def matches_category(category: int, liability: LiabilityRow) -> bool:
     return category % 1000 == 0 or liability.category == category
 
 
-def matches_details(liability: LiabilityRow, search: str, responsible: int, paid_today: bool, featured: bool) -> bool:
+def period_date(liability: LiabilityRow, period_field: PeriodField) -> QDate:
+    if period_field == PeriodField.INCURRENCEDATE:
+        return liability.incurrence_date
+    if period_field == PeriodField.LASTPAYMENTDATE:
+        return QDate.fromString(liability.last_payment_date, "yyyy-MM-dd")
+    return liability.due_date
+
+
+def matches_period(liability: LiabilityRow, date_from: QDate | None, date_to: QDate | None,
+                   period_field: PeriodField = PeriodField.DUEDATE) -> bool:
+    if date_from is None and date_to is None:
+        return True
+    checked_date = period_date(liability, period_field)
+    if not checked_date.isValid():
+        return False
+    return (date_from is None or checked_date >= date_from) and (date_to is None or checked_date <= date_to)
+
+
+def matches_details(liability: LiabilityRow, search: str, responsible: int, paid_today: bool, featured: bool,
+                    date_from: QDate | None = None, date_to: QDate | None = None,
+                    period_field: PeriodField = PeriodField.DUEDATE) -> bool:
     if search and search not in liability.search_text:
+        return False
+    if not matches_period(liability, date_from, date_to, period_field):
         return False
     if responsible and liability.responsible != int(responsible):
         return False
@@ -236,7 +266,9 @@ def matches_details(liability: LiabilityRow, search: str, responsible: int, paid
 
 
 def matches_filters(liability: LiabilityRow, term: TermCategory, category: int, search: str, responsible: int,
-                    paid_today: bool, featured: bool, threshold: str) -> bool:
+                    paid_today: bool, featured: bool, threshold: str,
+                    date_from: QDate | None = None, date_to: QDate | None = None,
+                    period_field: PeriodField = PeriodField.DUEDATE) -> bool:
     return (matches_term(term, liability, threshold)
             and matches_category(category, liability)
-            and matches_details(liability, search, responsible, paid_today, featured))
+            and matches_details(liability, search, responsible, paid_today, featured, date_from, date_to, period_field))

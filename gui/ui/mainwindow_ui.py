@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QCombo
     QWidget)
 
 from gui.commonwidgets.autoresizetextedit import AutoResizingTextEdit
+from gui.commonwidgets.optionaldateedit import OptionalDateEdit
 from gui.commonwidgets.switchpushbutton import SwitchPushButton
 from gui.eventwidget import EventWidget
 from gui.filterwidget import (CategoryFilterListWidget, TermFilterListWidget)
@@ -217,17 +218,73 @@ class Ui_MainWindow(object):
         self.spb_responsible.setFont(font)
         self.spb_responsible.setStyleSheet(u"border-width: 0px; text-align: left;")
 
-        self.gridLayout_3.addWidget(self.spb_responsible, 14, 0, 1, 2)
+        self.gridLayout_3.addWidget(self.spb_responsible, 17, 0, 1, 2)
 
         self.verticalSpacer_7 = QSpacerItem(20, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        self.gridLayout_3.addItem(self.verticalSpacer_7, 13, 0, 1, 1)
+        self.gridLayout_3.addItem(self.verticalSpacer_7, 16, 0, 1, 1)
+
+        self.spb_period = SwitchPushButton(self.scrollAreaWidgetContents)
+        self.spb_period.setObjectName(u"spb_period")
+        self.spb_period.setFont(font)
+        self.spb_period.setStyleSheet(u"border-width: 0px; text-align: left;")
+
+        self.gridLayout_3.addWidget(self.spb_period, 7, 0, 1, 2)
+
+        self.wdg_period = QWidget(self.scrollAreaWidgetContents)
+        self.wdg_period.setObjectName(u"wdg_period")
+        self.gridLayout_period = QGridLayout(self.wdg_period)
+        self.gridLayout_period.setObjectName(u"gridLayout_period")
+        self.gridLayout_period.setHorizontalSpacing(6)
+        self.gridLayout_period.setContentsMargins(0, 0, 0, 0)
+        self.cmb_perioddate = QComboBox(self.wdg_period)
+        self.cmb_perioddate.addItem("")
+        self.cmb_perioddate.addItem("")
+        self.cmb_perioddate.addItem("")
+        self.cmb_perioddate.setObjectName(u"cmb_perioddate")
+
+        self.gridLayout_period.addWidget(self.cmb_perioddate, 3, 0, 1, 2)
+
+        self.label_datefrom = QLabel(self.wdg_period)
+        self.label_datefrom.setObjectName(u"label_datefrom")
+
+        self.gridLayout_period.addWidget(self.label_datefrom, 0, 0, 1, 1)
+
+        self.de_datefrom = OptionalDateEdit(self.wdg_period)
+        self.de_datefrom.setObjectName(u"de_datefrom")
+        self.de_datefrom.setCalendarPopup(True)
+        self.de_datefrom.setMinimumDate(QDate(2000, 1, 1))
+
+        self.gridLayout_period.addWidget(self.de_datefrom, 0, 1, 1, 1)
+
+        self.label_dateto = QLabel(self.wdg_period)
+        self.label_dateto.setObjectName(u"label_dateto")
+
+        self.gridLayout_period.addWidget(self.label_dateto, 1, 0, 1, 1)
+
+        self.de_dateto = OptionalDateEdit(self.wdg_period)
+        self.de_dateto.setObjectName(u"de_dateto")
+        self.de_dateto.setCalendarPopup(True)
+        self.de_dateto.setMinimumDate(QDate(2000, 1, 1))
+
+        self.gridLayout_period.addWidget(self.de_dateto, 1, 1, 1, 1)
+
+        self.horizontalSpacer_period = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_period.addItem(self.horizontalSpacer_period, 0, 2, 1, 1)
+
+
+        self.gridLayout_3.addWidget(self.wdg_period, 8, 0, 1, 2)
+
+        self.verticalSpacer_11 = QSpacerItem(5, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+
+        self.gridLayout_3.addItem(self.verticalSpacer_11, 9, 0, 1, 1)
 
         self.chb_paytoday = QCheckBox(self.scrollAreaWidgetContents)
         self.chb_paytoday.setObjectName(u"chb_paytoday")
         self.chb_paytoday.setFont(font)
 
-        self.gridLayout_3.addWidget(self.chb_paytoday, 17, 0, 1, 2)
+        self.gridLayout_3.addWidget(self.chb_paytoday, 20, 0, 1, 2)
 
         self.lw_term = TermFilterListWidget(self.scrollAreaWidgetContents)
         self.lw_term.setObjectName(u"lw_term")
@@ -246,20 +303,20 @@ class Ui_MainWindow(object):
         self.spb_category.setFont(font)
         self.spb_category.setStyleSheet(u"border-width: 0px; text-align: left;")
 
-        self.gridLayout_3.addWidget(self.spb_category, 7, 0, 1, 2)
+        self.gridLayout_3.addWidget(self.spb_category, 10, 0, 1, 2)
 
         self.cmb_responsiblefilter = QComboBox(self.scrollAreaWidgetContents)
         self.cmb_responsiblefilter.setObjectName(u"cmb_responsiblefilter")
 
-        self.gridLayout_3.addWidget(self.cmb_responsiblefilter, 15, 0, 1, 2)
+        self.gridLayout_3.addWidget(self.cmb_responsiblefilter, 18, 0, 1, 2)
 
         self.verticalSpacer_8 = QSpacerItem(5, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        self.gridLayout_3.addItem(self.verticalSpacer_8, 16, 0, 1, 1)
+        self.gridLayout_3.addItem(self.verticalSpacer_8, 19, 0, 1, 1)
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout_3.addItem(self.verticalSpacer, 18, 0, 1, 2)
+        self.gridLayout_3.addItem(self.verticalSpacer, 21, 0, 1, 2)
 
         self.lw_category = CategoryFilterListWidget(self.scrollAreaWidgetContents)
         self.lw_category.setObjectName(u"lw_category")
@@ -268,7 +325,7 @@ class Ui_MainWindow(object):
         self.lw_category.setFrameShape(QFrame.Shape.NoFrame)
         self.lw_category.setIconSize(QSize(17, 17))
 
-        self.gridLayout_3.addWidget(self.lw_category, 9, 0, 1, 2)
+        self.gridLayout_3.addWidget(self.lw_category, 12, 0, 1, 2)
 
         self.spb_term = SwitchPushButton(self.scrollAreaWidgetContents)
         self.spb_term.setObjectName(u"spb_term")
@@ -664,6 +721,17 @@ class Ui_MainWindow(object):
 #endif // QT_CONFIG(tooltip)
         self.le_search.setPlaceholderText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0438\u0441\u043a (Ctrl+F)", None))
         self.spb_responsible.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041e\U00000422\U00000412\U00000415\U00000422\U00000421\U00000422\U00000412\U00000415\U0000041d\U0000041d\U0000042b\U00000419", None))
+        self.spb_period.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0415\u0420\u0418\u041e\u0414", None))
+        self.cmb_perioddate.setItemText(0, QCoreApplication.translate("MainWindow", u"\u0421\u0440\u043e\u043a \u043e\u043f\u043b\u0430\u0442\u044b", None))
+        self.cmb_perioddate.setItemText(1, QCoreApplication.translate("MainWindow", u"\u0414\u0430\u0442\u0430 \u0432\u043e\u0437\u043d\u0438\u043a\u043d\u043e\u0432\u0435\u043d\u0438\u044f", None))
+        self.cmb_perioddate.setItemText(2, QCoreApplication.translate("MainWindow", u"\u0414\u0430\u0442\u0430 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0439 \u043e\u043f\u043b\u0430\u0442\u044b", None))
+
+        self.label_datefrom.setText(QCoreApplication.translate("MainWindow", u"\u0421:", None))
+        self.de_datefrom.setSpecialValueText(QCoreApplication.translate("MainWindow", u"\u00a0", None))
+        self.de_datefrom.setDisplayFormat(QCoreApplication.translate("MainWindow", u"dd.MM.yyyy", None))
+        self.label_dateto.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e:", None))
+        self.de_dateto.setSpecialValueText(QCoreApplication.translate("MainWindow", u"\u00a0", None))
+        self.de_dateto.setDisplayFormat(QCoreApplication.translate("MainWindow", u"dd.MM.yyyy", None))
         self.chb_paytoday.setText(QCoreApplication.translate("MainWindow", u"\u041e\u041f\u041b\u0410\u0422\u0410 \u0421\u0415\u0413\u041e\u0414\u041d\u042f", None))
         self.spb_category.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041a\U00000410\U00000422\U00000415\U00000413\U0000041e\U00000420\U00000418\U0000042f", None))
         self.spb_term.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U00000421\U00000420\U0000041e\U0000041a \U0000041e\U0000041f\U0000041b\U00000410\U00000422\U0000042b", None))

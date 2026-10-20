@@ -5,7 +5,7 @@ from PySide6.QtCore import QDate, Qt
 
 from base.date import str_date
 from base.liability import (CATEGORY_NAMES, Col, HeaderFooterSubtype, LiabilityCategory, LiabilityRow,
-                            RowType, STORED_INDEX, TermCategory, calculate_filterflags, category_section,
+                            PeriodField, RowType, STORED_INDEX, TermCategory, calculate_filterflags, category_section,
                             is_top_level_category, matches_category, matches_details, matches_filters, matches_term,
                             paid_threshold)
 
@@ -68,6 +68,9 @@ class LiabilityStore:
         self.search_filter: str = ""
         self.responsible_filter: int = 0
         self.featured_filter: bool = False
+        self.date_from_filter: QDate | None = None
+        self.date_to_filter: QDate | None = None
+        self.period_field_filter: PeriodField = PeriodField.DUEDATE
         self.paid_months_filter: int = 3
         self.exclude_hidden: bool = False
 
@@ -161,6 +164,7 @@ class LiabilityStore:
             remain = Decimal(values[STORED_INDEX[Col.TOTALAMOUNT]]) - paid
         except (InvalidOperation, TypeError):
             remain = -paid
+        incurrence = values[STORED_INDEX[Col.INCURRENCEDATE]]
         filter_flags = calculate_filterflags(remain, self.due_dates[event_id], today_share != 0, self.current_date)
         search_text = "\n".join(str(values[STORED_INDEX[column]] or "")
                                 for column in (Col.NAME, Col.DESCR, Col.RECEIVER)).lower()
@@ -170,10 +174,12 @@ class LiabilityStore:
                             featured=bool(values[STORED_INDEX[Col.FEATURED]]),
                             hidden=bool(values[STORED_INDEX[Col.HIDDEN]]),
                             remain=remain, today_share=today_share, last_payment_date=last_payment_date,
-                            filter_flags=filter_flags)
+                            filter_flags=filter_flags, due_date=self.due_dates[event_id],
+                            incurrence_date=str_date(incurrence) if incurrence else QDate())
 
     def set_filters(self, term: TermCategory, category: int, search: str, responsible: int, paid_today: bool,
-                    paid_months_toshow: int, featured: bool) -> None:
+                    paid_months_toshow: int, featured: bool, date_from: QDate | None = None,
+                    date_to: QDate | None = None, period_field: PeriodField = PeriodField.DUEDATE) -> None:
         self.term_filter = term
         self.category_filter = category
         self.search_filter = search.strip().lower()
@@ -181,6 +187,9 @@ class LiabilityStore:
         self.paytoday_filter = paid_today
         self.paid_months_filter = paid_months_toshow
         self.featured_filter = featured
+        self.date_from_filter = date_from
+        self.date_to_filter = date_to
+        self.period_field_filter = period_field
         self.invalidate()
 
     def set_hidden_filter(self, exclude_hidden: bool) -> None:
@@ -229,7 +238,8 @@ class LiabilityStore:
             if self.exclude_hidden and liability.hidden:
                 continue
             if not matches_filters(liability, self.term_filter, self.category_filter, self.search_filter,
-                                   self.responsible_filter, self.paytoday_filter, self.featured_filter, threshold):
+                                   self.responsible_filter, self.paytoday_filter, self.featured_filter, threshold,
+                                   self.date_from_filter, self.date_to_filter, self.period_field_filter):
                 continue
             accepted_ids.add(event_id)
             group = category_section(liability.category)
@@ -355,7 +365,8 @@ class LiabilityStore:
         total_by_term = 0
         for liability in self.liabilities.values():
             if not matches_details(liability, self.search_filter, self.responsible_filter, self.paytoday_filter,
-                                   self.featured_filter):
+                                   self.featured_filter, self.date_from_filter, self.date_to_filter,
+                                   self.period_field_filter):
                 continue
             if matches_category(self.category_filter, liability):
                 for term_category in TermCategory:

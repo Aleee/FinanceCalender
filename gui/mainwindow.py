@@ -30,7 +30,7 @@ from gui.contractdialog import ContractDocumentDialog
 from gui.contractordialog import ContractorDialog
 from gui.copydocdialog import CopyDocDialog
 from gui.eventdialog import EventDialog
-from base.liability import Col, FilterFlags, RowType, PaymentType, TermCategory
+from base.liability import Col, FilterFlags, PeriodField, RowType, PaymentType, TermCategory
 from base.liabilitystore import LiabilityStore
 from gui.feedialog import FeeDialog
 from gui.finplandialog import FinPlanDialog
@@ -327,6 +327,8 @@ class MainWindow(QMainWindow):
              lambda: self.ui.lw_term.currentRow() != 0),
             (self.ui.spb_category, self.ui.lw_category, "КАТЕГОРИЯ",
              lambda: self.ui.lw_category.currentRow() != 0),
+            (self.ui.spb_period, self.ui.wdg_period, "ПЕРИОД",
+             lambda: self.ui.de_datefrom.value() is not None or self.ui.de_dateto.value() is not None),
             (self.ui.spb_responsible, self.ui.cmb_responsiblefilter, "ОТВЕТСТВЕННЫЙ",
              lambda: self.ui.cmb_responsiblefilter.currentData(Qt.ItemDataRole.UserRole) != 0),
         )
@@ -343,6 +345,9 @@ class MainWindow(QMainWindow):
         self.ui.lw_category.currentRowChanged.connect(self.update_filters_and_select)
         self.ui.cmb_responsiblefilter.currentIndexChanged.connect(self.update_filters_and_select)
         self.ui.chb_paytoday.checkStateChanged.connect(self.update_filters_and_select)
+        self.ui.de_datefrom.dateChanged.connect(self.update_filters_and_select)
+        self.ui.de_dateto.dateChanged.connect(self.update_filters_and_select)
+        self.ui.cmb_perioddate.currentIndexChanged.connect(self.update_filters_and_select)
 
         # Быстрый поиск (с задержкой, чтобы не перефильтровывать таблицу на каждое нажатие) и сброс фильтров
         self.search_timer: QTimer = QTimer(self)
@@ -1022,7 +1027,7 @@ class MainWindow(QMainWindow):
             self.table_model.document_titles.clear()
             self.update_eventinfo()
 
-    # Общий набор аргументов для set_filters, чтобы не дублировать список из 7 параметров
+    # Общий набор аргументов для set_filters, чтобы не дублировать список из 9 параметров
     def _current_filter_args(self) -> tuple:
         return (self.ui.lw_term.current_term(),
                 self.ui.lw_category.current_category(),
@@ -1030,7 +1035,10 @@ class MainWindow(QMainWindow):
                 self.ui.cmb_responsiblefilter.currentData(),
                 self.ui.chb_paytoday.isChecked(),
                 str_int(self.settings_handler.settings.value("Common/paidloadperiod", 3), 3),
-                self.ui.act_featured.isChecked())
+                self.ui.act_featured.isChecked(),
+                self.ui.de_datefrom.value(),
+                self.ui.de_dateto.value(),
+                PeriodField(self.ui.cmb_perioddate.currentIndex()))
 
     def update_filters_and_select(self) -> None:
         filter_args = self._current_filter_args()
@@ -1061,7 +1069,8 @@ class MainWindow(QMainWindow):
     def reset_filters(self) -> None:
         blocked_widgets: tuple = (self.ui.lw_term, self.ui.lw_category,
                                   self.ui.cmb_responsiblefilter, self.ui.chb_paytoday,
-                                  self.ui.le_search, self.ui.act_featured)
+                                  self.ui.le_search, self.ui.act_featured, self.ui.de_datefrom, self.ui.de_dateto,
+                                  self.ui.cmb_perioddate)
         for widget in blocked_widgets:
             widget.blockSignals(True)
         self.ui.lw_term.setCurrentRow(0)
@@ -1070,6 +1079,9 @@ class MainWindow(QMainWindow):
         self.ui.chb_paytoday.setChecked(False)
         self.ui.le_search.clear()
         self.ui.act_featured.setChecked(False)
+        self.ui.de_datefrom.clear_date()
+        self.ui.de_dateto.clear_date()
+        self.ui.cmb_perioddate.setCurrentIndex(0)
         for widget in blocked_widgets:
             widget.blockSignals(False)
 

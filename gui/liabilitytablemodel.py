@@ -9,7 +9,7 @@ from base.contract import DocumentTitle
 from base.date import date_displstr, str_date
 from base.formatting import dec_strcommaspace
 from base.liability import (CATEGORY_NAMES, Col, DERIVED_COLUMNS, EVENT_COLUMN_NAMES, FilterFlags, HeaderFooterSubtype,
-                            PAYMENTTYPE_NAMES, RowType, STORED_INDEX, TermCategory)
+                            PAYMENTTYPE_NAMES, PeriodField, RowType, STORED_INDEX, TermCategory)
 from base.liabilitystore import LiabilityStore, VisibleRow
 from gui.commonwidgets.common import RowStyle
 
@@ -154,9 +154,11 @@ class LiabilityTableModel(QAbstractTableModel):
         self.store.load_payment_totals()
 
     def set_filters(self, term: TermCategory, category: int, search: str, responsible: int, paid_today: bool,
-                    paid_months_toshow: int, featured: bool) -> None:
+                    paid_months_toshow: int, featured: bool, date_from: QDate | None = None,
+                    date_to: QDate | None = None, period_field: PeriodField = PeriodField.DUEDATE) -> None:
         def apply_filters() -> None:
-            self.store.set_filters(term, category, search, responsible, paid_today, paid_months_toshow, featured)
+            self.store.set_filters(term, category, search, responsible, paid_today, paid_months_toshow, featured,
+                                   date_from, date_to, period_field)
             self.store.set_sort(Col.LASTPAYMENTDATE if term == TermCategory.PAID else Col.DUEDATE, self.store.sort_order)
 
         self.change_layout(apply_filters)

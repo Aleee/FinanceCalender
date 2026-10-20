@@ -129,6 +129,7 @@ class SettingsHandler:
         self.mw.ui.spb_term.set_switch_state(str_bool(self.settings.value("Sidepanel/termfilter"), True))
         self.mw.ui.spb_category.set_switch_state(str_bool(self.settings.value("Sidepanel/categoryfilter"), True))
         self.mw.ui.spb_responsible.set_switch_state(str_bool(self.settings.value("Sidepanel/responsiblefilter"), True))
+        self.mw.ui.spb_period.set_switch_state(str_bool(self.settings.value("Sidepanel/periodfilter"), False))
 
         # Таблица
         ## Скрытие и отображение столбцов
@@ -246,6 +247,7 @@ class SettingsHandler:
         self.settings.setValue("Sidepanel/termfilter", int(self.mw.ui.spb_term.switch_state()))
         self.settings.setValue("Sidepanel/categoryfilter", int(self.mw.ui.spb_category.switch_state()))
         self.settings.setValue("Sidepanel/responsiblefilter", int(self.mw.ui.spb_responsible.switch_state()))
+        self.settings.setValue("Sidepanel/periodfilter", int(self.mw.ui.spb_period.switch_state()))
         ## Положение разделителей
         self.settings.setValue("Mainwindow/splittermain", self.mw.ui.spl_main.saveState())
         self.settings.setValue("Mainwindow/splitterworkarea", self.mw.ui.spl_workarea.saveState())
