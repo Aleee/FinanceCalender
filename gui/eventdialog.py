@@ -406,7 +406,7 @@ class EventDialog(QDialog):
         # Сигнал: изменение НДС при изменении категории
         self.ui.cmb_category.currentIndexChanged.connect(self.change_nds)
         # Сигнал: корректировка даты создания при изменении даты платежа пользователем
-        self.ui.de_duedate.dateChanged.connect(lambda new_date: self.adjust_incurrencedate(new_date))
+        self.ui.de_duedate.editingFinished.connect(lambda: self.adjust_incurrencedate(self.ui.de_duedate.date()))
 
         self.sidepanel_visibility = str_bool(self.sh.settings.value("Eventdialog/sidepanel"), False)
         self.change_sidepanel_visibility(self.sidepanel_visibility)
