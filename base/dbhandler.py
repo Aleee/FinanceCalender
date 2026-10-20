@@ -1148,6 +1148,53 @@ class DBHandler:
 
         return self.run_in_transaction(action)
 
+    def load_event_backup(self, event_id: int) -> tuple[tuple, list[tuple]] | None:
+        if not self.is_db_connected():
+            return None
+        query = QSqlQuery()
+        queries = (f"SELECT {', '.join(EVENT_COLUMN_NAMES)} FROM event WHERE id = ?",
+                   "SELECT id, eventid, paymentdate, sum, createdate FROM payment WHERE eventid = ? ORDER BY id")
+        results: list[list[tuple]] = []
+        for sql in queries:
+            query.prepare(sql)
+            query.addBindValue(event_id)
+            if not query.exec():
+                log.e(f"Не удалось прочитать данные платежа {event_id}: {query.lastError().text()}")
+                return None
+            rows: list[tuple] = []
+            while query.next():
+                rows.append(tuple(None if query.isNull(column) else query.value(column)
+                                  for column in range(query.record().count())))
+            results.append(rows)
+        return (results[0][0], results[1]) if results[0] else None
+
+    def restore_event(self, event: tuple, payments: list[tuple]) -> bool:
+        if not self.is_db_connected():
+            return False
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare(f"INSERT INTO event ({', '.join(EVENT_COLUMN_NAMES)}) "
+                          f"VALUES ({', '.join('NULL' if value is None else '?' for value in event)})")
+            for value in event:
+                if value is not None:
+                    query.addBindValue(value)
+            if not query.exec():
+                log.e(f"Не удалось восстановить строку в таблице event: {query.lastError().text()}")
+                return False
+            for payment in payments:
+                query.prepare("INSERT INTO payment (id, eventid, paymentdate, sum, createdate) "
+                              f"VALUES ({', '.join('NULL' if value is None else '?' for value in payment)})")
+                for value in payment:
+                    if value is not None:
+                        query.addBindValue(value)
+                if not query.exec():
+                    log.e(f"Не удалось восстановить оплату в таблице payment: {query.lastError().text()}")
+                    return False
+            return True
+
+        return self.run_in_transaction(action)
+
     @staticmethod
     def paid_load_filter(threshold: str) -> str:
         cents = "CAST(ROUND(CAST({}.{} AS REAL) * 100) AS INTEGER)"

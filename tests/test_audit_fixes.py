@@ -134,6 +134,21 @@ def test_deleting_event_removes_its_payments_only(models, shared_dbh):
     assert query_all(models.path, "SELECT COUNT(*) FROM payment WHERE eventid NOT IN (SELECT id FROM event)")[0][0] == 0
 
 
+def test_deleted_event_is_restored_with_payments(models, shared_dbh):
+    ids = prepare_events_with_payments(models)
+    target = ids[1]
+    event, payments = shared_dbh.load_event_backup(target)
+    assert len(payments) == 3
+    events_before = query_all(models.path, "SELECT * FROM event WHERE id = ?", target)
+    payments_before = query_all(models.path, "SELECT * FROM payment WHERE eventid = ?", target)
+    assert shared_dbh.run_in_transaction(lambda: shared_dbh.delete_payments_by_event(target) and models.table.delete_event(target))
+    assert models.table.restore_event(event, payments)
+    assert models.table.last_inserted_id == target
+    assert models.store.event_values(target) is not None
+    assert query_all(models.path, "SELECT * FROM event WHERE id = ?", target) == events_before
+    assert query_all(models.path, "SELECT * FROM payment WHERE eventid = ?", target) == payments_before
+
+
 def test_failed_event_deletion_restores_payments(models, shared_dbh):
     ids = prepare_events_with_payments(models)
     target = ids[1]

@@ -81,6 +81,7 @@ class MainWindow(QMainWindow):
         self.saved_before_exit: bool = False
         self.nosave_exit: bool = False
         self.bound_document_id: int = 0
+        self.deleted_event: tuple[tuple, list[tuple]] | None = None
         self.sync_status_text: str = "не выполнялась"
         self.sync_progress: SyncProgressDialog | None = None
         self.sync_error: str = ""
@@ -866,6 +867,7 @@ class MainWindow(QMainWindow):
         self.ui.le_search.returnPressed.connect(self.ui.trw_event.setFocus)
         # Оплата с клавиатуры: Enter в полях даты и суммы, Del в истории оплат
         if not is_viewer():
+            QShortcut(QKeySequence("Ctrl+Z"), self).activated.connect(self.undo_delete_event)
             self.ui.dsb_paymentsum.lineEdit().returnPressed.connect(self.ui.pb_addpayment.click)
             self.ui.de_paymentdate.lineEdit().returnPressed.connect(self.ui.pb_addpayment.click)
             delete_payment_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Delete), self.ui.tv_payment)
@@ -1258,10 +1260,13 @@ class MainWindow(QMainWindow):
         if not curr_index.isValid():
             self.warn_selection_lost()
             return False
-        msg_box = YesNoMessagebox("Удаление платежа - необратимое действие. Уверены, что хотите продолжить?",
+        msg_box = YesNoMessagebox("Платеж будет удален вместе с историей его оплат. "
+                                  "Отменить удаление можно сочетанием Ctrl+Z, пока вы не удалите другой платеж "
+                                  "или не закроете программу. Продолжить?",
                                   self, cancel_by_default=True)
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
             event_id: int = self.current_data(Col.ID, LiabilityTableModel.qtValueRole)
+            backup = self.db_handler.load_event_backup(event_id)
             deleted: bool = self.db_handler.run_in_transaction(
                 lambda: self.db_handler.delete_payments_by_event(event_id) and self.table_model.delete_event(event_id))
             if not deleted:
@@ -1269,11 +1274,28 @@ class MainWindow(QMainWindow):
                 self.update_filters_and_select()
                 ErrorInfoMessageBox("Не удалось удалить платеж (подробности см. в логе)", parent=self).exec()
                 return False
+            self.deleted_event = backup
             # Удаление строки не вызывает currentChanged
             self.on_currentevent_change()
             self.update_filters_and_select()
+            if self.deleted_event:
+                self.ui.statusBar.showMessage("Платеж удален. Ctrl+Z - отменить удаление", 15000)
             return True
         return False
+
+    def undo_delete_event(self) -> bool:
+        if is_viewer() or self.deleted_event is None:
+            return False
+        event, payments = self.deleted_event
+        if not self.table_model.restore_event(event, payments):
+            self.table_model.reload()
+            self.update_filters_and_select()
+            ErrorInfoMessageBox("Не удалось восстановить платеж (подробности см. в логе)", parent=self).exec()
+            return False
+        self.deleted_event = None
+        self.select_new_event(False)
+        self.ui.statusBar.showMessage("Удаление отменено, платеж восстановлен", 5000)
+        return True
 
     def open_settings_dialog(self) -> None:
         settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, self.db_handler, self)

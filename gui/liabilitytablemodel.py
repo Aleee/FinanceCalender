@@ -219,6 +219,14 @@ class LiabilityTableModel(QAbstractTableModel):
         self.change_layout(lambda: self.store.remove_event(event_id))
         return True
 
+    def restore_event(self, event: tuple, payments: list[tuple]) -> bool:
+        if not self.db_handler.restore_event(event, payments):
+            return False
+        event_id = event[EVENT_COLUMN_NAMES.index("id")]
+        self.last_inserted_id = event_id
+        self.change_layout(lambda: self.store.refresh_event(event_id))
+        return True
+
     def document_title(self, document_id: int) -> DocumentTitle | None:
         if not self.document_titles:
             self.document_titles = self.db_handler.load_document_titles() or {}
