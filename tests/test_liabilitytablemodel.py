@@ -2,7 +2,7 @@ import sqlite3
 from decimal import Decimal
 
 import pytest
-from PySide6.QtCore import QItemSelectionModel, QPersistentModelIndex, Qt
+from PySide6.QtCore import QDate, QItemSelectionModel, QPersistentModelIndex, Qt
 
 from base.liability import Col, FilterFlags, HeaderFooterSubtype, PaymentType, RowType, TermCategory
 from gui.eventwidget import EventWidget
@@ -394,6 +394,56 @@ def test_set_sort_through_model(db_file, open_models):
     assert order() == [second, first]
     models.table.set_sort(Col.TOTALAMOUNT, Qt.SortOrder.DescendingOrder)
     assert order() == [first, second]
+
+
+def test_paid_filter_sorts_by_last_payment_date(db_file, open_models):
+    first = add_event(db_file, category=1101, total="10.00", due=day(-9))
+    second = add_event(db_file, category=1101, total="10.00", due=day(-8))
+    third = add_event(db_file, category=1101, total="10.00", due=day(-7))
+    unpaid = add_event(db_file, category=1101, total="10.00", due=day(5))
+    for event_id, paid_day in ((first, day(-1)), (second, day(-3)), (third, day(-2))):
+        add_payment(db_file, event_id, paid_day, "10.00")
+    models = open_models(db_file)
+    table = models.table
+
+    def order() -> list[int]:
+        return [table.index(row, Col.ID).data(DB_VALUE) for row in range(table.rowCount())
+                if table.index(row, Col.TYPE).data(DB_VALUE) == RowType.LIABILITY]
+
+    models.apply(TermCategory.PAID)
+    assert order() == [second, third, first]
+    assert cell(models, first, Col.LASTPAYMENTDATE) == QDate.fromString(day(-1), "yyyy-MM-dd").toString("dd.MM.yyyy")
+    models.apply(TermCategory.UNPAID)
+    assert order() == [unpaid]
+    assert cell(models, unpaid, Col.LASTPAYMENTDATE) == ""
+    models.apply(TermCategory.PAID)
+    assert order() == [second, third, first]
+    assert table.store.sort_column == Col.LASTPAYMENTDATE
+    models.apply(TermCategory.UNPAID)
+    assert table.store.sort_column == Col.DUEDATE
+
+
+def test_paid_mode_swaps_remain_and_last_payment_columns(rich):
+    view = EventWidget()
+    view.setModel(rich.table)
+    view.setColumnWidth(Col.LASTPAYMENTDATE, 0)
+    view.hide_columns()
+    header = view.header()
+    assert header.visualIndex(Col.LASTPAYMENTDATE) + 1 == header.visualIndex(Col.REMAINAMOUNT)
+    assert view.isColumnHidden(Col.LASTPAYMENTDATE) and not view.isColumnHidden(Col.REMAINAMOUNT)
+
+    view.hide_columns([Col.TOTALAMOUNT])
+    view.setColumnWidth(Col.REMAINAMOUNT, 140)
+    view.set_paid_mode(True)
+    assert not view.isColumnHidden(Col.LASTPAYMENTDATE) and view.isColumnHidden(Col.REMAINAMOUNT)
+    assert view.columnWidth(Col.LASTPAYMENTDATE) == 140
+    assert view.isColumnHidden(Col.TOTALAMOUNT)
+
+    view.setColumnWidth(Col.LASTPAYMENTDATE, 90)
+    view.set_paid_mode(False)
+    assert view.isColumnHidden(Col.LASTPAYMENTDATE) and not view.isColumnHidden(Col.REMAINAMOUNT)
+    assert view.columnWidth(Col.REMAINAMOUNT) == 90
+    assert view.isColumnHidden(Col.TOTALAMOUNT)
 
 
 def test_table_reading_does_not_write(rich):

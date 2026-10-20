@@ -62,7 +62,7 @@ class LiabilityTableModel(QAbstractTableModel):
         Col.RESPONSIBLE: ("Ответственный", True),
         Col.NOTES: ("", False),
         Col.TODAYSHARE: ("Оплата сегодня", True),
-        Col.LASTPAYMENTDATE: ("", False),
+        Col.LASTPAYMENTDATE: ("Последняя оплата", False),
         Col.FILTERFLAGS: ("", False),
         Col.FEATURED: ("", True),
         Col.HIDDEN: ("", True),
@@ -155,8 +155,11 @@ class LiabilityTableModel(QAbstractTableModel):
 
     def set_filters(self, term: TermCategory, category: int, search: str, responsible: int, paid_today: bool,
                     paid_months_toshow: int, featured: bool) -> None:
-        self.change_layout(lambda: self.store.set_filters(term, category, search, responsible, paid_today,
-                                                          paid_months_toshow, featured))
+        def apply_filters() -> None:
+            self.store.set_filters(term, category, search, responsible, paid_today, paid_months_toshow, featured)
+            self.store.set_sort(Col.LASTPAYMENTDATE if term == TermCategory.PAID else Col.DUEDATE, self.store.sort_order)
+
+        self.change_layout(apply_filters)
 
     def set_hidden_filter(self, exclude_hidden: bool) -> None:
         self.change_layout(lambda: self.store.set_hidden_filter(exclude_hidden))
@@ -376,6 +379,8 @@ class LiabilityTableModel(QAbstractTableModel):
                 return dec_strcommaspace(self.qt_value(row, column))
             elif column in (Col.DUEDATE, Col.INCURRENCEDATE):
                 return date_displstr(self.qt_value(row, column))
+            elif column == Col.LASTPAYMENTDATE:
+                return date_displstr(str_date(self.db_value(row, column)))
             elif column == Col.RESPONSIBLE:
                 try:
                     return self.personal_dict[self.qt_value(row, column)][0]

@@ -30,7 +30,7 @@ from gui.contractdialog import ContractDocumentDialog
 from gui.contractordialog import ContractorDialog
 from gui.copydocdialog import CopyDocDialog
 from gui.eventdialog import EventDialog
-from base.liability import Col, FilterFlags, RowType, PaymentType
+from base.liability import Col, FilterFlags, RowType, PaymentType, TermCategory
 from base.liabilitystore import LiabilityStore
 from gui.feedialog import FeeDialog
 from gui.finplandialog import FinPlanDialog
@@ -1035,6 +1035,7 @@ class MainWindow(QMainWindow):
     def update_filters_and_select(self) -> None:
         filter_args = self._current_filter_args()
         self.table_model.set_filters(*filter_args)
+        self.ui.trw_event.set_paid_mode(filter_args[0] == TermCategory.PAID)
         term_labeldata, category_labeldata = self.table_model.filter_counters()
         self.ui.lw_term.update_labels(term_labeldata)
         self.ui.lw_category.update_labels(category_labeldata)

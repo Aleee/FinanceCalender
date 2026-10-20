@@ -297,6 +297,8 @@ class LiabilityStore:
             return liability.remain if liability else Decimal(0)
         if column == Col.TODAYSHARE:
             return liability.today_share if liability else Decimal(0)
+        if column == Col.LASTPAYMENTDATE:
+            return liability.last_payment_date if liability else ""
         return self.sort_dates[row.event_id]
 
     def attach_totals(self, rows: list[VisibleRow]) -> list[VisibleRow]:

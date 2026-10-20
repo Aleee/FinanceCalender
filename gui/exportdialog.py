@@ -21,6 +21,7 @@ class ExportDialog(QDialog):
         self.xls_writer: LiabilityXlsWriter = xls_writer
         self.column_visibility: list[bool] = list(column_visibility)
         self.column_visibility[Col.RECEIVER] = True
+        self.column_visibility[Col.LASTPAYMENTDATE] = False
 
         self.rbg_exporttype: QButtonGroup = QButtonGroup(self)
         self.rbg_exporttype.addButton(self.ui.rb_xlsx, ExportFormat.XLSX)

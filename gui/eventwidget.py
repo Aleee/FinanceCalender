@@ -35,7 +35,7 @@ class EventWidget(QTreeView):
         Col.RESPONSIBLE: 175,
         Col.NOTES: 0,
         Col.TODAYSHARE: 135,
-        Col.LASTPAYMENTDATE: 0,
+        Col.LASTPAYMENTDATE: 100,
         Col.FILTERFLAGS: 0,
         Col.FEATURED: 40,
         Col.HIDDEN: 40,
@@ -47,6 +47,8 @@ class EventWidget(QTreeView):
 
         self.selected_row_id: int | None = None
         self.skip_restore_selection: bool = False
+        self.paid_mode: bool = False
+        self.user_hidden_columns: list[Col] = []
 
         self.setUniformRowHeights(True)
         self.setRootIsDecorated(False)
@@ -97,12 +99,31 @@ class EventWidget(QTreeView):
             painter.setPen(QColor(self.EMPTY_TABLE_COLOR))
             painter.drawText(self.viewport().rect(), Qt.AlignmentFlag.AlignCenter, self.EMPTY_TABLE_TEXT)
 
+    def setModel(self, model) -> None:
+        super().setModel(model)
+        header = self.header()
+        header.moveSection(header.visualIndex(Col.LASTPAYMENTDATE), header.visualIndex(Col.REMAINAMOUNT))
+
+    def set_paid_mode(self, paid_mode: bool) -> None:
+        if paid_mode == self.paid_mode:
+            return
+        old_column, new_column = (Col.REMAINAMOUNT, Col.LASTPAYMENTDATE) if paid_mode else (Col.LASTPAYMENTDATE, Col.REMAINAMOUNT)
+        width = self.columnWidth(old_column)
+        self.paid_mode = paid_mode
+        self.hide_columns()
+        if width > 0:
+            self.setColumnWidth(new_column, width)
+
     def hide_columns(self, to_hide: list[Col] | None = None) -> None:
+        if to_hide is not None:
+            self.user_hidden_columns = list(to_hide)
         columns_to_hide: list = [key for key, val in self.model().COLUMN_DATA.items() if not val[1]]
         if is_viewer():
             columns_to_hide.extend((Col.FEATURED, Col.HIDDEN))
-        if to_hide:
-            columns_to_hide.extend(to_hide)
+        columns_to_hide.extend(self.user_hidden_columns)
+        if self.paid_mode:
+            columns_to_hide = [col for col in columns_to_hide if col != Col.LASTPAYMENTDATE]
+            columns_to_hide.append(Col.REMAINAMOUNT)
         # Сперва все столбцы восстанавливаются (скрытые - с шириной по умолчанию)
         for col in range(self.model().columnCount()):
             self.setColumnHidden(col, False)
