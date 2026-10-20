@@ -358,6 +358,10 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout.addWidget(self.pb_cancel, 16, 1, 1, 1)
 
+        QWidget.setTabOrder(self.spb_10000, self.spb_21000)
+        QWidget.setTabOrder(self.spb_21000, self.spb_22000)
+        QWidget.setTabOrder(self.spb_22000, self.spb_23100)
+        QWidget.setTabOrder(self.spb_23100, self.spb_23200)
 
         self.retranslateUi(FulfillmentOptionDialog)
 

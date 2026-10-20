@@ -606,6 +606,13 @@
    <header>gui/commonwidgets/firstdaydateedit.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>spb_10000</tabstop>
+  <tabstop>spb_21000</tabstop>
+  <tabstop>spb_22000</tabstop>
+  <tabstop>spb_23100</tabstop>
+  <tabstop>spb_23200</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
