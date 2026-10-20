@@ -4,6 +4,7 @@ from typing import Any, NamedTuple, TYPE_CHECKING
 from PySide6.QtCore import QDate, Qt
 
 from base.date import str_date
+from base.formatting import dec_strcommaspace
 from base.liability import (CATEGORY_NAMES, Col, HeaderFooterSubtype, LiabilityCategory, LiabilityRow,
                             PAYMENTTYPE_NAMES, PeriodField, RowType, STORED_INDEX, TermCategory, calculate_filterflags, category_section,
                             is_top_level_category, matches_category, matches_details, matches_filters, matches_term,
@@ -159,6 +160,14 @@ class LiabilityStore:
             self.liabilities[event_id] = self.build_liability(event_id, values)
         self.invalidate()
 
+    @staticmethod
+    def amount_search_text(amount: Decimal) -> str:
+        if amount == 0:
+            return ""
+        shown = dec_strcommaspace(amount)
+        compact = shown.replace(" ", "")
+        return f"{shown}\n{compact}\n{compact.replace(',', '.')}"
+
     def build_liability(self, event_id: int, values: tuple) -> LiabilityRow:
         paid, today_share, last_payment_date = self.payment_totals.get(event_id, self.NO_PAYMENTS)
         try:
@@ -167,8 +176,10 @@ class LiabilityStore:
             remain = -paid
         incurrence = values[STORED_INDEX[Col.INCURRENCEDATE]]
         filter_flags = calculate_filterflags(remain, self.due_dates[event_id], today_share != 0, self.current_date)
-        search_text = "\n".join(str(values[STORED_INDEX[column]] or "")
-                                for column in (Col.NAME, Col.DESCR, Col.RECEIVER)).lower()
+        total = to_decimal(values[STORED_INDEX[Col.TOTALAMOUNT]])
+        search_text = "\n".join([str(values[STORED_INDEX[column]] or "")
+                                 for column in (Col.NAME, Col.DESCR, Col.RECEIVER)]
+                                + [self.amount_search_text(amount) for amount in (total, remain, today_share)]).lower()
         return LiabilityRow(category=to_int(values[STORED_INDEX[Col.CATEGORY]]),
                             search_text=search_text,
                             responsible=to_int(values[STORED_INDEX[Col.RESPONSIBLE]]),
