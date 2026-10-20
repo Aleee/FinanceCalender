@@ -78,4 +78,6 @@ MIGRATIONS: dict[int, list[Migration]] = {
         '"subcategory" INTEGER, "name" TEXT, "nds" INTEGER, "paymenttype" INTEGER, "descr" TEXT, "responsible" INTEGER, "hidden" INTEGER)']
        + table_change_counter_triggers("contractsavedvalues"),
     7: ["ALTER TABLE event DROP COLUMN receivernocase"],
+    8: ["ALTER TABLE contractor ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE contract ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"],
 }

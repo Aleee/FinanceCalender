@@ -68,8 +68,9 @@ CREATE TABLE "payment" (
 META_DDL = 'CREATE TABLE "meta" ("key" TEXT, "value" TEXT)'
 
 OTHER_TABLES_DDL = [
-    'CREATE TABLE "contractor" ("id" INTEGER NOT NULL UNIQUE, "name" TEXT, PRIMARY KEY("id" AUTOINCREMENT))',
-    'CREATE TABLE "contract" ("id" INTEGER NOT NULL UNIQUE, "contractor_id" INTEGER, "name" TEXT, "date" TEXT, PRIMARY KEY("id" AUTOINCREMENT))',
+    'CREATE TABLE "contractor" ("id" INTEGER NOT NULL UNIQUE, "name" TEXT, "archived" INTEGER NOT NULL DEFAULT 0, PRIMARY KEY("id" AUTOINCREMENT))',
+    'CREATE TABLE "contract" ("id" INTEGER NOT NULL UNIQUE, "contractor_id" INTEGER, "name" TEXT, "date" TEXT, '
+    '"archived" INTEGER NOT NULL DEFAULT 0, PRIMARY KEY("id" AUTOINCREMENT))',
     'CREATE TABLE "contractdocument" ("id" INTEGER NOT NULL UNIQUE, "contract_id" INTEGER, "document_type" INTEGER, '
     '"document_name" TEXT, "description" TEXT, "position_id" INTEGER, PRIMARY KEY("id" AUTOINCREMENT))',
     'CREATE TABLE "contractpaymentterm" ("document_id" INTEGER, "payment_type" TEXT NOT NULL, "days_count" INTEGER DEFAULT 0, '
@@ -85,12 +86,19 @@ OTHER_TABLES_DDL = [
 ]
 
 
+def pre_v8_ddl(ddl: str) -> str:
+    if ddl.startswith(('CREATE TABLE "contractor"', 'CREATE TABLE "contract" ')):
+        return ddl.replace('"archived" INTEGER NOT NULL DEFAULT 0, ', '')
+    return ddl
+
+
 def create_db(path: Path, version: int, meta: dict[str, str] | None = None, legacy_event: bool = False) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(path)
     try:
         event_ddl = LEGACY_EVENT_DDL if legacy_event else PRE_V7_EVENT_DDL if 4 <= version < 7 else EVENT_DDL
-        for ddl in (event_ddl, PAYMENT_DDL, META_DDL, *OTHER_TABLES_DDL):
+        other_tables = OTHER_TABLES_DDL if version >= 8 else [pre_v8_ddl(ddl) for ddl in OTHER_TABLES_DDL]
+        for ddl in (event_ddl, PAYMENT_DDL, META_DDL, *other_tables):
             con.execute(ddl)
         rows = {"db_version": str(version), **(meta or {})}
         con.executemany("INSERT INTO meta (key, value) VALUES (?, ?)", rows.items())

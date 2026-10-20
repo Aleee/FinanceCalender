@@ -36,7 +36,7 @@ NAME_COLUMNS = {"responsible": "responsible_name", "contractor_id": "contractor_
 MONTH_COLUMNS = {f"m{number}": name.lower() for number, name in enumerate(FinPlanTableModel.HORIZONTAL_HEADER_LABELS[1:], 1)}
 CATEGORY_COLUMNS = {str(category): definition.title for category, definition in FinPlanTableModel.FINPLAN_STRUCTURE.items()}
 AMOUNT_COLUMNS = ("totalamount", "sum", "paid", *MONTH_COLUMNS, *CATEGORY_COLUMNS)
-BOOL_COLUMNS = ("featured", "hidden", "has_calendar_condition")
+BOOL_COLUMNS = ("featured", "hidden", "has_calendar_condition", "archived")
 VALUE_NAMES = {"category": CATEGORY_NAMES, "paymenttype": PAYMENTTYPE_NAMES}
 ROW_TITLES = {"contractor": "Контрагент", "contract": "Договор", "contractdocument": "Документ", "contractpaymentterm": "Сроки оплаты",
               "contractsavedvalues": "Сохранённые значения", "event": "Платеж", "payment": "Оплата", "finplan": "Финплан",
@@ -51,7 +51,7 @@ COLUMN_TITLES: dict[str, str] = {
     "eventid": "платеж", "contractor_id": "контрагент", "contract_id": "договор", "date": "дата", "document_type": "тип документа",
     "document_name": "название документа", "description": "описание", "position_id": "должность", "payment_type": "вид срока оплаты",
     "days_count": "количество дней", "days_type": "вид дней", "has_calendar_condition": "календарное условие",
-    "month_day": "число месяца", "month_type": "вид месяца", "year": "год", "startdate": "начало периода", "enddate": "конец периода",
+    "month_day": "число месяца", "month_type": "вид месяца", "archived": "архив", "year": "год", "startdate": "начало периода", "enddate": "конец периода",
     **MONTH_COLUMNS, **CATEGORY_COLUMNS,
 }
 

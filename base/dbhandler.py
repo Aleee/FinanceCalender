@@ -32,6 +32,7 @@ from gui.finplanmodel import FinPlanTableModel
 class DBHandler:
 
     DB_VERSION: int = _DB_VERSION
+    ARCHIVE_MARK: str = "CASE WHEN archived = 0 THEN '' ELSE ' (архив)' END"
     EVENT_TABLE_COLUMNUM: int = 17
     PAYMENT_TABLE_COLUMNUM: int = 5
 
@@ -1205,16 +1206,16 @@ class DBHandler:
                 f"HAVING MAX(p.paymentdate) <= '{threshold}' "
                 f"AND SUM({cents.format('p', 'sum')}) >= {cents.format('e', 'totalamount')})")
 
-    def load_contractors(self) -> list[tuple[int, str]] | None:
+    def load_contractors(self) -> list[tuple[int, str, bool]] | None:
         if not self.is_db_connected():
             return None
-        query = QSqlQuery("SELECT id, name FROM contractor")
+        query = QSqlQuery("SELECT id, name, archived FROM contractor")
         if not query.exec():
             log.e(f"Ошибка SQL при попытке получить данные из таблицы contractor: {query.lastError().text()}")
             return None
         contracors: list = []
         while query.next():
-            contracors.append((query.value(0), query.value(1)))
+            contracors.append((query.value(0), query.value(1), bool(query.value(2))))
         return contracors
 
     def add_contractor(self, contractor_name: str) -> int | None:
@@ -1227,18 +1228,69 @@ class DBHandler:
             return None
         return query.lastInsertId()
 
-    def load_contracts(self, contractor_id: int) -> list[tuple[int, str, str]] | None:
+    def rename_contractor(self, contractor_id: int, contractor_name: str) -> bool:
+        if not self.is_db_connected():
+            return False
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare("UPDATE contractor SET name = ? WHERE id = ?")
+            query.addBindValue(contractor_name)
+            query.addBindValue(contractor_id)
+            if not query.exec() or query.numRowsAffected() != 1:
+                log.e(f"Не удалось переименовать контрагента {contractor_id}: {query.lastError().text()}")
+                return False
+            return True
+
+        return self.run_in_transaction(action)
+
+    def update_contract(self, contract_id: int, contract_name: str, contract_date: str) -> bool:
+        if not self.is_db_connected():
+            return False
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare("UPDATE contract SET name = ?, date = ? WHERE id = ?")
+            query.addBindValue(contract_name)
+            query.addBindValue(contract_date)
+            query.addBindValue(contract_id)
+            if not query.exec() or query.numRowsAffected() != 1:
+                log.e(f"Не удалось изменить договор {contract_id}: {query.lastError().text()}")
+                return False
+            return True
+
+        return self.run_in_transaction(action)
+
+    def set_archived(self, table: str, row_id: int, archived: bool) -> bool:
+        if table not in ("contractor", "contract"):
+            raise ValueError(f"Таблица {table} не поддерживает архив")
+        if not self.is_db_connected():
+            return False
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare(f"UPDATE {table} SET archived = ? WHERE id = ?")
+            query.addBindValue(int(archived))
+            query.addBindValue(row_id)
+            if not query.exec() or query.numRowsAffected() != 1:
+                log.e(f"Не удалось изменить признак архива у записи {row_id} таблицы {table}: {query.lastError().text()}")
+                return False
+            return True
+
+        return self.run_in_transaction(action)
+
+    def load_contracts(self, contractor_id: int) -> list[tuple[int, str, str, bool]] | None:
         if not self.is_db_connected():
             return None
         query = QSqlQuery()
-        query.prepare("SELECT id, name, date FROM contract WHERE contractor_id = ?")
+        query.prepare("SELECT id, name, date, archived FROM contract WHERE contractor_id = ?")
         query.addBindValue(contractor_id)
         if not query.exec():
             log.e(f"Ошибка SQL при попытке получить данные из таблицы contract: {query.lastError().text()}")
             return None
         contracts: list = []
         while query.next():
-            contracts.append((query.value(0), query.value(1), query.value(2)))
+            contracts.append((query.value(0), query.value(1), query.value(2), bool(query.value(3))))
         return contracts
 
     def add_contract(self, contractor_id: int, contract_name: str, contract_date: str) -> int | None:
@@ -1459,15 +1511,16 @@ class DBHandler:
         result.sort(key=lambda r: r[1].casefold())
         return result
 
-    def load_contractors_for_combobox(self) -> list[tuple[int, str]] | None:
+    def load_contractors_for_combobox(self, include_id: int | None = None) -> list[tuple[int, str]] | None:
         return self._load_id_name_list(
-            "SELECT id, name FROM contractor", (),
+            f"SELECT id, COALESCE(name, '') || {self.ARCHIVE_MARK} FROM contractor WHERE archived = 0 OR id IS ?", (include_id,),
             "Ошибка SQL при попытке получить список контрагентов")
 
-    def load_contracts_for_combobox(self, contractor_id: int) -> list[tuple[int, str]] | None:
+    def load_contracts_for_combobox(self, contractor_id: int, include_id: int | None = None) -> list[tuple[int, str]] | None:
         return self._load_id_name_list(
             "SELECT id, '№ ' || COALESCE(name, '') || CASE WHEN COALESCE(date, '') = '' THEN '' "
-            "ELSE ' от ' || strftime('%d.%m.%Y', date) END FROM contract WHERE contractor_id = ?", (contractor_id,),
+            f"ELSE ' от ' || strftime('%d.%m.%Y', date) END || {self.ARCHIVE_MARK} "
+            "FROM contract WHERE contractor_id = ? AND (archived = 0 OR id IS ?)", (contractor_id, include_id),
             "Ошибка SQL при попытке получить список договоров")
 
     def load_contract_documents_for_combobox(self, contract_id: int) -> list[tuple[int, str]] | None:

@@ -75,11 +75,11 @@ class ContractSelector(QObject):
     def selected_document_id(self) -> int | None:
         return self.doc_id
 
-    def reload(self):
+    def reload(self, include_contractor_id: int | None = None):
         cmb = self.cmb_contractor
         cmb.blockSignals(True)
         cmb.clear()
-        for cid, name in self.db.load_contractors_for_combobox() or []:
+        for cid, name in self.db.load_contractors_for_combobox(include_contractor_id) or []:
             cmb.addItem(name, cid)
         cmb.setCurrentIndex(-1)
         cmb.blockSignals(False)
@@ -126,7 +126,7 @@ class ContractSelector(QObject):
 
         rows = []
         if contractor_id is not None:
-            rows = self.db.load_contracts_for_combobox(contractor_id) or []
+            rows = self.db.load_contracts_for_combobox(contractor_id, prefer_contract_id) or []
         for cid, name in rows:
             cmb.addItem(name, cid)
 
@@ -196,6 +196,9 @@ class ContractSelector(QObject):
         contractor_id, contract_id = parents
 
         idx = self.cmb_contractor.findData(contractor_id)
+        if idx < 0:
+            self.reload(contractor_id)
+            idx = self.cmb_contractor.findData(contractor_id)
         if idx < 0:
             return False
 

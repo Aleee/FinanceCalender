@@ -347,29 +347,29 @@ def test_pull_refused_when_master_is_corrupted(connected, channel):
 def test_pull_of_older_master_migrates_and_marks_changed(machine_a, channel, make_machine, dbh, migrations):
     with machine_a as dbh_a:
         push_master(dbh_a, channel, PARAMS)
-    dbh.DB_VERSION = 8
-    migrations[8] = ["INSERT INTO meta (key, value) VALUES ('key8', 'z')"]
+    dbh.DB_VERSION = 9
+    migrations[9] = ["INSERT INTO meta (key, value) VALUES ('key8', 'z')"]
     machine_b = make_machine("b")
     with machine_b as dbh_b:
         pull_master(dbh_b, channel, (SyncAction.FOREIGN_DB,))
         assert dbh_b.get_setting("marker") == "a"
         assert dbh_b.get_setting("key8") == "z"
-        assert dbh_b.get_setting("db_version") == "8"
+        assert dbh_b.get_setting("db_version") == "9"
         assert dbh_b.get_setting("change_counter") != "0"
         assert synchronize(dbh_b, channel, PARAMS) == SyncAction.PUSH
-    assert channel.read_master_info().db_version == 8
+    assert channel.read_master_info().db_version == 9
     assert not (machine_b.work_db_path.parent / "db_restore_temp.db").exists()
 
 
 def test_outdated_client_neither_pushes_nor_pulls(connected, channel, dbh, migrations):
     machine_a, machine_b = connected
-    dbh.DB_VERSION = 8
-    migrations[8] = ["INSERT INTO meta (key, value) VALUES ('key8', 'z')"]
+    dbh.DB_VERSION = 9
+    migrations[9] = ["INSERT INTO meta (key, value) VALUES ('key8', 'z')"]
     with machine_b as dbh_b:
         assert dbh_b.migrate_db()
         dbh_b.open_db_connection()
         assert synchronize(dbh_b, channel, PARAMS) == SyncAction.PUSH
-    dbh.DB_VERSION = 7
+    dbh.DB_VERSION = 8
     with machine_a as dbh_a:
         assert synchronize(dbh_a, channel, PARAMS) == SyncAction.CLIENT_OUTDATED
         with pytest.raises(SyncError):

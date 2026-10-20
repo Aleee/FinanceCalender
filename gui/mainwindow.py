@@ -1406,6 +1406,8 @@ class MainWindow(QMainWindow):
     def open_contractor_dialog(self) -> None:
         self.contractor_dialog = ContractorDialog(self.db_handler, self.settings_handler.settings, self)
         self.contractor_dialog.exec()
+        self.table_model.document_titles.clear()
+        self.update_eventinfo()
 
     def update_responsible_models(self, update_widgets: bool) -> bool:
         personal_data = self.db_handler.load_personal_data(as_dict=True)
