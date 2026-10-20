@@ -3,7 +3,7 @@
     --notes ТЕКСТ    текст «Что нового» для version*.json
     --win-only       собрать только версию для Windows (без macOS и проверки git/gh);
                      то же самое делает --skip-mac
-    --skip-viewer    не собирать версию для просмотра
+    --viewer         собрать также версию для просмотра
     --skip-tests     не запускать тесты
     --mac-intel      собрать также версию для Mac Intel
 """
@@ -79,7 +79,7 @@ def main() -> None:
     parser.add_argument("--skip-tests", action="store_true", help="Не запускать тесты")
     parser.add_argument("--win-only", "--skip-mac", dest="skip_mac", action="store_true",
                         help="Собрать только версию для Windows, без macOS")
-    parser.add_argument("--skip-viewer", action="store_true", help="Не собирать версию для просмотра")
+    parser.add_argument("--viewer", action="store_true", help="Собрать также версию для просмотра")
     parser.add_argument("--mac-intel", action="store_true", help="Собрать также версию для Mac Intel")
     args = parser.parse_args()
 
@@ -101,7 +101,7 @@ def main() -> None:
     step("Сборка для Windows")
     run(sys.executable, "tools/build_release.py", "--notes", args.notes)
 
-    if not args.skip_viewer:
+    if args.viewer:
         step("Сборка версии для просмотра (Windows)")
         run(sys.executable, "tools/build_release.py", "--viewer", "--notes", args.notes)
 
