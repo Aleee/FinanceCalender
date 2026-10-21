@@ -3,6 +3,8 @@
     --notes ТЕКСТ    текст «Что нового» для version*.json
     --win-only       собрать только версию для Windows (без macOS и проверки git/gh);
                      то же самое делает --skip-mac
+    --mac-only       собрать только версию для macOS (ARM), без сборки для Windows и руководства;
+                     вместе с --mac-intel добавляется Intel
     --viewer         собрать также версию для просмотра
     --skip-tests     не запускать тесты
     --mac-intel      собрать также версию для Mac Intel
@@ -77,11 +79,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Тесты, руководство и сборка релизов для Windows и macOS")
     parser.add_argument("--notes", default="", help="Текст «Что нового» для version*.json")
     parser.add_argument("--skip-tests", action="store_true", help="Не запускать тесты")
-    parser.add_argument("--win-only", "--skip-mac", dest="skip_mac", action="store_true",
-                        help="Собрать только версию для Windows, без macOS")
+    only = parser.add_mutually_exclusive_group()
+    only.add_argument("--win-only", "--skip-mac", dest="skip_mac", action="store_true",
+                      help="Собрать только версию для Windows, без macOS")
+    only.add_argument("--mac-only", action="store_true",
+                      help="Собрать только версию для macOS (ARM), без Windows")
     parser.add_argument("--viewer", action="store_true", help="Собрать также версию для просмотра")
     parser.add_argument("--mac-intel", action="store_true", help="Собрать также версию для Mac Intel")
     args = parser.parse_args()
+    if args.mac_only and args.viewer:
+        parser.error("--viewer собирается только для Windows и несовместим с --mac-only")
 
     mac_branch = None
     if not args.skip_mac:
@@ -94,23 +101,25 @@ def main() -> None:
         step("Тесты")
         run(sys.executable, "-m", "pytest")
 
-    step("Руководство")
-    if not build_manual():
-        sys.exit("Нет руководства в manual/ и нет исходников в docs/manual, из которых его можно собрать")
+    if not args.mac_only:
+        step("Руководство")
+        if not build_manual():
+            sys.exit("Нет руководства в manual/ и нет исходников в docs/manual, из которых его можно собрать")
 
-    step("Сборка для Windows")
-    run(sys.executable, "tools/build_release.py", "--notes", args.notes)
+        step("Сборка для Windows")
+        run(sys.executable, "tools/build_release.py", "--notes", args.notes)
 
-    if args.viewer:
-        step("Сборка версии для просмотра (Windows)")
-        run(sys.executable, "tools/build_release.py", "--viewer", "--notes", args.notes)
+        if args.viewer:
+            step("Сборка версии для просмотра (Windows)")
+            run(sys.executable, "tools/build_release.py", "--viewer", "--notes", args.notes)
 
     if mac_branch is not None:
         step("Сборка для macOS (GitHub Actions)")
         build_mac(mac_branch, args.mac_intel, args.notes)
 
     step("Готово")
-    print(f"Windows: {ROOT / 'dist' / 'release'}")
+    if not args.mac_only:
+        print(f"Windows: {ROOT / 'dist' / 'release'}")
     if mac_branch is not None:
         print(f"macOS:   {MAC_DIR}")
 
