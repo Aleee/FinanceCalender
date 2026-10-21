@@ -1,6 +1,6 @@
 import re
 
-APP_VERSION: str = "2026.10.20"
+APP_VERSION: str = "2026.10.21"
 DB_VERSION: int = 8
 
 _NEW_VERSION_RE = re.compile(r"^(\d{4})\.(\d{2})\.(\d{2})$")
