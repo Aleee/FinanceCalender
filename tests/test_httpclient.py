@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 from PySide6.QtCore import QTimer
 
+import base.httpclient as httpclientmod
 from base.httpclient import AttemptInfo, QtHttpClient
 from base.sync import NetworkError, SyncCancelledError
 
@@ -109,7 +110,9 @@ def test_error_body_is_not_written_to_download_file(client, server, tmp_path):
     assert response.body == b'{"message": "not found"}'
 
 
-def test_unreachable_server_raises_network_error(client):
+def test_unreachable_server_raises_network_error(client, monkeypatch):
+    monkeypatch.setattr(httpclientmod, "MAX_ATTEMPTS", 1)
+    monkeypatch.setattr(httpclientmod, "CONNECT_TIMEOUT_MS", 200)
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]

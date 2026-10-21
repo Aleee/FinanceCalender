@@ -42,13 +42,18 @@ def patch_backup_dir(backup_folder, monkeypatch):
 
 
 @pytest.fixture
-def make_machine(dbh, work_db_path, tmp_path):
+def make_machine(dbh, work_db_path, tmp_path, migrated_files):
     def make(name: str) -> Machine:
         dbh.db.close()
-        work_db_path.unlink(missing_ok=True)
-        create_db(work_db_path, 4, {"marker": name})
-        assert dbh.migrate_db()
         file = tmp_path / f"{name}.db"
+        if name not in migrated_files:
+            work_db_path.unlink(missing_ok=True)
+            create_db(work_db_path, 4, {"marker": name})
+            assert dbh.migrate_db()
+            dbh.db.close()
+            migrated_files[name] = work_db_path.read_bytes()
+        work_db_path.parent.mkdir(parents=True, exist_ok=True)
+        work_db_path.write_bytes(migrated_files[name])
         shutil.copy(work_db_path, file)
         return Machine(dbh, work_db_path, file)
     return make

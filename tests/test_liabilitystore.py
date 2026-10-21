@@ -1,6 +1,7 @@
 import ast
 import itertools
 import random
+import shutil
 import sqlite3
 from decimal import Decimal
 from pathlib import Path
@@ -13,6 +14,8 @@ from base.liability import (Col, FilterFlags, HeaderFooterSubtype, LiabilityCate
                             TermCategory, category_section, is_top_level_category, matches_category, matches_details,
                             matches_filters, matches_term, paid_threshold)
 from base.liabilitystore import LiabilityStore
+from base.version import DB_VERSION
+from tests.dbtools import create_db
 from tests.test_readpath import (add_event, add_payment, day, db_file, file_hash, fill_sample_db, models, open_models,
                                  run_sql)
 
@@ -239,10 +242,22 @@ def fill_rich_db(path: Path) -> None:
     run_sql(path, "UPDATE event SET name = 'Аренда ' || id, descr = 'Договор ' || (id % 4) WHERE type = 2")
 
 
+@pytest.fixture(scope="session")
+def rich_template(tmp_path_factory) -> Path:
+    path = create_db(tmp_path_factory.mktemp("rich") / "db.db", DB_VERSION)
+    fill_rich_db(path)
+    return path
+
+
 @pytest.fixture
-def rich(db_file, case_factory):
-    fill_rich_db(db_file)
-    return case_factory(db_file)
+def rich_db_file(db_file, rich_template) -> Path:
+    shutil.copyfile(rich_template, db_file)
+    return db_file
+
+
+@pytest.fixture
+def rich(rich_db_file, case_factory):
+    return case_factory(rich_db_file)
 
 
 def test_rich_dataset_covers_all_row_kinds(rich):

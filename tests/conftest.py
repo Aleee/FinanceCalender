@@ -30,6 +30,11 @@ def shared_dbh(qapp):
     return dbmod.DBHandler(None)
 
 
+@pytest.fixture(scope="session")
+def migrated_files() -> dict[str, bytes]:
+    return {}
+
+
 @pytest.fixture
 def work_db_path(tmp_path: Path) -> Path:
     return tmp_path / "db" / "db.db"

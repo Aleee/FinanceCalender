@@ -7,7 +7,7 @@ from PySide6.QtCore import QDate, QItemSelectionModel, QPersistentModelIndex, Qt
 from base.liability import Col, FilterFlags, HeaderFooterSubtype, PaymentType, RowType, TermCategory
 from gui.eventwidget import EventWidget
 from gui.liabilitytablemodel import LiabilityTableModel, RowFormatting
-from tests.test_liabilitystore import fill_rich_db
+from tests.test_liabilitystore import rich_db_file, rich_template
 from tests.test_readpath import DB_VALUE, QT_VALUE, add_event, add_payment, day, db_file, models, open_models, run_sql
 
 PERSONAL = {1: ("Иванов",), 2: ("Петров",)}
@@ -22,10 +22,9 @@ def cell(models, event_id: int, column: int, role=DISPLAY):
 
 
 @pytest.fixture
-def rich(db_file, open_models):
-    fill_rich_db(db_file)
-    run_sql(db_file, "UPDATE event SET contractdocument_id = 5 WHERE id % 9 = 0 AND type = 2")
-    models = open_models(db_file)
+def rich(rich_db_file, open_models):
+    run_sql(rich_db_file, "UPDATE event SET contractdocument_id = 5 WHERE id % 9 = 0 AND type = 2")
+    models = open_models(rich_db_file)
     models.table.personal_dict = PERSONAL
     return models
 
