@@ -38,7 +38,7 @@ from gui.fulfillmentoptiondialog import FulfillmentOptionDialog
 from gui.liabilitytablemodel import LiabilityTableModel
 from gui.manualdialog import ManualDialog
 from gui.matchingdialog import MatchingDialog
-from gui.paymentamountdialog import PaymentAmountDialog
+from gui.paymentamountdialog import PaymentAmountDialog, delete_payment_confirmed
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from gui.paymenthistoryproxymodel import PaymentHistoryProxyModel
 from gui.recoverydialog import RecoveryDialog
@@ -1147,25 +1147,21 @@ class MainWindow(QMainWindow):
     def delete_payment(self) -> bool:
         if is_viewer():
             return False
-        current_index: QModelIndex = self.payment_proxy_model.mapToSource(self.ui.tv_payment.selectionModel().currentIndex())
-        amount: Decimal = current_index.siblingAtColumn(PaymentField.SUM).data(PaymentHistoryTableModel.qtValueRole)
-        date: QDate = current_index.siblingAtColumn(PaymentField.PAYMENT_DATE).data(PaymentHistoryTableModel.qtValueRole)
-        origin_index_row: int = current_index.row()
-
         if is_selection_filteredout(self.payment_proxy_model, self.ui.tv_payment):
             return False
-        msg_box = YesNoMessagebox(f"Вы уверены, что хотите удалить запись об оплате?", self, cancel_by_default=True)
-        if msg_box.exec() == YesNoMessagebox.NO_RETURN_VALUE:
+        current_index: QModelIndex = self.payment_proxy_model.mapToSource(self.ui.tv_payment.selectionModel().currentIndex())
+        payment_id: int = current_index.siblingAtColumn(PaymentField.ID).data(PaymentHistoryTableModel.qtValueRole)
+        info = self.db_handler.read_payment_info(payment_id)
+        if info is None:
+            ErrorInfoMessageBox("Не удалось прочитать платеж для этой оплаты (подробности см. в логе)", parent=self).exec()
             return False
-
-        if self.payment_model.removeRow(origin_index_row):
-            self.payment_model.submitAll()
-            self.table_model.load_payment_totals()
-            self.update_filters_and_select()
-            self.update_eventinfo()
-            return True
-        else:
+        if not delete_payment_confirmed(self.db_handler, info, self):
             return False
+        self.table_model.refresh_event(info.event_id)
+        self.payment_model.update_filter()
+        self.update_filters_and_select()
+        self.update_eventinfo()
+        return True
 
     def edit_payment(self) -> bool:
         if is_viewer() or not self.ui.pb_editpayment.isEnabled():
@@ -1364,11 +1360,37 @@ class MainWindow(QMainWindow):
         self.payment_model.update_filter()
         self.update_filters_and_select()
 
-    def open_event_view(self, event_id: int | None, parent: QWidget) -> bool:
+    def reveal_event(self, event_id: int | None, parent: QWidget) -> QModelIndex:
         index: QModelIndex = QModelIndex() if event_id is None else self.table_model.index_by_id(event_id)
+        if index.isValid():
+            return index
+        store: LiabilityStore = self.table_model.store
+        term: TermCategory | None = None if event_id is None else store.term_to_show(event_id)
+        if term is None:
+            ErrorInfoMessageBox("Этот платеж не загружен в таблицу: он оплачен раньше периода показа оплаченных платежей "
+                                "из настроек. Увеличьте период и повторите.", is_info=True, parent=parent).exec()
+            return QModelIndex()
+        only_term: bool = store.hidden_only_by_term(event_id)
+        if only_term:
+            question = f"Платеж скрыт фильтром «Срок оплаты». Переключить его на «{self.ui.lw_term.ITEMS[term][0]}»?"
+        else:
+            question = "Платеж скрыт текущими фильтрами. Сбросить фильтры и показать его?"
+        if YesNoMessagebox(question, parent).exec() != YesNoMessagebox.YES_RETURN_VALUE:
+            return QModelIndex()
+        if not only_term:
+            self.reset_filters()
+        if self.ui.lw_term.current_term() != term:
+            self.ui.lw_term.setCurrentRow(int(term))
+        index = self.table_model.index_by_id(event_id)
+        if index.isValid():
+            self.ui.trw_event.skip_restore_selection = True
+            self.ui.trw_event.selectionModel().setCurrentIndex(
+                index, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
+        return index
+
+    def open_event_view(self, event_id: int | None, parent: QWidget) -> bool:
+        index: QModelIndex = self.reveal_event(event_id, parent)
         if not index.isValid():
-            ErrorInfoMessageBox("Этот платеж сейчас не отображается в таблице (его скрывают фильтры или он давно оплачен). "
-                                "Сбросьте фильтры и повторите.", is_info=True, parent=parent).exec()
             return False
         return self.open_event_dialog(edit=True, parent=parent, current_index=index)
 
@@ -1404,7 +1426,7 @@ class MainWindow(QMainWindow):
         self.chart_choice_dialog.exec()
 
     def open_contractor_dialog(self) -> None:
-        self.contractor_dialog = ContractorDialog(self.db_handler, self.settings_handler.settings, self)
+        self.contractor_dialog = ContractorDialog(self.db_handler, self.settings_handler.settings, self.open_event_view, self)
         self.contractor_dialog.exec()
         self.table_model.document_titles.clear()
         self.update_eventinfo()

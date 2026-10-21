@@ -51,9 +51,32 @@ class Ui_ContractorDialog(object):
 
         self.gridLayout_2.addWidget(self.chb_show_archived, 3, 0, 1, 1)
 
+        self.horizontalLayout_actions = QHBoxLayout()
+        self.horizontalLayout_actions.setObjectName(u"horizontalLayout_actions")
+        self.pb_rename_contractor = QPushButton(self.page)
+        self.pb_rename_contractor.setObjectName(u"pb_rename_contractor")
+        self.pb_rename_contractor.setAutoDefault(False)
+
+        self.horizontalLayout_actions.addWidget(self.pb_rename_contractor)
+
+        self.pb_archive_contractor = QPushButton(self.page)
+        self.pb_archive_contractor.setObjectName(u"pb_archive_contractor")
+        self.pb_archive_contractor.setAutoDefault(False)
+
+        self.horizontalLayout_actions.addWidget(self.pb_archive_contractor)
+
+        self.pb_history_contractor = QPushButton(self.page)
+        self.pb_history_contractor.setObjectName(u"pb_history_contractor")
+        self.pb_history_contractor.setAutoDefault(False)
+
+        self.horizontalLayout_actions.addWidget(self.pb_history_contractor)
+
+
+        self.gridLayout_2.addLayout(self.horizontalLayout_actions, 4, 0, 1, 1)
+
         self.verticalSpacer_2 = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        self.gridLayout_2.addItem(self.verticalSpacer_2, 4, 0, 1, 1)
+        self.gridLayout_2.addItem(self.verticalSpacer_2, 5, 0, 1, 1)
 
         self.le_filter = QLineEdit(self.page)
         self.le_filter.setObjectName(u"le_filter")
@@ -68,18 +91,6 @@ class Ui_ContractorDialog(object):
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.pb_rename_contractor = QPushButton(self.page)
-        self.pb_rename_contractor.setObjectName(u"pb_rename_contractor")
-        self.pb_rename_contractor.setAutoDefault(False)
-
-        self.horizontalLayout.addWidget(self.pb_rename_contractor)
-
-        self.pb_archive_contractor = QPushButton(self.page)
-        self.pb_archive_contractor.setObjectName(u"pb_archive_contractor")
-        self.pb_archive_contractor.setAutoDefault(False)
-
-        self.horizontalLayout.addWidget(self.pb_archive_contractor)
-
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
@@ -96,7 +107,7 @@ class Ui_ContractorDialog(object):
         self.horizontalLayout.addWidget(self.pb_continue_to_contracts)
 
 
-        self.gridLayout_2.addLayout(self.horizontalLayout, 5, 0, 1, 1)
+        self.gridLayout_2.addLayout(self.horizontalLayout, 6, 0, 1, 1)
 
         self.stw_main.addWidget(self.page)
         self.page_2 = QWidget()
@@ -111,18 +122,6 @@ class Ui_ContractorDialog(object):
         self.pb_back_to_contractors.setAutoDefault(False)
 
         self.horizontalLayout_2.addWidget(self.pb_back_to_contractors)
-
-        self.pb_rename_contract = QPushButton(self.page_2)
-        self.pb_rename_contract.setObjectName(u"pb_rename_contract")
-        self.pb_rename_contract.setAutoDefault(False)
-
-        self.horizontalLayout_2.addWidget(self.pb_rename_contract)
-
-        self.pb_archive_contract = QPushButton(self.page_2)
-        self.pb_archive_contract.setObjectName(u"pb_archive_contract")
-        self.pb_archive_contract.setAutoDefault(False)
-
-        self.horizontalLayout_2.addWidget(self.pb_archive_contract)
 
         self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -140,16 +139,39 @@ class Ui_ContractorDialog(object):
         self.horizontalLayout_2.addWidget(self.pb_continue_to_documents)
 
 
-        self.gridLayout_3.addLayout(self.horizontalLayout_2, 4, 0, 1, 1)
+        self.gridLayout_3.addLayout(self.horizontalLayout_2, 5, 0, 1, 1)
 
         self.chb_show_archived_2 = QCheckBox(self.page_2)
         self.chb_show_archived_2.setObjectName(u"chb_show_archived_2")
 
         self.gridLayout_3.addWidget(self.chb_show_archived_2, 2, 0, 1, 1)
 
+        self.horizontalLayout_actions_2 = QHBoxLayout()
+        self.horizontalLayout_actions_2.setObjectName(u"horizontalLayout_actions_2")
+        self.pb_rename_contract = QPushButton(self.page_2)
+        self.pb_rename_contract.setObjectName(u"pb_rename_contract")
+        self.pb_rename_contract.setAutoDefault(False)
+
+        self.horizontalLayout_actions_2.addWidget(self.pb_rename_contract)
+
+        self.pb_archive_contract = QPushButton(self.page_2)
+        self.pb_archive_contract.setObjectName(u"pb_archive_contract")
+        self.pb_archive_contract.setAutoDefault(False)
+
+        self.horizontalLayout_actions_2.addWidget(self.pb_archive_contract)
+
+        self.pb_history_contract = QPushButton(self.page_2)
+        self.pb_history_contract.setObjectName(u"pb_history_contract")
+        self.pb_history_contract.setAutoDefault(False)
+
+        self.horizontalLayout_actions_2.addWidget(self.pb_history_contract)
+
+
+        self.gridLayout_3.addLayout(self.horizontalLayout_actions_2, 3, 0, 1, 1)
+
         self.verticalSpacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
-        self.gridLayout_3.addItem(self.verticalSpacer, 3, 0, 1, 1)
+        self.gridLayout_3.addItem(self.verticalSpacer, 4, 0, 1, 1)
 
         self.label_2 = QLabel(self.page_2)
         self.label_2.setObjectName(u"label_2")
@@ -219,14 +241,16 @@ class Ui_ContractorDialog(object):
         QWidget.setTabOrder(self.pb_continue_to_contracts, self.pb_cancel)
         QWidget.setTabOrder(self.pb_cancel, self.pb_rename_contractor)
         QWidget.setTabOrder(self.pb_rename_contractor, self.pb_archive_contractor)
-        QWidget.setTabOrder(self.pb_archive_contractor, self.lw_contract)
+        QWidget.setTabOrder(self.pb_archive_contractor, self.pb_history_contractor)
+        QWidget.setTabOrder(self.pb_history_contractor, self.lw_contract)
         QWidget.setTabOrder(self.lw_contract, self.chb_show_archived_2)
         QWidget.setTabOrder(self.chb_show_archived_2, self.pb_continue_to_documents)
         QWidget.setTabOrder(self.pb_continue_to_documents, self.pb_cancel_2)
         QWidget.setTabOrder(self.pb_cancel_2, self.pb_back_to_contractors)
         QWidget.setTabOrder(self.pb_back_to_contractors, self.pb_rename_contract)
         QWidget.setTabOrder(self.pb_rename_contract, self.pb_archive_contract)
-        QWidget.setTabOrder(self.pb_archive_contract, self.lw_document)
+        QWidget.setTabOrder(self.pb_archive_contract, self.pb_history_contract)
+        QWidget.setTabOrder(self.pb_history_contract, self.lw_document)
         QWidget.setTabOrder(self.lw_document, self.pb_accept)
         QWidget.setTabOrder(self.pb_accept, self.pb_cancel_3)
         QWidget.setTabOrder(self.pb_cancel_3, self.pb_back_to_contracts)
@@ -244,17 +268,19 @@ class Ui_ContractorDialog(object):
         self.lbl_steps.setText(QCoreApplication.translate("ContractorDialog", u"\u041a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442 \u2192 \u0414\u043e\u0433\u043e\u0432\u043e\u0440 \u2192 \u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442", None))
         self.label.setText(QCoreApplication.translate("ContractorDialog", u"\u0412\u044b\u0431\u043e\u0440 \u043a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u0430:", None))
         self.chb_show_archived.setText(QCoreApplication.translate("ContractorDialog", u"\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0430\u0440\u0445\u0438\u0432\u043d\u044b\u0435", None))
-        self.le_filter.setPlaceholderText(QCoreApplication.translate("ContractorDialog", u"\u041f\u043e\u0438\u0441\u043a\u2026", None))
         self.pb_rename_contractor.setText(QCoreApplication.translate("ContractorDialog", u"\u041f\u0435\u0440\u0435\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u0442\u044c", None))
         self.pb_archive_contractor.setText(QCoreApplication.translate("ContractorDialog", u"\u0412 \u0430\u0440\u0445\u0438\u0432", None))
+        self.pb_history_contractor.setText(QCoreApplication.translate("ContractorDialog", u"\u041f\u043b\u0430\u0442\u0435\u0436\u0438\u2026", None))
+        self.le_filter.setPlaceholderText(QCoreApplication.translate("ContractorDialog", u"\u041f\u043e\u0438\u0441\u043a\u2026", None))
         self.pb_cancel.setText(QCoreApplication.translate("ContractorDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
         self.pb_continue_to_contracts.setText(QCoreApplication.translate("ContractorDialog", u"\u0414\u0430\u043b\u0435\u0435", None))
         self.pb_back_to_contractors.setText(QCoreApplication.translate("ContractorDialog", u"\u041d\u0430\u0437\u0430\u0434", None))
-        self.pb_rename_contract.setText(QCoreApplication.translate("ContractorDialog", u"\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c", None))
-        self.pb_archive_contract.setText(QCoreApplication.translate("ContractorDialog", u"\u0412 \u0430\u0440\u0445\u0438\u0432", None))
         self.pb_cancel_2.setText(QCoreApplication.translate("ContractorDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
         self.pb_continue_to_documents.setText(QCoreApplication.translate("ContractorDialog", u"\u0414\u0430\u043b\u0435\u0435", None))
         self.chb_show_archived_2.setText(QCoreApplication.translate("ContractorDialog", u"\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0430\u0440\u0445\u0438\u0432\u043d\u044b\u0435", None))
+        self.pb_rename_contract.setText(QCoreApplication.translate("ContractorDialog", u"\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c", None))
+        self.pb_archive_contract.setText(QCoreApplication.translate("ContractorDialog", u"\u0412 \u0430\u0440\u0445\u0438\u0432", None))
+        self.pb_history_contract.setText(QCoreApplication.translate("ContractorDialog", u"\u041f\u043b\u0430\u0442\u0435\u0436\u0438\u2026", None))
         self.label_2.setText(QCoreApplication.translate("ContractorDialog", u"\u0412\u044b\u0431\u043e\u0440 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430:", None))
         self.pb_back_to_contracts.setText(QCoreApplication.translate("ContractorDialog", u"\u041d\u0430\u0437\u0430\u0434", None))
         self.pb_cancel_3.setText(QCoreApplication.translate("ContractorDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))

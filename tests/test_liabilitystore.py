@@ -414,6 +414,38 @@ def test_row_by_id_and_position_of(rich):
     assert rich.store.position_of(header.event_id) == rows.index(header)
 
 
+def test_term_to_show_and_hidden_only_by_term(rich):
+    store = rich.store
+    threshold = paid_threshold(store.current_date, rich.args["months"])
+    paid_ids = [event_id for event_id, row in store.liabilities.items() if matches_term(TermCategory.PAID, row, threshold)]
+    unpaid_ids = [event_id for event_id, row in store.liabilities.items() if matches_term(TermCategory.UNPAID, row, threshold)]
+    assert paid_ids and unpaid_ids
+
+    rich.apply(TermCategory.UNPAID)
+    assert store.term_to_show(paid_ids[0]) == TermCategory.PAID
+    assert store.term_to_show(unpaid_ids[0]) == TermCategory.UNPAID
+    assert store.term_to_show(-1) is None
+    assert store.position_of(paid_ids[0]) is None
+    assert store.hidden_only_by_term(paid_ids[0])
+    assert not store.hidden_only_by_term(-1)
+
+    rich.apply(TermCategory.UNPAID, search="такого текста нет нигде")
+    assert not store.hidden_only_by_term(paid_ids[0])
+    rich.apply(TermCategory.UNPAID, featured=True)
+    assert store.hidden_only_by_term(paid_ids[0]) == bool(store.liabilities[paid_ids[0]].featured)
+
+    other_category = next(row.category for row in store.liabilities.values()
+                          if row.category != store.liabilities[unpaid_ids[0]].category)
+    rich.apply(TermCategory.DUE, category=other_category)
+    assert not store.hidden_only_by_term(unpaid_ids[0])
+
+    for event_id in paid_ids + unpaid_ids:
+        if not store.liabilities[event_id].category:
+            continue
+        rich.apply(store.term_to_show(event_id))
+        assert store.position_of(event_id) is not None
+
+
 def liabilities_by_category(rows) -> dict[int, list[int]]:
     result: dict[int, list[int]] = {}
     for row in rows:

@@ -4,7 +4,8 @@ from decimal import Decimal
 import pytest
 
 from base.liability import Col
-from gui.paymentamountdialog import PaymentAmountDialog
+import gui.paymentamountdialog as paymentamountdialog
+from gui.paymentamountdialog import PaymentAmountDialog, delete_payment_confirmed
 from tests.test_audit_fixes import query_all
 from tests.test_readpath import add_event, add_payment, day, db_file, models, open_models  # noqa: F401
 
@@ -167,3 +168,60 @@ def test_model_refresh_event_after_payment_update(db_file, open_models, shared_d
     index = models.table.index_by_id(event_id)
     assert index.siblingAtColumn(Col.TOTALAMOUNT).data(models.table.qtValueRole) == Decimal("1050.00")
     assert index.siblingAtColumn(Col.REMAINAMOUNT).data(models.table.qtValueRole) == remain_before == Decimal("800.00")
+
+
+class FakeBox:
+
+    answer = 0
+    shown: list[str] = []
+
+    def __init__(self, text, *args, **kwargs):
+        FakeBox.shown.append(text)
+
+    def exec(self):
+        return FakeBox.answer
+
+
+@pytest.fixture
+def fake_boxes(monkeypatch):
+    FakeBox.shown = []
+    FakeBox.answer = paymentamountdialog.YesNoMessagebox.YES_RETURN_VALUE
+    monkeypatch.setattr(paymentamountdialog, "YesNoMessagebox", type("Yes", (FakeBox,), {
+        "YES_RETURN_VALUE": 2, "NO_RETURN_VALUE": 3}))
+    monkeypatch.setattr(paymentamountdialog, "ErrorInfoMessageBox", FakeBox)
+    return FakeBox
+
+
+def payment_ids(path, event_id):
+    return [row[0] for row in query_all(path, "SELECT id FROM payment WHERE eventid = ? ORDER BY id", event_id)]
+
+
+def test_delete_payment_confirmed_removes_payment(event_with_payments, fake_boxes):
+    dbh, path, event_id, first, second = event_with_payments
+    assert delete_payment_confirmed(dbh, dbh.read_payment_info(second), None)
+    assert payment_ids(path, event_id) == [first]
+    assert fake_boxes.shown[0].startswith("Удалить оплату ")
+    assert Decimal(query_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1000.00")
+
+
+def test_delete_payment_confirmed_cancel_keeps_payment(event_with_payments, fake_boxes):
+    dbh, path, event_id, first, second = event_with_payments
+    fake_boxes.answer = 3
+    assert not delete_payment_confirmed(dbh, dbh.read_payment_info(second), None)
+    assert payment_ids(path, event_id) == [first, second]
+
+
+def test_delete_payment_confirmed_refuses_when_others_exceed_total(event_with_payments, fake_boxes):
+    dbh, path, event_id, first, second = event_with_payments
+    extra = add_payment(path, event_id, day(0), "900.00")
+    assert not delete_payment_confirmed(dbh, dbh.read_payment_info(first), None)
+    assert fake_boxes.shown == ["Нельзя удалить оплату: остальные оплаты по платежу превысят его общую сумму"]
+    assert payment_ids(path, event_id) == [first, second, extra]
+
+
+def test_delete_payment_confirmed_refuses_when_refund_exceeds_rest(event_with_payments, fake_boxes):
+    dbh, path, event_id, first, second = event_with_payments
+    add_payment(path, event_id, day(0), "-450.00")
+    assert not delete_payment_confirmed(dbh, dbh.read_payment_info(second), None)
+    assert fake_boxes.shown == ["Нельзя удалить оплату: сумма возвратов превысит сумму остальных оплат"]
+    assert second in payment_ids(path, event_id)

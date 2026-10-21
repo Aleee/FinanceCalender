@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import QDialog, QWidget
 
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
@@ -9,6 +9,24 @@ from base.payment import PaymentInfo
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.manualdialog import add_help_shortcut
 from gui.ui.paymentamountdialog_ui import Ui_PaymentAmountDialog
+
+
+def delete_payment_confirmed(dbh: DBHandler, info: PaymentInfo, parent: QWidget) -> bool:
+    sign = -1 if info.total_amount < 0 else 1
+    if sign * (info.total_amount - info.paid_before) < 0:
+        ErrorInfoMessageBox("Нельзя удалить оплату: остальные оплаты по платежу превысят его общую сумму", parent=parent).exec()
+        return False
+    if sign * info.paid_before < 0:
+        ErrorInfoMessageBox("Нельзя удалить оплату: сумма возвратов превысит сумму остальных оплат", parent=parent).exec()
+        return False
+    text = (f"Удалить оплату {info.payment_date:%d.%m.%Y} на сумму "
+            f"{dec_strcommaspace(abs(info.payment_sum))}? Общая сумма платежа не изменится.")
+    if YesNoMessagebox(text, parent, cancel_by_default=True).exec() != YesNoMessagebox.YES_RETURN_VALUE:
+        return False
+    if not dbh.delete_payment(info.payment_id):
+        ErrorInfoMessageBox("Не удалось удалить оплату (подробности см. в логе)", parent=parent).exec()
+        return False
+    return True
 
 
 class PaymentAmountDialog(QDialog):
@@ -94,17 +112,5 @@ class PaymentAmountDialog(QDialog):
         super().accept()
 
     def delete_payment(self) -> None:
-        if self.sign * (self.info.total_amount - self.info.paid_before) < 0:
-            ErrorInfoMessageBox("Нельзя отменить оплату: остальные оплаты по платежу превысят его общую сумму", parent=self).exec()
-            return
-        if self.sign * self.info.paid_before < 0:
-            ErrorInfoMessageBox("Нельзя отменить оплату: сумма возвратов превысит сумму остальных оплат", parent=self).exec()
-            return
-        text = (f"Отменить оплату {self.info.payment_date:%d.%m.%Y} на сумму "
-                f"{dec_strcommaspace(abs(self.info.payment_sum))}? Общая сумма платежа не изменится.")
-        if YesNoMessagebox(text, self, cancel_by_default=True).exec() != YesNoMessagebox.YES_RETURN_VALUE:
-            return
-        if not self.dbh.delete_payment(self.info.payment_id):
-            ErrorInfoMessageBox("Не удалось отменить оплату (подробности см. в логе)", parent=self).exec()
-            return
-        super().accept()
+        if delete_payment_confirmed(self.dbh, self.info, self):
+            super().accept()

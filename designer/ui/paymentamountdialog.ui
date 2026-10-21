@@ -271,7 +271,7 @@
         <string>Удалить эту оплату: платеж вернется в неоплаченное состояние на сумму оплаты</string>
        </property>
        <property name="text">
-        <string>Отменить оплату</string>
+        <string>Удалить оплату</string>
        </property>
        <property name="autoDefault">
         <bool>false</bool>

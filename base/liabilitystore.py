@@ -224,6 +224,22 @@ class LiabilityStore:
     def row_by_id(self, event_id: int) -> LiabilityRow | None:
         return self.liabilities.get(event_id)
 
+    def term_to_show(self, event_id: int) -> TermCategory | None:
+        liability = self.liabilities.get(event_id)
+        if liability is None:
+            return None
+        threshold = paid_threshold(self.current_date, self.paid_months_filter)
+        for term in (TermCategory.UNPAID, TermCategory.PAID):
+            if matches_term(term, liability, threshold):
+                return term
+        return None
+
+    def hidden_only_by_term(self, event_id: int) -> bool:
+        liability = self.liabilities.get(event_id)
+        return liability is not None and matches_category(self.category_filter, liability) and matches_details(
+            liability, self.search_filter, self.responsible_filter, self.paytoday_filter, self.featured_filter,
+            self.date_from_filter, self.date_to_filter, self.period_field_filter)
+
     def event_values(self, event_id: int) -> tuple | None:
         return self.events.get(event_id)
 

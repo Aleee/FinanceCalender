@@ -25,6 +25,7 @@ from base.syncdiff import (DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED
 from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
+from base.contracthistory import ContractObligation, ContractPayment
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.finplanmodel import FinPlanTableModel
 
@@ -1341,6 +1342,56 @@ class DBHandler:
                 document_name=query.value(6) or "",
             )
         return titles
+
+    def load_contract_history(self, contractor_id: int, contract_id: int | None = None
+                              ) -> tuple[list[ContractObligation], list[ContractPayment]] | None:
+        if not self.is_db_connected():
+            return None
+        cents = "CAST(ROUND(CAST({} AS REAL) * 100) AS INTEGER)"
+        where = "WHERE e.type = 2 AND c.contractor_id = ?"
+        if contract_id is not None:
+            where += " AND c.id = ?"
+        if is_viewer():
+            where += " AND COALESCE(e.hidden, 0) = 0"
+        joins = ("JOIN contractdocument d ON d.id = e.contractdocument_id "
+                 "JOIN contract c ON c.id = d.contract_id ")
+        queries = (
+            ("обязательств", f"SELECT e.id, e.name, e.duedate, COALESCE({cents.format('e.totalamount')}, 0), "
+                             f"COALESCE(SUM({cents.format('p.sum')}), 0), d.document_name, c.id, c.name, c.date "
+                             f"FROM event e {joins}LEFT JOIN payment p ON p.eventid = e.id {where} "
+                             f"GROUP BY e.id ORDER BY e.duedate, e.id"),
+            ("оплат", f"SELECT p.id, e.id, e.name, p.paymentdate, COALESCE({cents.format('p.sum')}, 0), "
+                      f"d.document_name, c.id, c.name, c.date "
+                      f"FROM payment p JOIN event e ON e.id = p.eventid {joins}{where} "
+                      f"ORDER BY p.paymentdate, p.id"),
+        )
+        results: list[list[tuple]] = []
+        for title, sql in queries:
+            query = QSqlQuery()
+            query.prepare(sql)
+            query.addBindValue(contractor_id)
+            if contract_id is not None:
+                query.addBindValue(contract_id)
+            if not query.exec():
+                log.e(f"Ошибка SQL при попытке получить историю {title} по контрагенту {contractor_id}: {query.lastError().text()}")
+                return None
+            rows: list[tuple] = []
+            while query.next():
+                rows.append(tuple(query.value(column) for column in range(query.record().count())))
+            results.append(rows)
+
+        def text(value: Any) -> str:
+            return "" if self._is_null(value) else str(value)
+
+        obligations = [ContractObligation(
+            event_id=int(row[0]), name=text(row[1]), due_date=str_date(text(row[2])), total=Decimal(int(row[3])) / 100,
+            paid=Decimal(int(row[4])) / 100, document_name=text(row[5]), contract_id=int(row[6]),
+            contract_number=text(row[7]), contract_date=str_date(text(row[8]))) for row in results[0]]
+        payments = [ContractPayment(
+            payment_id=int(row[0]), event_id=int(row[1]), event_name=text(row[2]), payment_date=str_date(text(row[3])),
+            amount=Decimal(int(row[4])) / 100, document_name=text(row[5]), contract_id=int(row[6]),
+            contract_number=text(row[7]), contract_date=str_date(text(row[8]))) for row in results[1]]
+        return obligations, payments
 
     def load_documenttypes(self) -> list[tuple[int, str]] | None:
         if not self.is_db_connected():

@@ -4,7 +4,7 @@ from typing import Callable
 from PySide6.QtCore import QDate, QSettings
 from PySide6.QtGui import Qt, QIcon, QBrush
 from PySide6.QtWidgets import QDialog, QListWidgetItem, QInputDialog, QFormLayout, QLineEdit, QDialogButtonBox, \
-    QDateEdit, QListWidget, QMenu
+    QDateEdit, QListWidget, QMenu, QWidget
 
 from gui.manualdialog import add_help_shortcut
 from base.contract import ContractInfo
@@ -13,6 +13,7 @@ from base.dbhandler import DBHandler
 from base.edition import is_viewer
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.contractdialog import ContractDocumentDialog
+from gui.contracthistorydialog import ContractHistoryDialog
 from gui.ui.contractordialog_ui import Ui_ContractorDialog
 
 
@@ -72,7 +73,8 @@ class ContractorDialog(QDialog):
 
     STEP_NAMES = ("Контрагент", "Договор", "Документ")
 
-    def __init__(self, dbh: DBHandler, settings: QSettings, parent=None):
+    def __init__(self, dbh: DBHandler, settings: QSettings, open_event: Callable[[int, QWidget], bool] | None = None,
+                 parent=None):
         super(ContractorDialog, self).__init__(parent)
         self.ui = Ui_ContractorDialog()
         self.ui.setupUi(self)
@@ -80,9 +82,15 @@ class ContractorDialog(QDialog):
 
         self.dbh = dbh
         self.settings = settings
+        self.open_event = open_event
 
         self.load_contractors()
         self.ui.le_filter.textChanged.connect(self.on_filter_change)
+        self.ui.lw_contractor.currentItemChanged.connect(self.update_history_buttons)
+        self.ui.lw_contract.currentItemChanged.connect(self.update_history_buttons)
+        self.ui.pb_history_contractor.clicked.connect(lambda: self.on_open_history(False))
+        self.ui.pb_history_contract.clicked.connect(lambda: self.on_open_history(True))
+        self.update_history_buttons()
 
         for button in (self.ui.pb_cancel, self.ui.pb_cancel_2, self.ui.pb_cancel_3):
             button.clicked.connect(self.reject)
@@ -176,6 +184,26 @@ class ContractorDialog(QDialog):
         menu.addAction(*rename)
         menu.addAction(self.archive_action_text(item), archive)
         menu.exec(list_widget.viewport().mapToGlobal(pos))
+
+    def update_history_buttons(self) -> None:
+        contractor_id = self._current_id(self.ui.lw_contractor)
+        self.ui.pb_history_contractor.setEnabled(bool(contractor_id))
+        self.ui.pb_history_contract.setEnabled(bool(contractor_id and self._current_id(self.ui.lw_contract)))
+
+    def on_open_history(self, for_contract: bool) -> None:
+        contractor_item = self.ui.lw_contractor.currentItem()
+        contract_item = self.ui.lw_contract.currentItem() if for_contract else None
+        if contractor_item is None or not contractor_item.data(Qt.ItemDataRole.UserRole):
+            return
+        title = f"контрагент «{contractor_item.text()}»"
+        contract_id = None
+        if for_contract:
+            if contract_item is None or not contract_item.data(Qt.ItemDataRole.UserRole):
+                return
+            contract_id = contract_item.data(Qt.ItemDataRole.UserRole)
+            title = f"договор {contract_item.text()}, {title}"
+        ContractHistoryDialog(self.dbh, title[0].upper() + title[1:], contractor_item.data(Qt.ItemDataRole.UserRole),
+                              contract_id, self.open_event, self).exec()
 
     def update_edit_buttons(self) -> None:
         for list_widget, rename_button, archive_button in (
