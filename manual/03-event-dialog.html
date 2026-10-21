@@ -177,7 +177,7 @@ th { color: #1f3a5f; }
 </table>
 <p>Платеж-возврат нельзя редактировать, оплаты по нему нельзя вносить и удалять. Ошиблись — удалите возврат и создайте заново.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
-<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong>  При редактировании вид «возврат» выбрать нельзя: оплата возврата создаётся только вместе с платежом. Создайте новый платеж с видом «возврат». Если вам вернули только часть оплаты, внесите оплату со знаком «минус» (<a href="04-payment.html">раздел 4</a>).</p>
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> При редактировании вид «возврат» выбрать нельзя: оплата возврата создаётся только вместе с платежом. Создайте новый платеж с видом «возврат». Если вам вернули только часть оплаты, внесите оплату со знаком «минус» (<a href="04-payment.html">раздел 4</a>).</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Редактирование платежа</h2></td></tr></table>
 <p>Правила те же, что при создании.</p>
@@ -316,9 +316,9 @@ th { color: #1f3a5f; }
 <p>Если для документа срок считается от отчетного месяца (например, «не позднее 25 числа следующего месяца»), в окне добавляется «Отчетный месяц»; пока вы его не меняете, берётся месяц даты возникновения (<a href="07-payment-terms.html">раздел 7</a>).</p>
 <p>Остальное копируется без изменений; «На контроле» и оплаты не переносятся.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Удаление платежа</h2></td></tr></table>
-<p><strong>Del</strong>; программа спросит: «Удаление платежа - необратимое действие. Уверены, что хотите продолжить?». Вместе с платежом удаляются <strong>все оплаты по нему</strong> (вся история оплат) и его заметки. Контрагент, договор и документ, к которому платеж был привязан, остаются в окне «Контрагенты и договоры».</p>
+<p><strong>Del</strong>; программа попросит подтвердить удаление. Вместе с платежом удаляются <strong>все оплаты по нему</strong> (вся история оплат) и его заметки. Контрагент, договор и документ, к которому платеж был привязан, остаются в окне «Контрагенты и договоры».</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
-<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Отменить удаление нельзя, корзины нет. Остаётся создать платеж заново или восстановить резервную копию (<a href="13-backup.html">раздел 13</a>), но тогда пропадёт всё, что внесено после её создания.</p>
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Отменить можно только последнее удаление: <strong>Ctrl+Z</strong> возвращает платеж с оплатами и заметкой, пока вы не удалили другой платеж и не закрыли программу. В остальных случаях остаётся создать платеж заново или восстановить резервную копию (<a href="13-backup.html">раздел 13</a>), но тогда пропадёт всё, что внесено после её создания.</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Если что-то пошло не так</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
@@ -356,46 +356,51 @@ th { color: #1f3a5f; }
 <td style="border-bottom: 1px solid #d9e0e9;">Повторите попытку, при повторе перезапустите программу</td>
 </tr>
 <tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Не удалось восстановить платеж (подробности см. в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Ошибка при отмене удаления (<strong>Ctrl+Z</strong>); платеж не вернулся</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Создайте платеж заново или восстановите резервную копию (<a href="13-backup.html">раздел 13</a>)</td>
+</tr>
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Не удалось сохранить платеж (подробности см. в логе)» или «Не удалось сохранить изменения (подробности см. в логе)»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Платеж не записался в базу (при создании, копировании или правке), окно осталось открытым</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Повторите «Сохранить»; при повторе перезапустите программу и приложите журнал работы (<a href="P4-troubleshooting.html">приложение 4</a>)</td>
 </tr>
-<tr>
+<tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Новая общая сумма платежа превышает сумму уже сделанных по нему оплат»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">При редактировании: оплачено больше, чем новая сумма платежа. Платеж не сохраняется</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Введите сумму не меньше оплаченной или сначала удалите лишнюю оплату (<a href="04-payment.html">раздел 4</a>)</td>
 </tr>
-<tr bgcolor="#f7f9fc">
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Дата возврата не может быть больше сегодняшней даты»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">У платежа вида «возврат» срок оплаты в будущем</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Укажите в «Срок оплаты» дату не позже сегодняшней</td>
 </tr>
-<tr>
+<tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">Вопрос «Срок оплаты меньше текущей даты. … Вы уверены, что хотите продолжить?». К нему может добавиться «Основание платежа не указано.»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Срок оплаты в прошлом или пустое «Основание». Для возврата, а также при правке и копировании уже оплаченного платежа вопроса о сроке нет; в окне «Копирование платежа с новым основанием» он задаётся всегда</td>
 <td style="border-bottom: 1px solid #d9e0e9;">«Да» сохраняет платеж как есть, «Отмена» возвращает в окно. Основание лучше заполнить: поиск (<a href="05-filters.html">раздел 5</a>) ищет по нему</td>
 </tr>
-<tr bgcolor="#f7f9fc">
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Вопрос «Платеж с таким основанием по этому документу уже есть. … Вы уверены, что хотите продолжить?»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Окно «Копирование платежа с новым основанием»: основание совпало (без учёта регистра) с другим платежом по этому документу</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Если это не повторный платеж, «Отмена» и поправьте номер или дату в основании</td>
 </tr>
-<tr>
+<tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">Кнопка «← Подставить срок оплаты» неактивна</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Платеж не привязан к документу, выбранному в панели договора, или у документа нет расчетной даты</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Привяжите платеж к выбранному документу или выберите тот, к которому он привязан (<a href="06-contractors.html">раздел 6</a>)</td>
 </tr>
-<tr bgcolor="#f7f9fc">
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Для этого договора ранее не сохранялись значения» при нажатии «← Заполнить поля из договора»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Для документа ещё ни разу не нажимали «Сохранить поля в договор →»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Заполните поля вручную; при желании сохраните их кнопкой «Сохранить поля в договор →»</td>
 </tr>
-<tr>
+<tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">Команда «Копировать платеж с новым основанием» недоступна</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Платеж не привязан к документу договора или это возврат</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Привяжите платеж к документу (<a href="06-contractors.html">раздел 6</a>) или используйте «Копировать платеж»</td>
 </tr>
-<tr bgcolor="#f7f9fc">
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Команда «Редактировать платеж» недоступна</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Это платеж-возврат</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Удалите платеж и создайте заново</td>

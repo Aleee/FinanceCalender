@@ -49,7 +49,7 @@ th { color: #1f3a5f; }
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">4</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Боковая панель</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Группы фильтров: срок оплаты, категория, ответственный (<a href="05-filters.html">раздел 5</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Группы фильтров: срок оплаты, период, категория, ответственный (<a href="05-filters.html">раздел 5</a>)</td>
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">5</td>
@@ -163,6 +163,7 @@ th { color: #1f3a5f; }
 <ul>
 <li><strong>Поиск</strong> (<strong>Ctrl+F</strong>) — по получателю, наименованию и основанию платежа;</li>
 <li><strong>СРОК ОПЛАТЫ:</strong> «Все неоплаченные», «Просроченные», «Сегодня», «На этой неделе», «В этом месяце», «Оплаченные» (в скобках — число платежей);</li>
+<li><strong>ПЕРИОД</strong> — платежи, у которых выбранная дата попадает в заданные границы;</li>
 <li><strong>КАТЕГОРИЯ</strong>;</li>
 <li><strong>ОТВЕТСТВЕННЫЙ</strong>;</li>
 <li>флажок <strong>ОПЛАТА СЕГОДНЯ</strong> — только платежи с оплатой сегодняшней датой.</li>
@@ -174,20 +175,22 @@ th { color: #1f3a5f; }
 <ul>
 <li>разделы идут по номерам: «1. Текущая деятельность», «2. Финансовая деятельность», «3. Инвестиционная деятельность»;</li>
 <li>подразделы внутри раздела — тоже по номерам («1.1», «1.2»);</li>
-<li>внутри подраздела платежи идут по сроку оплаты: сверху самый ранний; при пункте «Оплаченные» — по дате последней оплаты, сверху самая ранняя.</li>
+<li>внутри подраздела платежи сортируются по выбранному столбцу, по умолчанию — по сроку оплаты: сверху самый ранний.</li>
 </ul>
-<p>Сортировки по заголовкам столбцов нет: ищите фильтрами и поиском. Подраздел без платежей не показывается. Если платежей нет совсем, видна надпись «Нет платежей, подходящих под условия фильтрации и поиска».</p>
-<h3 id="s7">Заголовки разделов</h3>
+<p>Подраздел без платежей не показывается. Если платежей нет совсем, видна надпись «Нет платежей, подходящих под условия фильтрации и поиска».</p>
+<h3 id="s7">Сортировка по столбцам</h3>
+<p>Щелчок по заголовку столбца сортирует платежи внутри каждого подраздела; повторный щелчок по тому же столбцу меняет порядок. Стрелка в заголовке показывает столбец и порядок. Порядок разделов и подразделов не меняется, итоговые строки остаются на месте.</p>
+<h3 id="s8">Заголовки разделов</h3>
 <p><strong>Раздел</strong> — крупная группа платежей («Текущая деятельность»), <strong>подраздел</strong> — её часть («Услуги связи»). Номер раздела — «1.», подраздела — «1.12.».</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Фрагмент таблицы: заголовки, просроченные и сегодняшние платежи, итоги" src="images/03-main-window/table-colors.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 6. Фрагмент таблицы. 1 — заголовок раздела; 2 — заголовок подраздела; 3 — платеж со сроком сегодня; 4 — просроченные платежи; 5 — итог подраздела; 6 — итог раздела. Светло-голубым выделен выбранный платеж.</em></span></p>
 <p>Пункт «Заголовки разделов» убирает эти строки. Заголовки не показываются также при выбранной категории и при поиске.</p>
-<h3 id="s8">Строки итогов</h3>
+<h3 id="s9">Строки итогов</h3>
 <p>Итоги — «Всего по 1.12.» (подраздел), «Всего по 1.» (раздел) и «ВСЕГО» (вся таблица) — складывают столбцы «Остаток платежа», «Сумма платежа» и «Оплата сегодня».</p>
 <ul>
 <li>Складываются только платежи, <strong>видимые в таблице</strong>; нулевая сумма не показывается.</li>
 </ul>
-<h3 id="s9">Цвета строк</h3>
+<h3 id="s10">Цвета строк</h3>
 <p>Цвета зависят от срока оплаты и остатка:</p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
@@ -228,7 +231,7 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
 <p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> При фильтре «Просроченные» или «Сегодня» (и флажке «ОПЛАТА СЕГОДНЯ») соответствующая подсветка отключается: просроченные платежи не будут красными.</p>
 </td></tr></table>
-<h3 id="s10">Столбцы</h3>
+<h3 id="s11">Столбцы</h3>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -295,7 +298,7 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
 <p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Столбцы «★» и «🔒» — в конце таблицы: на небольших экранах их не видно без прокрутки вправо.</p>
 </td></tr></table>
-<h3 id="s11">Значки в таблице</h3>
+<h3 id="s12">Значки в таблице</h3>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Правая часть таблицы: скрепка, оплата сегодня, звёздочка, замок" src="images/03-main-window/table-right.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 7. Правая часть той же таблицы. 1 — скрепка (платеж привязан к договору); 2 — отметка «На контроле»; 3 — отметка «Скрытый платеж».</em></span></p>
 <ul>
@@ -307,7 +310,7 @@ th { color: #1f3a5f; }
 <p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Звёздочка и замок меняются одним щелчком, без подтверждения.</p>
 </td></tr></table>
 <p><strong>Пробел</strong> и <strong>Ctrl+H</strong> действуют на выбранный платеж, пока курсор находится в таблице платежей.</p>
-<h3 id="s12">Контекстное меню</h3>
+<h3 id="s13">Контекстное меню</h3>
 <p>Команды платежа доступны и по правой кнопке мыши.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Контекстное меню таблицы" src="images/03-main-window/context-menu.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 8. Контекстное меню строки платежа.</em></span></p>
@@ -350,10 +353,15 @@ th { color: #1f3a5f; }
 <td style="border-bottom: 1px solid #d9e0e9;">Документ договора, к которому привязан платеж</td>
 <td style="border-bottom: 1px solid #d9e0e9;">—</td>
 </tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«История платежей»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Платежи и оплаты по документу договора, к которому привязан платеж (<a href="06-contractors.html">раздел 6</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">—</td>
+</tr>
 </tbody>
 </table>
-<p>«Копировать платеж с новым основанием» и «Перейти к договору» доступны только для платежа, привязанного к документу договора; первая — не для возврата (<a href="03-event-dialog.html">раздел 3</a>).</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s13">Панель сведений</h2></td></tr></table>
+<p>«Копировать платеж с новым основанием», «Перейти к договору» и «История платежей» доступны только для платежа, привязанного к документу договора; первая — не для возврата (<a href="03-event-dialog.html">раздел 3</a>).</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s14">Панель сведений</h2></td></tr></table>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Панель сведений о выбранном платеже" src="images/03-main-window/info-panel.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 9. Панель сведений. 1 — сведения о платеже и заметки; 2 — история оплат; 3 — блок внесения оплаты.</em></span></p>
 <p>Панель состоит из трёх частей.</p>
@@ -394,8 +402,8 @@ th { color: #1f3a5f; }
 </table>
 <p>Заметку можно писать прямо в панели; она сохраняется сама, когда вы переходите в другое поле или выбираете другой платеж (можно и сразу, <strong>Ctrl+S</strong>).</p>
 <p><strong>История оплат (2):</strong> оплаты платежа с датой и суммой.</p>
-<p><strong>Внесение оплаты (3):</strong> дата, сумма, кнопки «Оплатить» и «Удалить»; по умолчанию — сегодня и остаток платежа (<a href="04-payment.html">раздел 4</a>).</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s14">Строка состояния</h2></td></tr></table>
+<p><strong>Внесение оплаты (3):</strong> дата, сумма, кнопки «Оплатить», «Изменить» и «Удалить»; по умолчанию — сегодня и остаток платежа (<a href="04-payment.html">раздел 4</a>).</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s15">Строка состояния</h2></td></tr></table>
 <p>Надписи в правой части строки состояния:</p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
@@ -433,7 +441,7 @@ th { color: #1f3a5f; }
 </table>
 <p>Слева на несколько секунд может появиться сообщение «Не удалось связаться с сервером синхронизации. Повторим попытку через … с (осталось попыток: …)». Ничего делать не нужно: программа повторит синхронизацию сама.</p>
 <p>Пока идёт автоматическая синхронизация, слева написано «Идет синхронизация...» (<a href="14-sync.html">раздел 14</a>).</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s15">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s16">Если что-то пошло не так</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>

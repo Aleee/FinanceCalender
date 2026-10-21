@@ -23,7 +23,7 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Окно «Контрагенты и договоры»</h2></td></tr></table>
 <p>Окно — мастер из трёх шагов: «Контрагент → Договор → Документ».</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Три шага окна «Контрагенты и договоры»" src="images/07-contractors/contractor-steps.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 17. Три шага окна: контрагент, договор, документ.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 18. Три шага окна: контрагент, договор, документ.</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -53,11 +53,18 @@ th { color: #1f3a5f; }
 <h3 id="s5">Новый документ</h3>
 <p>«Новый документ» → «Создать» → окно документа (ниже) → «Сохранить».</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
-<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Контрагент и договор создаются сразу после «ОК», «Отмена» окна их не удаляет. Название контрагента, номер и дату договора изменить нельзя, а удалить контрагента, договор или документ невозможно: проверяйте написание перед «ОК».</p>
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Контрагент и договор создаются сразу после «ОК», «Отмена» окна их не удаляет. Удалить контрагента, договор или документ невозможно (убрать из списков можно архивом, см. ниже).</p>
 </td></tr></table>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s6">Окно документа</h2></td></tr></table>
+<h3 id="s6">Переименование и архив</h3>
+<p>Справа от списков контрагентов и договоров — кнопки; те же действия есть в контекстном меню по правой кнопке мыши.</p>
+<ul>
+<li><strong>Переименование.</strong> Кнопка «Переименовать» у контрагента, «Изменить» у договора (номер и дата). Правила проверки те же, что при создании: дубль не допускается. Платежи, уже внесённые на это название, сохраняют прежнее написание получателя, привязка к договору не меняется.</li>
+<li><strong>«В архив» / «Вернуть из архива».</strong> Архивные контрагенты и договоры скрыты из списков; флажок «Показать архивные» их показывает серым курсивом. Архив ничего не удаляет и не меняет в платежах и расчётах. В окне платежа (<a href="03-event-dialog.html">раздел 3</a>) архивные контрагенты и договоры не предлагаются, кроме того, к которому платеж уже привязан; в списке они помечены «(архив)».</li>
+<li><strong>«Платежи…».</strong> Открывает историю платежей выбранного контрагента, договора или документа (см. ниже).</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Окно документа</h2></td></tr></table>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно документа с пронумерованными выносками" src="images/07-contractors/document-dialog.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 18. Окно документа «Акт» по договору «М-31/2025».</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 19. Окно документа «Акт» по договору «М-31/2025».</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -105,22 +112,27 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <p>Типы срока оплаты — в <a href="07-payment-terms.html">разделе 7</a>. Без названия или типа документ не сохранится («Укажите название документа», «Выберите тип документа»).</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Привязка платежа к документу</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">История платежей</h2></td></tr></table>
+<p>Окно «Платежи: …» показывает все платежи и оплаты, привязанные к документам контрагента, договора или одного документа.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="История платежей по контрагенту" src="images/07-contractors/history-obligations.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 20. История платежей контрагента. Просроченные платежи выделены красным, полностью оплаченные — зелёным.</em></span></p>
+<p>Открывается кнопкой «Платежи…» в окне «Контрагенты и договоры» (на любом шаге), кнопкой «Платежи…» в окне существующего документа или командой «История платежей» контекстного меню таблицы платежей (<a href="02-main-window.html">раздел 2</a>).</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Привязка платежа к документу</h2></td></tr></table>
 <p>Привязка нужна для расчёта срока оплаты и для «Копировать платеж с новым основанием» (<a href="03-event-dialog.html">раздел 3</a>). Выполняется в панели договора окна платежа (рис. 11 в <a href="03-event-dialog.html">разделе 3</a>):</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Панель договора в окне платежа" src="images/07-contractors/contract-panel.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 19. Панель договора. 1 — контрагент, 2 — договор, 3 — документ, 4 — кнопка привязки, 5 — условия оплаты, 6 — дата возникновения и отчетный месяц, 7 — расчетная дата, 8 — «← Подставить срок оплаты», 9 — «← Заполнить поля из договора», 10 — «Сохранить поля в договор →».</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 21. Панель договора. 1 — контрагент, 2 — договор, 3 — документ, 4 — кнопка привязки, 5 — условия оплаты, 6 — дата возникновения и отчетный месяц, 7 — расчетная дата, 8 — «← Подставить срок оплаты», 9 — «← Заполнить поля из договора», 10 — «Сохранить поля в договор →».</em></span></p>
 <p>В панели выберите «Контрагент» (1; названия, которого нет в списке, программа не принимает), «Договор» (2; подставляется автоматически — проверьте) и «Документ» (3). Нажмите «Привязать к документу» (4), затем «Создать» или «Применить»: привязка сохраняется вместе с платежом, «Отмена» её отменяет.</p>
 <p>Условия оплаты (5), расчетная дата (7) и кнопки (8–10) появляются, когда выбран документ.</p>
 <p><strong>Отвязать платеж:</strong> ✕ в строке «Договор» окна платежа, затем «Применить». Документ остаётся в справочнике.</p>
 <p>Привязанный платеж отмечен скрепкой (<a href="02-main-window.html">раздел 2</a>) и ссылкой в панели сведений (см. «Переход к договору из платежа»).</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">Расчетная дата и кнопка «← Подставить срок оплаты»</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Расчетная дата и кнопка «← Подставить срок оплаты»</h2></td></tr></table>
 <p>Для выбранного документа панель показывает расчетный срок оплаты (7), например «11.11.2026 (Ср)»; если расчёт невозможен («Предоплата / Срок явно не определён» или мало данных) — «—». Исходные данные (6):</p>
 <ul>
 <li><strong>«Дата возникновения»</strong> — для относительного срока; сначала берётся из платежа, но в панели её можно задать отдельно;</li>
 <li><strong>«Отчетный месяц»</strong> — месяц, от которого отсчитываются «текущий», «следующий» и «предыдущий» месяц; для документов с условием «не позднее N числа месяца».</li>
 </ul>
 <p>Кнопка <strong>«← Подставить срок оплаты»</strong> (8) переносит расчетную дату в «Срок оплаты» (при относительном сроке — и дату возникновения из панели). Активна, только если платеж привязан к выбранному документу и расчетная дата есть. Сама дата не подставляется: срок можно задать вручную.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Поля из договора: сохранить и заполнить</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s11">Поля из договора: сохранить и заполнить</h2></td></tr></table>
 <p>Поля повторяющихся платежей по документу можно один раз запомнить в нём.</p>
 <p><strong>«Сохранить поля в договор →»</strong> (10) запоминает для документа получателя, наименование, категорию и подкатегорию, НДС, вид, основание, ответственного и «Скрытый платеж» (не сумму, даты и заметки); прежние значения заменяются. В строке состояния на несколько секунд появляется «Данные договора успешно сохранены».</p>
 <p><strong>«← Заполнить поля из договора»</strong> (9) подставляет запомненные значения в окно платежа без вопросов (сумма, даты и заметки не меняются). Если ничего не сохраняли: «Для этого договора ранее не сохранялись значения». Обе кнопки работают с документом, выбранным в панели, даже если платеж к нему не привязан.</p>
@@ -128,15 +140,15 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
 <p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если платежи по документу повторяются каждый месяц, быстрее пользоваться командой «Копировать платеж с новым основанием» (<a href="03-event-dialog.html">раздел 3</a>): она не требует запоминать поля.</p>
 </td></tr></table>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Переход к договору из платежа</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s12">Переход к договору из платежа</h2></td></tr></table>
 <p>Документ привязанного платежа открывается из главного окна: ссылкой «Привязан к договору» в панели сведений или командой «Перейти к договору» контекстного меню (рис. 8 в <a href="02-main-window.html">разделе 2</a>). Для платежа без привязки команда недоступна.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s11">Что нельзя сделать</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s13">Что нельзя сделать</h2></td></tr></table>
 <ul>
-<li>Изменить название контрагента, номер и дату договора, а также договор, которому принадлежит документ.</li>
+<li>Изменить договор, которому принадлежит документ, а также перенести договор другому контрагенту.</li>
 <li>Удалить контрагента, договор или документ (лишний документ на платежи не влияет).</li>
 <li>Привязать платеж к договору без документа: привязка всегда идёт к документу.</li>
 </ul>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s12">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s14">Если что-то пошло не так</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -168,8 +180,28 @@ th { color: #1f3a5f; }
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">«Не удалось сохранить контрагента в базе данных (см. подробнее лог)» или «Не удалось сохранить договор в базе данных (см. подробнее лог)»</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Запись не создалась</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Запись не создалась или не переименовалась</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Повторите попытку. Если сообщение повторяется, перезапустите программу</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось сохранить изменение в базе данных (см. подробнее лог)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не записалась отметка «В архив» или «Вернуть из архива»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Повторите; если не помогло, перезапустите программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Контрагента или договора нет в списке, хотя он создавался</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Он в архиве</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Включите «Показать архивные» и верните из архива</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">«Не удалось загрузить историю платежей (см. подробнее лог)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Данные для окна «Платежи» не прочитались</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Закройте окно и откройте снова; если не помогло, перезапустите программу</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«Этот платеж не загружен в таблицу: он оплачен раньше периода показа оплаченных платежей из настроек. Увеличьте период и повторите.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Двойной щелчок в истории платежей по давно оплаченному платежу</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Увеличьте срок в «Настройки» → «Таблица» → «Оплаченные платежи» (<a href="05-filters.html">раздел 5</a>)</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">«Не удалось загрузить данные из базы данных (см. подробнее лог)» при открытии документа</td>
