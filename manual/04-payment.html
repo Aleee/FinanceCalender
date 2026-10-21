@@ -18,7 +18,7 @@ th { color: #1f3a5f; }
 </head>
 <body>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 4. Оплата платежа</h1></td></tr></table>
-<p>Когда платеж выполнен, внесите <strong>оплату</strong> — дату и сумму: остаток уменьшится. Здесь описаны частичные оплаты, оплата больше остатка, изменение и удаление оплаты.</p>
+<p>Когда платеж выполнен, внесите <strong>оплату</strong> — дату и сумму: остаток уменьшится.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Где вносится оплата</h2></td></tr></table>
 <p>Оплата вносится в <strong>панели сведений</strong> (<a href="02-main-window.html">раздел 2</a>) выбранного платежа.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Панель сведений: история оплат и блок внесения оплаты" src="images/05-payment/pay-block.png" /></p>
@@ -70,72 +70,36 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
-<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Для оплаты целиком дата и сумма уже подставлены: проверьте дату и нажмите «Оплатить» (или <strong>Enter</strong> в поле даты или суммы).</p>
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Для оплаты целиком достаточно проверить дату и нажать «Оплатить» (или <strong>Enter</strong>).</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Частичная оплата</h2></td></tr></table>
-<p>Каждую часть вносите отдельной оплатой.</p>
-<p><strong>Пример.</strong> Платеж «Калибровка лабораторных весов» на 7 800,00 со сроком оплаты 05.10.2026.</p>
-<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
-<thead>
-<tr>
-<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы сделали</th>
-<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Остаток платежа</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">Ничего не оплачивали</td>
-<td style="border-bottom: 1px solid #d9e0e9;">7 800,00</td>
-</tr>
-<tr bgcolor="#f7f9fc">
-<td style="border-bottom: 1px solid #d9e0e9;">Внесли оплату 3 000,00</td>
-<td style="border-bottom: 1px solid #d9e0e9;">4 800,00</td>
-</tr>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">Внесли оплату 4 800,00</td>
-<td style="border-bottom: 1px solid #d9e0e9;">0,00 — платеж оплачен полностью</td>
-</tr>
-</tbody>
-</table>
+<p>Каждую часть вносите отдельной оплатой; остаток уменьшается на её сумму (пример — в <a href="01-about.html">разделе 1</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Оплата больше остатка</h2></td></tr></table>
-<p>Оплату больше остатка внести нельзя: программа покажет сообщение без возможности продолжить.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#5b7aa6"></td><td bgcolor="#f1f4f9" style="padding: 10px 16px 0px 16px;">
-<p>«Сумма оплаты (20 000,00) превышает остаток задолженности (14 800,00)»</p>
-</td></tr></table>
-<p>Если заплатили действительно больше, сначала увеличьте общую сумму платежа в окне редактирования (<a href="03-event-dialog.html">раздел 3</a>).</p>
+<p>Оплату больше остатка внести нельзя: программа покажет сообщение «Сумма оплаты (…) превышает остаток задолженности (…)». Если заплатили действительно больше, сначала увеличьте общую сумму платежа в окне редактирования (<a href="03-event-dialog.html">раздел 3</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Возврат части оплаты</h2></td></tr></table>
-<p>Если вам вернули часть уплаченных денег, внесите оплату со знаком «минус», например «-300,00». Остаток вырастет на эту сумму, в истории оплата будет показана со знаком «минус».</p>
-<p>Общая сумма платежа при этом <strong>не меняется</strong>. Если она тоже должна уменьшиться, исправьте её в окне редактирования платежа (<a href="03-event-dialog.html">раздел 3</a>).</p>
-<p>Возврат нельзя внести на сумму больше, чем оплачено по платежу: программа покажет сообщение «Сумма возврата (…) превышает сумму оплат по платежу (…)». Если платеж давно оплачен и скрыт, сначала увеличьте срок показа оплаченных в настройках.</p>
+<p>Если вам вернули часть уплаченных денег, внесите оплату со знаком «минус», например «-300,00»: остаток вырастет на эту сумму.</p>
+<p>Общая сумма платежа при этом <strong>не меняется</strong>; при необходимости исправьте её в окне редактирования (<a href="03-event-dialog.html">раздел 3</a>).</p>
+<p>Возврат не может превышать оплаченное по платежу (сообщение «Сумма возврата (…) превышает сумму оплат по платежу (…)»). Если платеж давно оплачен и скрыт, сначала увеличьте срок показа оплаченных в настройках.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
 <p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> После возврата остаток становится больше нуля, поэтому платеж снова считается неоплаченным и, если срок оплаты прошёл, показывается как просроченный.</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s6">Оплата с будущей датой</h2></td></tr></table>
-<p>Если выбранная дата позже сегодняшней, программа спросит:</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#5b7aa6"></td><td bgcolor="#f1f4f9" style="padding: 10px 16px 0px 16px;">
-<p>«Выбранная дата (14.10.2026) больше текущей даты. Уверены, что хотите продолжить?»</p>
-</td></tr></table>
-<p>Остаток уменьшится сразу, а не в день оплаты. Если вопрос неожиданный, проверьте дату: возможно, выбран не тот месяц.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">История оплат</h2></td></tr></table>
-<p>Ошиблись в дате или сумме — выберите оплату и нажмите «Изменить» (или дважды щёлкните по ней).</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">Изменение оплаты</h2></td></tr></table>
-<p>Откроется окно «Изменение оплаты» (рис. 26 в <a href="08-statement-matching.html">разделе 8</a>): в нём меняются дата и сумма оплаты. «Применить» сразу записывает изменения.</p>
+<p>Оплата с датой позже сегодняшней вносится после подтверждения; остаток уменьшится сразу, а не в день оплаты.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Изменение оплаты</h2></td></tr></table>
+<p>Окно «Изменение оплаты» (рис. 26 в <a href="08-statement-matching.html">разделе 8</a>): меняются дата и сумма оплаты.</p>
 <ul>
 <li><strong>Общая сумма платежа.</strong> Флажок «Изменить общую сумму платежа на ту же разницу» включён по умолчанию: общая сумма меняется на столько же, на сколько оплата, а остаток платежа остаётся прежним. Если общая сумма верна, а ошиблись только в оплате, снимите флажок: изменится остаток.</li>
-<li><strong>Нельзя оставить остаток отрицательным.</strong> При снятом флажке оплата не может превысить остаток: сообщение «Общая сумма платежа не может быть меньше суммы всех оплат по нему».</li>
-<li><strong>Дата в будущем.</strong> Если новая дата позже сегодняшней, программа спросит, как при внесении оплаты (раздел «Оплата с будущей датой»); вопрос не задаётся, если дату вы не меняли.</li>
+<li><strong>Нельзя оставить остаток отрицательным.</strong> При снятом флажке оплата не может превысить остаток.</li>
 <li><strong>Возврат.</strong> Оплата со знаком «минус» не может стать больше внесённых оплат: сообщение «Сумма возврата не может превышать сумму остальных оплат по платежу».</li>
-<li>«Изменить» недоступна, пока выбран платеж вида «возврат» или в истории не выбрана оплата.</li>
 </ul>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Удаление оплаты</h2></td></tr></table>
-<p>Выберите оплату в истории и нажмите «Удалить» (или <strong>Del</strong>); программа спросит: «Удалить оплату 16.10.2026 на сумму 30 000,00? Общая сумма платежа не изменится.». Остаток увеличится на сумму оплаты, сам платеж не удаляется. Оплату можно удалить и из окна изменения оплаты и из окна сверки выписки (кнопка «Удалить оплату», <a href="08-statement-matching.html">раздел 8</a>).</p>
-<p>Удалить нельзя оплату, без которой остальные оплаты окажутся больше общей суммы платежа или возврат окажется больше внесённых оплат (сообщения «Нельзя удалить оплату: …»).</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">Удаление оплаты</h2></td></tr></table>
+<p>Выберите оплату в истории и нажмите «Удалить» (или <strong>Del</strong>). Остаток увеличится на сумму оплаты, сам платеж не удаляется. Оплату можно удалить и из окна изменения оплаты, и из окна сверки выписки (<a href="08-statement-matching.html">раздел 8</a>).</p>
+<p>Нельзя удалить оплату, без которой остальные оплаты окажутся больше общей суммы платежа или возврат окажется больше внесённых оплат.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
 <p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Отменить удаление нельзя; удалили не ту — внесите заново.</p>
 </td></tr></table>
 <p><strong>Если платеж, оплаченный полностью, нужно «вернуть в неоплаченные».</strong> Включите пункт «Оплаченные» («СРОК ОПЛАТЫ»), выберите платеж и удалите оплату.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Что будет с платежом в таблице</h2></td></tr></table>
-<p>Платеж считается оплаченным, когда остаток нулевой или отрицательный, кроме оплаты сегодняшней датой.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Что будет с платежом в таблице</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -168,10 +132,7 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <p>В столбец «Оплата сегодня» (<a href="02-main-window.html">раздел 2</a>) и во флажок «ОПЛАТА СЕГОДНЯ» (<a href="05-filters.html">раздел 5</a>) попадают только оплаты с датой сегодня; оплата, внесённая сегодня вчерашней датой, не учитывается.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
-<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если платеж пропал из таблицы после оплаты, ошибки нет: он оплачен полностью датой в прошлом, ищите его в «Оплаченные».</p>
-</td></tr></table>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s11">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Если что-то пошло не так</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>

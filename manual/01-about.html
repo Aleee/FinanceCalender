@@ -31,7 +31,7 @@ th { color: #1f3a5f; }
 <p>Данные хранятся на вашем компьютере. Интернет нужен только для синхронизации и проверки обновлений.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Платеж и оплата</h2></td></tr></table>
 <p><strong>Платеж</strong> — это строка в главной таблице: что нужно заплатить (<strong>наименование</strong>), кому (<strong>получатель</strong>), сколько (<strong>сумма</strong>) и к какому дню (<strong>срок оплаты</strong>).</p>
-<p><strong>Оплата</strong> — запись о том, что по платежу заплатили: <strong>дата</strong> и <strong>сумма</strong>. Оплат у платежа может быть несколько: сначала часть суммы, потом остальное. <strong>Платеж — это «надо заплатить», а оплата — это «заплатили»</strong>. Оплату вносит кнопка «Оплатить» в панели сведений (<a href="04-payment.html">раздел 4</a>).</p>
+<p><strong>Оплата</strong> — запись о том, что по платежу заплатили: <strong>дата</strong> и <strong>сумма</strong>. Оплат у платежа может быть несколько: сначала часть суммы, потом остальное. <strong>Платеж — это «надо заплатить», а оплата — это «заплатили»</strong> (<a href="04-payment.html">раздел 4</a>).</p>
 <h3 id="s4">Остаток</h3>
 <p><strong>Остаток платежа</strong> — сколько по нему ещё не заплачено: сумма платежа минус все оплаты.</p>
 <p><strong>Пример.</strong> Платеж «Электроэнергия за сентябрь» на 120 000,00 со сроком оплаты 15.10.2026.</p>
@@ -65,7 +65,7 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
 <p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Платеж, который вы полностью оплатили сегодня, до конца дня остаётся среди неоплаченных: найти его и проверить сумму поможет флажок «ОПЛАТА СЕГОДНЯ». С завтрашнего дня платеж переходит в «Оплаченные».</p>
 </td></tr></table>
-<p>Оплату с будущей датой внести можно: программа переспросит «Уверены, что хотите продолжить?». Оплату больше остатка внести нельзя; ошибочную оплату можно изменить или удалить (<a href="04-payment.html">раздел 4</a>).</p>
+<p>Оплату больше остатка внести нельзя; ошибочную оплату можно изменить или удалить (<a href="04-payment.html">раздел 4</a>).</p>
 <h3 id="s5">Вид платежа</h3>
 <p>У каждого платежа есть вид (поле «Вид», столбец «Вид платежа»):</p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
@@ -134,11 +134,10 @@ th { color: #1f3a5f; }
 <li>«Финансовая деятельность» — для неё дополнительно нужно выбрать <strong>подкатегорию</strong>: «Погашение кредита», «Погашение лизинга», «Погашение процентов» или «Погашение займов учредителям»;</li>
 <li>«Инвестиционная деятельность».</li>
 </ol>
-<p>Таблица группирует платежи по категориям (<a href="02-main-window.html">раздел 2</a>); категория используется в фильтрах и отчётах.</p>
 <p><strong>НДС</strong> подставляется при выборе категории и может быть изменён.</p>
-<p><strong>Ответственный</strong> — сотрудник, отвечающий за платеж. Выбирается из списка или кнопкой «По должности…». Сотрудники и должности ведутся в «Настройки» → «Персонал». Платеж без ответственного сохранить нельзя.</p>
+<p><strong>Ответственный</strong> — сотрудник, отвечающий за платеж. Сотрудники и должности ведутся в «Настройки» → «Персонал». Платеж без ответственного сохранить нельзя.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">Контрагент, договор, документ</h2></td></tr></table>
-<p>Получателя можно просто вписать в платеж текстом. Но если есть договор и счета, их удобно завести в окне «Контрагенты и договоры»: тогда программа сама вычислит срок оплаты по условиям договора. Цепочка из трёх ступеней:</p>
+<p>Получателя можно просто вписать в платеж текстом. Но если есть договор и счета, заведите их в окне «Контрагенты и договоры»: программа вычислит срок оплаты по условиям договора. Цепочка из трёх ступеней:</p>
 <ul>
 <li><strong>Контрагент</strong> — организация, которой вы платите;</li>
 <li><strong>Договор</strong> — договор с этим контрагентом (в списках он показывается как «№ … от …»). У контрагента может быть несколько договоров;</li>
@@ -146,7 +145,7 @@ th { color: #1f3a5f; }
 </ul>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Как связаны понятия" src="images/01-about/chain.svg" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 1. Связь понятий. Контрагент, договор и документ — справочник, платеж ведётся отдельно и привязывается к нему по желанию. У платежа может быть несколько оплат.</em></span></p>
-<p>Платеж <strong>можно привязать к документу</strong> договора — тогда программа предложит рассчитанный срок оплаты. Привязка необязательна. Как привязывать и отвязывать — в <a href="06-contractors.html">разделе 6</a>.</p>
+<p>Платеж <strong>можно привязать к документу</strong> договора — тогда программа предложит рассчитанный срок оплаты. Привязка необязательна (<a href="06-contractors.html">раздел 6</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
 <p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Поле «Получатель» не связано со списком контрагентов: это обычный текст с подсказками из прежних платежей. Вписывайте получателя одинаково, и по нему удобно искать.</p>
 </td></tr></table>
@@ -158,62 +157,5 @@ th { color: #1f3a5f; }
 </ul>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Платеж на контроле и скрытый платеж" src="images/01-about/marks.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 2. Столбцы со звёздочкой и замком. В первой строке платеж «на контроле» (жёлтая звёздочка), во второй — скрытый платеж (замок).</em></span></p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Коротко: что есть что</h2></td></tr></table>
-<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
-<thead>
-<tr>
-<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Понятие</th>
-<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что это</th>
-<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Где увидеть</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">платеж</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Строка таблицы: что, кому, сколько, к какому сроку</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Главная таблица</td>
-</tr>
-<tr bgcolor="#f7f9fc">
-<td style="border-bottom: 1px solid #d9e0e9;">оплата</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Дата и сумма, которые заплатили по платежу</td>
-<td style="border-bottom: 1px solid #d9e0e9;">История оплат в панели сведений под таблицей</td>
-</tr>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">остаток</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Сумма платежа минус все оплаты</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Панель сведений, столбец «Остаток платежа»</td>
-</tr>
-<tr bgcolor="#f7f9fc">
-<td style="border-bottom: 1px solid #d9e0e9;">срок оплаты</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Дата, к которой нужно заплатить</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Столбец и поле «Срок оплаты»</td>
-</tr>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">категория</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Статья расходов</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Заголовки разделов таблицы, поле «Категория»</td>
-</tr>
-<tr bgcolor="#f7f9fc">
-<td style="border-bottom: 1px solid #d9e0e9;">ответственный</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Сотрудник, отвечающий за платеж</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Столбец и поле «Ответственный»</td>
-</tr>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">контрагент → договор → документ</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Справочник организаций, договоров и счетов</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Окно «Контрагенты и договоры»</td>
-</tr>
-<tr bgcolor="#f7f9fc">
-<td style="border-bottom: 1px solid #d9e0e9;">На контроле</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Звёздочка: важный платеж</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Столбец со звёздочкой, пункт «На контроле» в меню «Вид»</td>
-</tr>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">скрытый платеж</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Замок: платеж, который можно не показывать при экспорте</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Столбец с замком, флажок в окне платежа</td>
-</tr>
-</tbody>
-</table>
 </body>
 </html>

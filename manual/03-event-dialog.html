@@ -20,43 +20,7 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 3. Создание и редактирование платежа</h1></td></tr></table>
 <p>Платеж — основная запись программы: что, кому, сколько и к какому сроку нужно заплатить (см. <a href="01-about.html">раздел 1</a>). Оплаты вносятся отдельно (<a href="04-payment.html">раздел 4</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Как открыть окно платежа</h2></td></tr></table>
-<p>Команды — на панели инструментов и в контекстном меню таблицы; когда они доступны, см. <a href="02-main-window.html">раздел 2</a>.</p>
-<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
-<thead>
-<tr>
-<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что нужно сделать</th>
-<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Команда</th>
-<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Горячая клавиша</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">Создать новый платеж</td>
-<td style="border-bottom: 1px solid #d9e0e9;">«Новый платеж»</td>
-<td style="border-bottom: 1px solid #d9e0e9;"><strong>Ctrl+N</strong></td>
-</tr>
-<tr bgcolor="#f7f9fc">
-<td style="border-bottom: 1px solid #d9e0e9;">Создать платеж на основе выбранного</td>
-<td style="border-bottom: 1px solid #d9e0e9;">«Копировать платеж»</td>
-<td style="border-bottom: 1px solid #d9e0e9;"><strong>Ctrl+D</strong></td>
-</tr>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">Создать платеж на основе выбранного по тому же документу договора</td>
-<td style="border-bottom: 1px solid #d9e0e9;">«Копировать платеж с новым основанием»</td>
-<td style="border-bottom: 1px solid #d9e0e9;"><strong>Ctrl+Shift+D</strong></td>
-</tr>
-<tr bgcolor="#f7f9fc">
-<td style="border-bottom: 1px solid #d9e0e9;">Изменить выбранный платеж</td>
-<td style="border-bottom: 1px solid #d9e0e9;">«Редактировать платеж»</td>
-<td style="border-bottom: 1px solid #d9e0e9;"><strong>F2</strong> или двойной щелчок по строке</td>
-</tr>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">Удалить выбранный платеж</td>
-<td style="border-bottom: 1px solid #d9e0e9;">«Удалить платеж»</td>
-<td style="border-bottom: 1px solid #d9e0e9;"><strong>Del</strong></td>
-</tr>
-</tbody>
-</table>
+<p>Команды «Новый платеж», «Копировать платеж», «Копировать платеж с новым основанием», «Редактировать платеж» и «Удалить платеж» — на панели инструментов и в контекстном меню таблицы; клавиши — в <a href="P3-hotkeys.html">приложении 3</a>.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Окно платежа</h2></td></tr></table>
 <p>Для нового платежа и копии окно называется «Новый платеж» (кнопка «Создать»), для существующего — «Редактирование платежа» (кнопка «Применить»).</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Новый платеж» с пронумерованными выносками" src="images/04-event-dialog/new-dialog.png" /></p>
@@ -73,27 +37,27 @@ th { color: #1f3a5f; }
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">1</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Получатель</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Кому платим. Обязательное поле. Обычный текст, не связанный со списком контрагентов; подсказки — из прежних платежей (по любому фрагменту названия)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Обязательное поле. Не связан со списком контрагентов; подсказки — из прежних платежей</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">2</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Наименование</td>
-<td style="border-bottom: 1px solid #d9e0e9;">За что платим. Обязательное поле; подсказки из прежних платежей</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Обязательное поле</td>
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">3</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Договор</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Привязка к документу договора; ✕ отвязывает. Привязывается в панели договора (выноска 14), см. «Панель договора». Длинные названия договора и документа сокращаются до 30 знаков с «…»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Привязка к документу договора (✕ отвязывает); привязывается в панели договора (14). Длинные названия сокращаются до 30 знаков</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">4</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Сумма</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Полная сумма платежа с копейками, больше нуля. Для платежа-возврата тоже вводится положительное число (см. «Виды платежа»)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Больше нуля; для платежа-возврата тоже положительное число</td>
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">5</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Дата возникновения</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Дата события, от которого считается срок (например, дата счёта); по умолчанию сегодня</td>
+<td style="border-bottom: 1px solid #d9e0e9;">По умолчанию сегодня</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">6</td>
@@ -103,12 +67,12 @@ th { color: #1f3a5f; }
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">7</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Категория</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Статья расходов. Для «Финансовой деятельности» нужно выбрать «Подкатегорию»: «Погашение кредита», «Погашение лизинга», «Погашение процентов» или «Погашение займов учредителям»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Для «Финансовой деятельности» нужна «Подкатегория»</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">8</td>
 <td style="border-bottom: 1px solid #d9e0e9;">НДС</td>
-<td style="border-bottom: 1px solid #d9e0e9;">«нет», «10%», «20%» или «25%». Подставляется при выборе категории (зарплата — «нет», расходные материалы — 10%, услуги связи — 25%, большинство остальных — 20%), можно изменить</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Подставляется при выборе категории (зарплата — «нет», расходные материалы — 10%, услуги связи — 25%, остальные в основном — 20%), можно изменить</td>
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">9</td>
@@ -118,17 +82,17 @@ th { color: #1f3a5f; }
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">10</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Ответственный</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Обязательное поле. Список или «По должности…» (подставляется сотрудник, занимающий должность)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Обязательное поле. Список или «По должности…»</td>
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">11</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Основание</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Документ, например «Счет № 1187 от 11.10.2026»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Например «Счет № 1187 от 11.10.2026»</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">12</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Заметки</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Ваш текст; виден в панели сведений (<a href="02-main-window.html">раздел 2</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Видны в панели сведений</td>
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">13</td>
@@ -138,55 +102,28 @@ th { color: #1f3a5f; }
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">14</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Кнопка со стрелкой</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Боковая панель договора</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Панель договора</td>
 </tr>
 </tbody>
 </table>
 <p>Автоподстановки:</p>
 <ul>
-<li><strong>Категория → НДС.</strong> При каждой смене категории НДС выставляется заново, даже если вы меняли его вручную: проверяйте НДС после выбора категории.</li>
-<li><strong>Категория → ответственный.</strong> При выборе категории подставляется сотрудник, который чаще всего отвечал за её платежи; если по категории платежей ещё не было, поле остаётся пустым и ответственного нужно выбрать, в том числе при редактировании. Если вы выбрали ответственного сами (из списка или через «По должности…») либо он подставился из договора, смена категории его не меняет. Проверьте «Ответственный».</li>
-<li><strong>Договор → ответственный.</strong> В новом платеже при привязке к документу, у которого в договоре указана должность ответственного, подставляется сотрудник, занимающий эту должность, а в строке состояния на несколько секунд появляется «Ответственный подставлен из договора». Это не происходит, если ответственный уже выбран вручную, а также при редактировании и копировании платежа.</li>
+<li><strong>Категория → НДС.</strong> При каждой смене категории НДС выставляется заново, даже если вы меняли его вручную.</li>
+<li><strong>Категория → ответственный.</strong> Подставляется сотрудник, который чаще всего отвечал за платежи этой категории; если платежей не было, поле остаётся пустым. Ответственного, которого вы выбрали вручную или который подставился из договора, смена категории не меняет.</li>
+<li><strong>Договор → ответственный.</strong> В новом платеже при привязке к документу с должностью ответственного подставляется сотрудник на этой должности (в строке состояния «Ответственный подставлен из договора»), если ответственный не выбран вручную. При редактировании и копировании не подставляется.</li>
 <li><strong>Срок оплаты → дата возникновения.</strong> Если срок оплаты в прошлом и раньше даты возникновения, дата возникновения сдвигается на срок.</li>
 <li><strong>Список ответственных.</strong> Сотрудники из архива не показываются, кроме уже назначенного на этот платеж.</li>
 </ul>
-<p><strong>Если поле заполнено неверно.</strong> После «Создать» или «Применить» программа покажет сообщение, поставит курсор в проблемное поле и обведёт его красной рамкой (если дата возникновения позже срока оплаты, обводятся оба поля с датами). Рамка пропадает, как только вы измените значение в поле.</p>
+<p>Если поле заполнено неверно, программа покажет сообщение, поставит курсор в это поле и обведёт его красной рамкой; рамка пропадает, как только вы измените значение.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Виды платежа</h2></td></tr></table>
-<p>Поле «Вид» (9); подробнее — в <a href="01-about.html">разделе 1</a>.</p>
-<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
-<thead>
-<tr>
-<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Вид</th>
-<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Как работает</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">по факту</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Обычный платеж</td>
-</tr>
-<tr bgcolor="#f7f9fc">
-<td style="border-bottom: 1px solid #d9e0e9;">предоплата</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Пометка в столбце «Вид платежа»</td>
-</tr>
-<tr>
-<td style="border-bottom: 1px solid #d9e0e9;">возврат</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Деньги вернулись вам. Вводите положительную сумму: она запишется со знаком «минус», и сразу внесётся оплата на всю сумму датой «Срок оплаты» (не в будущем)</td>
-</tr>
-</tbody>
-</table>
-<p>Платеж-возврат нельзя редактировать, оплаты по нему нельзя вносить и удалять. Ошиблись — удалите возврат и создайте заново.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
-<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> При редактировании вид «возврат» выбрать нельзя: оплата возврата создаётся только вместе с платежом. Создайте новый платеж с видом «возврат». Если вам вернули только часть оплаты, внесите оплату со знаком «минус» (<a href="04-payment.html">раздел 4</a>).</p>
-</td></tr></table>
+<p>Виды платежа описаны в <a href="01-about.html">разделе 1</a>. При редактировании вид «возврат» выбрать нельзя: оплата возврата создаётся только вместе с платежом, поэтому создайте новый платеж с видом «возврат». Если вернули только часть оплаты, внесите оплату со знаком «минус» (<a href="04-payment.html">раздел 4</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Редактирование платежа</h2></td></tr></table>
 <p>Правила те же, что при создании.</p>
 <ul>
-<li><strong>Оплаты не меняются.</strong> Редактирование не затрагивает уже внесённые оплаты. Поэтому общую сумму нельзя сделать меньше уже оплаченной. Остаток пересчитается сам.</li>
-<li><strong>Выбранный платеж мог пропасть из таблицы.</strong> Если платеж перестал подходить под фильтры, появится сообщение «Выбранный платеж больше не отображается в таблице…» (<a href="02-main-window.html">раздел 2</a>): сбросьте фильтры и выберите платеж заново.</li>
+<li><strong>Оплаты не меняются.</strong> Редактирование не затрагивает внесённые оплаты, поэтому общую сумму нельзя сделать меньше уже оплаченной.</li>
 </ul>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s6">Панель договора</h2></td></tr></table>
-<p>Кнопка со стрелкой (14 на рис. 10) открывает панель привязки платежа к документу договора; состояние панели запоминается.</p>
+<p>Кнопка со стрелкой (14 на рис. 10) открывает панель привязки платежа к документу договора.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно платежа с открытой панелью договора" src="images/04-event-dialog/edit-sidepanel.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 11. Окно «Редактирование платежа» с панелью договора.</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
@@ -211,7 +148,7 @@ th { color: #1f3a5f; }
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">5</td>
 <td style="border-bottom: 1px solid #d9e0e9;">«Привязать к документу»</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Привязывает платеж к выбранному документу. Если платеж уже привязан к нему, кнопка называется «Платеж привязан к этому документу» и неактивна</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Привязывает платеж к выбранному документу; у уже привязанного платежа кнопка неактивна</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">6</td>
@@ -235,8 +172,7 @@ th { color: #1f3a5f; }
 </tr>
 </tbody>
 </table>
-<p>В панели есть два подзаголовка: «Условия оплаты:» (текст условий из документа, только для чтения) и «Значения полей» (над кнопками 8 и 9).</p>
-<p>Привязка сохраняется вместе с платежом. Подробнее — в разделах <a href="06-contractors.html">6</a> и <a href="07-payment-terms.html">7</a>.</p>
+<p>Привязка сохраняется вместе с платежом (разделы <a href="06-contractors.html">6</a> и <a href="07-payment-terms.html">7</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Копирование платежа</h2></td></tr></table>
 <p><strong>Ctrl+D</strong> открывает окно «Новый платеж», заполненное данными выбранного платежа. Что переносится:</p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
@@ -258,8 +194,8 @@ th { color: #1f3a5f; }
 <p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Если вы копируете платеж-возврат, сумма в окне окажется равной нулю, а вид останется «возврат». Введите сумму заново.</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">Копирование платежа с новым основанием</h2></td></tr></table>
-<p>Для регулярных платежей по одному документу договора (например, ежемесячный счёт): копия остаётся привязанной к документу, а в небольшом окне вводится только изменяющееся.</p>
-<p>Команда доступна, если платеж привязан к документу договора и не является возвратом. <strong>Ctrl+Shift+D</strong>, меню кнопки «Копия» или контекстное меню.</p>
+<p>Для регулярных платежей по одному документу договора (например, ежемесячный счёт): копия остаётся привязанной к документу, вводится только изменяющееся.</p>
+<p>Доступно для платежа, привязанного к документу договора, кроме возврата.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Копирование платежа с новым основанием»" src="images/04-event-dialog/copydoc-dialog.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 12. Окно «Копирование платежа с новым основанием».</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
@@ -314,11 +250,10 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <p>Если для документа срок считается от отчетного месяца (например, «не позднее 25 числа следующего месяца»), в окне добавляется «Отчетный месяц»; пока вы его не меняете, берётся месяц даты возникновения (<a href="07-payment-terms.html">раздел 7</a>).</p>
-<p>Остальное копируется без изменений; «На контроле» и оплаты не переносятся.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Удаление платежа</h2></td></tr></table>
-<p><strong>Del</strong>; программа попросит подтвердить удаление. Вместе с платежом удаляются <strong>все оплаты по нему</strong> (вся история оплат) и его заметки. Контрагент, договор и документ, к которому платеж был привязан, остаются в окне «Контрагенты и договоры».</p>
+<p><strong>Del</strong>; программа попросит подтвердить. Вместе с платежом удаляются <strong>все оплаты по нему</strong> и заметка; контрагент, договор и документ остаются.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
-<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Отменить можно только последнее удаление: <strong>Ctrl+Z</strong> возвращает платеж с оплатами и заметкой, пока вы не удалили другой платеж и не закрыли программу. В остальных случаях остаётся создать платеж заново или восстановить резервную копию (<a href="13-backup.html">раздел 13</a>), но тогда пропадёт всё, что внесено после её создания.</p>
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Отменить можно только последнее удаление: <strong>Ctrl+Z</strong> возвращает платеж с оплатами и заметкой, пока вы не удалили другой платеж и не закрыли программу. Иначе остаётся создать платеж заново или восстановить копию (<a href="13-backup.html">раздел 13</a>): тогда пропадёт всё, что внесено после её создания.</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Если что-то пошло не так</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
