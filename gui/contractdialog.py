@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Callable, Optional
 
 from PySide6.QtCore import QDate, QSettings
-from PySide6.QtWidgets import QDialog, QButtonGroup, QLayout, QDialogButtonBox
+from PySide6.QtWidgets import QDialog, QButtonGroup, QLayout, QDialogButtonBox, QWidget
 
 from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
@@ -11,6 +11,7 @@ from base.paymentdate import calculate_payment_date
 from base.workcalendar import WEEKDAY_ABBR
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.commonwidgets.readonly import make_read_only
+from gui.contracthistorydialog import ContractHistoryDialog, document_scope
 from gui.ui.contractdialog_ui import Ui_ContractDialog
 
 
@@ -27,7 +28,8 @@ class ContractDocumentDialog(QDialog):
         ("следующего", MonthType.NEXT),
     )
 
-    def __init__(self, dbh: DBHandler, settings: QSettings, document_id: int, contract: ContractInfo, parent=None):
+    def __init__(self, dbh: DBHandler, settings: QSettings, document_id: int, contract: ContractInfo, parent=None,
+                 open_event: Callable[[int, QWidget], bool] | None = None):
         super().__init__(parent)
         self.ui = Ui_ContractDialog()
         self.ui.setupUi(self)
@@ -38,6 +40,7 @@ class ContractDocumentDialog(QDialog):
         self.settings = settings
         self.document_id = document_id
         self.contract = contract
+        self.open_event = open_event
         self._loaded: Optional[ContractDocumentData] = None
 
         self.rbg_termgroup = QButtonGroup(self)
@@ -82,6 +85,8 @@ class ContractDocumentDialog(QDialog):
 
         self.setWindowTitle(f"Документ: {self._loaded.document_name}" if document_id != 0 else "Новый документ")
 
+        self.ui.pb_history.setVisible(document_id != 0)
+        self.ui.pb_history.clicked.connect(self.on_open_history)
         self.rbg_termgroup.buttonToggled.connect(self.update_terms_widgets)
         self.ui.chb_rel_additional.toggled.connect(self.update_terms_widgets)
         for spinbox in (self.ui.spb_rel_days, self.ui.spb_rel_dayofmonth, self.ui.spb_fixed_dayofmonth):
@@ -99,6 +104,13 @@ class ContractDocumentDialog(QDialog):
         cancel_button = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel)
         cancel_button.setText("Закрыть")
         cancel_button.setDefault(True)
+
+    def on_open_history(self) -> None:
+        data = self._loaded
+        scope, note, subtitle = document_scope(data.document_name, data.contract_number, data.contract_date,
+                                               data.contractor_name)
+        ContractHistoryDialog(self.dbh, scope, data.contractor_id, data.contract_id, self.open_event, self,
+                              self.document_id, subtitle, note).exec()
 
     def exec(self) -> int:
         if self._loaded is None:

@@ -1,4 +1,5 @@
 from enum import IntEnum
+from html import escape
 from typing import Callable
 
 from PySide6.QtCore import QDate, QSettings
@@ -73,6 +74,9 @@ class ContractorDialog(QDialog):
 
     STEP_NAMES = ("Контрагент", "Договор", "Документ")
 
+    ICON_ARCHIVE = QIcon(":/icon-contractors/designer/icons/item_archive.svg")
+    ICON_UNARCHIVE = QIcon(":/icon-contractors/designer/icons/item_unarchive.svg")
+
     def __init__(self, dbh: DBHandler, settings: QSettings, open_event: Callable[[int, QWidget], bool] | None = None,
                  parent=None):
         super(ContractorDialog, self).__init__(parent)
@@ -88,35 +92,35 @@ class ContractorDialog(QDialog):
         self.ui.le_filter.textChanged.connect(self.on_filter_change)
         self.ui.lw_contractor.currentItemChanged.connect(self.update_history_buttons)
         self.ui.lw_contract.currentItemChanged.connect(self.update_history_buttons)
-        self.ui.pb_history_contractor.clicked.connect(lambda: self.on_open_history(False))
-        self.ui.pb_history_contract.clicked.connect(lambda: self.on_open_history(True))
+        self.ui.lw_document.currentItemChanged.connect(self.update_history_buttons)
+        self.ui.tb_history_contractor.clicked.connect(lambda: self.on_open_history(StackwidgetPage.contractors))
+        self.ui.tb_history_contract.clicked.connect(lambda: self.on_open_history(StackwidgetPage.contracts))
+        self.ui.tb_history_document.clicked.connect(lambda: self.on_open_history(StackwidgetPage.documents))
         self.update_history_buttons()
 
-        for button in (self.ui.pb_cancel, self.ui.pb_cancel_2, self.ui.pb_cancel_3):
-            button.clicked.connect(self.reject)
-        self.ui.pb_continue_to_contracts.clicked.connect(self.on_continue_to_contracts)
-        self.ui.pb_back_to_contractors.clicked.connect(self.on_back_to_contractors)
-        self.ui.pb_continue_to_documents.clicked.connect(self.on_continue_to_documents)
-        self.ui.pb_back_to_contracts.clicked.connect(self.on_back_to_contracts)
-        self.ui.pb_accept.clicked.connect(self.accept)
+        self.ui.pb_cancel.clicked.connect(self.reject)
+        self.ui.pb_back.clicked.connect(self.on_back)
+        self.ui.pb_next.clicked.connect(self.on_next)
+        self.ui.pb_next.setDefault(True)
 
         self.ui.lw_contractor.itemDoubleClicked.connect(self.on_continue_to_contracts)
         self.ui.lw_contract.itemDoubleClicked.connect(self.on_continue_to_documents)
         self.ui.lw_document.itemDoubleClicked.connect(self.accept)
         self.ui.lw_document.currentItemChanged.connect(self.update_accept_button)
 
-        self.ui.chb_show_archived.toggled.connect(self.ui.chb_show_archived_2.setChecked)
-        self.ui.chb_show_archived_2.toggled.connect(self.ui.chb_show_archived.setChecked)
+        retain_policy = self.ui.chb_show_archived.sizePolicy()
+        retain_policy.setRetainSizeWhenHidden(True)
+        self.ui.chb_show_archived.setSizePolicy(retain_policy)
         self.ui.chb_show_archived.toggled.connect(self.on_show_archived_toggled)
         if is_viewer():
-            for button in (self.ui.pb_rename_contractor, self.ui.pb_rename_contract,
-                           self.ui.pb_archive_contractor, self.ui.pb_archive_contract):
+            for button in (self.ui.tb_rename_contractor, self.ui.tb_rename_contract,
+                           self.ui.tb_archive_contractor, self.ui.tb_archive_contract):
                 button.hide()
         else:
-            self.ui.pb_rename_contractor.clicked.connect(self.on_rename_contractor)
-            self.ui.pb_rename_contract.clicked.connect(self.on_edit_contract)
-            self.ui.pb_archive_contractor.clicked.connect(self.on_toggle_contractor_archived)
-            self.ui.pb_archive_contract.clicked.connect(self.on_toggle_contract_archived)
+            self.ui.tb_rename_contractor.clicked.connect(self.on_rename_contractor)
+            self.ui.tb_rename_contract.clicked.connect(self.on_edit_contract)
+            self.ui.tb_archive_contractor.clicked.connect(self.on_toggle_contractor_archived)
+            self.ui.tb_archive_contract.clicked.connect(self.on_toggle_contract_archived)
             self.ui.lw_contractor.currentItemChanged.connect(self.update_edit_buttons)
             self.ui.lw_contract.currentItemChanged.connect(self.update_edit_buttons)
             for list_widget, rename_handler, rename_text, archive_handler in (
@@ -187,32 +191,45 @@ class ContractorDialog(QDialog):
 
     def update_history_buttons(self) -> None:
         contractor_id = self._current_id(self.ui.lw_contractor)
-        self.ui.pb_history_contractor.setEnabled(bool(contractor_id))
-        self.ui.pb_history_contract.setEnabled(bool(contractor_id and self._current_id(self.ui.lw_contract)))
+        contract_id = self._current_id(self.ui.lw_contract)
+        self.ui.tb_history_contractor.setEnabled(bool(contractor_id))
+        self.ui.tb_history_contract.setEnabled(bool(contractor_id and contract_id))
+        self.ui.tb_history_document.setEnabled(bool(contractor_id and contract_id
+                                                    and self._current_id(self.ui.lw_document)))
 
-    def on_open_history(self, for_contract: bool) -> None:
+    def on_open_history(self, page: StackwidgetPage) -> None:
         contractor_item = self.ui.lw_contractor.currentItem()
-        contract_item = self.ui.lw_contract.currentItem() if for_contract else None
+        contract_item = self.ui.lw_contract.currentItem() if page >= StackwidgetPage.contracts else None
+        document_item = self.ui.lw_document.currentItem() if page == StackwidgetPage.documents else None
         if contractor_item is None or not contractor_item.data(Qt.ItemDataRole.UserRole):
             return
-        title = f"контрагент «{contractor_item.text()}»"
-        contract_id = None
-        if for_contract:
-            if contract_item is None or not contract_item.data(Qt.ItemDataRole.UserRole):
+        title = contractor_item.text()
+        subtitle = title_note = ""
+        contract_id = document_id = None
+        if contract_item is not None:
+            if not contract_item.data(Qt.ItemDataRole.UserRole):
                 return
             contract_id = contract_item.data(Qt.ItemDataRole.UserRole)
-            title = f"договор {contract_item.text()}, {title}"
-        ContractHistoryDialog(self.dbh, title[0].upper() + title[1:], contractor_item.data(Qt.ItemDataRole.UserRole),
-                              contract_id, self.open_event, self).exec()
+            title, subtitle = contract_item.text(), contractor_item.text()
+        if document_item is not None:
+            if not document_item.data(Qt.ItemDataRole.UserRole):
+                return
+            document_id = document_item.data(Qt.ItemDataRole.UserRole)
+            title_note = f"({document_item.text()})"
+        ContractHistoryDialog(self.dbh, title, contractor_item.data(Qt.ItemDataRole.UserRole), contract_id,
+                              self.open_event, self, document_id, subtitle, title_note).exec()
 
     def update_edit_buttons(self) -> None:
         for list_widget, rename_button, archive_button in (
-                (self.ui.lw_contractor, self.ui.pb_rename_contractor, self.ui.pb_archive_contractor),
-                (self.ui.lw_contract, self.ui.pb_rename_contract, self.ui.pb_archive_contract)):
+                (self.ui.lw_contractor, self.ui.tb_rename_contractor, self.ui.tb_archive_contractor),
+                (self.ui.lw_contract, self.ui.tb_rename_contract, self.ui.tb_archive_contract)):
             has_record = bool(self._current_id(list_widget))
             rename_button.setEnabled(has_record)
             archive_button.setEnabled(has_record)
-            archive_button.setText(self.archive_action_text(list_widget.currentItem()))
+            item = list_widget.currentItem()
+            archive_button.setToolTip(self.archive_action_text(item))
+            archive_button.setIcon(self.ICON_UNARCHIVE if item is not None and item.data(ARCHIVED_ROLE)
+                                   else self.ICON_ARCHIVE)
 
     def on_show_archived_toggled(self) -> None:
         self.on_filter_change()
@@ -239,28 +256,50 @@ class ContractorDialog(QDialog):
 
     def show_page(self, page: StackwidgetPage) -> None:
         self.ui.stw_main.setCurrentIndex(page)
+        chosen = []
+        if page >= StackwidgetPage.contracts:
+            chosen.append(self.ui.lw_contractor.currentItem().text())
+        if page >= StackwidgetPage.documents:
+            chosen.append(self.ui.lw_contract.currentItem().text())
         steps = []
         for i, name in enumerate(self.STEP_NAMES):
             if i == page:
                 steps.append(f"<b>{name}</b>")
             else:
-                steps.append(f"<span style='color: gray'>{name}</span>")
+                steps.append(f"<span style='color: gray'>{escape(chosen[i]) if i < page else name}</span>")
         self.ui.lbl_steps.setText(" → ".join(steps))
 
-        page_widgets = {
-            StackwidgetPage.contractors: (self.ui.pb_continue_to_contracts, self.ui.lw_contractor),
-            StackwidgetPage.contracts: (self.ui.pb_continue_to_documents, self.ui.lw_contract),
-            StackwidgetPage.documents: (self.ui.pb_accept, self.ui.lw_document),
+        self.ui.pb_back.setVisible(page != StackwidgetPage.contractors)
+        self.ui.chb_show_archived.setVisible(page != StackwidgetPage.documents)
+        if page == StackwidgetPage.documents:
+            self.update_accept_button()
+        else:
+            self.ui.pb_next.setText("Далее")
+
+        page_lists = {
+            StackwidgetPage.contractors: self.ui.lw_contractor,
+            StackwidgetPage.contracts: self.ui.lw_contract,
+            StackwidgetPage.documents: self.ui.lw_document,
         }
-        default_button, list_widget = page_widgets[page]
-        default_button.setDefault(True)
-        list_widget.setFocus()
+        page_lists[page].setFocus()
+
+    def on_back(self) -> None:
+        self.show_page(StackwidgetPage(self.ui.stw_main.currentIndex() - 1))
+
+    def on_next(self) -> None:
+        page = self.ui.stw_main.currentIndex()
+        if page == StackwidgetPage.contractors:
+            self.on_continue_to_contracts()
+        elif page == StackwidgetPage.contracts:
+            self.on_continue_to_documents()
+        else:
+            self.accept()
 
     def load_contractors(self) -> None:
         contractors = self.dbh.load_contractors()
         if contractors is None:
             ErrorInfoMessageBox("Не удалось загрузить список контрагентов (см. подробнее лог)", False, self).exec()
-            self.ui.pb_continue_to_contracts.setEnabled(False)
+            self.ui.pb_next.setEnabled(False)
             return
         if not is_viewer():
             self.ui.lw_contractor.addItem(self._make_new_item("Новый контрагент"))
@@ -345,7 +384,6 @@ class ContractorDialog(QDialog):
             self.ui.lw_contractor.setCurrentItem(new_item)
             contractor_id = new_id
 
-        self.ui.label_2.setText(f"Договоры контрагента «{self.ui.lw_contractor.currentItem().text()}»:")
         self.load_contracts(contractor_id)
         self.show_page(StackwidgetPage.contracts)
 
@@ -379,9 +417,6 @@ class ContractorDialog(QDialog):
         if current_item is None or current_item.isHidden():
             visible_rows = [i for i in range(self.ui.lw_contract.count()) if not self.ui.lw_contract.item(i).isHidden()]
             self.ui.lw_contract.setCurrentRow(visible_rows[0] if visible_rows else -1)
-
-    def on_back_to_contractors(self) -> None:
-        self.show_page(StackwidgetPage.contractors)
 
     def contract_exists(self, number: str, date: QDate, skip_item: QListWidgetItem | None = None) -> bool:
         for i in range(self.ui.lw_contract.count()):
@@ -437,7 +472,6 @@ class ContractorDialog(QDialog):
             self.ui.lw_contract.setCurrentItem(new_item)
             contract_id = new_id
 
-        self.ui.label_3.setText(f"Документы по договору «{self.ui.lw_contract.currentItem().text()}»:")
         self.load_documents(contract_id)
         self.show_page(StackwidgetPage.documents)
 
@@ -459,10 +493,9 @@ class ContractorDialog(QDialog):
         self._select_by_id(self.ui.lw_document, select_id)
 
     def update_accept_button(self) -> None:
-        self.ui.pb_accept.setText("Создать" if self._current_id(self.ui.lw_document) == 0 else "Открыть")
-
-    def on_back_to_contracts(self) -> None:
-        self.show_page(StackwidgetPage.contracts)
+        if self.ui.stw_main.currentIndex() != StackwidgetPage.documents:
+            return
+        self.ui.pb_next.setText("Создать" if self._current_id(self.ui.lw_document) == 0 else "Открыть")
 
     def accept(self, /) -> None:
         contractor_item = self.ui.lw_contractor.currentItem()
@@ -479,7 +512,7 @@ class ContractorDialog(QDialog):
             contract_date=contract_item.data(Qt.ItemDataRole.UserRole + 2),
         )
         dialog = ContractDocumentDialog(
-            self.dbh, self.settings, document_item.data(Qt.ItemDataRole.UserRole), info, self
+            self.dbh, self.settings, document_item.data(Qt.ItemDataRole.UserRole), info, self, self.open_event
         )
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.load_documents(info.contract_id, select_id=dialog.document_id)

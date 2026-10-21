@@ -18,9 +18,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QApplication, QCheckBox,
     QComboBox, QDateEdit, QDialog, QDialogButtonBox,
     QFormLayout, QFrame, QGroupBox, QHBoxLayout,
-    QLabel, QLineEdit, QPlainTextEdit, QRadioButton,
-    QSizePolicy, QSpacerItem, QSpinBox, QVBoxLayout,
-    QWidget)
+    QLabel, QLineEdit, QPlainTextEdit, QPushButton,
+    QRadioButton, QSizePolicy, QSpacerItem, QSpinBox,
+    QVBoxLayout, QWidget)
 
 class Ui_ContractDialog(object):
     def setupUi(self, ContractDialog):
@@ -274,11 +274,22 @@ class Ui_ContractDialog(object):
 
         self.verticalLayout.addWidget(self.line)
 
+        self.horizontalLayout_buttons = QHBoxLayout()
+        self.horizontalLayout_buttons.setObjectName(u"horizontalLayout_buttons")
+        self.pb_history = QPushButton(ContractDialog)
+        self.pb_history.setObjectName(u"pb_history")
+        self.pb_history.setAutoDefault(False)
+
+        self.horizontalLayout_buttons.addWidget(self.pb_history)
+
         self.buttonBox = QDialogButtonBox(ContractDialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setStandardButtons(QDialogButtonBox.StandardButton.Cancel|QDialogButtonBox.StandardButton.Save)
 
-        self.verticalLayout.addWidget(self.buttonBox)
+        self.horizontalLayout_buttons.addWidget(self.buttonBox)
+
+
+        self.verticalLayout.addLayout(self.horizontalLayout_buttons)
 
         QWidget.setTabOrder(self.le_documentname, self.cmb_documenttype)
         QWidget.setTabOrder(self.cmb_documenttype, self.cmb_responsible)
@@ -293,6 +304,7 @@ class Ui_ContractDialog(object):
         QWidget.setTabOrder(self.cmb_rel_month, self.rb_fixed)
         QWidget.setTabOrder(self.rb_fixed, self.spb_fixed_dayofmonth)
         QWidget.setTabOrder(self.spb_fixed_dayofmonth, self.cmb_fixed_month)
+        QWidget.setTabOrder(self.cmb_fixed_month, self.pb_history)
 
         self.retranslateUi(ContractDialog)
 
@@ -333,5 +345,6 @@ class Ui_ContractDialog(object):
 #endif // QT_CONFIG(tooltip)
         self.label_13.setText(QCoreApplication.translate("ContractDialog", u"\u0447\u0438\u0441\u043b\u0430", None))
         self.label_14.setText(QCoreApplication.translate("ContractDialog", u"\u043c\u0435\u0441\u044f\u0446\u0430", None))
+        self.pb_history.setText(QCoreApplication.translate("ContractDialog", u"\u041f\u043b\u0430\u0442\u0435\u0436\u0438\u2026", None))
     # retranslateUi
 

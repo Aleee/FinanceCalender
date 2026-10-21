@@ -1343,14 +1343,20 @@ class DBHandler:
             )
         return titles
 
-    def load_contract_history(self, contractor_id: int, contract_id: int | None = None
+    def load_contract_history(self, contractor_id: int, contract_id: int | None = None,
+                              document_id: int | None = None
                               ) -> tuple[list[ContractObligation], list[ContractPayment]] | None:
         if not self.is_db_connected():
             return None
         cents = "CAST(ROUND(CAST({} AS REAL) * 100) AS INTEGER)"
         where = "WHERE e.type = 2 AND c.contractor_id = ?"
+        params = [contractor_id]
         if contract_id is not None:
             where += " AND c.id = ?"
+            params.append(contract_id)
+        if document_id is not None:
+            where += " AND d.id = ?"
+            params.append(document_id)
         if is_viewer():
             where += " AND COALESCE(e.hidden, 0) = 0"
         joins = ("JOIN contractdocument d ON d.id = e.contractdocument_id "
@@ -1369,9 +1375,8 @@ class DBHandler:
         for title, sql in queries:
             query = QSqlQuery()
             query.prepare(sql)
-            query.addBindValue(contractor_id)
-            if contract_id is not None:
-                query.addBindValue(contract_id)
+            for param in params:
+                query.addBindValue(param)
             if not query.exec():
                 log.e(f"Ошибка SQL при попытке получить историю {title} по контрагенту {contractor_id}: {query.lastError().text()}")
                 return None

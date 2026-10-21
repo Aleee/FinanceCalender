@@ -28,6 +28,7 @@ from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
 from gui.contractdialog import ContractDocumentDialog
 from gui.contractordialog import ContractorDialog
+from gui.contracthistorydialog import ContractHistoryDialog, document_scope
 from gui.copydocdialog import CopyDocDialog
 from gui.eventdialog import EventDialog
 from base.liability import Col, FilterFlags, PeriodField, RowType, PaymentType, TermCategory
@@ -401,6 +402,7 @@ class MainWindow(QMainWindow):
         self.ui.act_contracts.triggered.connect(self.open_contractor_dialog)
         self.ui.la_contractbound.linkActivated.connect(self.open_bound_document)
         self.ui.act_gotocontract.triggered.connect(self.open_bound_document)
+        self.ui.act_documenthistory.triggered.connect(self.open_document_history)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog())
         self.ui.act_help.triggered.connect(lambda: self.open_manual_dialog())
         self.ui.act_toggleheaders.toggled.connect(self.table_model.set_header_filter)
@@ -845,10 +847,12 @@ class MainWindow(QMainWindow):
         menu_separator = QAction(self)
         menu_separator.setSeparator(True)
         if is_viewer():
-            self.ui.trw_event.addActions([self.ui.act_edit, menu_separator, self.ui.act_gotocontract])
+            self.ui.trw_event.addActions([self.ui.act_edit, menu_separator, self.ui.act_gotocontract,
+                                          self.ui.act_documenthistory])
         else:
             self.ui.trw_event.addActions([self.ui.act_new, self.ui.act_copy, self.ui.act_copydoc, self.ui.act_edit,
-                                          self.ui.act_delete, menu_separator, self.ui.act_gotocontract])
+                                          self.ui.act_delete, menu_separator, self.ui.act_gotocontract,
+                                          self.ui.act_documenthistory])
         for action in self.ui.trw_event.actions():
             action.setIconVisibleInMenu(True)
         self.ui.act_copydoc.setShortcut(QKeySequence("Ctrl+Shift+D"))
@@ -1004,6 +1008,7 @@ class MainWindow(QMainWindow):
     def set_bound_document(self, document_id: int) -> None:
         self.bound_document_id = document_id
         self.ui.act_gotocontract.setEnabled(bool(document_id))
+        self.ui.act_documenthistory.setEnabled(bool(document_id))
         self.ui.act_copydoc.setEnabled(bool(document_id) and self.current_data(Col.PAYMENTTYPE) != PaymentType.REFUND)
 
     def update_contractbound_field(self, index: QModelIndex) -> None:
@@ -1029,10 +1034,20 @@ class MainWindow(QMainWindow):
                                 contract_id=title.contract_id,
                                 contract_number=title.contract_number,
                                 contract_date=title.contract_date)
-        dlg = ContractDocumentDialog(self.db_handler, self.settings_handler.settings, self.bound_document_id, contract, self)
+        dlg = ContractDocumentDialog(self.db_handler, self.settings_handler.settings, self.bound_document_id, contract, self,
+                                    self.open_event_view)
         if dlg.exec():
             self.table_model.document_titles.clear()
             self.update_eventinfo()
+
+    def open_document_history(self) -> None:
+        title = self.table_model.document_title(self.bound_document_id) if self.bound_document_id else None
+        if title is None:
+            return
+        scope, note, subtitle = document_scope(title.document_name, title.contract_number, title.contract_date,
+                                               title.contractor_name)
+        ContractHistoryDialog(self.db_handler, scope, title.contractor_id, title.contract_id, self.open_event_view, self,
+                              self.bound_document_id, subtitle, note).exec()
 
     # Общий набор аргументов для set_filters, чтобы не дублировать список из 9 параметров
     def _current_filter_args(self) -> tuple:
@@ -1073,22 +1088,35 @@ class MainWindow(QMainWindow):
             "QPushButton:disabled {color: #6e6e6e;}")
         self.ui.horizontalLayout_search.setContentsMargins(9, 3, right_margin, 3)
 
-    def reset_filters(self) -> None:
+    FILTER_DEFAULTS: tuple = (0, 0, 0, False, "", False, None, None, 0)
+
+    def filter_state(self) -> tuple:
+        return (self.ui.lw_term.currentRow(), self.ui.lw_category.currentRow(),
+                self.ui.cmb_responsiblefilter.currentIndex(), self.ui.chb_paytoday.isChecked(),
+                self.ui.le_search.text(), self.ui.act_featured.isChecked(),
+                self.ui.de_datefrom.value(), self.ui.de_dateto.value(), self.ui.cmb_perioddate.currentIndex())
+
+    def apply_filter_state(self, state: tuple) -> None:
+        term_row, category_row, responsible_row, paytoday, search_text, featured, date_from, date_to, period_field = state
         blocked_widgets: tuple = (self.ui.lw_term, self.ui.lw_category,
                                   self.ui.cmb_responsiblefilter, self.ui.chb_paytoday,
                                   self.ui.le_search, self.ui.act_featured, self.ui.de_datefrom, self.ui.de_dateto,
                                   self.ui.cmb_perioddate)
         for widget in blocked_widgets:
             widget.blockSignals(True)
-        self.ui.lw_term.setCurrentRow(0)
-        self.ui.lw_category.setCurrentRow(0)
-        self.ui.cmb_responsiblefilter.setCurrentIndex(0)
-        self.ui.chb_paytoday.setChecked(False)
-        self.ui.le_search.clear()
-        self.ui.act_featured.setChecked(False)
-        self.ui.de_datefrom.clear_date()
-        self.ui.de_dateto.clear_date()
-        self.ui.cmb_perioddate.setCurrentIndex(0)
+        self.ui.lw_term.setCurrentRow(term_row)
+        self.ui.lw_category.setCurrentRow(category_row)
+        self.ui.cmb_responsiblefilter.setCurrentIndex(responsible_row)
+        self.ui.chb_paytoday.setChecked(paytoday)
+        self.ui.le_search.setText(search_text)
+        self.ui.act_featured.setChecked(featured)
+        for date_edit, value in ((self.ui.de_datefrom, date_from), (self.ui.de_dateto, date_to)):
+            if value is None:
+                date_edit.clear_date()
+            else:
+                date_edit.setDate(value)
+                date_edit.update_clear_action()
+        self.ui.cmb_perioddate.setCurrentIndex(period_field)
         for widget in blocked_widgets:
             widget.blockSignals(False)
 
@@ -1096,6 +1124,9 @@ class MainWindow(QMainWindow):
         for switch_button, filter_widget, label, is_active in self.filter_sections:
             switch_button.change_style_on_hiding_activefilter(switch_button.switch_state(), is_active())
         self.update_filters_and_select()
+
+    def reset_filters(self) -> None:
+        self.apply_filter_state(self.FILTER_DEFAULTS)
 
     def check_export_availability(self) -> None:
         self.ui.act_export.setEnabled(self.table_model.stored_count > 0)
@@ -1370,18 +1401,14 @@ class MainWindow(QMainWindow):
             ErrorInfoMessageBox("Этот платеж не загружен в таблицу: он оплачен раньше периода показа оплаченных платежей "
                                 "из настроек. Увеличьте период и повторите.", is_info=True, parent=parent).exec()
             return QModelIndex()
-        only_term: bool = store.hidden_only_by_term(event_id)
-        if only_term:
-            question = f"Платеж скрыт фильтром «Срок оплаты». Переключить его на «{self.ui.lw_term.ITEMS[term][0]}»?"
-        else:
-            question = "Платеж скрыт текущими фильтрами. Сбросить фильтры и показать его?"
-        if YesNoMessagebox(question, parent).exec() != YesNoMessagebox.YES_RETURN_VALUE:
-            return QModelIndex()
-        if not only_term:
+        if not store.hidden_only_by_term(event_id):
             self.reset_filters()
         if self.ui.lw_term.current_term() != term:
             self.ui.lw_term.setCurrentRow(int(term))
-        index = self.table_model.index_by_id(event_id)
+        return self.select_event(event_id)
+
+    def select_event(self, event_id: int | None) -> QModelIndex:
+        index: QModelIndex = QModelIndex() if event_id is None else self.table_model.index_by_id(event_id)
         if index.isValid():
             self.ui.trw_event.skip_restore_selection = True
             self.ui.trw_event.selectionModel().setCurrentIndex(
@@ -1389,10 +1416,17 @@ class MainWindow(QMainWindow):
         return index
 
     def open_event_view(self, event_id: int | None, parent: QWidget) -> bool:
-        index: QModelIndex = self.reveal_event(event_id, parent)
-        if not index.isValid():
-            return False
-        return self.open_event_dialog(edit=True, parent=parent, current_index=index)
+        saved_filters: tuple = self.filter_state()
+        saved_event_id: int | None = self.current_data(Col.ID)
+        try:
+            index: QModelIndex = self.reveal_event(event_id, parent)
+            if not index.isValid():
+                return False
+            return self.open_event_dialog(edit=True, parent=parent, current_index=index)
+        finally:
+            if self.filter_state() != saved_filters:
+                self.apply_filter_state(saved_filters)
+                self.select_event(saved_event_id)
 
     def open_payment_amount_dialog(self, payment_id: int, new_amount: Decimal | None, parent: QWidget) -> bool:
         info = self.db_handler.read_payment_info(payment_id)

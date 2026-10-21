@@ -104,7 +104,7 @@ def test_dialog_archive_flow(db_file, open_models, shared_dbh, monkeypatch, tmp_
 
     assert texts(contractors) == ["Новый контрагент", "Альфа", "Бета", "Гамма"]
     contractors.setCurrentRow(2)
-    assert dlg.ui.pb_archive_contractor.text() == "В архив"
+    assert dlg.ui.tb_archive_contractor.toolTip() == "В архив"
 
     dlg.on_toggle_contractor_archived()
 
@@ -116,7 +116,7 @@ def test_dialog_archive_flow(db_file, open_models, shared_dbh, monkeypatch, tmp_
     dlg.ui.chb_show_archived.setChecked(True)
     assert texts(contractors) == ["Новый контрагент", "Альфа", "Бета", "Гамма"]
     contractors.setCurrentRow(2)
-    assert dlg.ui.pb_archive_contractor.text() == "Вернуть из архива"
+    assert dlg.ui.tb_archive_contractor.toolTip() == "Вернуть из архива"
     assert contractors.currentItem().font().italic()
 
     dlg.on_toggle_contractor_archived()
@@ -131,9 +131,70 @@ def test_dialog_archive_flow(db_file, open_models, shared_dbh, monkeypatch, tmp_
     assert fetch_all(db_file, "SELECT archived FROM contract ORDER BY id") == [(0,), (1,)]
     assert texts(contracts) == ["Новый договор", "5 от 03.02.2026", "7 от 01.03.2026"]
 
-    assert dlg.ui.chb_show_archived_2.isChecked()
-    dlg.ui.chb_show_archived_2.setChecked(False)
-    assert not dlg.ui.chb_show_archived.isChecked()
+    assert dlg.ui.chb_show_archived.isChecked()
+    dlg.ui.chb_show_archived.setChecked(False)
     assert texts(contracts) == ["Новый договор", "5 от 03.02.2026"]
     assert texts(contracts, hidden=True) == ["7 от 01.03.2026"]
     assert contracts.currentItem().data(Qt.ItemDataRole.UserRole) in (0, 1)
+
+
+def make_dialog(db_file, open_models, shared_dbh, tmp_path):
+    open_models(db_file)
+    return contractordialog.ContractorDialog(shared_dbh, QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat))
+
+
+def test_steps_line_shows_chosen_values_escaped(db_file, open_models, shared_dbh, tmp_path):
+    con = sqlite3.connect(db_file)
+    con.execute("INSERT INTO contractor (id, name) VALUES (1, 'А<b>&Б')")
+    con.execute("INSERT INTO contract (id, contractor_id, name, date) VALUES (1, 1, '5<i>', '2026-02-03')")
+    con.commit()
+    con.close()
+    dlg = make_dialog(db_file, open_models, shared_dbh, tmp_path)
+    assert "Контрагент" in dlg.ui.lbl_steps.text()
+
+    dlg.ui.lw_contractor.setCurrentRow(1)
+    dlg.on_continue_to_contracts()
+    steps = dlg.ui.lbl_steps.text()
+    assert "А&lt;b&gt;&amp;Б" in steps
+    assert "А<b>&Б" not in steps
+    assert "<b>Договор</b>" in steps
+
+    dlg.ui.lw_contract.setCurrentRow(1)
+    dlg.on_continue_to_documents()
+    steps = dlg.ui.lbl_steps.text()
+    assert "А&lt;b&gt;&amp;Б" in steps
+    assert "5&lt;i&gt; от 03.02.2026" in steps
+    assert "<b>Документ</b>" in steps
+
+
+def test_dialog_navigation(db_file, open_models, shared_dbh, tmp_path):
+    fill_contacts(db_file)
+    dlg = make_dialog(db_file, open_models, shared_dbh, tmp_path)
+    ui = dlg.ui
+
+    assert ui.stw_main.currentIndex() == 0
+    assert ui.pb_back.isHidden()
+    assert not ui.chb_show_archived.isHidden()
+    assert ui.pb_next.text() == "Далее"
+
+    ui.lw_contractor.setCurrentRow(1)
+    ui.pb_next.click()
+    assert ui.stw_main.currentIndex() == 1
+    assert not ui.pb_back.isHidden()
+    assert ui.pb_next.text() == "Далее"
+
+    ui.lw_contract.setCurrentRow(1)
+    ui.pb_next.click()
+    assert ui.stw_main.currentIndex() == 2
+    assert ui.chb_show_archived.isHidden()
+    ui.lw_document.setCurrentRow(0)
+    assert ui.pb_next.text() == "Создать"
+    ui.lw_document.setCurrentRow(1)
+    assert ui.pb_next.text() == "Открыть"
+
+    ui.pb_back.click()
+    assert ui.stw_main.currentIndex() == 1
+    assert not ui.chb_show_archived.isHidden()
+    ui.pb_back.click()
+    assert ui.stw_main.currentIndex() == 0
+    assert ui.pb_back.isHidden()

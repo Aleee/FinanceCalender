@@ -61,6 +61,10 @@
     <file alias="icon-categories/designer/icons/108printer.svg">designer/icons/108printer.svg</file>
     <file alias="icon-categories/designer/icons/103stuff.svg">designer/icons/103stuff.svg</file>
     <file alias="icon-table/designer/icons/attachment.svg">designer/icons/attachment.svg</file>
+    <file alias="icon-contractors/designer/icons/item_edit.svg">designer/icons/item_edit.svg</file>
+    <file alias="icon-contractors/designer/icons/item_archive.svg">designer/icons/item_archive.svg</file>
+    <file alias="icon-contractors/designer/icons/item_unarchive.svg">designer/icons/item_unarchive.svg</file>
+    <file alias="icon-contractors/designer/icons/item_payments.svg">designer/icons/item_payments.svg</file>
     <file alias="icon-app/designer/icons/app.png">designer/icons/app.png</file>
   </qresource>
 </RCC>

@@ -6,10 +6,12 @@ import pytest
 from PySide6.QtCore import QDate, QSettings
 
 from base import edition
-from base.contracthistory import payment_years, payments_for_year, summarize_history
+from base.contract import ContractInfo
+from base.contracthistory import payment_years, payments_for_year
 from base.version import DB_VERSION
+from gui.contractdialog import ContractDocumentDialog
 from gui.contractordialog import ContractorDialog
-from gui.contracthistorydialog import ALL_YEARS, ContractHistoryDialog
+from gui.contracthistorydialog import ALL_YEARS, OVERDUE_BACKCOLOR, PAID_BACKCOLOR, ContractHistoryDialog
 from tests.dbtools import create_db
 
 
@@ -108,6 +110,21 @@ def test_filter_by_contract(hdb):
     assert [(obligation.total, obligation.contract_number) for obligation in obligations] == [(Decimal("200.00"), "К-2")]
 
 
+def test_filter_by_document(hdb):
+    path = hdb.path
+    contractor_id, contract_id, first_document = add_chain(path, "Альфа", "К-1", "Док 1")
+    second_document = run(path, "INSERT INTO contractdocument (contract_id, document_name) VALUES (?, 'Док 2')",
+                          contract_id)
+    add_event(path, first_document, "100.00", "2026-03-01")
+    second_event = add_event(path, second_document, "200.00", "2026-03-01")
+    add_payment(path, second_event, "2026-03-05", "50.00")
+
+    obligations, payments = hdb.load_contract_history(contractor_id, contract_id, second_document)
+
+    assert [(obligation.total, obligation.document_name) for obligation in obligations] == [(Decimal("200.00"), "Док 2")]
+    assert [payment.amount for payment in payments] == [Decimal("50.00")]
+
+
 def test_empty_total_and_refund_payment(hdb):
     path = hdb.path
     contractor_id, _, document_id = add_chain(path, "Альфа", "К-1", "Док")
@@ -137,7 +154,7 @@ def test_viewer_does_not_see_hidden_events(hdb):
     assert payments == []
 
 
-def test_summary_and_years(hdb):
+def test_payment_years(hdb):
     path = hdb.path
     contractor_id, _, document_id = add_chain(path, "Альфа", "К-1", "Док")
     paid_event = add_event(path, document_id, "100.00", "2025-12-01")
@@ -145,18 +162,12 @@ def test_summary_and_years(hdb):
     partly_event = add_event(path, document_id, "400.00", "2026-01-15")
     add_payment(path, partly_event, "2026-01-20", "150.00")
     add_event(path, document_id, "50.00", "2026-02-01")
-    obligations, payments = hdb.load_contract_history(contractor_id)
+    payments = hdb.load_contract_history(contractor_id)[1]
 
     assert payment_years(payments) == [2026, 2025]
     assert [payment.amount for payment in payments_for_year(payments, 2025)] == [Decimal("100.00")]
     assert len(payments_for_year(payments, None)) == 2
 
-    summary = summarize_history(obligations, payments, 2026)
-    assert summary.count == 3
-    assert (summary.total, summary.paid) == (Decimal("550.00"), Decimal("250.00"))
-    assert (summary.unpaid_count, summary.unpaid_sum) == (2, Decimal("300.00"))
-    assert summary.paid_in_year == Decimal("150.00")
-    assert summarize_history(obligations, payments).paid_in_year == Decimal("250.00")
 
 
 def fill_history(path: Path) -> tuple[int, int, int]:
@@ -180,16 +191,32 @@ def test_history_dialog_tables_and_open_event(hdb, tmp_path):
     assert dlg.ui.tbl_obligations.rowCount() == 2
     assert dlg.ui.tbl_payments.rowCount() == 1
     assert dlg.ui.tbl_obligations.item(0, 1).text() == "Долг"
-    assert dlg.ui.tbl_obligations.item(0, 5).text() == "250,00"
-    assert "не оплачено 250,00 руб. (1)" in dlg.ui.lbl_summary.text()
+    assert dlg.ui.tbl_obligations.item(0, 4).text() == "250,00"
+    assert [dlg.ui.tbl_obligations_total.item(0, column).text() for column in (1, 3, 4)] == [
+        "Итого", "350,00", "250,00"]
+    assert dlg.ui.tbl_payments_total.item(0, 1).text() == f"Итого за {year} год"
+    assert dlg.ui.tbl_payments_total.item(0, 3).text() == "100,00"
+    assert dlg.ui.tw_history.tabText(0) == "Обязательства (2)"
+    assert [dlg.ui.tbl_obligations_total.item(1, column).text() for column in (1, 4)] == [
+        "из них просрочено:", "250,00"]
+    paid_row, debt_row = (dlg.ui.tbl_obligations.item(row, 1).text() for row in (1, 0))
+    assert (paid_row, debt_row) == ("Оплаченный", "Долг")
+    assert dlg.ui.tbl_obligations.item(1, 0).background().color() == PAID_BACKCOLOR
+    assert dlg.ui.tbl_obligations.item(0, 0).background().color() == OVERDUE_BACKCOLOR
 
     dlg.ui.chb_only_unpaid.setChecked(True)
     assert [dlg.ui.tbl_obligations.item(row, 1).text() for row in range(dlg.ui.tbl_obligations.rowCount())] == ["Долг"]
+    assert dlg.ui.tbl_obligations_total.item(0, 3).text() == "250,00"
 
     dlg.ui.cmb_year.setCurrentIndex(dlg.ui.cmb_year.findData(ALL_YEARS))
     assert dlg.ui.tbl_payments.rowCount() == 2
+    assert dlg.ui.tbl_payments_total.item(0, 1).text() == "Итого за все годы"
 
-    dlg.on_open_event(dlg.ui.tbl_payments, 0)
+    dlg.ui.tbl_payments.cellDoubleClicked.emit(0, 0)
+    assert opened == []
+
+    dlg.ui.chb_only_unpaid.setChecked(False)
+    dlg.ui.tbl_obligations.cellDoubleClicked.emit(1, 0)
     assert opened == [paid_event]
 
 
@@ -207,13 +234,38 @@ def test_contractor_dialog_history_buttons(hdb, tmp_path):
     contractors = dlg.ui.lw_contractor
 
     contractors.setCurrentRow(0)
-    assert not dlg.ui.pb_history_contractor.isEnabled()
+    assert not dlg.ui.tb_history_contractor.isEnabled()
 
     contractors.setCurrentRow(1)
-    assert dlg.ui.pb_history_contractor.isEnabled()
+    assert dlg.ui.tb_history_contractor.isEnabled()
 
     dlg.on_continue_to_contracts()
     dlg.ui.lw_contract.setCurrentRow(0)
-    assert not dlg.ui.pb_history_contract.isEnabled()
+    assert not dlg.ui.tb_history_contract.isEnabled()
     dlg.ui.lw_contract.setCurrentRow(1)
-    assert dlg.ui.pb_history_contract.isEnabled()
+    assert dlg.ui.tb_history_contract.isEnabled()
+    dlg.on_continue_to_documents()
+    dlg.ui.lw_document.setCurrentRow(0)
+    assert not dlg.ui.tb_history_document.isEnabled()
+    dlg.ui.lw_document.setCurrentRow(1)
+    assert dlg.ui.tb_history_document.isEnabled()
+
+
+def test_document_dialog_history_button(hdb, tmp_path, monkeypatch):
+    contractor_id, contract_id, document_id = add_chain(hdb.path, "Альфа", "К-1", "Спецификация")
+    run(hdb.path, "INSERT INTO contractpaymentterm (document_id, payment_type) VALUES (?, 'PREPAYMENT')", document_id)
+    settings = QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat)
+    info = ContractInfo(contractor_id, "Альфа", contract_id, "К-1", QDate(2025, 1, 10))
+    opened: list[ContractHistoryDialog] = []
+    monkeypatch.setattr(ContractHistoryDialog, "exec", lambda self: opened.append(self))
+
+    new_dlg = ContractDocumentDialog(hdb, settings, 0, info)
+    assert new_dlg.ui.pb_history.isHidden()
+
+    dlg = ContractDocumentDialog(hdb, settings, document_id, info)
+    dlg.ui.pb_history.click()
+
+    assert (opened[0].contractor_id, opened[0].contract_id, opened[0].document_id) == (
+        contractor_id, contract_id, document_id)
+    assert opened[0].ui.lbl_scope.text() == "<b>К-1 от 10.01.2025</b> (Спецификация)"
+    assert opened[0].ui.lbl_subtitle.text() == "Альфа"
