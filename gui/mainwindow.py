@@ -16,6 +16,7 @@ from base.date import date_displstr, date_str
 from base.edition import is_viewer
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
+from base.monthly import HiddenMonthly, MonthlyEntry, MonthlyState, build_monthly_template, first_of_month
 from base.payment import PaymentField
 from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, SyncCancelledError, SyncChannel, SyncError, SyncParams,
                        SyncReport, read_local_state, set_stage_listener, synchronize)
@@ -30,6 +31,7 @@ from gui.contractdialog import ContractDocumentDialog
 from gui.contractordialog import ContractorDialog
 from gui.contracthistorydialog import ContractHistoryDialog, document_scope
 from gui.copydocdialog import CopyDocDialog
+from gui.monthlydialog import MonthlyDialog, template_model
 from gui.eventdialog import EventDialog
 from base.liability import Col, FilterFlags, PeriodField, RowType, PaymentType, TermCategory
 from base.liabilitystore import LiabilityStore
@@ -134,8 +136,12 @@ class MainWindow(QMainWindow):
         self.date_timer.start(60000)
 
         # Первая синхронизация после запуска
-        QTimer.singleShot(100, lambda: self.auto_sync(is_first=True))
+        QTimer.singleShot(100, self.on_first_start)
 
+    def on_first_start(self) -> None:
+        self.auto_sync(is_first=True)
+        if not self.sync_network_failed:
+            self.show_monthly_reminder()
 
     def _load_database(self) -> None:
         # Если файла БД нет или он не прошёл проверку - предлагаем восстановление,
@@ -223,6 +229,7 @@ class MainWindow(QMainWindow):
             action.setShortcut(QKeySequence(key))
             action.setToolTip(f"{action.toolTip() or action.text()} ({key})")
             self.addAction(action)
+        self.addAction(self.ui.act_monthly)
         self.ui.tlbr.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
         copy_actions: list[QAction] = [self.ui.act_copy, self.ui.act_copydoc]
@@ -241,10 +248,14 @@ class MainWindow(QMainWindow):
         tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions, view_tooltip)
         tb_bank = self._make_toolbar_split_button(
             self.ui.act_matching, bank_actions, "Сверка", ":/icon-toolbar/designer/icons/matching.svg", bank_tooltip)
+        tb_new = None if is_viewer() else self._make_toolbar_split_button(self.ui.act_new, [self.ui.act_monthly])
         tb_copy = None if is_viewer() else self._make_toolbar_split_button(self.ui.act_copy, copy_actions)
         self.tb_planfact = self._make_toolbar_split_button(
             self.ui.act_fulfillment, planfact_actions, "План-факт", ":/icon-toolbar/designer/icons/fulfillment.svg",
             planfact_tooltip)
+        if tb_new is not None:
+            self.ui.tlbr.insertWidget(self.ui.act_new, tb_new)
+            self.ui.tlbr.removeAction(self.ui.act_new)
         if tb_copy is not None:
             self.ui.tlbr.insertWidget(self.ui.act_copy, tb_copy)
         self.ui.tlbr.insertWidget(self.ui.act_finplan, self.tb_planfact)
@@ -254,7 +265,7 @@ class MainWindow(QMainWindow):
             self.ui.tlbr.removeAction(action)
         if is_viewer():
             for action in (self.ui.act_new, self.ui.act_delete, self.ui.act_fees, self.ui.act_chart, self.ui.act_help,
-                           self.ui.act_featured, self.ui.act_copy, self.ui.act_copydoc):
+                           self.ui.act_featured, self.ui.act_copy, self.ui.act_copydoc, self.ui.act_monthly):
                 self.ui.tlbr.removeAction(action)
                 action.setVisible(False)
 
@@ -269,10 +280,10 @@ class MainWindow(QMainWindow):
             button_groups[-1].append(button)
         for group in button_groups:
             group_width: int = max(self._toolbar_button_width(button) +
-                                   (self._toolbar_arrow_width(button) if button is tb_copy else 0)
+                                   (self._toolbar_arrow_width(button) if button in (tb_new, tb_copy) else 0)
                                    for button in group)
             for button in group:
-                button.setFixedWidth(group_width + (0 if button is tb_copy else self._toolbar_arrow_width(button)))
+                button.setFixedWidth(group_width + (0 if button in (tb_new, tb_copy) else self._toolbar_arrow_width(button)))
 
     @staticmethod
     def _toolbar_button_width(button: QToolButton) -> int:
@@ -389,6 +400,7 @@ class MainWindow(QMainWindow):
         self.ui.pb_deletepayment.clicked.connect(self.delete_payment)
         # Сигналы тулбара
         self.ui.act_new.triggered.connect(lambda: self.open_event_dialog())
+        self.ui.act_monthly.triggered.connect(self.open_monthly_dialog)
         self.ui.act_copy.triggered.connect(lambda: self.open_event_dialog(copy=True))
         self.ui.act_copydoc.triggered.connect(self.open_copydoc_dialog)
         self.ui.act_edit.triggered.connect(lambda: self.open_event_dialog(edit=True))
@@ -462,7 +474,7 @@ class MainWindow(QMainWindow):
         self.tb_sync = SyncToolButton()
         self.tb_sync.setAutoRaise(True)
         self.tb_sync.setObjectName("tb_sync")
-        self.tb_sync.setFixedHeight(self.ui.tlbr.widgetForAction(self.ui.act_edit if is_viewer() else self.ui.act_new).sizeHint().height())
+        self.tb_sync.setFixedHeight(self.ui.tlbr.widgetForAction(self.ui.act_edit).sizeHint().height())
         self.tb_sync.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
         self.tb_sync.setMenu(sync_menu)
         self.tb_sync.clicked.connect(self.on_sync_button_clicked)
@@ -1211,7 +1223,8 @@ class MainWindow(QMainWindow):
 
     def open_event_dialog(self, edit: bool = False, copy: bool = False, initial_amount: Decimal | None = None,
                           parent: QWidget | None = None, from_statement: bool = False,
-                          payment_date: date | None = None, current_index: QModelIndex | None = None) -> bool:
+                          payment_date: date | None = None, current_index: QModelIndex | None = None,
+                          bind_document_id: int = 0) -> bool:
         if is_viewer() and not edit:
             return False
         curr_index: QModelIndex = self.get_current_event_index() if current_index is None else current_index
@@ -1240,7 +1253,7 @@ class MainWindow(QMainWindow):
         event_dialog: EventDialog = EventDialog(final_proxy_model=self.table_model, responsible_model=responsible_model, payment_model= self.payment_model,
                                                 settings_handler=self.settings_handler, db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, initial_amount=initial_amount,
                                                 from_statement=from_statement, payment_date=payment_date, view_mode=is_viewer(),
-                                                parent=parent or self)
+                                                bind_document_id=bind_document_id, parent=parent or self)
         if event_dialog.exec():
             if not edit:
                 set_due_filter = False
@@ -1287,6 +1300,38 @@ class MainWindow(QMainWindow):
         if not copydoc_dialog.exec():
             return False
         self.select_new_event(is_current_paid)
+        return True
+
+    def open_monthly_dialog(self) -> None:
+        if is_viewer():
+            return
+        MonthlyDialog(self.db_handler, self.create_monthly_event, self.open_event_view, self.settings_handler.settings,
+                      parent=self).exec()
+
+    def show_monthly_reminder(self) -> None:
+        if is_viewer():
+            return
+        entries = self.db_handler.load_monthly_entries(QDate.currentDate())
+        hidden = HiddenMonthly(self.settings_handler.settings)
+        month = first_of_month(QDate.currentDate())
+        missing = sum(entry.state == MonthlyState.MISSING and not hidden.is_hidden(entry.title.document_id, month)
+                      for entry in entries or [])
+        if missing:
+            self.ui.statusBar.showMessage(f"Ежемесячных платежей не создано: {missing}. Перечень - Ctrl+Shift+N", 20000)
+
+    def create_monthly_event(self, entry: MonthlyEntry, month: QDate, full_form: bool, parent: QWidget) -> bool:
+        template = build_monthly_template(self.db_handler, entry.title.document_id, month)
+        if template is None:
+            return self.open_event_dialog(parent=parent, bind_document_id=entry.title.document_id)
+        source_model = template_model(template)
+        template_index = source_model.index(0, 0)
+        if full_form:
+            return self.open_event_dialog(copy=True, current_index=template_index, parent=parent)
+        copydoc_dialog = CopyDocDialog(final_proxy_model=self.table_model, db_handler=self.db_handler, settings_handler=self.settings_handler,
+                                       current_index=template_index, title=entry.title, parent=parent, monthly=template)
+        if not copydoc_dialog.exec():
+            return False
+        self.select_new_event(False)
         return True
 
     def warn_selection_lost(self) -> None:

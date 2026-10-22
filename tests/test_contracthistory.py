@@ -269,3 +269,55 @@ def test_document_dialog_history_button(hdb, tmp_path, monkeypatch):
         contractor_id, contract_id, document_id)
     assert opened[0].ui.lbl_scope.text() == "<b>К-1 от 10.01.2025</b> (Спецификация)"
     assert opened[0].ui.lbl_subtitle.text() == "Альфа"
+
+
+def test_document_dialog_monthly_fields(hdb, tmp_path):
+    contractor_id, contract_id, document_id = add_chain(hdb.path, "Альфа", "К-1", "Акт")
+    run(hdb.path, "INSERT INTO contractpaymentterm (document_id, payment_type, month_day, month_type) VALUES (?, 'FIXED', 25, 'NEXT')",
+        document_id)
+    settings = QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat)
+    info = ContractInfo(contractor_id, "Альфа", contract_id, "К-1", QDate(2025, 1, 10))
+
+    dlg = ContractDocumentDialog(hdb, settings, document_id, info)
+    assert not dlg.ui.gb_monthly.isHidden()
+    assert not dlg.ui.chb_monthly.isChecked()
+    assert not dlg.ui.wdg_monthly.isEnabled()
+
+    dlg.ui.chb_monthly.setChecked(True)
+    assert dlg.ui.wdg_monthly.isEnabled()
+    assert dlg.ui.chb_byinvoice.isChecked() and not dlg.ui.dsb_monthlyamount.isEnabled()
+    dlg.ui.chb_byinvoice.setChecked(False)
+    assert dlg.ui.dsb_monthlyamount.isEnabled()
+    dlg.ui.dsb_monthlyamount.setValue(1200.5)
+    dlg.ui.le_monthlyname.setText(" Аренда за {месяц} {год} г. ")
+    assert hdb.save_document_data(dlg.collect_data()) == document_id
+
+    reopened = ContractDocumentDialog(hdb, settings, document_id, info)
+    assert reopened.ui.chb_monthly.isChecked()
+    assert reopened.ui.dsb_monthlyamount.value() == 1200.5
+    assert not reopened.ui.chb_byinvoice.isChecked()
+    assert reopened.ui.le_monthlyname.text() == "Аренда за {месяц} {год} г."
+    assert reopened.ui.wdg_monthly.isEnabled()
+
+    reopened.ui.chb_byinvoice.setChecked(True)
+    assert reopened.ui.dsb_monthlyamount.value() == 0 and not reopened.ui.dsb_monthlyamount.isEnabled()
+    assert reopened.collect_data().monthly_amount is None
+
+
+def test_document_dialog_monthly_only_for_fixed_terms(hdb, tmp_path):
+    contractor_id, contract_id, document_id = add_chain(hdb.path, "Альфа", "К-1", "Акт")
+    run(hdb.path, "INSERT INTO contractpaymentterm (document_id, payment_type, month_day, month_type) VALUES (?, 'FIXED', 25, 'NEXT')",
+        document_id)
+    settings = QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat)
+    info = ContractInfo(contractor_id, "Альфа", contract_id, "К-1", QDate(2025, 1, 10))
+
+    dlg = ContractDocumentDialog(hdb, settings, document_id, info)
+    dlg.ui.chb_monthly.setChecked(True)
+    assert dlg.collect_data().monthly
+
+    dlg.ui.rb_relative.setChecked(True)
+    assert dlg.ui.gb_monthly.isHidden()
+    assert not dlg.collect_data().monthly
+
+    dlg.ui.rb_fixed.setChecked(True)
+    assert not dlg.ui.gb_monthly.isHidden() and dlg.collect_data().monthly

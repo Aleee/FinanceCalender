@@ -379,6 +379,118 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="gb_monthly">
+     <property name="title">
+      <string>Ежемесячный платёж</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_4">
+      <item>
+       <widget class="QCheckBox" name="chb_monthly">
+        <property name="toolTip">
+         <string>В перечне ежемесячных платежей (Ctrl+Shift+N) для каждого месяца будет видно, создан ли платёж по этому документу</string>
+        </property>
+        <property name="text">
+         <string>Включить документ в перечень ежемесячных платежей</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QWidget" name="wdg_monthly" native="true">
+        <layout class="QGridLayout" name="gridLayout_monthly">
+         <property name="leftMargin">
+          <number>24</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_15">
+           <property name="text">
+            <string>Сумма в месяц:</string>
+           </property>
+           <property name="buddy">
+            <cstring>dsb_monthlyamount</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QDoubleSpinBox" name="dsb_monthlyamount">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>120</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::ButtonSymbols::NoButtons</enum>
+           </property>
+           <property name="maximum">
+            <double>99999999.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QCheckBox" name="chb_byinvoice">
+           <property name="toolTip">
+            <string>Если сумма каждый месяц разная (указана в счёте или акте), отметьте этот пункт</string>
+           </property>
+           <property name="text">
+            <string>По счёту</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="3">
+          <spacer name="horizontalSpacer_5">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_monthlyname">
+           <property name="text">
+            <string>Наименование:</string>
+           </property>
+           <property name="buddy">
+            <cstring>le_monthlyname</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="3">
+          <widget class="QLineEdit" name="le_monthlyname">
+           <property name="toolTip">
+            <string>Если заполнено, наименование платежа берётся отсюда, а не из сохранённых значений. Можно писать {месяц} и {год} - они заменятся на месяц и год периода</string>
+           </property>
+           <property name="placeholderText">
+            <string>из сохранённых значений</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="Line" name="line">
      <property name="orientation">
       <enum>Qt::Orientation::Horizontal</enum>
@@ -423,6 +535,10 @@
   <tabstop>rb_fixed</tabstop>
   <tabstop>spb_fixed_dayofmonth</tabstop>
   <tabstop>cmb_fixed_month</tabstop>
+  <tabstop>chb_monthly</tabstop>
+  <tabstop>dsb_monthlyamount</tabstop>
+  <tabstop>chb_byinvoice</tabstop>
+  <tabstop>le_monthlyname</tabstop>
   <tabstop>pb_history</tabstop>
  </tabstops>
  <resources/>

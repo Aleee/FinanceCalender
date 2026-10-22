@@ -13,6 +13,12 @@ def fixed_date(period_year: int, period_month: int, month_day: int | None, month
     return QDate(first.year(), first.month(), min(max(int(month_day), 1), first.daysInMonth()))
 
 
+def period_for_due_month(terms: ContractDocumentData, due_month: QDate) -> QDate:
+    if terms.month_type is None:
+        return due_month
+    return due_month.addMonths(-_MONTH_SHIFT[terms.month_type])
+
+
 def next_working_day(dbh, day: QDate) -> QDate:
     while not is_working_day(dbh, day):
         day = day.addDays(1)

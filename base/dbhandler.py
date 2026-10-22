@@ -26,6 +26,7 @@ from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
 from base.contracthistory import ContractObligation, ContractPayment
+from base.monthly import MonthlyEntry, MonthlyEvent
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.finplanmodel import FinPlanTableModel
 
@@ -1323,7 +1324,7 @@ class DBHandler:
     def load_document_titles(self) -> dict[int, DocumentTitle] | None:
         if not self.is_db_connected():
             return None
-        query = QSqlQuery("SELECT d.id, c.contractor_id, ctr.name, d.contract_id, c.name, c.date, d.document_name "
+        query = QSqlQuery("SELECT d.id, c.contractor_id, ctr.name, d.contract_id, c.name, c.date, d.document_name, d.monthly "
                           "FROM contractdocument d "
                           "JOIN contract c ON c.id = d.contract_id "
                           "LEFT JOIN contractor ctr ON ctr.id = c.contractor_id")
@@ -1340,6 +1341,7 @@ class DBHandler:
                 contract_number=query.value(4) or "",
                 contract_date=QDate.fromString(query.value(5) or "", self.DATE_FORMAT),
                 document_name=query.value(6) or "",
+                monthly=bool(int(query.value(7) or 0)),
             )
         return titles
 
@@ -1426,7 +1428,7 @@ class DBHandler:
         query = QSqlQuery()
         query.prepare("SELECT d.id, c.contractor_id, ctr.name, d.contract_id, c.name, c.date, d.document_type, "
                       "d.position_id, d.document_name, d.description, t.payment_type, t.days_count, t.days_type, "
-                      "t.has_calendar_condition, t.month_day, t.month_type "
+                      "t.has_calendar_condition, t.month_day, t.month_type, d.monthly, d.monthlyamount, d.monthlyname "
                       "FROM contractdocument d "
                       "JOIN contract c ON c.id = d.contract_id "
                       "LEFT JOIN contractor ctr ON ctr.id = c.contractor_id "
@@ -1437,7 +1439,7 @@ class DBHandler:
             log.e(f"Ошибка SQL при попытке получить данные для создания ContractDocumentData {query.lastError().text()}")
             return None
 
-        v = [_val(query, i) for i in range(16)]
+        v = [_val(query, i) for i in range(19)]
 
         payment_type = self._enum_from_db(PaymentDueType, v[10])
         if payment_type is None:
@@ -1461,6 +1463,9 @@ class DBHandler:
             has_calendar_condition=bool(int(v[13] or 0)),
             month_day=_int_or_none(v[14]),
             month_type=self._enum_from_db(MonthType, v[15]),
+            monthly=bool(int(v[16] or 0)),
+            monthly_amount=str_decimal(v[17]),
+            monthly_name=v[18] or "",
         )
 
     def save_document_data(self, data: ContractDocumentData) -> Optional[int]:
@@ -1480,9 +1485,9 @@ class DBHandler:
         if is_new:
             query.prepare("""
                 INSERT INTO contractdocument
-                    (contract_id, document_type, document_name, description, position_id)
+                    (contract_id, document_type, document_name, description, position_id, monthly, monthlyamount, monthlyname)
                 VALUES
-                    (:contract_id, :document_type, :document_name, :description, :position_id)
+                    (:contract_id, :document_type, :document_name, :description, :position_id, :monthly, :monthlyamount, :monthlyname)
             """)
         else:
             query.prepare("""
@@ -1491,7 +1496,10 @@ class DBHandler:
                     document_type = :document_type,
                     document_name = :document_name,
                     description   = :description,
-                    position_id   = :position_id
+                    position_id   = :position_id,
+                    monthly       = :monthly,
+                    monthlyamount = :monthlyamount,
+                    monthlyname   = :monthlyname
                 WHERE id = :id
             """)
             query.bindValue(":id", data.document_id)
@@ -1501,6 +1509,9 @@ class DBHandler:
         query.bindValue(":document_name", data.document_name)
         query.bindValue(":description", data.description)
         query.bindValue(":position_id", position_id)
+        query.bindValue(":monthly", 1 if data.monthly else 0)
+        query.bindValue(":monthlyamount", str(data.monthly_amount) if data.monthly and data.monthly_amount else None)
+        query.bindValue(":monthlyname", data.monthly_name.strip() if data.monthly and data.monthly_name.strip() else None)
 
         if not query.exec():
             self.db.rollback()
@@ -1612,6 +1623,69 @@ class DBHandler:
             if not query.isNull(0):
                 result.append(str(query.value(0)))
         return result
+
+    def load_monthly_entries(self, month: QDate) -> list[MonthlyEntry] | None:
+        if not self.is_db_connected():
+            return None
+        start = QDate(month.year(), month.month(), 1)
+        query = QSqlQuery()
+        query.prepare(
+            "SELECT e.contractdocument_id, e.id, e.duedate, e.totalamount, "
+            "ROUND(COALESCE(p.paid, 0), 2) >= ROUND(CAST(e.totalamount AS REAL), 2) "
+            "FROM event e "
+            "JOIN contractdocument d ON d.id = e.contractdocument_id "
+            "LEFT JOIN (SELECT pp.eventid, SUM(CAST(pp.sum AS REAL)) AS paid FROM payment pp GROUP BY pp.eventid) p ON p.eventid = e.id "
+            "WHERE d.monthly = 1 AND e.type = ? AND e.duedate >= ? AND e.duedate < ? "
+            "ORDER BY e.duedate, e.id")
+        query.addBindValue(int(RowType.LIABILITY))
+        query.addBindValue(start.toString(self.DATE_FORMAT))
+        query.addBindValue(start.addMonths(1).toString(self.DATE_FORMAT))
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке получить платежи ежемесячных документов: {query.lastError().text()}")
+            return None
+        events: dict[int, MonthlyEvent] = {}
+        while query.next():
+            events.setdefault(int(query.value(0)), MonthlyEvent(
+                int(query.value(1)), QDate.fromString(query.value(2) or "", self.DATE_FORMAT),
+                str_decimal(str(query.value(3))), bool(int(query.value(4)))))
+
+        query = QSqlQuery()
+        query.prepare(
+            "SELECT d.id, c.contractor_id, ctr.name, d.contract_id, c.name, c.date, d.document_name, d.monthlyamount, "
+            "EXISTS (SELECT 1 FROM contractsavedvalues s WHERE s.contractdocumentid = d.id AND COALESCE(s.category, 0) <> 0) "
+            "FROM contractdocument d "
+            "JOIN contract c ON c.id = d.contract_id "
+            "JOIN contractpaymentterm t ON t.document_id = d.id AND t.payment_type = 'FIXED' "
+            "LEFT JOIN contractor ctr ON ctr.id = c.contractor_id "
+            "WHERE d.monthly = 1 AND c.archived = 0 AND COALESCE(ctr.archived, 0) = 0 "
+            "ORDER BY ctr.name, c.name, d.document_name")
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке получить перечень ежемесячных платежей: {query.lastError().text()}")
+            return None
+        entries = []
+        while query.next():
+            title = DocumentTitle(
+                document_id=int(query.value(0)), contractor_id=int(query.value(1) or 0), contractor_name=query.value(2) or "",
+                contract_id=int(query.value(3)), contract_number=query.value(4) or "",
+                contract_date=QDate.fromString(query.value(5) or "", self.DATE_FORMAT), document_name=query.value(6) or "")
+            entries.append(MonthlyEntry(title, str_decimal(query.value(7)), events.get(title.document_id), bool(int(query.value(8)))))
+        return entries
+
+    def load_last_event(self, document_id: int) -> dict | None:
+        if not self.is_db_connected():
+            return None
+        query = QSqlQuery()
+        query.prepare(f"SELECT {', '.join(EVENT_COLUMN_NAMES)} FROM event WHERE contractdocument_id = ? AND type = ? "
+                      f"ORDER BY duedate DESC, id DESC LIMIT 1")
+        query.addBindValue(document_id)
+        query.addBindValue(int(RowType.LIABILITY))
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке получить последний платеж документа: {query.lastError().text()}")
+            return None
+        if not query.next():
+            return None
+        values = [query.value(column) for column in range(len(EVENT_COLUMN_NAMES))]
+        return {name: None if self._is_null(value) else value for name, value in zip(EVENT_COLUMN_NAMES, values)}
 
     def save_contractdocumentvalues(self, values_to_save: SavedContractValues) -> bool:
         if not self.is_db_connected():

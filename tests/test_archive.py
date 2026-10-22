@@ -31,7 +31,7 @@ def test_migration_adds_archive_columns(dbh, work_db_path):
 
     assert dbh.migrate_db()
 
-    assert read_version(work_db_path) == 8
+    assert read_version(work_db_path) == DB_VERSION
     assert "archived" in table_columns(work_db_path, "contractor")
     assert "archived" in table_columns(work_db_path, "contract")
     assert fetch_all(work_db_path, "SELECT archived FROM contractor") == [(0,), (0,), (0,)]
@@ -47,7 +47,7 @@ def test_old_master_is_migrated_on_copy(dbh, work_db_path, tmp_path):
     migrated = dbh.make_migrated_copy(str(master))
 
     assert migrated is not None
-    assert read_version(Path(migrated)) == 8
+    assert read_version(Path(migrated)) == DB_VERSION
     assert fetch_all(Path(migrated), "SELECT name, archived FROM contractor ORDER BY id") == [("Альфа", 0), ("Бета", 0), ("Гамма", 0)]
     assert read_version(master) == 7
 

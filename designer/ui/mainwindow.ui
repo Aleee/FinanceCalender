@@ -1139,6 +1139,24 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
     <enum>QAction::MenuRole::NoRole</enum>
    </property>
   </action>
+  <action name="act_monthly">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/icon-toolbar/designer/icons/monthly.svg</normaloff>:/icon-toolbar/designer/icons/monthly.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Ежемесячные платежи</string>
+   </property>
+   <property name="toolTip">
+    <string>Перечень ежемесячных платежей и быстрое создание платежа (Ctrl+Shift+N)</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+N</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
   <action name="act_export">
    <property name="icon">
     <iconset resource="../../resources.qrc">

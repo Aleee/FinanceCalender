@@ -48,6 +48,8 @@ class Ui_CopyDocDialog(object):
 
         self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_2)
 
+        self.horizontalLayout_4 = QHBoxLayout()
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.dsb_amount = QDoubleSpinBox(CopyDocDialog)
         self.dsb_amount.setObjectName(u"dsb_amount")
         self.dsb_amount.setMinimumSize(QSize(120, 0))
@@ -55,7 +57,20 @@ class Ui_CopyDocDialog(object):
         self.dsb_amount.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.dsb_amount.setMaximum(99999999.000000000000000)
 
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.dsb_amount)
+        self.horizontalLayout_4.addWidget(self.dsb_amount)
+
+        self.la_amounthint = QLabel(CopyDocDialog)
+        self.la_amounthint.setObjectName(u"la_amounthint")
+        self.la_amounthint.setStyleSheet(u"QLabel { color: gray; }")
+
+        self.horizontalLayout_4.addWidget(self.la_amounthint)
+
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_4.addItem(self.horizontalSpacer_4)
+
+
+        self.formLayout.setLayout(1, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_4)
 
         self.label_3 = QLabel(CopyDocDialog)
         self.label_3.setObjectName(u"label_3")

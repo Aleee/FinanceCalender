@@ -72,11 +72,12 @@ OTHER_TABLES_DDL = [
     'CREATE TABLE "contract" ("id" INTEGER NOT NULL UNIQUE, "contractor_id" INTEGER, "name" TEXT, "date" TEXT, '
     '"archived" INTEGER NOT NULL DEFAULT 0, PRIMARY KEY("id" AUTOINCREMENT))',
     'CREATE TABLE "contractdocument" ("id" INTEGER NOT NULL UNIQUE, "contract_id" INTEGER, "document_type" INTEGER, '
-    '"document_name" TEXT, "description" TEXT, "position_id" INTEGER, PRIMARY KEY("id" AUTOINCREMENT))',
+    '"document_name" TEXT, "description" TEXT, "position_id" INTEGER, "monthly" INTEGER NOT NULL DEFAULT 0, "monthlyamount" TEXT, "monthlyname" TEXT, '
+    'PRIMARY KEY("id" AUTOINCREMENT))',
     'CREATE TABLE "contractpaymentterm" ("document_id" INTEGER, "payment_type" TEXT NOT NULL, "days_count" INTEGER DEFAULT 0, '
     '"days_type" TEXT, "has_calendar_condition" BOOLEAN DEFAULT FALSE, "month_day" INTEGER, "month_type" TEXT, PRIMARY KEY("document_id"))',
-    'CREATE TABLE "contractsavedvalues" ("contract_id" INTEGER, "category" INTEGER, "subcategory" INTEGER, "name" TEXT, "nds" INTEGER, '
-    '"paymenttype" INTEGER, "descr" TEXT, "responsible" INTEGER, "hidden" INTEGER)',
+    'CREATE TABLE "contractsavedvalues" ("contractdocumentid" INTEGER PRIMARY KEY, "receiver" TEXT, "category" INTEGER, '
+    '"subcategory" INTEGER, "name" TEXT, "nds" INTEGER, "paymenttype" INTEGER, "descr" TEXT, "responsible" INTEGER, "hidden" INTEGER)',
     'CREATE TABLE "personal" ("id" INTEGER NOT NULL, "name" TEXT, "department" INTEGER, "position" INTEGER, "archived" INTEGER, PRIMARY KEY("id"))',
     'CREATE TABLE "position" ("id" INTEGER, "department" INTEGER, "name" TEXT, PRIMARY KEY("id"))',
     'CREATE TABLE "department" ("id" INTEGER NOT NULL, "name" TEXT NOT NULL, PRIMARY KEY("id"))',
@@ -92,12 +93,39 @@ def pre_v8_ddl(ddl: str) -> str:
     return ddl
 
 
+def pre_v6_ddl(ddl: str) -> str:
+    if ddl.startswith('CREATE TABLE "contractsavedvalues"'):
+        return ('CREATE TABLE "contractsavedvalues" ("contract_id" INTEGER, "category" INTEGER, "subcategory" INTEGER, "name" TEXT, '
+                '"nds" INTEGER, "paymenttype" INTEGER, "descr" TEXT, "responsible" INTEGER, "hidden" INTEGER)')
+    return ddl
+
+
+def pre_v9_ddl(ddl: str) -> str:
+    if ddl.startswith('CREATE TABLE "contractdocument"'):
+        return ddl.replace('"monthly" INTEGER NOT NULL DEFAULT 0, "monthlyamount" TEXT, ', '')
+    return ddl
+
+
+def pre_v10_ddl(ddl: str) -> str:
+    if ddl.startswith('CREATE TABLE "contractdocument"'):
+        return ddl.replace('"monthlyname" TEXT, ', '')
+    return ddl
+
+
 def create_db(path: Path, version: int, meta: dict[str, str] | None = None, legacy_event: bool = False) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(path)
     try:
         event_ddl = LEGACY_EVENT_DDL if legacy_event else PRE_V7_EVENT_DDL if 4 <= version < 7 else EVENT_DDL
-        other_tables = OTHER_TABLES_DDL if version >= 8 else [pre_v8_ddl(ddl) for ddl in OTHER_TABLES_DDL]
+        other_tables = OTHER_TABLES_DDL
+        if version < 10:
+            other_tables = [pre_v10_ddl(ddl) for ddl in other_tables]
+        if version < 9:
+            other_tables = [pre_v9_ddl(ddl) for ddl in other_tables]
+        if version < 6:
+            other_tables = [pre_v6_ddl(ddl) for ddl in other_tables]
+        if version < 8:
+            other_tables = [pre_v8_ddl(ddl) for ddl in other_tables]
         for ddl in (event_ddl, PAYMENT_DDL, META_DDL, *other_tables):
             con.execute(ddl)
         rows = {"db_version": str(version), **(meta or {})}

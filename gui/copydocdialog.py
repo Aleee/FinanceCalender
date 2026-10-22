@@ -14,7 +14,9 @@ from gui.manualdialog import add_help_shortcut
 from base.contract import DocumentTitle, PaymentDueType
 from base.date import date_str, date_displstr, MONTHS_RU
 from base.dbhandler import DBHandler
+from base.formatting import dec_strcommaspace
 from base.liability import RowType, PaymentType
+from base.monthly import MonthlyTemplate
 from base.paymentdate import calculate_payment_date
 from base.workcalendar import WEEKDAY_ABBR
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
@@ -41,7 +43,7 @@ def common_description_prefix(descriptions: list[str]) -> str:
 class CopyDocDialog(QDialog):
 
     def __init__(self, final_proxy_model, db_handler: DBHandler, settings_handler: SettingsHandler,
-                 current_index: QModelIndex, title: DocumentTitle, parent=None):
+                 current_index: QModelIndex, title: DocumentTitle, parent=None, monthly: MonthlyTemplate | None = None):
         super(CopyDocDialog, self).__init__(parent)
         self.ui = Ui_CopyDocDialog()
         self.ui.setupUi(self)
@@ -77,7 +79,17 @@ class CopyDocDialog(QDialog):
             text_edit.setFixedHeight(self.two_lines_height(text_edit))
             text_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.ui.te_name.setPlainText(self.source_value(Col.NAME))
-        self.ui.te_descr.setPlainText(common_description_prefix(self.descriptions))
+        descr = monthly.values.get(Col.DESCR) if monthly else None
+        self.ui.te_descr.setPlainText(descr or common_description_prefix(self.descriptions))
+        self.monthly: MonthlyTemplate | None = monthly
+        if monthly:
+            self.ui.de_incurrencedate.setDate(monthly.incurrence_date)
+            self.set_period(monthly.period)
+            self.period_manual = True
+            if monthly.month is not None:
+                self.setWindowTitle(f"Ежемесячный платёж — {MONTHS_RU[monthly.month.month() - 1]} {monthly.month.year()}")
+            if monthly.last_amount is not None:
+                self.ui.la_amounthint.setText(f"В прошлый раз: {dec_strcommaspace(monthly.last_amount)}")
 
         self.ui.de_incurrencedate.dateChanged.connect(self.on_incurrencedate_changed)
         self.ui.cmb_month.activated.connect(self.on_period_edited)
@@ -185,6 +197,8 @@ class CopyDocDialog(QDialog):
         descr = self.ui.te_descr.toPlainText().strip()
         if self.ui.de_duedate.date() < QDate.currentDate():
             text += "Срок оплаты меньше текущей даты. "
+        if self.monthly is not None:
+            text += self.monthly_warnings()
         if descr == "":
             text += "Основание платежа не указано. "
         elif descr.casefold() in {existing.strip().casefold() for existing in self.descriptions}:
@@ -194,6 +208,17 @@ class CopyDocDialog(QDialog):
             if msg.exec() == YesNoMessagebox.NO_RETURN_VALUE:
                 return False
         return True
+
+    def monthly_warnings(self) -> str:
+        text = ""
+        month = self.monthly.month
+        due_date = self.ui.de_duedate.date()
+        if month is not None and (due_date.year(), due_date.month()) != (month.year(), month.month()):
+            text += (f"Срок оплаты выходит за {MONTHS_RU[month.month() - 1]} {month.year()}, "
+                     f"поэтому платёж не попадёт в перечень этого месяца. ")
+        if self.monthly.name_ambiguous and self.ui.te_name.toPlainText().strip() == self.monthly.values.get(Col.NAME):
+            text += "Наименование содержит несколько названий месяцев и не менялось - проверьте его. "
+        return text
 
     def accept(self, /):
         if not self.check_integrity():

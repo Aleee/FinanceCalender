@@ -227,7 +227,7 @@ class EventDialog(QDialog):
     def __init__(self, final_proxy_model, responsible_model: ResponsibleCategorySortModel, payment_model: PaymentHistoryTableModel, db_handler: DBHandler,
                  settings_handler: SettingsHandler, edit_mode: bool = False, copy_mode: bool = False, current_index: QModelIndex | None = None,
                  initial_amount: Decimal | None = None, from_statement: bool = False,
-                 payment_date: date | None = None, view_mode: bool = False, parent=None):
+                 payment_date: date | None = None, view_mode: bool = False, bind_document_id: int = 0, parent=None):
         super(EventDialog, self).__init__(parent)
         self.ui = Ui_EventDialog()
         self.ui.setupUi(self)
@@ -401,6 +401,13 @@ class EventDialog(QDialog):
             if initial_amount is not None:
                 self.ui.dsb_totalamount.setValue(float(initial_amount))
             self.ui.le_receiver.setFocus()
+            if bind_document_id and self.selector.set_document_id(bind_document_id):
+                self.contractdocument_id = bind_document_id
+                self.show_bound_contract(self.selected_document_title())
+                self.ui.le_receiver.setText(self.ui.cmb_contractor.currentText())
+                self.pick_responsible_from_document()
+                QTimer.singleShot(0, lambda: show_status_message(
+                    self, "Образца для этого документа ещё нет - заполните платёж, следующие будут браться за образец", 10000))
 
         self.ui.de_paymenttrigger.setDate(self.ui.de_incurrencedate.date())
         self.ui.de_incurrencedate.dateChanged.connect(self.ui.de_paymenttrigger.setDate)

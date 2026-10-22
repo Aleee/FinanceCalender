@@ -103,6 +103,7 @@ class LiabilityTableModel(QAbstractTableModel):
         self.document_titles: dict[int, DocumentTitle] = {}
         self.last_inserted_id: int = 0
         self.contract_icon = QIcon(":/icon-table/designer/icons/attachment.svg")
+        self.monthly_icon = QIcon(":/icon-table/designer/icons/attachment_monthly.svg")
         empty_pixmap = QPixmap(self.ICON_SIZE, self.ICON_SIZE)
         empty_pixmap.fill(Qt.GlobalColor.transparent)
         self.empty_icon = QIcon(empty_pixmap)
@@ -244,6 +245,8 @@ class LiabilityTableModel(QAbstractTableModel):
             lines.append(f"Контрагент: {title.contractor_name}")
         if title.document_name:
             lines.append(f"Документ: {title.document_name}")
+        if title.monthly:
+            lines.append("Ежемесячный платеж")
         return "\n".join(lines)
 
     def set_row_formatting(self, row_formatting: RowFormatting) -> bool:
@@ -320,7 +323,10 @@ class LiabilityTableModel(QAbstractTableModel):
                 return None
             document_id: int = self.qt_value(row, Col.CONTRACTDOCUMENTID)
             if role == Qt.ItemDataRole.DecorationRole:
-                return self.contract_icon if document_id else self.empty_icon
+                if not document_id:
+                    return self.empty_icon
+                title = self.document_title(document_id)
+                return self.monthly_icon if title is not None and title.monthly else self.contract_icon
             return self.document_tooltip(document_id) if document_id else None
 
         elif role == Qt.ItemDataRole.EditRole:

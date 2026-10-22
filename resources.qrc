@@ -23,6 +23,7 @@
     <file alias="icon-settings/designer/icons/appearance.svg">designer/icons/appearance.svg</file>
     <file alias="icon-toolbar/designer/icons/fulfillment.svg">designer/icons/fulfillment.svg</file>
     <file alias="icon-toolbar/designer/icons/new.svg">designer/icons/new.svg</file>
+    <file alias="icon-toolbar/designer/icons/monthly.svg">designer/icons/monthly.svg</file>
     <file alias="icon-toolbar/designer/icons/featured.svg">designer/icons/featured.svg</file>
     <file alias="icon-toolbar/designer/icons/financing.svg">designer/icons/financing.svg</file>
     <file alias="icon-toolbar/designer/icons/copy.svg">designer/icons/copy.svg</file>
@@ -61,6 +62,7 @@
     <file alias="icon-categories/designer/icons/108printer.svg">designer/icons/108printer.svg</file>
     <file alias="icon-categories/designer/icons/103stuff.svg">designer/icons/103stuff.svg</file>
     <file alias="icon-table/designer/icons/attachment.svg">designer/icons/attachment.svg</file>
+    <file alias="icon-table/designer/icons/attachment_monthly.svg">designer/icons/attachment_monthly.svg</file>
     <file alias="icon-contractors/designer/icons/item_edit.svg">designer/icons/item_edit.svg</file>
     <file alias="icon-contractors/designer/icons/item_archive.svg">designer/icons/item_archive.svg</file>
     <file alias="icon-contractors/designer/icons/item_unarchive.svg">designer/icons/item_unarchive.svg</file>

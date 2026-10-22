@@ -80,4 +80,7 @@ MIGRATIONS: dict[int, list[Migration]] = {
     7: ["ALTER TABLE event DROP COLUMN receivernocase"],
     8: ["ALTER TABLE contractor ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE contract ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"],
+    9: ["ALTER TABLE contractdocument ADD COLUMN monthly INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE contractdocument ADD COLUMN monthlyamount TEXT"],
+    10: ["ALTER TABLE contractdocument ADD COLUMN monthlyname TEXT"],
 }

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
 from typing import Optional
 
@@ -42,6 +43,9 @@ class ContractDocumentData:
     has_calendar_condition: bool = False
     month_day: Optional[int] = None
     month_type: Optional[MonthType] = None
+    monthly: bool = False
+    monthly_amount: Optional[Decimal] = None
+    monthly_name: str = ""
 
 @dataclass
 class ContractInfo:
@@ -60,6 +64,7 @@ class DocumentTitle:
     contract_number: str
     contract_date: QDate
     document_name: str
+    monthly: bool = False
 
 @dataclass
 class SavedContractValues:

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Callable, Optional
 
 from PySide6.QtCore import QDate, QSettings
@@ -89,6 +90,8 @@ class ContractDocumentDialog(QDialog):
         self.ui.pb_history.clicked.connect(self.on_open_history)
         self.rbg_termgroup.buttonToggled.connect(self.update_terms_widgets)
         self.ui.chb_rel_additional.toggled.connect(self.update_terms_widgets)
+        self.ui.chb_monthly.toggled.connect(self.update_terms_widgets)
+        self.ui.chb_byinvoice.toggled.connect(self.on_byinvoice_toggled)
         for spinbox in (self.ui.spb_rel_days, self.ui.spb_rel_dayofmonth, self.ui.spb_fixed_dayofmonth):
             spinbox.valueChanged.connect(self.update_terms_widgets)
         for combo in (self.ui.cmb_rel_daystype, self.ui.cmb_rel_month, self.ui.cmb_fixed_month):
@@ -173,6 +176,11 @@ class ContractDocumentDialog(QDialog):
 
         self._rb_payment[data.payment_type].setChecked(True)
 
+        self.ui.chb_monthly.setChecked(data.monthly)
+        self.ui.dsb_monthlyamount.setValue(float(data.monthly_amount or 0))
+        self.ui.chb_byinvoice.setChecked(data.monthly_amount is None)
+        self.ui.le_monthlyname.setText(data.monthly_name)
+
     # ---------- виджеты -> данные ----------
 
     @staticmethod
@@ -221,6 +229,9 @@ class ContractDocumentDialog(QDialog):
             has_calendar_condition=has_calendar_condition,
             month_day=month_day,
             month_type=month_type,
+            monthly=payment_type == PaymentDueType.FIXED and self.ui.chb_monthly.isChecked(),
+            monthly_amount=None if self.ui.chb_byinvoice.isChecked() else Decimal(str(self.ui.dsb_monthlyamount.value())) or None,
+            monthly_name=self.ui.le_monthlyname.text().strip(),
         )
 
     def on_save(self) -> None:
@@ -245,6 +256,14 @@ class ContractDocumentDialog(QDialog):
         self.ui.fr_relative.setEnabled(self.ui.rb_relative.isChecked())
         self.ui.widget_2.setEnabled(self.ui.chb_rel_additional.isChecked())
         self.ui.fr_fixed.setEnabled(self.ui.rb_fixed.isChecked())
+        self.ui.gb_monthly.setVisible(self.ui.rb_fixed.isChecked())
+        self.ui.wdg_monthly.setEnabled(self.ui.chb_monthly.isChecked())
+        self.ui.dsb_monthlyamount.setEnabled(not self.ui.chb_byinvoice.isChecked())
+
+    def on_byinvoice_toggled(self, checked: bool) -> None:
+        if checked:
+            self.ui.dsb_monthlyamount.setValue(0)
+        self.update_terms_widgets()
 
     def init_new_document(self) -> None:
         c = self.contract
