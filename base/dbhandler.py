@@ -26,7 +26,7 @@ from base.workcalendar import clear_calendar_cache
 from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
 from base.contracthistory import ContractObligation, ContractPayment
-from base.monthly import MonthlyEntry, MonthlyEvent
+from base.monthly import MonthlyEntry, MonthlyEvent, relative_term_text
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.finplanmodel import FinPlanTableModel
 
@@ -1220,6 +1220,42 @@ class DBHandler:
             contracors.append((query.value(0), query.value(1), bool(query.value(2))))
         return contracors
 
+    def load_contractors_filled(self) -> dict[int, bool] | None:
+        if not self.is_db_connected():
+            return None
+        hidden = " AND COALESCE(e.hidden, 0) = 0" if is_viewer() else ""
+        query = QSqlQuery(
+            "SELECT contractor_id, MIN(has_values OR NOT has_events) AND MAX(has_values) FROM ("
+            "SELECT c.contractor_id, "
+            "EXISTS (SELECT 1 FROM contractsavedvalues s "
+            "WHERE s.contractdocumentid = d.id AND COALESCE(s.category, 0) <> 0) AS has_values, "
+            f"EXISTS (SELECT 1 FROM event e WHERE e.contractdocument_id = d.id{hidden}) AS has_events "
+            "FROM contractdocument d JOIN contract c ON c.id = d.contract_id "
+            "WHERE c.archived = 0) GROUP BY contractor_id")
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке получить заполненность документов контрагентов: {query.lastError().text()}")
+            return None
+        filled: dict[int, bool] = {}
+        while query.next():
+            filled[int(query.value(0))] = bool(query.value(1))
+        return filled
+
+    def load_contractors_with_events(self) -> set[int] | None:
+        if not self.is_db_connected():
+            return None
+        hidden = " WHERE COALESCE(e.hidden, 0) = 0" if is_viewer() else ""
+        query = QSqlQuery(
+            "SELECT DISTINCT c.contractor_id FROM event e "
+            "JOIN contractdocument d ON d.id = e.contractdocument_id "
+            f"JOIN contract c ON c.id = d.contract_id{hidden}")
+        if not query.exec():
+            log.e(f"Ошибка SQL при попытке получить контрагентов с платежами: {query.lastError().text()}")
+            return None
+        contractor_ids: set[int] = set()
+        while query.next():
+            contractor_ids.add(int(query.value(0)))
+        return contractor_ids
+
     def add_contractor(self, contractor_name: str) -> int | None:
         if not self.is_db_connected():
             return None
@@ -1652,10 +1688,11 @@ class DBHandler:
         query = QSqlQuery()
         query.prepare(
             "SELECT d.id, c.contractor_id, ctr.name, d.contract_id, c.name, c.date, d.document_name, d.monthlyamount, "
-            "EXISTS (SELECT 1 FROM contractsavedvalues s WHERE s.contractdocumentid = d.id AND COALESCE(s.category, 0) <> 0) "
+            "EXISTS (SELECT 1 FROM contractsavedvalues s WHERE s.contractdocumentid = d.id AND COALESCE(s.category, 0) <> 0), "
+            "t.payment_type, t.days_count, t.days_type "
             "FROM contractdocument d "
             "JOIN contract c ON c.id = d.contract_id "
-            "JOIN contractpaymentterm t ON t.document_id = d.id AND t.payment_type = 'FIXED' "
+            "JOIN contractpaymentterm t ON t.document_id = d.id AND t.payment_type IN ('FIXED', 'RELATIVE') "
             "LEFT JOIN contractor ctr ON ctr.id = c.contractor_id "
             "WHERE d.monthly = 1 AND c.archived = 0 AND COALESCE(ctr.archived, 0) = 0 "
             "ORDER BY ctr.name, c.name, d.document_name")
@@ -1668,7 +1705,11 @@ class DBHandler:
                 document_id=int(query.value(0)), contractor_id=int(query.value(1) or 0), contractor_name=query.value(2) or "",
                 contract_id=int(query.value(3)), contract_number=query.value(4) or "",
                 contract_date=QDate.fromString(query.value(5) or "", self.DATE_FORMAT), document_name=query.value(6) or "")
-            entries.append(MonthlyEntry(title, str_decimal(query.value(7)), events.get(title.document_id), bool(int(query.value(8)))))
+            relative_term = ""
+            if query.value(9) == PaymentDueType.RELATIVE.value:
+                relative_term = relative_term_text(int(query.value(10) or 0), self._enum_from_db(DaysType, query.value(11)))
+            entries.append(MonthlyEntry(title, str_decimal(query.value(7)), events.get(title.document_id),
+                                        bool(int(query.value(8))), relative_term=relative_term))
         return entries
 
     def load_last_event(self, document_id: int) -> dict | None:

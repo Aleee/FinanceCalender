@@ -7,7 +7,7 @@ from typing import Any
 
 from PySide6.QtCore import QDate, QSettings, Qt
 
-from base.contract import DocumentTitle
+from base.contract import DaysType, DocumentTitle
 from base.date import MONTHS_RU
 from base.formatting import str_decimal
 from base.liability import Col
@@ -38,6 +38,7 @@ class MonthlyEntry:
     event: MonthlyEvent | None = None
     has_saved_values: bool = False
     planned_date: QDate | None = None
+    relative_term: str = ""
 
     @property
     def state(self) -> MonthlyState:
@@ -102,6 +103,13 @@ class HiddenMonthly:
             self.settings.setValue(self.KEY, json.dumps(self.items))
 
 
+DAYS_TYPE_LETTERS = {DaysType.WORKING: "Р", DaysType.BANKING: "Б", DaysType.CALENDAR: "К"}
+
+
+def relative_term_text(days_count: int, days_type: DaysType | None) -> str:
+    return f"+{days_count}{DAYS_TYPE_LETTERS.get(days_type, '')}"
+
+
 def first_of_month(day: QDate) -> QDate:
     return QDate(day.year(), day.month(), 1)
 
@@ -147,7 +155,8 @@ def shift_name_period(name: str, period: QDate) -> str:
 
 
 def fill_placeholders(text: str, period: QDate) -> str:
-    return text.replace("{месяц}", MONTH_WORDS[period.month() - 1]).replace("{год}", str(period.year()))
+    text = text.replace("{месяц}", MONTH_WORDS[period.month() - 1])
+    return re.sub(r"\{год\}(?: г\.)?", f"{period.year()} г.", text)
 
 
 def build_monthly_template(dbh, document_id: int, month: QDate) -> MonthlyTemplate | None:

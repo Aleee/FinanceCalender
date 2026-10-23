@@ -304,7 +304,7 @@ def test_document_dialog_monthly_fields(hdb, tmp_path):
     assert reopened.collect_data().monthly_amount is None
 
 
-def test_document_dialog_monthly_only_for_fixed_terms(hdb, tmp_path):
+def test_document_dialog_monthly_not_for_prepayment(hdb, tmp_path):
     contractor_id, contract_id, document_id = add_chain(hdb.path, "Альфа", "К-1", "Акт")
     run(hdb.path, "INSERT INTO contractpaymentterm (document_id, payment_type, month_day, month_type) VALUES (?, 'FIXED', 25, 'NEXT')",
         document_id)
@@ -316,6 +316,9 @@ def test_document_dialog_monthly_only_for_fixed_terms(hdb, tmp_path):
     assert dlg.collect_data().monthly
 
     dlg.ui.rb_relative.setChecked(True)
+    assert not dlg.ui.gb_monthly.isHidden() and dlg.collect_data().monthly
+
+    dlg.ui.rb_termsunknown.setChecked(True)
     assert dlg.ui.gb_monthly.isHidden()
     assert not dlg.collect_data().monthly
 

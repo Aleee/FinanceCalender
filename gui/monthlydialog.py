@@ -147,8 +147,8 @@ class MonthlyDialog(QDialog):
                                if entry.event is None and self.hidden.is_hidden(entry.title.document_id, self.month)]
         self.visible_entries = [entry for entry in entries if entry not in self.hidden_entries]
         for entry in entries:
-            if entry.event is None:
-                entry.planned_date = planned_due_date(self.dbh, entry.title.document_id, self.month)
+            if entry.event is None and not entry.relative_term:
+                entry.planned_date =planned_due_date(self.dbh, entry.title.document_id, self.month)
         missing = sum(entry.state == MonthlyState.MISSING for entry in self.visible_entries)
         summary = f"Не создано: {missing} из {len(self.visible_entries)}" if self.visible_entries else ""
         if self.hidden_entries:
@@ -177,6 +177,8 @@ class MonthlyDialog(QDialog):
             contract = f"№ {title.contract_number} от {date_displstr(title.contract_date)}"
             if entry.event is not None:
                 due_date = date_displstr(entry.event.due_date)
+            elif entry.relative_term:
+                due_date = entry.relative_term
             else:
                 due_date = date_displstr(entry.planned_date) if entry.planned_date is not None else "—"
             cells = (title.contractor_name, f"{contract} — {title.document_name}", self.amount_text(entry), due_date,
@@ -191,7 +193,7 @@ class MonthlyDialog(QDialog):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                 if column == 4:
                     item.setForeground(QColor(self.STATE_COLOR[entry.state]))
-                if entry.event is None and (column == 3 and entry.planned_date is not None or column == 2 and entry.amount):
+                if entry.event is None and (column == 3 and (entry.planned_date is not None or entry.relative_term) or column == 2 and entry.amount):
                     font = item.font()
                     font.setItalic(True)
                     item.setFont(font)

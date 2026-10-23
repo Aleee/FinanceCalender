@@ -136,7 +136,7 @@ class CopyDocDialog(QDialog):
 
     def update_due_date_info(self) -> None:
         due_date: QDate = self.ui.de_duedate.date()
-        self.ui.la_weekday.setText(WEEKDAY_ABBR[due_date.dayOfWeek()])
+        self.ui.la_weekday.setText(f"({WEEKDAY_ABBR[due_date.dayOfWeek()]})")
         self.ui.la_weekday.setStyleSheet("color: #c0392b;" if due_date.dayOfWeek() >= 6 else "")
         if self.terms is None:
             hint = "Укажите вручную"
@@ -146,7 +146,7 @@ class CopyDocDialog(QDialog):
             hint = (f"Расчетная: {self.calculated_due_date.toString('dd.MM.yyyy')} "
                     f"({WEEKDAY_ABBR[self.calculated_due_date.dayOfWeek()]}) · <a href=\"#reset\">вернуть</a>")
         else:
-            hint = "Рассчитана автоматически"
+            hint = "Рассчитан автоматически"
         self.ui.la_duedatehint.setText(hint)
 
     def on_incurrencedate_changed(self, new_date: QDate) -> None:

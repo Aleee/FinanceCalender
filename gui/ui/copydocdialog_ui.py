@@ -131,58 +131,54 @@ class Ui_CopyDocDialog(object):
 
         self.la_weekday = QLabel(CopyDocDialog)
         self.la_weekday.setObjectName(u"la_weekday")
-        self.la_weekday.setMinimumSize(QSize(24, 0))
+        self.la_weekday.setMinimumSize(QSize(28, 0))
 
         self.horizontalLayout_3.addWidget(self.la_weekday)
 
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_3.addItem(self.horizontalSpacer_3)
-
-
-        self.formLayout.setLayout(4, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_3)
-
         self.la_duedatehint = QLabel(CopyDocDialog)
         self.la_duedatehint.setObjectName(u"la_duedatehint")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.la_duedatehint.sizePolicy().hasHeightForWidth())
         self.la_duedatehint.setSizePolicy(sizePolicy)
         self.la_duedatehint.setStyleSheet(u"QLabel { color: gray; }")
         self.la_duedatehint.setTextFormat(Qt.TextFormat.RichText)
-        self.la_duedatehint.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
+        self.la_duedatehint.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
         self.la_duedatehint.setWordWrap(False)
 
-        self.formLayout.setWidget(5, QFormLayout.ItemRole.FieldRole, self.la_duedatehint)
+        self.horizontalLayout_3.addWidget(self.la_duedatehint)
+
+
+        self.formLayout.setLayout(4, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_3)
 
         self.label_8 = QLabel(CopyDocDialog)
         self.label_8.setObjectName(u"label_8")
 
-        self.formLayout.setWidget(6, QFormLayout.ItemRole.LabelRole, self.label_8)
+        self.formLayout.setWidget(5, QFormLayout.ItemRole.LabelRole, self.label_8)
 
         self.te_name = QPlainTextEdit(CopyDocDialog)
         self.te_name.setObjectName(u"te_name")
         self.te_name.setTabChangesFocus(True)
 
-        self.formLayout.setWidget(6, QFormLayout.ItemRole.FieldRole, self.te_name)
+        self.formLayout.setWidget(5, QFormLayout.ItemRole.FieldRole, self.te_name)
 
         self.label_6 = QLabel(CopyDocDialog)
         self.label_6.setObjectName(u"label_6")
 
-        self.formLayout.setWidget(7, QFormLayout.ItemRole.LabelRole, self.label_6)
+        self.formLayout.setWidget(6, QFormLayout.ItemRole.LabelRole, self.label_6)
 
         self.te_descr = QPlainTextEdit(CopyDocDialog)
         self.te_descr.setObjectName(u"te_descr")
         self.te_descr.setTabChangesFocus(True)
 
-        self.formLayout.setWidget(7, QFormLayout.ItemRole.FieldRole, self.te_descr)
+        self.formLayout.setWidget(6, QFormLayout.ItemRole.FieldRole, self.te_descr)
 
         self.label_7 = QLabel(CopyDocDialog)
         self.label_7.setObjectName(u"label_7")
         self.label_7.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
 
-        self.formLayout.setWidget(8, QFormLayout.ItemRole.LabelRole, self.label_7)
+        self.formLayout.setWidget(7, QFormLayout.ItemRole.LabelRole, self.label_7)
 
         self.te_paytermsdescr = QPlainTextEdit(CopyDocDialog)
         self.te_paytermsdescr.setObjectName(u"te_paytermsdescr")
@@ -191,7 +187,7 @@ class Ui_CopyDocDialog(object):
         self.te_paytermsdescr.setStyleSheet(u"QPlainTextEdit { background: palette(window); }")
         self.te_paytermsdescr.setReadOnly(True)
 
-        self.formLayout.setWidget(8, QFormLayout.ItemRole.FieldRole, self.te_paytermsdescr)
+        self.formLayout.setWidget(7, QFormLayout.ItemRole.FieldRole, self.te_paytermsdescr)
 
 
         self.verticalLayout.addLayout(self.formLayout)

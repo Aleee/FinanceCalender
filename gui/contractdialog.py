@@ -229,7 +229,7 @@ class ContractDocumentDialog(QDialog):
             has_calendar_condition=has_calendar_condition,
             month_day=month_day,
             month_type=month_type,
-            monthly=payment_type == PaymentDueType.FIXED and self.ui.chb_monthly.isChecked(),
+            monthly=payment_type in (PaymentDueType.FIXED, PaymentDueType.RELATIVE) and self.ui.chb_monthly.isChecked(),
             monthly_amount=None if self.ui.chb_byinvoice.isChecked() else Decimal(str(self.ui.dsb_monthlyamount.value())) or None,
             monthly_name=self.ui.le_monthlyname.text().strip(),
         )
@@ -256,7 +256,7 @@ class ContractDocumentDialog(QDialog):
         self.ui.fr_relative.setEnabled(self.ui.rb_relative.isChecked())
         self.ui.widget_2.setEnabled(self.ui.chb_rel_additional.isChecked())
         self.ui.fr_fixed.setEnabled(self.ui.rb_fixed.isChecked())
-        self.ui.gb_monthly.setVisible(self.ui.rb_fixed.isChecked())
+        self.ui.gb_monthly.setVisible(self.ui.rb_fixed.isChecked() or self.ui.rb_relative.isChecked())
         self.ui.wdg_monthly.setEnabled(self.ui.chb_monthly.isChecked())
         self.ui.dsb_monthlyamount.setEnabled(not self.ui.chb_byinvoice.isChecked())
 

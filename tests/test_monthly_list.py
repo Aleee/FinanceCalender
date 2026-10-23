@@ -50,6 +50,7 @@ def test_shift_name_period_keeps_case_and_year_style():
 
 def test_fill_placeholders():
     assert fill_placeholders("Аренда за {месяц} {год} г.", QDate(2026, 11, 1)) == "Аренда за ноябрь 2026 г."
+    assert fill_placeholders("Аренда за {месяц} {год}", QDate(2026, 11, 1)) == "Аренда за ноябрь 2026 г."
 
 
 def test_monthly_entries_states(hdb):
@@ -255,6 +256,17 @@ def test_monthly_dialog_italic_amount_for_missing_with_fixed_amount(hdb, qapp):
     table = MonthlyDialog(hdb, lambda *args: False).ui.tbl_monthly
 
     assert table.item(0, 2).text() == "310,00" and table.item(0, 2).font().italic()
+
+
+@pytest.mark.parametrize("days_type, text", [("WORKING", "+5Р"), ("BANKING", "+5Б"), ("CALENDAR", "+5К")])
+def test_monthly_dialog_relative_term_for_missing(hdb, qapp, days_type, text):
+    _, _, document_id = add_chain(hdb.path, "Альфа", "1", "Акт связи")
+    run(hdb.path, "UPDATE contractdocument SET monthly = 1 WHERE id = ?", document_id)
+    run(hdb.path, "INSERT INTO contractpaymentterm (document_id, payment_type, days_count, days_type, has_calendar_condition, "
+                  "month_day, month_type) VALUES (?, 'RELATIVE', 5, ?, 1, 25, 'NEXT')", document_id, days_type)
+    table = MonthlyDialog(hdb, lambda *args: False).ui.tbl_monthly
+
+    assert table.item(0, 3).text() == text and table.item(0, 3).font().italic()
 
 
 def test_monthly_dialog_hides_and_restores(hdb, qapp):

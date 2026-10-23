@@ -2,8 +2,8 @@ from enum import IntEnum
 from html import escape
 from typing import Callable
 
-from PySide6.QtCore import QDate, QSettings
-from PySide6.QtGui import Qt, QIcon, QBrush
+from PySide6.QtCore import QDate, QSettings, QPointF
+from PySide6.QtGui import Qt, QIcon, QBrush, QPixmap, QPainter, QColor, QPen
 from PySide6.QtWidgets import QDialog, QListWidgetItem, QInputDialog, QFormLayout, QLineEdit, QDialogButtonBox, \
     QDateEdit, QListWidget, QMenu, QWidget
 
@@ -76,6 +76,9 @@ class ContractorDialog(QDialog):
 
     ICON_ARCHIVE = QIcon(":/icon-contractors/designer/icons/item_archive.svg")
     ICON_UNARCHIVE = QIcon(":/icon-contractors/designer/icons/item_unarchive.svg")
+    FILL_TOOLTIPS = {True: "Сохранённые поля есть у всех документов, по которым есть платежи",
+                     False: "",
+                     None: "Нет документов"}
 
     def __init__(self, dbh: DBHandler, settings: QSettings, open_event: Callable[[int, QWidget], bool] | None = None,
                  parent=None):
@@ -136,6 +139,37 @@ class ContractorDialog(QDialog):
         self.ui.le_filter.setFocus()
 
     @staticmethod
+    def contractor_icon(filled: bool | None, has_events: bool) -> QIcon:
+        pixmap = QPixmap(32, 16)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if filled:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor("#2e9d4f"))
+            painter.drawEllipse(1, 1, 14, 14)
+            painter.setPen(QPen(Qt.GlobalColor.white, 2))
+            painter.drawPolyline([QPointF(4.5, 8.5), QPointF(7, 11), QPointF(11.5, 5.5)])
+        elif filled is None:
+            painter.setPen(QPen(QColor("#9a9a9a"), 1.5, Qt.PenStyle.DashLine))
+            painter.drawEllipse(2, 2, 12, 12)
+        if not has_events:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor("#e08a1e"))
+            painter.drawEllipse(17, 1, 14, 14)
+            painter.setPen(QPen(Qt.GlobalColor.white, 2))
+            painter.drawLine(21, 8, 27, 8)
+        painter.end()
+        return QIcon(pixmap)
+
+    @classmethod
+    def contractor_tooltip(cls, filled: bool | None, has_events: bool) -> str:
+        lines = [cls.FILL_TOOLTIPS[filled]] if cls.FILL_TOOLTIPS[filled] else []
+        if not has_events:
+            lines.append("Нет ни одного платежа")
+        return "\n".join(lines)
+
+    @staticmethod
     def _select_by_id(list_widget, item_id: int | None):
         if item_id:
             for i in range(list_widget.count()):
@@ -143,6 +177,22 @@ class ContractorDialog(QDialog):
                     list_widget.setCurrentRow(i)
                     return
         list_widget.setCurrentRow(0)
+
+    @staticmethod
+    def _select_nearest_visible(list_widget: QListWidget) -> None:
+        current_item = list_widget.currentItem()
+        if current_item is not None and not current_item.isHidden():
+            return
+        visible_rows = [i for i in range(list_widget.count()) if not list_widget.item(i).isHidden()]
+        current_row = list_widget.currentRow()
+        below = [i for i in visible_rows if i > current_row]
+        above = [i for i in visible_rows if i < current_row]
+        if below:
+            list_widget.setCurrentRow(below[0])
+        elif above:
+            list_widget.setCurrentRow(above[-1])
+        else:
+            list_widget.setCurrentRow(visible_rows[0] if visible_rows else -1)
 
     @staticmethod
     def _current_id(list_widget: QListWidget) -> int | None:
@@ -218,6 +268,7 @@ class ContractorDialog(QDialog):
             title_note = f"({document_item.text()})"
         ContractHistoryDialog(self.dbh, title, contractor_item.data(Qt.ItemDataRole.UserRole), contract_id,
                               self.open_event, self, document_id, subtitle, title_note).exec()
+        self.update_contractor_marks()
 
     def update_edit_buttons(self) -> None:
         for list_widget, rename_button, archive_button in (
@@ -284,7 +335,10 @@ class ContractorDialog(QDialog):
         page_lists[page].setFocus()
 
     def on_back(self) -> None:
-        self.show_page(StackwidgetPage(self.ui.stw_main.currentIndex() - 1))
+        page = StackwidgetPage(self.ui.stw_main.currentIndex() - 1)
+        if page == StackwidgetPage.contractors:
+            self.update_contractor_marks()
+        self.show_page(page)
 
     def on_next(self) -> None:
         page = self.ui.stw_main.currentIndex()
@@ -308,8 +362,21 @@ class ContractorDialog(QDialog):
             new_item.setData(Qt.ItemDataRole.UserRole, contractor[0])
             self.set_item_archived(new_item, contractor[2])
             self.ui.lw_contractor.addItem(new_item)
+        self.update_contractor_marks()
         self._sort_below_new_item(self.ui.lw_contractor)
         self.on_filter_change()
+
+    def update_contractor_marks(self) -> None:
+        filled = self.dbh.load_contractors_filled() or {}
+        with_events = self.dbh.load_contractors_with_events() or set()
+        for i in range(self.ui.lw_contractor.count()):
+            item = self.ui.lw_contractor.item(i)
+            contractor_id = item.data(Qt.ItemDataRole.UserRole)
+            if not contractor_id:
+                continue
+            is_filled, has_events = filled.get(contractor_id), contractor_id in with_events
+            item.setIcon(self.contractor_icon(is_filled, has_events))
+            item.setToolTip(self.contractor_tooltip(is_filled, has_events))
 
     def on_filter_change(self) -> None:
         filter_text = self.ui.le_filter.text().lower()
@@ -319,10 +386,7 @@ class ContractorDialog(QDialog):
             item = self.ui.lw_contractor.item(i)
             item.setHidden(filter_text not in item.data(Qt.ItemDataRole.DisplayRole).lower()
                            or bool(item.data(ARCHIVED_ROLE)) and not show_archived)
-        current_item = self.ui.lw_contractor.currentItem()
-        if not current_item or current_item.isHidden():
-            visible_rows = [i for i in range(self.ui.lw_contractor.count()) if not self.ui.lw_contractor.item(i).isHidden()]
-            self.ui.lw_contractor.setCurrentRow(visible_rows[0] if visible_rows else -1)
+        self._select_nearest_visible(self.ui.lw_contractor)
 
     def ask_contractor_name(self, title: str = "Новый контрагент", text: str | None = None) -> str | None:
         dialog = QInputDialog(self)
@@ -413,10 +477,7 @@ class ContractorDialog(QDialog):
         for i in range(self.ui.lw_contract.count()):
             item = self.ui.lw_contract.item(i)
             item.setHidden(bool(item.data(ARCHIVED_ROLE)) and not show_archived)
-        current_item = self.ui.lw_contract.currentItem()
-        if current_item is None or current_item.isHidden():
-            visible_rows = [i for i in range(self.ui.lw_contract.count()) if not self.ui.lw_contract.item(i).isHidden()]
-            self.ui.lw_contract.setCurrentRow(visible_rows[0] if visible_rows else -1)
+        self._select_nearest_visible(self.ui.lw_contract)
 
     def contract_exists(self, number: str, date: QDate, skip_item: QListWidgetItem | None = None) -> bool:
         for i in range(self.ui.lw_contract.count()):
@@ -514,5 +575,7 @@ class ContractorDialog(QDialog):
         dialog = ContractDocumentDialog(
             self.dbh, self.settings, document_item.data(Qt.ItemDataRole.UserRole), info, self, self.open_event
         )
-        if dialog.exec() == QDialog.DialogCode.Accepted:
+        accepted = dialog.exec() == QDialog.DialogCode.Accepted
+        self.update_contractor_marks()
+        if accepted:
             self.load_documents(info.contract_id, select_id=dialog.document_id)
