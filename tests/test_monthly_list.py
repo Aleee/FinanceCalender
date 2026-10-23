@@ -279,7 +279,7 @@ def test_monthly_dialog_hides_and_restores(hdb, qapp):
     table = dialog.ui.tbl_monthly
 
     table.selectRow(0)
-    assert dialog.ui.pb_hide.text() == "Скрыть" and dialog.ui.pb_hide.isEnabled()
+    assert dialog.ui.pb_hide.text() == "Скрыть платеж" and dialog.ui.pb_hide.isEnabled()
     dialog.ui.pb_hide.click()
     assert [entry.title.contractor_name for entry in dialog.shown] == ["Бета", "Гамма"]
     assert dialog.ui.la_summary.text() == "Не создано: 1 из 2 (скрыто 1)"
@@ -290,7 +290,7 @@ def test_monthly_dialog_hides_and_restores(hdb, qapp):
     dialog.ui.chb_hidden.setChecked(True)
     assert [entry.title.contractor_name for entry in dialog.shown] == ["Альфа"]
     assert dialog.ui.pb_hide.text() == "Вернуть" and dialog.ui.pb_hide.isEnabled()
-    assert dialog.ui.pb_create.text() == "Создать" and not dialog.ui.pb_create.isEnabled()
+    assert dialog.ui.pb_create.text() == "Создать платеж" and not dialog.ui.pb_create.isEnabled()
 
     dialog.ui.pb_hide.click()
     assert dialog.shown == [] and dialog.ui.stk_monthly.currentWidget() is dialog.ui.page_empty
