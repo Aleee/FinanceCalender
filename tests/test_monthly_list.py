@@ -285,7 +285,7 @@ def test_monthly_dialog_hides_and_restores(hdb, qapp):
     assert dialog.ui.la_summary.text() == "Не создано: 1 из 2 (скрыто 1)"
 
     table.selectRow(1)
-    assert dialog.ui.pb_create.text() == "Открыть" and not dialog.ui.pb_hide.isEnabled()
+    assert dialog.ui.pb_create.text() == "Открыть платеж" and not dialog.ui.pb_hide.isEnabled()
 
     dialog.ui.chb_hidden.setChecked(True)
     assert [entry.title.contractor_name for entry in dialog.shown] == ["Альфа"]
@@ -353,7 +353,7 @@ def test_monthly_dialog_create_button_and_empty_state(hdb, qapp):
     dialog.ui.pb_create.click()
 
     assert dialog.selected_entry().title.contractor_name == "Бета" and calls == ["Бета"]
-    assert dialog.ui.pb_create.text() == "Создать"
+    assert dialog.ui.pb_create.text() == "Создать платеж"
 
     run(path, "UPDATE contractdocument SET monthly = 0")
     dialog.reload()
