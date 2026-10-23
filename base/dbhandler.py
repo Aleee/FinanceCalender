@@ -1243,42 +1243,6 @@ class DBHandler:
             contracors.append((query.value(0), query.value(1), bool(query.value(2))))
         return contracors
 
-    def load_contractors_filled(self) -> dict[int, bool] | None:
-        if not self.is_db_connected():
-            return None
-        hidden = " AND COALESCE(e.hidden, 0) = 0" if is_viewer() else ""
-        query = QSqlQuery(
-            "SELECT contractor_id, MIN(has_values OR NOT has_events) AND MAX(has_values) FROM ("
-            "SELECT c.contractor_id, "
-            "EXISTS (SELECT 1 FROM contractsavedvalues s "
-            "WHERE s.contractdocumentid = d.id AND COALESCE(s.category, 0) <> 0) AS has_values, "
-            f"EXISTS (SELECT 1 FROM event e WHERE e.contractdocument_id = d.id{hidden}) AS has_events "
-            "FROM contractdocument d JOIN contract c ON c.id = d.contract_id "
-            "WHERE c.archived = 0) GROUP BY contractor_id")
-        if not query.exec():
-            log.e(f"Ошибка SQL при попытке получить заполненность документов контрагентов: {query.lastError().text()}")
-            return None
-        filled: dict[int, bool] = {}
-        while query.next():
-            filled[int(query.value(0))] = bool(query.value(1))
-        return filled
-
-    def load_contractors_with_events(self) -> set[int] | None:
-        if not self.is_db_connected():
-            return None
-        hidden = " WHERE COALESCE(e.hidden, 0) = 0" if is_viewer() else ""
-        query = QSqlQuery(
-            "SELECT DISTINCT c.contractor_id FROM event e "
-            "JOIN contractdocument d ON d.id = e.contractdocument_id "
-            f"JOIN contract c ON c.id = d.contract_id{hidden}")
-        if not query.exec():
-            log.e(f"Ошибка SQL при попытке получить контрагентов с платежами: {query.lastError().text()}")
-            return None
-        contractor_ids: set[int] = set()
-        while query.next():
-            contractor_ids.add(int(query.value(0)))
-        return contractor_ids
-
     def add_contractor(self, contractor_name: str) -> int | None:
         if not self.is_db_connected():
             return None
