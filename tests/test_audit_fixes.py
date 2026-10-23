@@ -15,8 +15,8 @@ def new_event_data(receiver: str = "ООО Новое") -> list:
     return [receiver, 0, 1, 0, 1101, 0, "n", "100.00", 0, day(5), day(0), 0, "d", 1, "", 0, 0]
 
 
-def make_payment_model() -> PaymentHistoryTableModel:
-    payment_model = PaymentHistoryTableModel()
+def make_payment_model(dbh) -> PaymentHistoryTableModel:
+    payment_model = PaymentHistoryTableModel(dbh)
     payment_model.setTable("payment")
     payment_model.setEditStrategy(QSqlTableModel.EditStrategy.OnManualSubmit)
     payment_model.select()
@@ -50,7 +50,7 @@ def test_inserted_event_id_is_known_right_after_insert(models):
 
 def test_refund_keeps_event_id_even_though_payment_is_inserted_after(models, shared_dbh):
     prepare_events_with_payments(models)
-    payment_model = make_payment_model()
+    payment_model = make_payment_model(shared_dbh)
     assert shared_dbh.run_in_transaction(
         lambda: models.table.insert_event(new_event_data()) is not None
         and payment_model.append_row([models.table.last_inserted_id, day(5), "-100.00", day(0)]))
@@ -63,7 +63,7 @@ def test_refund_keeps_event_id_even_though_payment_is_inserted_after(models, sha
 def test_failed_refund_payment_leaves_no_event(models, shared_dbh):
     prepare_events_with_payments(models)
     events_before = query_all(models.path, "SELECT COUNT(*) FROM event")[0][0]
-    payment_model = make_payment_model()
+    payment_model = make_payment_model(shared_dbh)
     assert not shared_dbh.run_in_transaction(
         lambda: models.table.insert_event(new_event_data()) is not None
         and payment_model.append_row([models.table.last_inserted_id, day(5), "-100.00", day(0)])

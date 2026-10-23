@@ -32,9 +32,10 @@ class PaymentHistoryTableModel(QSqlTableModel):
     dbValueRole: int = Qt.ItemDataRole.UserRole + 1
     qtValueRole: int = Qt.ItemDataRole.UserRole + 2
 
-    def __init__(self, parent=None):
+    def __init__(self, db_handler, parent=None):
         super(PaymentHistoryTableModel, self).__init__(parent)
 
+        self.db_handler = db_handler
         self.current_event_id: int = 0
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
@@ -80,27 +81,6 @@ class PaymentHistoryTableModel(QSqlTableModel):
             log.e("Набор передаваемых в append_row данных должен охватывать все атрибуты класса-хранителя за исключением id")
             raise IndexError
 
-        self.reset_filter()
-        position: int = self.rowCount()
-
-        if self.insertRow(position):
-            for column, value in enumerate(data):
-                index: QModelIndex = self.index(position, column + 1)
-                if not self.setData(index, value):
-                    self.removeRows(position, 1)
-                    log.e(f"Не удалось записать данные {value} в столбец {column + 1}")
-                    self.update_filter()
-                    return False
-            submitted: bool = self.submitAll()
-            if not submitted:
-                self.revertAll()
-            self.update_filter()
-            return submitted
+        inserted: bool = self.db_handler.insert_payment(data) is not None
         self.update_filter()
-        return False
-
-    def submitAll(self) -> bool:
-        result = super().submitAll()
-        if not result:
-            log.e(f"Не удалось записать изменения в таблицу payment: {self.lastError().text()}")
-        return result
+        return inserted

@@ -1093,6 +1093,29 @@ class DBHandler:
 
         return new_ids[0] if self.run_in_transaction(action) and new_ids else None
 
+    def insert_payment(self, data: list) -> int | None:
+        if len(data) != self.PAYMENT_TABLE_COLUMNUM - 1:
+            raise IndexError("В новую оплату передано неверное количество данных")
+        if not self.is_db_connected():
+            return None
+        new_ids: list[int] = []
+
+        def action() -> bool:
+            query = QSqlQuery()
+            query.prepare("INSERT INTO payment (eventid, paymentdate, sum, createdate) VALUES (?, ?, ?, ?)")
+            for value in data:
+                query.addBindValue(value)
+            if not query.exec():
+                log.e(f"Не удалось добавить строку в таблицу payment: {query.lastError().text()} "
+                      f"[запрос: {query.lastQuery()}, значений: {len(query.boundValues())}, "
+                      f"код: {query.lastError().nativeErrorCode()}, база открыта: {self.db.isOpen()}, "
+                      f"в транзакции: {self.in_transaction}]")
+                return False
+            new_ids.append(int(query.lastInsertId()))
+            return True
+
+        return new_ids[0] if self.run_in_transaction(action) and new_ids else None
+
     def update_event(self, event_id: int, data: list) -> bool:
         if len(data) != len(EVENT_COLUMN_NAMES):
             raise IndexError("В строку передано неверное количество данных")

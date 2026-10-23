@@ -187,7 +187,7 @@ class MainWindow(QMainWindow):
         self.ui.trw_event.span_columns()
 
         # Модель таблицы платежей + прокси-модель над ней
-        self.payment_model: PaymentHistoryTableModel = PaymentHistoryTableModel(self)
+        self.payment_model: PaymentHistoryTableModel = PaymentHistoryTableModel(self.db_handler, self)
         self.payment_model.setTable("payment")
         self.payment_model.setEditStrategy(QSqlTableModel.EditStrategy.OnManualSubmit)
         self.payment_model.select()

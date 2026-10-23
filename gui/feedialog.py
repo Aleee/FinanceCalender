@@ -338,8 +338,10 @@ class FeeDialog(QDialog):
             today_str,
         ]
         if not self.payment_model.append_row(payment_data):
-            ErrorInfoMessageBox("При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)").exec()
             log.e(f"Не удалось вставить новую строку в таблицу payment со следующими данными: {payment_data}")
+            if not self.table_model.delete_event(new_event_id):
+                log.e(f"Не удалось удалить строку {new_event_id} из таблицы event после неудачной записи оплаты")
+            ErrorInfoMessageBox("При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)").exec()
             return False
 
         return True
