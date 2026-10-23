@@ -1289,7 +1289,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
    </property>
    <property name="icon">
     <iconset resource="../../resources.qrc">
-     <normaloff>:/icon-table/designer/icons/attachment.svg</normaloff>:/icon-table/designer/icons/attachment.svg</iconset>
+     <normaloff>:/icon-toolbar/designer/icons/attachment_menu.svg</normaloff>:/icon-toolbar/designer/icons/attachment_menu.svg</iconset>
    </property>
    <property name="text">
     <string>Перейти к договору</string>
@@ -1308,6 +1308,21 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
    </property>
    <property name="text">
     <string>История платежей</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="act_changelog">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/icon-settings/designer/icons/info.svg</normaloff>:/icon-settings/designer/icons/info.svg</iconset>
+   </property>
+   <property name="text">
+    <string>История изменений</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

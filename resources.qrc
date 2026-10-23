@@ -63,6 +63,7 @@
     <file alias="icon-categories/designer/icons/103stuff.svg">designer/icons/103stuff.svg</file>
     <file alias="icon-table/designer/icons/attachment.svg">designer/icons/attachment.svg</file>
     <file alias="icon-table/designer/icons/attachment_monthly.svg">designer/icons/attachment_monthly.svg</file>
+    <file alias="icon-toolbar/designer/icons/attachment_menu.svg">designer/icons/attachment_menu.svg</file>
     <file alias="icon-contractors/designer/icons/item_edit.svg">designer/icons/item_edit.svg</file>
     <file alias="icon-contractors/designer/icons/item_archive.svg">designer/icons/item_archive.svg</file>
     <file alias="icon-contractors/designer/icons/item_unarchive.svg">designer/icons/item_unarchive.svg</file>

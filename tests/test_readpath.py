@@ -597,7 +597,7 @@ def test_app_works_with_read_only_database(db_file, shared_dbh):
 
 
 def test_startup_at_current_version_does_not_write(dbh, work_db_path):
-    create_db(work_db_path, dbh.DB_VERSION)
+    create_db(work_db_path, dbh.DB_VERSION, dbh.changelog_session())
     fill_sample_db(work_db_path)
     hash_before = file_hash(work_db_path)
     assert dbh.migrate_db()

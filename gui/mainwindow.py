@@ -10,6 +10,7 @@ from PySide6.QtSql import QSqlTableModel
 from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QStyle, QWidget, QListView, QToolButton, QSizePolicy
 
 from base.backup import clean_backup_folder, save_backup
+from base.changelog import build_operations
 from base.casting import str_int
 from base.contract import ContractInfo, DocumentTitle
 from base.date import date_displstr, date_str
@@ -23,6 +24,7 @@ from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, Sy
 from base.syncjournal import JOURNAL_EXIT, JOURNAL_MANUAL, JOURNAL_START, add_journal_entry
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
+from gui.changelogdialog import ChangeLogDialog
 from gui.chartchoicedialog import ChartChoiceDialog
 from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparator
 from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
@@ -411,6 +413,7 @@ class MainWindow(QMainWindow):
         self.ui.la_contractbound.linkActivated.connect(self.open_bound_document)
         self.ui.act_gotocontract.triggered.connect(self.open_bound_document)
         self.ui.act_documenthistory.triggered.connect(self.open_document_history)
+        self.ui.act_changelog.triggered.connect(self.open_change_log)
         self.ui.act_settings.triggered.connect(lambda: self.open_settings_dialog())
         self.ui.act_help.triggered.connect(lambda: self.open_manual_dialog())
         self.ui.act_toggleheaders.toggled.connect(self.table_model.set_header_filter)
@@ -856,16 +859,19 @@ class MainWindow(QMainWindow):
         menu_separator.setSeparator(True)
         if is_viewer():
             self.ui.trw_event.addActions([self.ui.act_edit, menu_separator, self.ui.act_gotocontract,
-                                          self.ui.act_documenthistory])
+                                          self.ui.act_documenthistory, self.ui.act_changelog])
         else:
             self.ui.trw_event.addActions([self.ui.act_new, self.ui.act_copy, self.ui.act_copydoc, self.ui.act_edit,
                                           self.ui.act_delete, menu_separator, self.ui.act_gotocontract,
-                                          self.ui.act_documenthistory])
+                                          self.ui.act_documenthistory, self.ui.act_changelog])
         for action in self.ui.trw_event.actions():
             action.setIconVisibleInMenu(True)
         self.ui.act_copydoc.setShortcut(QKeySequence("Ctrl+Shift+D"))
         self.ui.act_copydoc.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         self.ui.act_copydoc.setToolTip(f"{self.ui.act_copydoc.toolTip()} (Ctrl+Shift+D)")
+        self.ui.act_changelog.setShortcut(QKeySequence("Ctrl+Shift+H"))
+        self.ui.act_changelog.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.ui.act_changelog.setToolTip(f"{self.ui.act_changelog.text()} (Ctrl+Shift+H)")
         # Горячие клавиши, которым не соответствует кнопка тулбара
         for key, slot in (("Ctrl+F", self.ui.le_search.setFocus),
                           ("Ctrl+R", self.reset_filters),
@@ -949,6 +955,7 @@ class MainWindow(QMainWindow):
         self.ui.act_delete.setDisabled(filtered_out)
         if filtered_out:
             self.ui.act_copydoc.setEnabled(False)
+            self.ui.act_changelog.setEnabled(False)
         if filtered_out or self.current_data(Col.TYPE) != RowType.LIABILITY:
             self.ui.stw_eventinfo.setCurrentIndex(1)
 
@@ -977,6 +984,7 @@ class MainWindow(QMainWindow):
         if row_type != RowType.LIABILITY:
             for act in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete):
                 act.setEnabled(False)
+        self.ui.act_changelog.setEnabled(row_type == RowType.LIABILITY)
         if payment_type == PaymentType.REFUND:
             if not is_viewer():
                 self.ui.act_edit.setEnabled(False)
@@ -1061,6 +1069,31 @@ class MainWindow(QMainWindow):
                                                title.contractor_name)
         ContractHistoryDialog(self.db_handler, scope, title.contractor_id, title.contract_id, self.open_event_view, self,
                               self.bound_document_id, subtitle, note).exec()
+
+    def change_value_resolvers(self) -> dict[str, Callable[[str], str | None]]:
+        def responsible_name(value: str) -> str | None:
+            person = self.table_model.personal_dict.get(str_int(value, 0))
+            return person[0] if person else None
+
+        def document_name(value: str) -> str | None:
+            title = self.table_model.document_title(str_int(value, 0))
+            if title is None:
+                return None
+            return f"{title.contractor_name}, № {title.contract_number} от {date_displstr(title.contract_date)} ({title.document_name})"
+
+        return {"responsible": responsible_name, "contractdocument_id": document_name}
+
+    def open_change_log(self) -> None:
+        if self.current_data(Col.TYPE) != RowType.LIABILITY:
+            return
+        event_id: int = self.current_data(Col.ID, LiabilityTableModel.qtValueRole)
+        loaded = self.db_handler.load_changelog(event_id)
+        if loaded is None:
+            ErrorInfoMessageBox("Не удалось прочитать журнал изменений (подробности см. в логе)", parent=self).exec()
+            return
+        records, payments = loaded
+        title = f"{self.current_data(Col.RECEIVER)} — {self.current_data(Col.NAME)}"
+        ChangeLogDialog(build_operations(records, payments, self.change_value_resolvers()), title, self).exec()
 
     # Общий набор аргументов для set_filters, чтобы не дублировать список из 9 параметров
     def _current_filter_args(self) -> tuple:

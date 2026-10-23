@@ -132,7 +132,17 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <p>В столбец «Оплата сегодня» (<a href="02-main-window.html">раздел 2</a>) и во флажок «ОПЛАТА СЕГОДНЯ» (<a href="05-filters.html">раздел 5</a>) попадают только оплаты с датой сегодня; оплата, внесённая сегодня вчерашней датой, не учитывается.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">История изменений платежа</h2></td></tr></table>
+<p>Программа записывает, кто и когда добавил, изменил или удалил платеж и его оплаты. Если значение платежа изменилось неожиданно, история покажет, что именно и кто поменял.</p>
+<p>Выберите платеж в таблице и нажмите правой кнопкой мыши «История изменений» либо <strong>Ctrl+Shift+H</strong> (последним вы должны были щёлкнуть по таблице платежей). Окно открывается и в версии для просмотра.</p>
+<p>Окно показывает действия, новые сверху. У каждого действия есть время, имя автора (имя пользователя из настроек синхронизации, <a href="15-sync.html">раздел 15</a>) и описание: «Платеж добавлен», «Платеж изменён», «Оплата 40,00 от 11.10.2026 удалена» и т. п. Если подвести указатель к имени автора, появится название компьютера. Раскройте действие, чтобы увидеть поля со старым и новым значением. Список можно сузить переключателем справа вверху: «Платеж и оплаты», «Только платеж», «Только оплаты».</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong>
+- Журнал хранится 6 месяцев; более старые записи удаляются. Правки, сделанные до появления журнала, в нём отсутствуют.
+- Если при синхронизации программа объединяет правки двух компьютеров (<a href="15-sync.html">раздел 15</a>), время записи — это момент объединения, а не момент самой правки.
+- Истории удалённого платежа в окне нет: из таблицы он пропал. Удаление остаётся в журнале базы данных.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s11">Если что-то пошло не так</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>

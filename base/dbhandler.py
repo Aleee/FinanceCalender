@@ -6,6 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from datetime import date
+from platform import node
 from typing import Any, Callable, Optional
 from uuid import uuid4
 
@@ -13,11 +14,14 @@ from PySide6.QtCore import QDate
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 import lovely_logger as log
 
+from base.changelog import ChangeRecord
 from base.date import str_date, date_str, date_displstr
 from base.edition import is_viewer
 from base.formatting import str_decimal
 from base.liability import EVENT_COLUMN_NAMES, LiabilityCategory, RowType
-from base.migrations import MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS
+from base.migrations import (MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS, CHANGELOG_TABLE,
+                             CHANGELOG_DATA_TABLES, CHANGELOG_ACTIONS, CHANGELOG_AUTHOR_KEY, CHANGELOG_MACHINE_KEY,
+                             changelog_triggers)
 from base.paths import db_path, backup_dir
 from base.payment import Payment, PaymentEntry, PaymentInfo
 from base.syncdiff import (DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, KEY_COLUMNS, REFERENCES,
@@ -37,6 +41,7 @@ class DBHandler:
     ARCHIVE_MARK: str = "CASE WHEN archived = 0 THEN '' ELSE ' (архив)' END"
     EVENT_TABLE_COLUMNUM: int = 17
     PAYMENT_TABLE_COLUMNUM: int = 5
+    CHANGELOG_KEEP_MONTHS: int = 6
 
     DATE_FORMAT = "yyyy-MM-dd"
 
@@ -295,6 +300,9 @@ class DBHandler:
             with self._file_connection(target_path) as connection:
                 self._file_execute(connection, "ATTACH DATABASE ? AS mine", source_path)
                 self._file_execute(connection, "BEGIN")
+                for key, value in self.changelog_session().items():
+                    self._file_execute(connection, "DELETE FROM main.meta WHERE key = ?", key)
+                    self._file_execute(connection, "INSERT INTO main.meta (key, value) VALUES (?, ?)", key, value)
                 for table in reversed(DETAILED_TABLES):
                     self._delete_rows(connection, table, plan.deletes.get(table, []))
                 id_maps: dict[str, dict[int, int]] = {}
@@ -477,7 +485,7 @@ class DBHandler:
         result: dict[str, tuple[int, int]] = {}
         for table in tables:
             columns = self._common_columns(connection, table)
-            if table in DETAILED_TABLES or not columns:
+            if table in DETAILED_TABLES or table == CHANGELOG_TABLE or not columns:
                 continue
             fields = ", ".join(f'"{column}"' for column in columns)
             condition = f" WHERE key NOT IN ({service_keys})" if table == "meta" else ""
@@ -557,7 +565,34 @@ class DBHandler:
             log.c(f"Не удалось открыть базу данных по указанному пути (неизвестная ошибка): {db_path()}")
             return False
         clear_calendar_cache()
+        if not is_viewer():
+            self.start_changelog_session()
         return True
+
+    def changelog_session(self) -> dict[str, str]:
+        return {CHANGELOG_AUTHOR_KEY: self.settings_handler.sync_author(), CHANGELOG_MACHINE_KEY: node()}
+
+    def start_changelog_session(self) -> None:
+        for key, value in self.changelog_session().items():
+            if self.get_setting(key, None) != value and not self.set_setting(key, value):
+                log.w(f"Не удалось записать в базу данных автора изменений ({key})")
+        query = QSqlQuery()
+        if not query.exec(f"DELETE FROM {CHANGELOG_TABLE} WHERE changed_at < "
+                          f"strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime', '-{self.CHANGELOG_KEEP_MONTHS} months')"):
+            log.w(f"Не удалось удалить устаревшие записи журнала изменений: {query.lastError().text()}")
+
+    def rebuild_changelog_triggers(self) -> None:
+        for table in CHANGELOG_DATA_TABLES:
+            query = QSqlQuery()
+            if not query.exec(f'PRAGMA table_info("{table}")'):
+                raise MigrationError(f"Не удалось прочитать столбцы таблицы {table}: {query.lastError().text()}")
+            columns: list[str] = []
+            while query.next():
+                columns.append(query.value(1))
+            statements = [f"DROP TRIGGER IF EXISTS trg_{table}_log_{action}" for action in CHANGELOG_ACTIONS]
+            for statement in statements + changelog_triggers(table, columns):
+                if not query.exec(statement):
+                    raise MigrationError(f"Ошибка SQL: {query.lastError().text()}. Запрос: {statement}")
 
     def get_setting(self, key: str, default: str | None = "") -> str | None:
         if not self.is_db_connected():
@@ -1175,6 +1210,33 @@ class DBHandler:
             return True
 
         return self.run_in_transaction(action)
+
+    def load_changelog(self, event_id: int) -> tuple[list[ChangeRecord], dict[int, tuple[str, str]]] | None:
+        if not self.is_db_connected():
+            return None
+        payment_ids = ("SELECT id FROM payment WHERE eventid = ? UNION "
+                       f"SELECT recordid FROM {CHANGELOG_TABLE} WHERE tablename = 'payment' AND action IN ('insert', 'delete') "
+                       "AND json_extract(COALESCE(newvalue, oldvalue), '$.eventid') = ?")
+        queries = (f"SELECT id, changed_at, author, machine, tablename, recordid, action, field, oldvalue, newvalue FROM {CHANGELOG_TABLE} "
+                   f"WHERE (tablename = 'event' AND recordid = ?) OR (tablename = 'payment' AND recordid IN ({payment_ids})) ORDER BY id",
+                   "SELECT id, paymentdate, sum FROM payment WHERE eventid = ?")
+        bindings = ((event_id, event_id, event_id), (event_id,))
+        results: list[list[tuple]] = []
+        for sql, values in zip(queries, bindings):
+            query = QSqlQuery()
+            query.prepare(sql)
+            for value in values:
+                query.addBindValue(value)
+            if not query.exec():
+                log.e(f"Не удалось прочитать журнал изменений платежа {event_id}: {query.lastError().text()}")
+                return None
+            rows: list[tuple] = []
+            while query.next():
+                rows.append(tuple(None if query.isNull(column) else query.value(column) for column in range(query.record().count())))
+            results.append(rows)
+        records = [ChangeRecord(row[0], row[1], row[2] or "", row[3] or "", row[4], row[5], row[6], row[7], row[8], row[9])
+                   for row in results[0]]
+        return records, {row[0]: (row[1] or "", row[2] or "") for row in results[1]}
 
     def load_event_backup(self, event_id: int) -> tuple[tuple, list[tuple]] | None:
         if not self.is_db_connected():

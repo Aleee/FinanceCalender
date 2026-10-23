@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from base.backup import restore_backup
-from base.migrations import DATA_TABLES
+from base.migrations import CHANGELOG_TABLE, DATA_TABLES
 from tests.dbtools import create_db, fetch_all, read_meta, read_version
 
 
@@ -91,9 +91,10 @@ def test_second_migration_changes_nothing(dbh, v4_db):
 
 def test_every_data_table_has_three_triggers(v5_db):
     tables = {name for (name,) in fetch_all(v5_db, "SELECT name FROM sqlite_master WHERE type = 'table'")}
-    tables -= {"meta", "sqlite_sequence"}
+    tables -= {"meta", "sqlite_sequence", CHANGELOG_TABLE}
     assert tables == set(DATA_TABLES)
-    triggers = fetch_all(v5_db, "SELECT tbl_name, COUNT(*) FROM sqlite_master WHERE type = 'trigger' GROUP BY tbl_name")
+    triggers = fetch_all(v5_db, "SELECT tbl_name, COUNT(*) FROM sqlite_master WHERE type = 'trigger' "
+                                "AND name NOT LIKE 'trg_%_log_%' GROUP BY tbl_name")
     assert {table: count for table, count in triggers if table != "meta"} == dict.fromkeys(tables, 3)
 
 

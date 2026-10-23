@@ -352,29 +352,29 @@ def test_pull_refused_when_master_is_corrupted(connected, channel):
 def test_pull_of_older_master_migrates_and_marks_changed(machine_a, channel, make_machine, dbh, migrations):
     with machine_a as dbh_a:
         push_master(dbh_a, channel, PARAMS)
-    dbh.DB_VERSION = 11
-    migrations[11] = ["INSERT INTO meta (key, value) VALUES ('key8', 'z')"]
+    dbh.DB_VERSION = 12
+    migrations[12] = ["INSERT INTO meta (key, value) VALUES ('key8', 'z')"]
     machine_b = make_machine("b")
     with machine_b as dbh_b:
         pull_master(dbh_b, channel, (SyncAction.FOREIGN_DB,))
         assert dbh_b.get_setting("marker") == "a"
         assert dbh_b.get_setting("key8") == "z"
-        assert dbh_b.get_setting("db_version") == "11"
+        assert dbh_b.get_setting("db_version") == "12"
         assert dbh_b.get_setting("change_counter") != "0"
         assert synchronize(dbh_b, channel, PARAMS) == SyncAction.PUSH
-    assert channel.read_master_info().db_version == 11
+    assert channel.read_master_info().db_version == 12
     assert not (machine_b.work_db_path.parent / "db_restore_temp.db").exists()
 
 
 def test_outdated_client_neither_pushes_nor_pulls(connected, channel, dbh, migrations):
     machine_a, machine_b = connected
-    dbh.DB_VERSION = 11
-    migrations[11] = ["INSERT INTO meta (key, value) VALUES ('key8', 'z')"]
+    dbh.DB_VERSION = 12
+    migrations[12] = ["INSERT INTO meta (key, value) VALUES ('key8', 'z')"]
     with machine_b as dbh_b:
         assert dbh_b.migrate_db()
         dbh_b.open_db_connection()
         assert synchronize(dbh_b, channel, PARAMS) == SyncAction.PUSH
-    dbh.DB_VERSION = 10
+    dbh.DB_VERSION = 11
     with machine_a as dbh_a:
         assert synchronize(dbh_a, channel, PARAMS) == SyncAction.CLIENT_OUTDATED
         with pytest.raises(SyncError):
@@ -1071,3 +1071,13 @@ def test_restore_master_info_for_folder_channel(connected, channel):
         restored = restore_master_info(dbh, channel, PARAMS)
         assert restored.sync_token == machine_b.meta()["sync_token"]
         assert synchronize(dbh, channel, PARAMS) == SyncAction.NOTHING
+
+
+def test_merge_logs_my_changes_in_merged_file(shared_event, channel):
+    machine_a, machine_b = shared_event
+    action = sync_both(machine_a, machine_b, channel, NEW_EVENT_2, "UPDATE event SET totalamount = '99.00' WHERE id = 1")
+    assert action == SyncAction.MERGE
+    log = rows(machine_b, "SELECT recordid, action, field, oldvalue, newvalue, author FROM changelog "
+                          "WHERE tablename = 'event' ORDER BY id")
+    assert (1, "update", "totalamount", "10.00", "99.00", "tester") in log
+    assert [record for record, action, *_ in log if action == "insert"] == [1, 2]

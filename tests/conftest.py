@@ -18,6 +18,10 @@ class FakeSettingsHandler:
     def __init__(self, ini_path: Path):
         self.settings: QSettings = QSettings(str(ini_path), QSettings.Format.IniFormat)
 
+    @staticmethod
+    def sync_author() -> str:
+        return "tester"
+
 
 @pytest.fixture(scope="session")
 def qapp():

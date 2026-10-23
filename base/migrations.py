@@ -17,7 +17,13 @@ DATA_TABLES: tuple[str, ...] = (
     "event", "payment", "contractor", "contract", "contractdocument", "contractpaymentterm", "contractsavedvalues",
     "personal", "position", "department", "finplan", "fulfillmentdata", "contractdocumenttype",
 )
-SERVICE_META_KEYS: tuple[str, ...] = ("change_counter", "sync_token", "db_uuid", "db_version")
+CHANGELOG_TABLE = "changelog"
+CHANGELOG_DATA_TABLES: tuple[str, ...] = ("event", "payment")
+CHANGELOG_ACTIONS: tuple[str, ...] = ("insert", "update", "delete")
+CHANGELOG_AUTHOR_KEY = "changelog_author"
+CHANGELOG_MACHINE_KEY = "changelog_machine"
+SERVICE_META_KEYS: tuple[str, ...] = ("change_counter", "sync_token", "db_uuid", "db_version",
+                                      CHANGELOG_AUTHOR_KEY, CHANGELOG_MACHINE_KEY)
 INCREASE_CHANGE_COUNTER = "UPDATE meta SET value = CAST(value AS INTEGER) + 1 WHERE key = 'change_counter'"
 
 
@@ -50,16 +56,47 @@ def table_change_counter_triggers(table: str) -> list[str]:
             for action in ("INSERT", "UPDATE", "DELETE")]
 
 
-def change_counter_triggers() -> list[str]:
+def meta_change_counter_triggers() -> list[str]:
     service_keys = ", ".join(f"'{key}'" for key in SERVICE_META_KEYS)
-    triggers = [trigger for table in DATA_TABLES for trigger in table_change_counter_triggers(table)]
-    triggers += [
+    return [
         f"CREATE TRIGGER trg_meta_insert AFTER INSERT ON meta WHEN NEW.key NOT IN ({service_keys}) BEGIN {INCREASE_CHANGE_COUNTER}; END",
         f"CREATE TRIGGER trg_meta_update AFTER UPDATE ON meta WHEN NEW.key NOT IN ({service_keys}) AND OLD.value IS NOT NEW.value "
         f"BEGIN {INCREASE_CHANGE_COUNTER}; END",
         f"CREATE TRIGGER trg_meta_delete AFTER DELETE ON meta WHEN OLD.key NOT IN ({service_keys}) BEGIN {INCREASE_CHANGE_COUNTER}; END",
     ]
-    return triggers
+
+
+def change_counter_triggers() -> list[str]:
+    triggers = [trigger for table in DATA_TABLES for trigger in table_change_counter_triggers(table)]
+    return triggers + meta_change_counter_triggers()
+
+
+def changelog_row(table: str, action: str, record_id: str, field: str, old_value: str, new_value: str, condition: str = "") -> str:
+    return (f"INSERT INTO {CHANGELOG_TABLE} (changed_at, author, machine, tablename, recordid, action, field, oldvalue, newvalue) "
+            f"SELECT strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), "
+            f"(SELECT value FROM meta WHERE key = '{CHANGELOG_AUTHOR_KEY}'), (SELECT value FROM meta WHERE key = '{CHANGELOG_MACHINE_KEY}'), "
+            f"'{table}', {record_id}, '{action}', {field}, {old_value}, {new_value}{condition}")
+
+
+def changelog_triggers(table: str, columns: list[str]) -> list[str]:
+    def snapshot(row: str) -> str:
+        return "json_object(" + ", ".join(f"'{column}', {row}.\"{column}\"" for column in columns) + ")"
+
+    updates = " ".join(
+        changelog_row(table, "update", "NEW.id", f"'{column}'", f'OLD."{column}"', f'NEW."{column}"',
+                      f' WHERE OLD."{column}" IS NOT NEW."{column}"') + ";"
+        for column in columns if column != "id")
+    bodies = {
+        "insert": changelog_row(table, "insert", "NEW.id", "NULL", "NULL", snapshot("NEW")) + ";",
+        "update": updates,
+        "delete": changelog_row(table, "delete", "OLD.id", "NULL", snapshot("OLD"), "NULL") + ";",
+    }
+    return [f'CREATE TRIGGER trg_{table}_log_{action} AFTER {action.upper()} ON "{table}" BEGIN {bodies[action]} END'
+            for action in CHANGELOG_ACTIONS]
+
+
+def rebuild_changelog_triggers(dbh: "DBHandler") -> None:
+    dbh.rebuild_changelog_triggers()
 
 
 MIGRATIONS: dict[int, list[Migration]] = {
@@ -83,4 +120,10 @@ MIGRATIONS: dict[int, list[Migration]] = {
     9: ["ALTER TABLE contractdocument ADD COLUMN monthly INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE contractdocument ADD COLUMN monthlyamount TEXT"],
     10: ["ALTER TABLE contractdocument ADD COLUMN monthlyname TEXT"],
+    11: [f"CREATE TABLE {CHANGELOG_TABLE} (id INTEGER PRIMARY KEY, changed_at TEXT NOT NULL, author TEXT, machine TEXT, "
+         f"tablename TEXT NOT NULL, recordid INTEGER, action TEXT NOT NULL, field TEXT, oldvalue TEXT, newvalue TEXT)",
+         f"CREATE INDEX idx_{CHANGELOG_TABLE}_record ON {CHANGELOG_TABLE} (tablename, recordid)",
+         f"CREATE INDEX idx_{CHANGELOG_TABLE}_time ON {CHANGELOG_TABLE} (changed_at)",
+         "DROP TRIGGER IF EXISTS trg_meta_insert", "DROP TRIGGER IF EXISTS trg_meta_update", "DROP TRIGGER IF EXISTS trg_meta_delete"]
+        + meta_change_counter_triggers() + [rebuild_changelog_triggers],
 }
