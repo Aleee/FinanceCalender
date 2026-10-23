@@ -189,7 +189,7 @@
         <string>Создать платёж за выбранный месяц или открыть уже созданный</string>
        </property>
        <property name="text">
-        <string>Создать</string>
+        <string>Создать платеж</string>
        </property>
        <property name="autoDefault">
         <bool>false</bool>
@@ -202,7 +202,20 @@
         <string>Скрыть несозданный платёж за этот месяц (запоминается на этом компьютере на год)</string>
        </property>
        <property name="text">
-        <string>Скрыть</string>
+        <string>Скрыть платеж</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pb_opendocument">
+       <property name="toolTip">
+        <string>Открыть документ договора, по которому создаётся платёж</string>
+       </property>
+       <property name="text">
+        <string>Перейти к документу...</string>
        </property>
        <property name="autoDefault">
         <bool>false</bool>
@@ -244,6 +257,7 @@
   <tabstop>tbl_monthly</tabstop>
   <tabstop>pb_create</tabstop>
   <tabstop>pb_hide</tabstop>
+  <tabstop>pb_opendocument</tabstop>
   <tabstop>pb_close</tabstop>
  </tabstops>
  <resources/>

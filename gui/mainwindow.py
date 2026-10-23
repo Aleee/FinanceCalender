@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu,
 
 from base.backup import clean_backup_folder, save_backup
 from base.casting import str_int
-from base.contract import ContractInfo
+from base.contract import ContractInfo, DocumentTitle
 from base.date import date_displstr, date_str
 from base.edition import is_viewer
 from base.dbhandler import DBHandler
@@ -229,7 +229,6 @@ class MainWindow(QMainWindow):
             action.setShortcut(QKeySequence(key))
             action.setToolTip(f"{action.toolTip() or action.text()} ({key})")
             self.addAction(action)
-        self.addAction(self.ui.act_monthly)
         self.ui.tlbr.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
         copy_actions: list[QAction] = [self.ui.act_copy, self.ui.act_copydoc]
@@ -248,16 +247,18 @@ class MainWindow(QMainWindow):
         tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions, view_tooltip)
         tb_bank = self._make_toolbar_split_button(
             self.ui.act_matching, bank_actions, "Сверка", ":/icon-toolbar/designer/icons/matching.svg", bank_tooltip)
-        tb_new = None if is_viewer() else self._make_toolbar_split_button(self.ui.act_new, [self.ui.act_monthly])
         tb_copy = None if is_viewer() else self._make_toolbar_split_button(self.ui.act_copy, copy_actions)
+        tb_contracts = None if is_viewer() else self._make_toolbar_split_button(self.ui.act_contracts,
+                                                                                [self.ui.act_monthly])
         self.tb_planfact = self._make_toolbar_split_button(
             self.ui.act_fulfillment, planfact_actions, "План-факт", ":/icon-toolbar/designer/icons/fulfillment.svg",
             planfact_tooltip)
-        if tb_new is not None:
-            self.ui.tlbr.insertWidget(self.ui.act_new, tb_new)
-            self.ui.tlbr.removeAction(self.ui.act_new)
         if tb_copy is not None:
             self.ui.tlbr.insertWidget(self.ui.act_copy, tb_copy)
+        if tb_contracts is not None:
+            self.ui.tlbr.insertWidget(self.ui.act_contracts, tb_contracts)
+            self.ui.tlbr.removeAction(self.ui.act_contracts)
+            self.addAction(self.ui.act_monthly)
         self.ui.tlbr.insertWidget(self.ui.act_finplan, self.tb_planfact)
         self.ui.tlbr.insertWidget(self.ui.act_featured, tb_view)
         self.ui.tlbr.insertWidget(self.ui.act_fees, tb_bank)
@@ -280,10 +281,10 @@ class MainWindow(QMainWindow):
             button_groups[-1].append(button)
         for group in button_groups:
             group_width: int = max(self._toolbar_button_width(button) +
-                                   (self._toolbar_arrow_width(button) if button in (tb_new, tb_copy) else 0)
+                                   (self._toolbar_arrow_width(button) if button in (tb_contracts, tb_copy) else 0)
                                    for button in group)
             for button in group:
-                button.setFixedWidth(group_width + (0 if button in (tb_new, tb_copy) else self._toolbar_arrow_width(button)))
+                button.setFixedWidth(group_width + (0 if button in (tb_contracts, tb_copy) else self._toolbar_arrow_width(button)))
 
     @staticmethod
     def _toolbar_button_width(button: QToolButton) -> int:
@@ -1041,16 +1042,21 @@ class MainWindow(QMainWindow):
         title = self.table_model.document_title(self.bound_document_id) if self.bound_document_id else None
         if title is None:
             return
+        if self.open_document_dialog(title, self):
+            self.update_eventinfo()
+
+    def open_document_dialog(self, title: DocumentTitle, parent: QWidget) -> bool:
         contract = ContractInfo(contractor_id=title.contractor_id,
                                 contractor_name=title.contractor_name,
                                 contract_id=title.contract_id,
                                 contract_number=title.contract_number,
                                 contract_date=title.contract_date)
-        dlg = ContractDocumentDialog(self.db_handler, self.settings_handler.settings, self.bound_document_id, contract, self,
+        dlg = ContractDocumentDialog(self.db_handler, self.settings_handler.settings, title.document_id, contract, parent,
                                     self.open_event_view)
-        if dlg.exec():
-            self.table_model.document_titles.clear()
-            self.update_eventinfo()
+        if not dlg.exec():
+            return False
+        self.table_model.document_titles.clear()
+        return True
 
     def open_document_history(self) -> None:
         title = self.table_model.document_title(self.bound_document_id) if self.bound_document_id else None
@@ -1306,7 +1312,7 @@ class MainWindow(QMainWindow):
         if is_viewer():
             return
         MonthlyDialog(self.db_handler, self.create_monthly_event, self.open_event_view, self.settings_handler.settings,
-                      parent=self).exec()
+                      self.open_document_dialog, parent=self).exec()
 
     def show_monthly_reminder(self) -> None:
         if is_viewer():
@@ -1317,7 +1323,7 @@ class MainWindow(QMainWindow):
         missing = sum(entry.state == MonthlyState.MISSING and not hidden.is_hidden(entry.title.document_id, month)
                       for entry in entries or [])
         if missing:
-            self.ui.statusBar.showMessage(f"Ежемесячных платежей не создано: {missing}. Перечень - Ctrl+Shift+N", 20000)
+            self.ui.statusBar.showMessage(f"Ежемесячных платежей не создано: {missing}. Перечень - Ctrl+Shift+K", 20000)
 
     def create_monthly_event(self, entry: MonthlyEntry, month: QDate, full_form: bool, parent: QWidget) -> bool:
         template = build_monthly_template(self.db_handler, entry.title.document_id, month)

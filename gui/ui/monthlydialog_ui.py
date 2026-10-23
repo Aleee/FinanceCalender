@@ -128,6 +128,12 @@ class Ui_MonthlyDialog(object):
 
         self.horizontalLayout_2.addWidget(self.pb_hide)
 
+        self.pb_opendocument = QPushButton(MonthlyDialog)
+        self.pb_opendocument.setObjectName(u"pb_opendocument")
+        self.pb_opendocument.setAutoDefault(False)
+
+        self.horizontalLayout_2.addWidget(self.pb_opendocument)
+
         self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_2.addItem(self.horizontalSpacer_2)
@@ -147,7 +153,8 @@ class Ui_MonthlyDialog(object):
         QWidget.setTabOrder(self.chb_hidden, self.tbl_monthly)
         QWidget.setTabOrder(self.tbl_monthly, self.pb_create)
         QWidget.setTabOrder(self.pb_create, self.pb_hide)
-        QWidget.setTabOrder(self.pb_hide, self.pb_close)
+        QWidget.setTabOrder(self.pb_hide, self.pb_opendocument)
+        QWidget.setTabOrder(self.pb_opendocument, self.pb_close)
 
         self.retranslateUi(MonthlyDialog)
 
@@ -183,11 +190,15 @@ class Ui_MonthlyDialog(object):
 #if QT_CONFIG(tooltip)
         self.pb_create.setToolTip(QCoreApplication.translate("MonthlyDialog", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043f\u043b\u0430\u0442\u0451\u0436 \u0437\u0430 \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0439 \u043c\u0435\u0441\u044f\u0446 \u0438\u043b\u0438 \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0443\u0436\u0435 \u0441\u043e\u0437\u0434\u0430\u043d\u043d\u044b\u0439", None))
 #endif // QT_CONFIG(tooltip)
-        self.pb_create.setText(QCoreApplication.translate("MonthlyDialog", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c", None))
+        self.pb_create.setText(QCoreApplication.translate("MonthlyDialog", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043f\u043b\u0430\u0442\u0435\u0436", None))
 #if QT_CONFIG(tooltip)
         self.pb_hide.setToolTip(QCoreApplication.translate("MonthlyDialog", u"\u0421\u043a\u0440\u044b\u0442\u044c \u043d\u0435\u0441\u043e\u0437\u0434\u0430\u043d\u043d\u044b\u0439 \u043f\u043b\u0430\u0442\u0451\u0436 \u0437\u0430 \u044d\u0442\u043e\u0442 \u043c\u0435\u0441\u044f\u0446 (\u0437\u0430\u043f\u043e\u043c\u0438\u043d\u0430\u0435\u0442\u0441\u044f \u043d\u0430 \u044d\u0442\u043e\u043c \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u0435 \u043d\u0430 \u0433\u043e\u0434)", None))
 #endif // QT_CONFIG(tooltip)
-        self.pb_hide.setText(QCoreApplication.translate("MonthlyDialog", u"\u0421\u043a\u0440\u044b\u0442\u044c", None))
+        self.pb_hide.setText(QCoreApplication.translate("MonthlyDialog", u"\u0421\u043a\u0440\u044b\u0442\u044c \u043f\u043b\u0430\u0442\u0435\u0436", None))
+#if QT_CONFIG(tooltip)
+        self.pb_opendocument.setToolTip(QCoreApplication.translate("MonthlyDialog", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430, \u043f\u043e \u043a\u043e\u0442\u043e\u0440\u043e\u043c\u0443 \u0441\u043e\u0437\u0434\u0430\u0451\u0442\u0441\u044f \u043f\u043b\u0430\u0442\u0451\u0436", None))
+#endif // QT_CONFIG(tooltip)
+        self.pb_opendocument.setText(QCoreApplication.translate("MonthlyDialog", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u043a \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0443...", None))
         self.pb_close.setText(QCoreApplication.translate("MonthlyDialog", u"\u0417\u0430\u043a\u0440\u044b\u0442\u044c", None))
     # retranslateUi
 

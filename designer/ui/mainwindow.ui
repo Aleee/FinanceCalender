@@ -1148,10 +1148,10 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
     <string>Ежемесячные платежи</string>
    </property>
    <property name="toolTip">
-    <string>Перечень ежемесячных платежей и быстрое создание платежа (Ctrl+Shift+N)</string>
+    <string>Перечень ежемесячных платежей и быстрое создание платежа (Ctrl+Shift+K)</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+N</string>
+    <string>Ctrl+Shift+K</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
