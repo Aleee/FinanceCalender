@@ -71,7 +71,7 @@ class MatchingDialog(QDialog):
         super(MatchingDialog, self).__init__(parent)
         self.ui = Ui_matchingdialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "08-statement-matching.html")
+        add_help_shortcut(self, "09-statement-matching.html")
         self.setAcceptDrops(True)
 
         self.sh: SettingsHandler = settings_handler

@@ -35,7 +35,7 @@ class PaymentAmountDialog(QDialog):
         super().__init__(parent)
         self.ui = Ui_PaymentAmountDialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "08-statement-matching.html")
+        add_help_shortcut(self, "09-statement-matching.html")
 
         self.dbh = db_handler
         self.info = info

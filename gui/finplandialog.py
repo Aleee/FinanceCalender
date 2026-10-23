@@ -18,7 +18,7 @@ class FinPlanDialog(QDialog):
         super(FinPlanDialog, self).__init__(parent)
         self.ui = Ui_FinPlanDialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "11-planfact.html")
+        add_help_shortcut(self, "12-planfact.html")
 
         self.db_handler: DBHandler = db_handler
         self.sh: SettingsHandler = sh

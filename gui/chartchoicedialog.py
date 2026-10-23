@@ -14,7 +14,7 @@ class ChartChoiceDialog(QDialog):
         super(ChartChoiceDialog, self).__init__(parent)
         self.ui = Ui_ChartChoiceDialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "11-planfact.html")
+        add_help_shortcut(self, "12-planfact.html")
 
         self.ui.de_start.setDate(first_date_of_month(QDate.currentDate().addMonths(-1)))
         self.ui.de_end.setDate(QDate.currentDate())

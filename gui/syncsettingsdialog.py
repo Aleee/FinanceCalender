@@ -17,7 +17,7 @@ class SyncSettingsDialog(QDialog):
         super().__init__(parent)
         self.ui = Ui_SyncSettingsDialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "14-sync.html")
+        add_help_shortcut(self, "15-sync.html")
         self.layout().setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
 
         self.settings_handler: SettingsHandler = settings_handler

@@ -117,7 +117,7 @@ class SyncChangesDialog(QDialog):
     def __init__(self, message: str, tabs: list[tuple[str, DbDiff | None]], parent: QWidget | None = None, info: str = "",
                  conflicts: list[Conflict] | None = None, warnings: list[str] | None = None):
         super().__init__(parent)
-        add_help_shortcut(self, "14-sync.html")
+        add_help_shortcut(self, "15-sync.html")
         self.setWindowTitle("Синхронизация")
         self.resize(820, 560)
 

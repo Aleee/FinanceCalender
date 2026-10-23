@@ -47,7 +47,7 @@ th { color: #1f3a5f; }
 </table>
 <p>Если в сообщении есть «см. лог» или «в логе», подробности записаны в журнал работы; он нужен тому, кто разбирается с проблемой (см. «Что приложить к обращению»). В таком окне есть кнопка «Открыть папку логов» (откроется папка с журналом) и кнопка «Показать подробности…»: по ней раскрывается текст ошибки или последние строки журнала. Его можно выделить, скопировать и приложить к обращению.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Сообщение об ошибке с подробностями" src="images/18-troubleshooting/error-box.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 61. Сообщение об ошибке с кнопками «Открыть папку логов» и «Показать подробности…».</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 62. Сообщение об ошибке с кнопками «Открыть папку логов» и «Показать подробности…».</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Где искать сообщение</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
@@ -120,7 +120,7 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
-<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если данные пропали или изменились после синхронизации или восстановления, прежняя версия не потеряна: программа сохраняет её в <code>data\backup</code> как <code>before_sync_…</code>, <code>conflict_…</code>, <code>discarded_…</code> или <code>before_restore_…</code> (<a href="13-backup.html">раздел 13</a>).</p>
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если данные пропали или изменились после синхронизации или восстановления, прежняя версия не потеряна: программа сохраняет её в <code>data\backup</code> как <code>before_sync_…</code>, <code>conflict_…</code>, <code>discarded_…</code> или <code>before_restore_…</code> (<a href="14-backup.html">раздел 14</a>).</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Что приложить к обращению</h2></td></tr></table>
 <p>Если сообщение не помогло, обратитесь к ответственному за программу, и приложите:</p>
@@ -128,8 +128,8 @@ th { color: #1f3a5f; }
 <li>Скриншот сообщения и описание того, что вы делали перед ним.</li>
 <li>Журнал работы: файл <code>log.log</code> из папки <code>data\logs</code>. Если там есть <code>sys_errors.log</code>, приложите и его. Особенно это важно, когда программа закрылась без сообщения.</li>
 <li>Номер сборки: «Настройки» → «Информация» → «О программе».</li>
-<li>При проблемах с обновлением: <code>updater.log</code> из той же папки (<a href="15-update.html">раздел 15</a>).</li>
-<li>При проблемах со связью: архив, который собирает кнопка «Диагностика сети…» в окне «Настройки синхронизации» (<a href="14-sync.html">раздел 14</a>). Архив лежит в папке <code>data\diag</code>, кнопка «Показать отчёт» открывает её.</li>
+<li>При проблемах с обновлением: <code>updater.log</code> из той же папки (<a href="16-update.html">раздел 16</a>).</li>
+<li>При проблемах со связью: архив, который собирает кнопка «Диагностика сети…» в окне «Настройки синхронизации» (<a href="15-sync.html">раздел 15</a>). Архив лежит в папке <code>data\diag</code>, кнопка «Показать отчёт» открывает её.</li>
 </ol>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#8a8f98"></td><td bgcolor="#f1f2f4" style="padding: 10px 16px 0px 16px;">
 <p>🍎 <strong><font color="#8a8f98">macOS:</font></strong> папка <code>data</code> находится в <code>~/Library/Application Support/FinanceCalender</code> (<a href="P2-startup-data.html">приложение 2</a>).</p>

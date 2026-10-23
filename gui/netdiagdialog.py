@@ -19,7 +19,7 @@ class NetDiagDialog(QDialog):
 
     def __init__(self, token: str, disk_folder: str, parent: QWidget | None = None):
         super().__init__(parent)
-        add_help_shortcut(self, "14-sync.html")
+        add_help_shortcut(self, "15-sync.html")
         self.setWindowTitle("Диагностика сети")
         self.resize(560, 460)
         self.token: str = token

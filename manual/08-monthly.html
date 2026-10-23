@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Раздел 8. Ежемесячные платежи</title>
+<style>
+p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
+h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
+h2 { color: #1f3a5f; margin-top: 4px; margin-bottom: 4px; }
+h3 { color: #2b5287; margin-top: 34px; margin-bottom: 8px; }
+h4 { color: #44546a; margin-top: 18px; margin-bottom: 6px; }
+a { color: #1a62c4; }
+code { background-color: #edf0f5; color: #7a2e55; font-family: Consolas, monospace; }
+ul, ol { margin-top: 2px; margin-bottom: 14px; }
+li { line-height: 135%; margin-top: 3px; margin-bottom: 3px; }
+th { color: #1f3a5f; }
+</style>
+</head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 8. Ежемесячные платежи</h1></td></tr></table>
+<p>Для платежей, которые повторяются каждый месяц (аренда, связь, электроэнергия), есть перечень: по нему видно, за какие месяцы платеж уже создан и оплачен, а за какие ещё нет. Недостающий платеж создаётся в два щелчка по образцу прошлых.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Как настроить</h2></td></tr></table>
+<ol>
+<li>В окне документа (<a href="06-contractors.html">раздел 6</a>) отметьте «Включить документ в перечень ежемесячных платежей». Группа «Ежемесячный платёж» есть только у документов с относительным или фиксированным сроком оплаты (<a href="07-payment-terms.html">раздел 7</a>).</li>
+<li>Сохраните для документа поля кнопкой «Сохранить поля в договор →» в окне платежа (<a href="06-contractors.html">раздел 6</a>): по ним программа заполняет каждый следующий платеж.</li>
+</ol>
+<p>Первый платеж можно создать и до шага 2 (см. «Создание платежа» ниже).</p>
+<p>В группе «Ежемесячный платёж» окна документа, кроме отметки, есть два поля:</p>
+<ul>
+<li><strong>Сумма в месяц</strong> подставляется в платеж, созданный из перечня. Если сумма каждый месяц разная (по счёту или акту), отметьте «По счёту»: сумму придётся вводить.</li>
+<li><strong>Наименование.</strong> Если заполнено, платеж называется так, иначе берётся наименование из сохранённых полей. «{месяц}» и «{год}» заменяются на месяц и год периода.</li>
+</ul>
+<p>Архивные контрагенты и договоры в перечень не попадают.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Перечень</h2></td></tr></table>
+<p>Откройте его кнопкой «Договоры» → стрелка → «Ежемесячные платежи» или клавишами <strong>Ctrl+Shift+K</strong>. Стрелками рядом с названием месяца (или <strong>Ctrl+←</strong>, <strong>Ctrl+→</strong>) выбирается месяц, за который смотрим платежи.</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Ежемесячные платежи»" src="images/17-monthly/monthly-dialog.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 24. Окно «Ежемесячные платежи».</em></span></p>
+<ul>
+<li><strong>Какой платеж считается созданным.</strong> Платеж документа, у которого срок оплаты приходится на выбранный месяц. Если таких платежей несколько, показан тот, у которого срок раньше. Статус «оплачен» — платеж оплачен полностью.</li>
+<li><strong>Что показано у несозданного платежа</strong> (курсивом). Сумма — «Сумма в месяц» из документа; «по счёту» — сумма каждый месяц разная и вводится вручную. Срок оплаты рассчитан по условиям документа. Если срок относительный, он зависит от даты возникновения, которой ещё нет, поэтому вместо даты стоит число дней: «+10К» — 10 календарных дней (Р — рабочих, Б — банковских).</li>
+<li><strong>Скрытие.</strong> «Скрыть платеж» убирает несозданный платеж за этот месяц из перечня (например, если в этом месяце платить не нужно). Вернуть его можно через флажок «Скрытые» и кнопку «Вернуть платеж». Список скрытых хранится на этом компьютере год и между устройствами не синхронизируется.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Создание платежа</h2></td></tr></table>
+<p>«Создать платеж» (или двойной щелчок по строке) открывает окно в зависимости от того, сохранены ли для документа поля.</p>
+<p><strong>Если поля сохранены,</strong> откроется окно «Ежемесячный платёж — &lt;месяц&gt;», такое же, как «Копирование платежа с новым основанием» (<a href="03-event-dialog.html">раздел 3</a>), но уже заполненное:</p>
+<ul>
+<li><strong>Сумма</strong> — «Сумма в месяц». Для «По счёту» поле пустое, а рядом подсказка «В прошлый раз: …».</li>
+<li><strong>Наименование</strong> — «Наименование» из документа, а если оно не заполнено, из сохранённых полей. Слова «{месяц}» и «{год}» заменяются на месяц и год периода. Если их нет, но в тексте одно название месяца, оно сдвигается так же, как в последнем платеже документа: платеж со сроком в октябре назывался «Электроэнергия, сентябрь 2026», значит, платеж со сроком в ноябре получит «Электроэнергия, октябрь 2026».</li>
+<li><strong>Основание</strong> — из сохранённых полей («{месяц}» и «{год}» работают и здесь). Допишите номер счёта или акта.</li>
+<li><strong>Дата возникновения</strong> — сегодня, если создаётся платеж за текущий месяц, иначе 1-е число месяца. <strong>Срок оплаты</strong> рассчитывается по условиям документа.</li>
+</ul>
+<p>Программа предупредит, если срок оплаты выходит за выбранный месяц (такой платеж не попадёт в перечень этого месяца) или если в наименовании несколько названий месяцев и оно не менялось: проверьте его.</p>
+<p><strong>Если полей нет,</strong> программа сообщит об этом, и откроется окно «Новый платеж», уже привязанное к документу. Заполните его и нажмите «Сохранить поля в договор →», иначе в следующем месяце всё придётся вводить заново.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что вы видите</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что случилось</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что делать</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Для быстрого создания платежа заполните сохранённые поля для этого документа.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Для документа не сохранены поля</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«ОК», заполните окно «Новый платеж» и нажмите «Сохранить поля в договор →» (<a href="06-contractors.html">раздел 6</a>)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Предупреждение «Срок оплаты выходит за … , поэтому платёж не попадёт в перечень этого месяца.»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Рассчитанный или введённый срок оплаты — в другом месяце</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Если это нужно, подтвердите; иначе поправьте срок или дату возникновения</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Не удалось загрузить перечень ежемесячных платежей (подробности см. в логе)»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Данные не прочитались, перечень пуст</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Закройте окно и откройте снова; если не помогло, перезапустите программу</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Платеж есть, но в перечне за месяц у него статус «не создан»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Срок оплаты платежа в другом месяце или платеж не привязан к документу</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте срок оплаты и привязку (<a href="06-contractors.html">раздел 6</a>)</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Документа нет в перечне</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Не отмечено «Включить документ в перечень ежемесячных платежей», у документа предоплата или срок не определён либо договор или контрагент в архиве</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Проверьте окно документа и архив (<a href="06-contractors.html">раздел 6</a>)</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

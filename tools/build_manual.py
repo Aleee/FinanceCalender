@@ -14,9 +14,9 @@ OUTPUT_DIR = ROOT / "manual"
 
 GROUPS = (
     ("Начало", "section", range(0, 2)),
-    ("Основная работа", "section", range(2, 8)),
-    ("Сверка и отчёты", "section", range(8, 12)),
-    ("Настройка и сохранность данных", "section", range(12, 16)),
+    ("Основная работа", "section", range(2, 9)),
+    ("Сверка и отчёты", "section", range(9, 13)),
+    ("Настройка и сохранность данных", "section", range(13, 17)),
     ("Приложения", "appendix", range(1, 5)),
 )
 

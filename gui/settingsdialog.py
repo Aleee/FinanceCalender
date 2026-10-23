@@ -67,7 +67,7 @@ class SettingsDialog(QDialog):
         super(SettingsDialog, self).__init__(parent)
         self.ui = Ui_settingsdialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "12-settings.html")
+        add_help_shortcut(self, "13-settings.html")
 
         self.settings_handler: SettingsHandler = settings_handler
         self.settings_handler.save_settings()

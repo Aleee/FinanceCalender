@@ -33,7 +33,7 @@ class FeeDialog(QDialog):
         super(FeeDialog, self).__init__(parent)
         self.ui = Ui_feedialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "09-fees.html")
+        add_help_shortcut(self, "10-fees.html")
 
         self.sh: SettingsHandler = settings_handler
         self.dbh: DBHandler = db_handler

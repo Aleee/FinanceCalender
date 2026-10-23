@@ -16,7 +16,7 @@ class FulfillmentDialog(QDialog):
         super(FulfillmentDialog, self).__init__(parent)
         self.ui = Ui_FulfillmentDialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "11-planfact.html")
+        add_help_shortcut(self, "12-planfact.html")
 
         self.is_fulfillment_toshow: bool = fulfillment_type
         self.db_handler: DBHandler = db_handler

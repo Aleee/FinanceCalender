@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Раздел 15. Обновление программы</title>
+<title>Раздел 16. Обновление программы</title>
 <style>
 p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
 h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
@@ -17,29 +17,29 @@ th { color: #1f3a5f; }
 </style>
 </head>
 <body>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 15. Обновление программы</h1></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 16. Обновление программы</h1></td></tr></table>
 <p>Программа сама проверяет, не вышла ли новая версия, и ставит её, когда вы согласитесь. Данные при обновлении не меняются.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Как программа узнаёт о новой версии</h2></td></tr></table>
-<p>Проверка идёт при каждом запуске и по кнопке «Проверить сейчас» в «Настройки» → «Информация» (<a href="12-settings.html">раздел 12</a>); нужен интернет. Результат виден в строке состояния («Обновления: актуальная версия», «доступна 2026.11.02», «ошибка», «отключены» — проверка выключена в вашей версии программы) и в «Настройки» → «Информация».</p>
+<p>Проверка идёт при каждом запуске и по кнопке «Проверить сейчас» в «Настройки» → «Информация» (<a href="13-settings.html">раздел 13</a>); нужен интернет. Результат виден в строке состояния («Обновления: актуальная версия», «доступна 2026.11.02», «ошибка», «отключены» — проверка выключена в вашей версии программы) и в «Настройки» → «Информация».</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Установка обновления</h2></td></tr></table>
 <ol>
 <li>При запуске найденное обновление программа предлагает сама, при ручной проверке — после подтверждения.</li>
 </ol>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Обновление»" src="images/17-update/offer.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 57. Предложение обновиться.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 58. Предложение обновиться.</em></span></p>
 <p>В «Что нового» — текст, который автор версии написал для пользователей. «Позже» ничего не меняет: предложение вернётся при следующем запуске или ручной проверке.</p>
 <ol start="2">
 <li>
-<p>Программа сохраняет копию базы <code>backup_…</code> (<a href="13-backup.html">раздел 13</a>). Если не удалось, она спросит, продолжать ли без копии: лучше ответить «Нет» и сначала исправить папку копий.</p>
+<p>Программа сохраняет копию базы <code>backup_…</code> (<a href="14-backup.html">раздел 14</a>). Если не удалось, она спросит, продолжать ли без копии: лучше ответить «Нет» и сначала исправить папку копий.</p>
 </li>
 <li>
 <p>Программа скачивает обновление и проверяет его; пока идёт скачивание, его можно остановить кнопкой «Отмена».</p>
 </li>
 </ol>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Скачивание обновления" src="images/17-update/progress.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 58. Скачивание обновления.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 59. Скачивание обновления.</em></span></p>
 <ol start="4">
-<li>Программа закрывается сама, заменяет свои файлы и запускается новой версией. Если есть неотправленные изменения, при закрытии она сначала пробует отправить их в общую базу (<a href="14-sync.html">раздел 14</a>); если не удалось, спросит, закрывать ли без отправки: «Нет» отменяет обновление.</li>
+<li>Программа закрывается сама, заменяет свои файлы и запускается новой версией. Если есть неотправленные изменения, при закрытии она сначала пробует отправить их в общую базу (<a href="15-sync.html">раздел 15</a>); если не удалось, спросит, закрывать ли без отправки: «Нет» отменяет обновление.</li>
 </ol>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#8a8f98"></td><td bgcolor="#f1f2f4" style="padding: 10px 16px 0px 16px;">
 <p>🍎 <strong><font color="#8a8f98">macOS:</font></strong> Обновление работает, только если программа лежит в папке «Программы» (или в другой папке с правом записи). Иначе оно не начнётся и программа объяснит почему (<a href="P2-startup-data.html">приложение 2</a>).</p>
@@ -47,7 +47,7 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Что происходит с данными</h2></td></tr></table>
 <ul>
 <li>Заменяются только файлы программы. База, настройки, резервные копии и экспорт в папке <code>data</code> остаются как были.</li>
-<li>Если в новой версии изменилась структура базы, программа обновит базу при первом запуске сама; перед этим она сохранит копию <code>before_migration_v….db</code> (<a href="13-backup.html">раздел 13</a>).</li>
+<li>Если в новой версии изменилась структура базы, программа обновит базу при первом запуске сама; перед этим она сохранит копию <code>before_migration_v….db</code> (<a href="14-backup.html">раздел 14</a>).</li>
 <li>Прежняя версия программы не сохраняется. Если версия базы изменилась, старая программа её не откроет: «База данных создана более новой версией программы» (<a href="P2-startup-data.html">приложение 2</a>).</li>
 </ul>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Что может пойти не так</h2></td></tr></table>

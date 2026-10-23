@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Раздел 9. Учет комиссий банка</title>
+<title>Раздел 10. Учет комиссий банка</title>
 <style>
 p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
 h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
@@ -17,15 +17,15 @@ th { color: #1f3a5f; }
 </style>
 </head>
 <body>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 9. Учет комиссий банка</h1></td></tr></table>
-<p>Банк списывает комиссии мелкими суммами по нескольку раз в день и не выставляет по ним отдельных счетов. Окно «Учет комиссий» находит комиссии в выписке, суммирует их по дням и создаёт по каждому дню оплаченный платеж. Без этого комиссии остаются в сверке (<a href="08-statement-matching.html">раздел 8</a>) в списке «Только в выписке».</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 10. Учет комиссий банка</h1></td></tr></table>
+<p>Банк списывает комиссии мелкими суммами по нескольку раз в день и не выставляет по ним отдельных счетов. Окно «Учет комиссий» находит комиссии в выписке, суммирует их по дням и создаёт по каждому дню оплаченный платеж. Без этого комиссии остаются в сверке (<a href="09-statement-matching.html">раздел 9</a>) в списке «Только в выписке».</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Как открыть</h2></td></tr></table>
 <ul>
 <li><strong>Из меню.</strong> «Сверка» (стрелка справа от кнопки) → «Учет комиссий», затем «Загрузить выписку (CSV-файл)».</li>
 <li><strong>Из сверки.</strong> Строка «Комиссии, относимые на комиссионные расходы» или «…на банковские расходы» в списке «Только в выписке» → «Добавить в календарь»: выписка уже загружена, перед созданием программа сравнит суммы с суммами сверки (см. «Создание платежей»); после закрытия окна сверка выполняется заново.</li>
 </ul>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Что настроить заранее</h2></td></tr></table>
-<p>«Настройки» → «Парсер выписки», группа «Парсер комиссий». Строки периода и операций и столбцы общие со сверкой (<a href="08-statement-matching.html">раздел 8</a>).</p>
+<p>«Настройки» → «Парсер выписки», группа «Парсер комиссий». Строки периода и операций и столбцы общие со сверкой (<a href="09-statement-matching.html">раздел 9</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -94,10 +94,10 @@ th { color: #1f3a5f; }
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Отчёт</h2></td></tr></table>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Отчёт по комиссиям" src="images/10-fees/report.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 29. Окно «Учет комиссий». Предупреждения выделены жёлтым.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 30. Окно «Учет комиссий». Предупреждения выделены жёлтым.</em></span></p>
 <p><strong>«Подробный отчет»</strong> вместо дневных итогов показывает каждую комиссию отдельно: сумму, наименование (получатель в выписке) и назначение платежа.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Подробный отчёт" src="images/10-fees/report-full.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 30. Подробный отчёт. Строка с УНП не из списка банков выделена цветом.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 31. Подробный отчёт. Строка с УНП не из списка банков выделена цветом.</em></span></p>
 <p>Предупреждения:</p>
 <ul>
 <li><strong>«Среди транзакций замечены записи с УНП, которых нет в списке УНП банков»</strong> — комиссии, удержанные из поступлений, с УНП не из списка. Они <strong>входят</strong> в суммы: убедитесь, что это комиссии банка, добавьте УНП в список и загрузите выписку заново.</li>

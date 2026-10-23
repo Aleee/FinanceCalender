@@ -16,7 +16,7 @@ class DebtChartDialog(QDialog):
         super(DebtChartDialog, self).__init__(parent)
         self.ui = Ui_DebtChartDialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "11-planfact.html")
+        add_help_shortcut(self, "12-planfact.html")
 
         self.start_date: QDate = start_date
         self.end_date: QDate = end_date

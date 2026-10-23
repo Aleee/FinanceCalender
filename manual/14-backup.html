@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>Раздел 13. Резервные копии и восстановление</title>
+<title>Раздел 14. Резервные копии и восстановление</title>
 <style>
 p { line-height: 135%; margin-top: 0px; margin-bottom: 12px; }
 h1 { color: #1f3a5f; margin-top: 6px; margin-bottom: 4px; }
@@ -17,12 +17,12 @@ th { color: #1f3a5f; }
 </style>
 </head>
 <body>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 13. Резервные копии и восстановление</h1></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 14. Резервные копии и восстановление</h1></td></tr></table>
 <p>Программа сама сохраняет копии базы, и из любой из них можно вернуть данные: после ошибочного удаления, неудачной правки или повреждения файла.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Автоматические копии</h2></td></tr></table>
 <ul>
 <li><strong>Когда.</strong> Одна копия при каждом запуске, до первой синхронизации.</li>
-<li><strong>Где.</strong> Папка задаётся в «Настройки» → «Хранение» (рис. 44 в <a href="12-settings.html">разделе 12</a>). По умолчанию это <code>data\backup</code> рядом с программой.</li>
+<li><strong>Где.</strong> Папка задаётся в «Настройки» → «Хранение» (рис. 45 в <a href="13-settings.html">разделе 13</a>). По умолчанию это <code>data\backup</code> рядом с программой.</li>
 <li><strong>Название.</strong> <code>backup_ГГГГММДД-ЧЧММСС.db</code>.</li>
 <li><strong>Сколько хранятся.</strong> «1 месяц» (по умолчанию), «6 месяцев» или «никогда» (тогда папка растёт: чистите её сами). Старые копии удаляются при запуске, перед созданием новой.</li>
 </ul>
@@ -46,7 +46,7 @@ th { color: #1f3a5f; }
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;"><code>before_sync_…</code></td>
-<td style="border-bottom: 1px solid #d9e0e9;">Перед тем, как программа заменила локальную копию общей базой с изменениями другого пользователя (<a href="14-sync.html">раздел 14</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Перед тем, как программа заменила локальную копию общей базой с изменениями другого пользователя (<a href="15-sync.html">раздел 15</a>)</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Да</td>
 </tr>
 <tr>
@@ -56,12 +56,12 @@ th { color: #1f3a5f; }
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;"><code>conflict_…</code></td>
-<td style="border-bottom: 1px solid #d9e0e9;">Перед автообъединением, перед выбором в окне «Конфликт синхронизации». В копии ваша версия данных (<a href="14-sync.html">раздел 14</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Перед автообъединением, перед выбором в окне «Конфликт синхронизации». В копии ваша версия данных (<a href="15-sync.html">раздел 15</a>)</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Нет</td>
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;"><code>discarded_…</code></td>
-<td style="border-bottom: 1px solid #d9e0e9;">Перед командой «Отказаться от моих изменений…». В копии ваши отменённые изменения (<a href="14-sync.html">раздел 14</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Перед командой «Отказаться от моих изменений…». В копии ваши отменённые изменения (<a href="15-sync.html">раздел 15</a>)</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Нет</td>
 </tr>
 <tr bgcolor="#f7f9fc">
@@ -72,11 +72,11 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <p>Копии <code>before_sync_</code>, <code>before_restore_</code>, <code>conflict_</code>, <code>discarded_</code> и <code>before_migration_</code> всегда сохраняются в <code>data\backup</code>. Автоочистка работает только в выбранной папке копий: если это не <code>data\backup</code>, <code>before_sync_</code> и <code>before_restore_</code> сами не удаляются.</p>
-<p>Копии самой общей базы хранятся отдельно, в облаке или общей папке (<a href="14-sync.html">раздел 14</a>).</p>
+<p>Копии самой общей базы хранятся отдельно, в облаке или общей папке (<a href="15-sync.html">раздел 15</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Если копию создать не удалось</h2></td></tr></table>
 <p>В строке состояния появится красная надпись.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Надпись в строке состояния" src="images/15-backup/statusbar-error.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 46. Строка состояния после неудачного копирования.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 47. Строка состояния после неудачного копирования.</em></span></p>
 <p>Надпись появляется только при запуске и остаётся до следующего запуска, даже если причина уже исправлена.</p>
 <p>Чаще всего папки нет или она недоступна (отключена флешка или сетевой диск), либо на диске нет места. Укажите существующую папку в «Настройки» → «Хранение» и перезапустите программу.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s4">Восстановление из копии</h2></td></tr></table>
@@ -90,7 +90,7 @@ th { color: #1f3a5f; }
 <li>Программа предупредит, что данные будут заменены, и сообщит, куда сохранит копию текущих данных.</li>
 </ol>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Предупреждение перед восстановлением" src="images/15-backup/confirm.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 47. Предупреждение перед восстановлением.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 48. Предупреждение перед восстановлением.</em></span></p>
 <ol start="2">
 <li>В окне «Выберите файл БД» выберите копию <code>.db</code> (нужна самая свежая копия <strong>до</strong> того, как данные пропали).</li>
 <li>Программа проверит файл, сохранит копию текущих данных <code>before_restore_…</code> и заменит базу; структура копии от более старой версии программы обновится автоматически (сам файл копии не меняется). Появится сообщение об успехе.</li>
@@ -103,7 +103,7 @@ th { color: #1f3a5f; }
 <li><strong>Отменить восстановление можно:</strong> восстановитесь из <code>before_restore_…</code> (имя содержит дату и время восстановления).</li>
 </ul>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
-<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Если включена синхронизация, восстановленные данные считаются вашими неотправленными изменениями. Если с момента создания копии общую базу меняли (вы или другой пользователь), будет конфликт (<a href="14-sync.html">раздел 14</a>): «Перезаписать общую базу моей версией» заменит данные на всех устройствах восстановленными, «Взять общую базу» отменит восстановление. Если общую базу никто не менял, восстановленные данные уйдут в неё при ближайшей синхронизации.</p>
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Если включена синхронизация, восстановленные данные считаются вашими неотправленными изменениями. Если с момента создания копии общую базу меняли (вы или другой пользователь), будет конфликт (<a href="15-sync.html">раздел 15</a>): «Перезаписать общую базу моей версией» заменит данные на всех устройствах восстановленными, «Взять общую базу» отменит восстановление. Если общую базу никто не менял, восстановленные данные уйдут в неё при ближайшей синхронизации.</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Что может пойти не так</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
@@ -133,7 +133,7 @@ th { color: #1f3a5f; }
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">«При попытке восстановления произошла ошибка (подробности см. в логе)»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Файл не подходит: это не база программы, она повреждена или создана более новой версией программы. Либо не удалось сохранить копию текущих данных (нет места или прав на запись в <code>data\backup</code>). Текущие данные не изменились</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Выберите другую копию. Для копии от более новой версии обновите программу (<a href="15-update.html">раздел 15</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Выберите другую копию. Для копии от более новой версии обновите программу (<a href="16-update.html">раздел 16</a>)</td>
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">«При проверке файла базы данных обнаружились ошибки (для подробностей см. лог). Выберите другой файл» (окно «Восстановление базы данных»)</td>

@@ -16,7 +16,7 @@ class ExportDialog(QDialog):
         super(ExportDialog, self).__init__(parent)
         self.ui = Ui_ExportDialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "10-export.html")
+        add_help_shortcut(self, "11-export.html")
 
         self.xls_writer: LiabilityXlsWriter = xls_writer
         self.column_visibility: list[bool] = list(column_visibility)

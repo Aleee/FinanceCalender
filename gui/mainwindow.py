@@ -16,7 +16,7 @@ from base.date import date_displstr, date_str
 from base.edition import is_viewer
 from base.dbhandler import DBHandler
 from base.formatting import dec_strcommaspace
-from base.monthly import HiddenMonthly, MonthlyEntry, MonthlyState, build_monthly_template, first_of_month
+from base.monthly import MonthlyEntry, build_monthly_template
 from base.payment import PaymentField
 from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, SyncCancelledError, SyncChannel, SyncError, SyncParams,
                        SyncReport, read_local_state, set_stage_listener, synchronize)
@@ -136,12 +136,7 @@ class MainWindow(QMainWindow):
         self.date_timer.start(60000)
 
         # Первая синхронизация после запуска
-        QTimer.singleShot(100, self.on_first_start)
-
-    def on_first_start(self) -> None:
-        self.auto_sync(is_first=True)
-        if not self.sync_network_failed:
-            self.show_monthly_reminder()
+        QTimer.singleShot(100, lambda: self.auto_sync(is_first=True))
 
     def _load_database(self) -> None:
         # Если файла БД нет или он не прошёл проверку - предлагаем восстановление,
@@ -1313,17 +1308,6 @@ class MainWindow(QMainWindow):
             return
         MonthlyDialog(self.db_handler, self.create_monthly_event, self.open_event_view, self.settings_handler.settings,
                       self.open_document_dialog, parent=self).exec()
-
-    def show_monthly_reminder(self) -> None:
-        if is_viewer():
-            return
-        entries = self.db_handler.load_monthly_entries(QDate.currentDate())
-        hidden = HiddenMonthly(self.settings_handler.settings)
-        month = first_of_month(QDate.currentDate())
-        missing = sum(entry.state == MonthlyState.MISSING and not hidden.is_hidden(entry.title.document_id, month)
-                      for entry in entries or [])
-        if missing:
-            self.ui.statusBar.showMessage(f"Ежемесячных платежей не создано: {missing}. Перечень - Ctrl+Shift+K", 20000)
 
     def create_monthly_event(self, entry: MonthlyEntry, month: QDate, full_form: bool, parent: QWidget) -> bool:
         template = build_monthly_template(self.db_handler, entry.title.document_id, month)

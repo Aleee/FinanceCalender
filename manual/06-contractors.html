@@ -39,7 +39,7 @@ th { color: #1f3a5f; }
 </ul>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s7">Окно документа</h2></td></tr></table>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно документа с пронумерованными выносками" src="images/07-contractors/document-dialog.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 19. Окно документа «Акт» по договору «М-31/2025».</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 19. Окно документа «Акт» по договору «М-31/2025». Внизу — группа «Ежемесячный платёж».</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -87,40 +87,42 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <p>Типы срока оплаты — в <a href="07-payment-terms.html">разделе 7</a>. Без названия или типа документ не сохранится.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s8">История платежей</h2></td></tr></table>
+<h3 id="s8">Ежемесячный платёж</h3>
+<p>У документа с относительным или фиксированным сроком в окне есть группа «Ежемесячный платёж»: отметка «Включить документ в перечень ежемесячных платежей», «Сумма в месяц» и «Наименование». Что они значат и как работать с перечнем — в <a href="08-monthly.html">разделе 8</a>.</p>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">История платежей</h2></td></tr></table>
 <p>Окно «Платежи: …» показывает платежи и оплаты, привязанные к документам контрагента, договора или одного документа.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="История платежей по контрагенту" src="images/07-contractors/history-obligations.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 20. История платежей контрагента. Просроченные платежи выделены красным, полностью оплаченные — зелёным.</em></span></p>
 <p>Открывается кнопкой «Платежи…» в окне «Контрагенты и договоры» и в окне существующего документа, а также командой «История платежей» контекстного меню таблицы платежей.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Привязка платежа к документу</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Привязка платежа к документу</h2></td></tr></table>
 <p>Привязка нужна для расчёта срока оплаты и для «Копировать платеж с новым основанием» (<a href="03-event-dialog.html">раздел 3</a>). Выполняется в панели договора окна платежа (рис. 11 в <a href="03-event-dialog.html">разделе 3</a>):</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Панель договора в окне платежа" src="images/07-contractors/contract-panel.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 21. Панель договора. 1 — контрагент, 2 — договор, 3 — документ, 4 — кнопка привязки, 5 — условия оплаты, 6 — дата возникновения и отчетный месяц, 7 — расчетная дата, 8 — «← Подставить срок оплаты», 9 — «← Заполнить поля из договора», 10 — «Сохранить поля в договор →».</em></span></p>
 <p>В панели выберите контрагента (1; названия, которого нет в списке, программа не принимает), договор (2; подставляется автоматически — проверьте) и документ (3), нажмите «Привязать к документу» (4) и сохраните платеж: «Отмена» привязку отменяет.</p>
 <p><strong>Отвязать платеж:</strong> ✕ в строке «Договор» окна платежа, затем «Применить». Документ остаётся в справочнике.</p>
 <p>Условия оплаты (5), расчетная дата (7) и кнопки (8–10) появляются, когда выбран документ.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Расчетная дата и кнопка «← Подставить срок оплаты»</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s11">Расчетная дата и кнопка «← Подставить срок оплаты»</h2></td></tr></table>
 <p>Для выбранного документа панель показывает расчетный срок оплаты (7); «—», если расчёт невозможен («Предоплата / Срок явно не определён» или мало данных). Исходные данные (6):</p>
 <ul>
 <li><strong>«Дата возникновения»</strong> — для относительного срока; сначала берётся из платежа, но в панели её можно задать отдельно;</li>
 <li><strong>«Отчетный месяц»</strong> — месяц, от которого отсчитываются «текущий», «следующий» и «предыдущий» месяц; для документов с условием «не позднее N числа месяца».</li>
 </ul>
 <p>Кнопка <strong>«← Подставить срок оплаты»</strong> (8) переносит расчетную дату в «Срок оплаты» (при относительном сроке — и дату возникновения из панели); активна, только если платеж привязан к выбранному документу.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s11">Поля из договора: сохранить и заполнить</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s12">Поля из договора: сохранить и заполнить</h2></td></tr></table>
 <p><strong>«Сохранить поля в договор →»</strong> (10) запоминает для документа получателя, наименование, категорию и подкатегорию, НДС, вид, основание, ответственного и «Скрытый платеж» (не сумму, даты и заметки); прежние значения заменяются.</p>
 <p><strong>«← Заполнить поля из договора»</strong> (9) подставляет запомненные значения в окно платежа без вопросов (сумма, даты и заметки не меняются). Обе кнопки работают с документом, выбранным в панели, даже если платеж к нему не привязан.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
-<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если платежи по документу повторяются каждый месяц, быстрее пользоваться командой «Копировать платеж с новым основанием» (<a href="03-event-dialog.html">раздел 3</a>): она не требует запоминать поля.</p>
+<p>💡 <strong><font color="#2e9d4f">Совет.</font></strong> Если платежи по документу повторяются каждый месяц, быстрее пользоваться командой «Копировать платеж с новым основанием» или перечнем ежемесячных платежей (<a href="08-monthly.html">раздел 8</a>). Для копирования сохранённые поля не нужны, для перечня — нужны.</p>
 </td></tr></table>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s12">Переход к договору из платежа</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s13">Переход к договору из платежа</h2></td></tr></table>
 <p>Документ привязанного платежа открывается ссылкой «Привязан к договору» в панели сведений или командой «Перейти к договору» контекстного меню.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s13">Что нельзя сделать</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s14">Что нельзя сделать</h2></td></tr></table>
 <ul>
 <li>Изменить договор, которому принадлежит документ, а также перенести договор другому контрагенту.</li>
 <li>Удалить контрагента, договор или документ (лишний документ на платежи не влияет).</li>
 <li>Привязать платеж к договору без документа: привязка всегда идёт к документу.</li>
 </ul>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s14">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s15">Если что-то пошло не так</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>

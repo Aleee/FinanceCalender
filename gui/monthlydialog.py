@@ -70,7 +70,7 @@ class MonthlyDialog(QDialog):
         super().__init__(parent)
         self.ui = Ui_MonthlyDialog()
         self.ui.setupUi(self)
-        add_help_shortcut(self, "03-event-dialog.html")
+        add_help_shortcut(self, "08-monthly.html")
 
         self.dbh = db_handler
         self.create_event = create_event

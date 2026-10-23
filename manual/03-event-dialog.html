@@ -97,7 +97,7 @@ th { color: #1f3a5f; }
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">13</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Скрытый платеж</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Отметка для экспорта (<a href="10-export.html">раздел 10</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Отметка для экспорта (<a href="11-export.html">раздел 11</a>)</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">14</td>
@@ -230,7 +230,7 @@ th { color: #1f3a5f; }
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">5</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Подсказка под сроком оплаты</td>
-<td style="border-bottom: 1px solid #d9e0e9;">«Рассчитана автоматически»; «Укажите вручную» — срок посчитать нельзя; «Расчетная: … · вернуть» — срок изменён вручную, «вернуть» возвращает рассчитанную дату</td>
+<td style="border-bottom: 1px solid #d9e0e9;">«Рассчитан автоматически»; «Укажите вручную» — срок посчитать нельзя; «Расчетная: … · вернуть» — срок изменён вручную, «вернуть» возвращает рассчитанную дату</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">6</td>
@@ -250,10 +250,11 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <p>Если для документа срок считается от отчетного месяца (например, «не позднее 25 числа следующего месяца»), в окне добавляется «Отчетный месяц»; пока вы его не меняете, берётся месяц даты возникновения (<a href="07-payment-terms.html">раздел 7</a>).</p>
+<p>Если платеж по документу нужен каждый месяц, быстрее создавать его из перечня ежемесячных платежей (<a href="08-monthly.html">раздел 8</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Удаление платежа</h2></td></tr></table>
 <p><strong>Del</strong>; программа попросит подтвердить. Вместе с платежом удаляются <strong>все оплаты по нему</strong> и заметка; контрагент, договор и документ остаются.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
-<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Отменить можно только последнее удаление: <strong>Ctrl+Z</strong> возвращает платеж с оплатами и заметкой, пока вы не удалили другой платеж и не закрыли программу. Иначе остаётся создать платеж заново или восстановить копию (<a href="13-backup.html">раздел 13</a>): тогда пропадёт всё, что внесено после её создания.</p>
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Отменить можно только последнее удаление: <strong>Ctrl+Z</strong> возвращает платеж с оплатами и заметкой, пока вы не удалили другой платеж и не закрыли программу. Иначе остаётся создать платеж заново или восстановить копию (<a href="14-backup.html">раздел 14</a>): тогда пропадёт всё, что внесено после её создания.</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s10">Если что-то пошло не так</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
@@ -293,7 +294,7 @@ th { color: #1f3a5f; }
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Не удалось восстановить платеж (подробности см. в логе)»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Ошибка при отмене удаления (<strong>Ctrl+Z</strong>); платеж не вернулся</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Создайте платеж заново или восстановите резервную копию (<a href="13-backup.html">раздел 13</a>)</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Создайте платеж заново или восстановите резервную копию (<a href="14-backup.html">раздел 14</a>)</td>
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Сообщение «Не удалось сохранить платеж (подробности см. в логе)» или «Не удалось сохранить изменения (подробности см. в логе)»</td>
