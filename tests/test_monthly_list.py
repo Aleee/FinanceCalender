@@ -289,7 +289,7 @@ def test_monthly_dialog_hides_and_restores(hdb, qapp):
 
     dialog.ui.chb_hidden.setChecked(True)
     assert [entry.title.contractor_name for entry in dialog.shown] == ["Альфа"]
-    assert dialog.ui.pb_hide.text() == "Вернуть" and dialog.ui.pb_hide.isEnabled()
+    assert dialog.ui.pb_hide.text() == "Вернуть платеж" and dialog.ui.pb_hide.isEnabled()
     assert dialog.ui.pb_create.text() == "Создать платеж" and not dialog.ui.pb_create.isEnabled()
 
     dialog.ui.pb_hide.click()
