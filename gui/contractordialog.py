@@ -91,6 +91,9 @@ class ContractorDialog(QDialog):
         self.settings = settings
         self.open_event = open_event
 
+        for list_widget in (self.ui.lw_contractor, self.ui.lw_contract, self.ui.lw_document):
+            list_widget.setAutoScroll(False)
+
         self.load_contractors()
         self.ui.le_filter.textChanged.connect(self.on_filter_change)
         self.ui.lw_contractor.currentItemChanged.connect(self.update_history_buttons)
