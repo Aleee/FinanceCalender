@@ -39,6 +39,7 @@ CONTRACT_TAX_DESCRIPTION: str = "Налоги и взносы по догово�
 CALENDAR_TAX_KEYWORDS: tuple[str, ...] = ("фсзн", "подоходный налог")
 GROUP_MIN_NAME_SIMILARITY: float = 0.7
 SPLIT_MAX_PARTS: int = 4
+SPLIT_MAX_RELATED: int = 20
 
 PAIR_MAX_DIFF_SHARE: Decimal = Decimal("0.15")
 PAIR_MAX_DIFF_SHARE_WITH_DOCUMENT: Decimal = Decimal("0.30")
@@ -439,6 +440,8 @@ def _same_counterparty(first: PaymentEntry, second: PaymentEntry) -> bool:
 
 def _find_parts(whole: PaymentEntry, candidates: list[PaymentEntry]) -> list[PaymentEntry] | None:
     related = [e for e in candidates if e.amount < whole.amount and _same_counterparty(whole, e)]
+    if len(related) > SPLIT_MAX_RELATED:
+        return None
     for size in range(2, min(SPLIT_MAX_PARTS, len(related)) + 1):
         for parts in combinations(related, size):
             if sum(e.amount for e in parts) == whole.amount:

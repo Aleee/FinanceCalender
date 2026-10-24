@@ -8,7 +8,8 @@ from base.feeparser import DailyFees
 from base.formatting import records_word
 from base.liability import LiabilityCategory
 from base.payment import PaymentEntry
-from base.paymentmacther import (CONTRACT_TAX_DESCRIPTION, DateDiscrepancy, ProbablePair, ReconciliationMarks,
+from base.paymentmacther import (CONTRACT_TAX_DESCRIPTION, SPLIT_MAX_RELATED, DateDiscrepancy, ProbablePair,
+                                  ReconciliationMarks,
                                   ReconciliationResult, _merge_split_payments, _pair_probable_matches,
                                   _regroup_contract_payments,
                                   extract_statement_payments, pair_confidence, pair_reasons,
@@ -319,6 +320,20 @@ def test_one_statement_payment_for_several_calendar_payments_is_grouped():
 def test_split_with_different_total_is_not_grouped():
     statement, calendar = split_case()
     statement[1] = entry("2.10", "ЮРСПЕКТР ООО")
+    groups, rest_statement, rest_calendar = _merge_split_payments(FEE_DATE, statement, calendar)
+    assert groups == [] and rest_statement == statement and rest_calendar == calendar
+
+
+def test_split_search_works_up_to_the_candidates_limit():
+    statement = [entry("50.00", "ЮРСПЕКТР ООО") for _ in range(SPLIT_MAX_RELATED)]
+    calendar = [entry("100.00", "ООО ЮрСпектр")]
+    groups, rest_statement, rest_calendar = _merge_split_payments(FEE_DATE, statement, calendar)
+    assert len(groups) == 1 and len(rest_statement) == SPLIT_MAX_RELATED - 2 and rest_calendar == []
+
+
+def test_split_search_is_skipped_when_too_many_candidates():
+    statement = [entry("50.00", "ЮРСПЕКТР ООО") for _ in range(SPLIT_MAX_RELATED + 1)]
+    calendar = [entry("100.00", "ООО ЮрСпектр")]
     groups, rest_statement, rest_calendar = _merge_split_payments(FEE_DATE, statement, calendar)
     assert groups == [] and rest_statement == statement and rest_calendar == calendar
 
