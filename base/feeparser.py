@@ -33,6 +33,26 @@ class CSVParseError(Exception):
     """Ошибка разбора банковской выписки"""
 
 
+def open_statement(filename: str):
+    with open(filename, "rb") as f:
+        raw = f.read()
+    wrong_encoding = CSVParseError("Файл должен быть в кодировке Windows-1251 (ANSI)")
+    try:
+        raw.decode("utf-8")
+    except UnicodeDecodeError:
+        pass
+    else:
+        if not raw.isascii():
+            raise wrong_encoding
+    if b"\x00" in raw:
+        raise wrong_encoding
+    try:
+        raw.decode("windows-1251")
+    except UnicodeDecodeError as exc:
+        raise wrong_encoding from exc
+    return open(filename, newline="", encoding="windows-1251")
+
+
 @dataclass
 class DailyFees:
 
@@ -196,7 +216,7 @@ def read_transaction_csv(filename: str, dbh: DBHandler) -> StatementParseResult:
     income_fees = FeeCategoryResult()
     outgoing_fees = FeeCategoryResult()
 
-    with open(filename, newline="", encoding="windows-1251") as f:
+    with open_statement(filename) as f:
         reader = csv.reader(f, delimiter=";")
 
         for row_index, content in enumerate(reader):

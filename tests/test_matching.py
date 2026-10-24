@@ -3,8 +3,10 @@ from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 
+import pytest
+
 import gui.feedialog as feedialog
-from base.feeparser import DailyFees
+from base.feeparser import CSVParseError, DailyFees, open_statement, read_transaction_csv
 from base.formatting import records_word
 from base.liability import LiabilityCategory
 from base.payment import PaymentEntry
@@ -566,3 +568,38 @@ def test_totals_after_blank_row_are_ignored(tmp_path):
     tail = [["", "", "", "", "", "Итого", "", "10,00", "", ""]]
     result = write_statement_with_gap(tmp_path, tail)
     assert [e.amount for e in result.by_date[date(2026, 10, 6)]] == [Decimal("10.00")]
+
+
+def statement_file(tmp_path, content: str, encoding: str):
+    path = tmp_path / "encoding.csv"
+    path.write_bytes(content.encode(encoding))
+    return str(path)
+
+
+def test_statement_in_windows_1251_is_opened(tmp_path):
+    with open_statement(statement_file(tmp_path, "ВЫПИСКА;ООО Ромашка\n", "windows-1251")) as f:
+        assert f.read() == "ВЫПИСКА;ООО Ромашка\n"
+
+
+def test_ascii_statement_is_opened(tmp_path):
+    with open_statement(statement_file(tmp_path, "1;2;3\n", "utf-8")) as f:
+        assert f.read() == "1;2;3\n"
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "utf-8-sig", "utf-16"])
+def test_statement_in_other_encoding_gives_clear_error(tmp_path, encoding):
+    path = statement_file(tmp_path, "ВЫПИСКА;ООО Ромашка\n", encoding)
+    with pytest.raises(CSVParseError, match="Windows-1251"):
+        open_statement(path)
+
+
+def test_wrong_encoding_is_reported_by_both_readers(tmp_path):
+    path = statement_file(tmp_path, "ВЫПИСКА;ООО Ромашка\n", "utf-8")
+    settings = {"CSVparser/columnstoparse": "0,2,5,8,7,9,6", "CSVparser/rowperiod": "1",
+                "CSVparser/rowtransactionstart": "9", "CSVparser/knownunp": "", "CSVparser/patterns": "",
+                "CSVparser/nomatchpatterns": ""}
+    dbh = SimpleNamespace(get_setting=lambda key, default="": settings.get(key, default))
+    with pytest.raises(CSVParseError, match="Windows-1251"):
+        extract_statement_payments(path, dbh)
+    with pytest.raises(CSVParseError, match="Windows-1251"):
+        read_transaction_csv(path, dbh)

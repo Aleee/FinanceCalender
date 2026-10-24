@@ -16,8 +16,8 @@ from base.casting import str_int
 from base.dbhandler import DBHandler
 from base.feeparser import (CODE_COLUMNINDEX, DATE_COLUMNINDEX, DESCR_COLUMNINDEX, SUM_COLUMNINDEX,
                             RECEIVER_COLUMNINDEX, UNP_COLUMNINDEX, FEE_IN_TEXT_PATTERN, CSVParseError,
-                            FeeKind, classify_fee, ensure_no_operations_left, read_bank_unp, parse_date,
-                            parse_period)
+                            FeeKind, classify_fee, ensure_no_operations_left, open_statement, read_bank_unp,
+                            parse_date, parse_period)
 from base.formatting import (str_decimal, dec_html, dec_strcommaspace, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_OK,
                              COLOR_WARNING)
 from base.liability import LiabilityCategory
@@ -121,7 +121,7 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
     payroll_totals: dict[date, Decimal] = {}
     contract_tax_totals: dict[date, Decimal] = {}
 
-    with open(filename, newline="", encoding="windows-1251") as f:
+    with open_statement(filename) as f:
         reader = csv.reader(f, delimiter=";")
 
         for row_index, content in enumerate(reader):
