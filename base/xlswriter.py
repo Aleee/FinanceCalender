@@ -79,7 +79,7 @@ class WindowsExcelPdfConverter(BasePdfConverter):
         excel = None
         wb = None
         try:
-            excel = win32com.client.Dispatch("Excel.Application")
+            excel = win32com.client.DispatchEx("Excel.Application")
             excel.Visible = False
             excel.DisplayAlerts = False  # не даём Excel показать модальный диалог и подвесить экспорт
             wb = excel.Workbooks.Open(os.path.abspath(xlsx_path))
@@ -381,7 +381,7 @@ class LiabilityXlsWriter(BaseXlsWriter):
 
         temp_xlsx_path, temp_pdf_path = self._make_temp_paths()
 
-        workbook: Workbook = Workbook(temp_xlsx_path)
+        workbook: Workbook = Workbook(temp_xlsx_path, {"strings_to_formulas": False, "strings_to_urls": False})
         worksheet: Worksheet = workbook.add_worksheet()
         worksheet.set_landscape()
         worksheet.fit_to_pages(1, 0)
@@ -427,80 +427,78 @@ class LiabilityXlsWriter(BaseXlsWriter):
         if show_hidden == HiddenDisplayMode.NONE:
             self.model.set_hidden_filter(True)
         ########################################
+        try:
+            ### ЗАГОЛОВОЧНАЯ ЧАСТЬ ###
+            worksheet.merge_range(0, 0, 0, len(columns_to_export) - 1, "ПЛАТЕЖНЫЙ КАЛЕНДАРЬ", f_fileheader1)
+            worksheet.merge_range(1, 0, 1, len(columns_to_export) - 1, f"по состоянию на {date_displstr(QDate().currentDate())}", f_fileheader2)
+            for col in range(len(columns_to_export)):
+                worksheet.write(self.HEADER_ROWS_NUMBER - 1, col, LiabilityTableModel.COLUMN_DATA[col][0])
+            ##########################
 
-        ### ЗАГОЛОВОЧНАЯ ЧАСТЬ ###
-        worksheet.merge_range(0, 0, 0, len(columns_to_export) - 1, "ПЛАТЕЖНЫЙ КАЛЕНДАРЬ", f_fileheader1)
-        worksheet.merge_range(1, 0, 1, len(columns_to_export) - 1, f"по состоянию на {date_displstr(QDate().currentDate())}", f_fileheader2)
-        for col in range(len(columns_to_export)):
-            worksheet.write(self.HEADER_ROWS_NUMBER - 1, col, LiabilityTableModel.COLUMN_DATA[col][0])
-        ##########################
-
-        ### ОСНОВНАЯ ЧАСТЬ ###
-        for row in range(self.model.rowCount()):
-            row_type: RowType = self.model.index(row, Col.TYPE, QModelIndex()).data(LiabilityTableModel.qtValueRole)
-            row_format: Format
-            if row_type == RowType.LIABILITY:
-                term_flags: FilterFlags = self.model.index(row, Col.FILTERFLAGS, QModelIndex()).data(LiabilityTableModel.qtValueRole)
-                if FilterFlags.DUE in term_flags:
-                    row_format = f_event_due
-                elif FilterFlags.TODAY in term_flags:
-                    row_format = f_event_today
+            ### ОСНОВНАЯ ЧАСТЬ ###
+            for row in range(self.model.rowCount()):
+                row_type: RowType = self.model.index(row, Col.TYPE, QModelIndex()).data(LiabilityTableModel.qtValueRole)
+                row_format: Format
+                if row_type == RowType.LIABILITY:
+                    term_flags: FilterFlags = self.model.index(row, Col.FILTERFLAGS, QModelIndex()).data(LiabilityTableModel.qtValueRole)
+                    if FilterFlags.DUE in term_flags:
+                        row_format = f_event_due
+                    elif FilterFlags.TODAY in term_flags:
+                        row_format = f_event_today
+                    else:
+                        row_format = f_event_normal
+                elif row_type == RowType.HEADER:
+                    row_subtype: HeaderFooterSubtype = self.model.index(row, Col.SUBCATEGORY, QModelIndex()).data(LiabilityTableModel.qtValueRole)
+                    row_format = f_header_sub if row_subtype == HeaderFooterSubtype.ORDINARY else f_header_top
+                elif row_type == RowType.FOOTER:
+                    row_subtype: HeaderFooterSubtype = self.model.index(row, Col.SUBCATEGORY, QModelIndex()).data(LiabilityTableModel.qtValueRole)
+                    row_format = f_footer_sub if row_subtype == HeaderFooterSubtype.ORDINARY else f_footer_top
+                elif row_type == RowType.FINALFOOTER:
+                    row_format = f_footer_final
                 else:
                     row_format = f_event_normal
-            elif row_type == RowType.HEADER:
-                row_subtype: HeaderFooterSubtype = self.model.index(row, Col.SUBCATEGORY, QModelIndex()).data(LiabilityTableModel.qtValueRole)
-                row_format = f_header_sub if row_subtype == HeaderFooterSubtype.ORDINARY else f_header_top
-            elif row_type == RowType.FOOTER:
-                row_subtype: HeaderFooterSubtype = self.model.index(row, Col.SUBCATEGORY, QModelIndex()).data(LiabilityTableModel.qtValueRole)
-                row_format = f_footer_sub if row_subtype == HeaderFooterSubtype.ORDINARY else f_footer_top
-            elif row_type == RowType.FINALFOOTER:
-                row_format = f_footer_final
-            else:
-                row_format = f_event_normal
 
-            for col in range(self.model.columnCount()):
-                if not columns_to_export[col]:
-                    continue
-                if row_type == RowType.HEADER and col == 0:
-                    worksheet.merge_range(row + self.HEADER_ROWS_NUMBER, 0, row + self.HEADER_ROWS_NUMBER, len(columns_to_export) - 1,
-                                           self.model.index(row, 0, QModelIndex()).data(Qt.ItemDataRole.DisplayRole), row_format)
-                else:
-                    if col in self.decimalcolumns_numbers:
-                        if row_type in (RowType.FOOTER, RowType.FINALFOOTER):
-                            value = self.model.index(row, col, QModelIndex()).data(self.model.decimalValueRole)
-                        else:
-                            value = self.model.index(row, col, QModelIndex()).data(LiabilityTableModel.qtValueRole)
-                        if value == 0 and col == Col.TODAYSHARE:
-                            value = ""
-                        worksheet.write(row + self.HEADER_ROWS_NUMBER, col, value, row_format)
-                    else:
-                        if show_hidden == HiddenDisplayMode.SUMONLY and self.model.index(row, Col.HIDDEN).data(LiabilityTableModel.qtValueRole) == 1:
-                            value = ""
-                        else:
-                            value = self.model.index(row, col, QModelIndex()).data(Qt.ItemDataRole.DisplayRole)
-                        worksheet.write(row + self.HEADER_ROWS_NUMBER, col, value, row_format)
-
-            ### Минимальная высота строки по содержимому ###
-            if row_type == RowType.HEADER:
-                merged_width = sum(self.DEFAULT_XLSCOLUMN_WIDTH[c] for c in range(len(columns_to_export)) if columns_to_export[c])
-                header_text = self.model.index(row, 0, QModelIndex()).data(Qt.ItemDataRole.DisplayRole)
-                max_lines = self._estimate_line_count(header_text, merged_width, row_format)
-            else:
-                max_lines = 1
                 for col in range(self.model.columnCount()):
-                    col_width = self.DEFAULT_XLSCOLUMN_WIDTH[col]
-                    if not columns_to_export[col] or col_width <= 0:
-                        continue  # столбец скрыт (нулевая ширина) — на высоту строки не влияет
-                    cell_text = self.model.index(row, col, QModelIndex()).data(Qt.ItemDataRole.DisplayRole)
-                    max_lines = max(max_lines, self._estimate_line_count(cell_text, col_width, row_format))
-            worksheet.set_row(row + self.HEADER_ROWS_NUMBER, self._calc_row_height(max_lines, row_format.font_size))
-            ##################################################
-        #####################
+                    if not columns_to_export[col]:
+                        continue
+                    if row_type == RowType.HEADER and col == 0:
+                        worksheet.merge_range(row + self.HEADER_ROWS_NUMBER, 0, row + self.HEADER_ROWS_NUMBER, len(columns_to_export) - 1,
+                                               self.model.index(row, 0, QModelIndex()).data(Qt.ItemDataRole.DisplayRole), row_format)
+                    else:
+                        if col in self.decimalcolumns_numbers:
+                            if row_type in (RowType.FOOTER, RowType.FINALFOOTER):
+                                value = self.model.index(row, col, QModelIndex()).data(self.model.decimalValueRole)
+                            else:
+                                value = self.model.index(row, col, QModelIndex()).data(LiabilityTableModel.qtValueRole)
+                            if value == 0 and col == Col.TODAYSHARE:
+                                value = ""
+                            worksheet.write(row + self.HEADER_ROWS_NUMBER, col, value, row_format)
+                        else:
+                            if show_hidden == HiddenDisplayMode.SUMONLY and self.model.index(row, Col.HIDDEN).data(LiabilityTableModel.qtValueRole) == 1:
+                                value = ""
+                            else:
+                                value = self.model.index(row, col, QModelIndex()).data(Qt.ItemDataRole.DisplayRole)
+                            worksheet.write(row + self.HEADER_ROWS_NUMBER, col, value, row_format)
 
-        ### Возврат фильтра модели ###
-        if show_hidden == HiddenDisplayMode.NONE:
-            self.model.set_hidden_filter(False)
-        ###############################
+                ### Минимальная высота строки по содержимому ###
+                if row_type == RowType.HEADER:
+                    merged_width = sum(self.DEFAULT_XLSCOLUMN_WIDTH[c] for c in range(len(columns_to_export)) if columns_to_export[c])
+                    header_text = self.model.index(row, 0, QModelIndex()).data(Qt.ItemDataRole.DisplayRole)
+                    max_lines = self._estimate_line_count(header_text, merged_width, row_format)
+                else:
+                    max_lines = 1
+                    for col in range(self.model.columnCount()):
+                        col_width = self.DEFAULT_XLSCOLUMN_WIDTH[col]
+                        if not columns_to_export[col] or col_width <= 0:
+                            continue  # столбец скрыт (нулевая ширина) — на высоту строки не влияет
+                        cell_text = self.model.index(row, col, QModelIndex()).data(Qt.ItemDataRole.DisplayRole)
+                        max_lines = max(max_lines, self._estimate_line_count(cell_text, col_width, row_format))
+                worksheet.set_row(row + self.HEADER_ROWS_NUMBER, self._calc_row_height(max_lines, row_format.font_size))
+                ##################################################
+            #####################
+        finally:
+            if show_hidden == HiddenDisplayMode.NONE:
+                self.model.set_hidden_filter(False)
 
         if str_bool(self.settings_handler.settings.value("Export/frozenheader", 1)):
             worksheet.freeze_panes(self.HEADER_ROWS_NUMBER, 0)
@@ -555,7 +553,7 @@ class FulfilmentXlsWriter(BaseXlsWriter):
 
         temp_xlsx_path, temp_pdf_path = self._make_temp_paths()
 
-        workbook: Workbook = Workbook(temp_xlsx_path)
+        workbook: Workbook = Workbook(temp_xlsx_path, {"strings_to_formulas": False, "strings_to_urls": False})
         worksheet: Worksheet = workbook.add_worksheet()
         worksheet.set_portrait()
         worksheet.fit_to_pages(1, 0)
