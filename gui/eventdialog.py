@@ -717,7 +717,7 @@ class EventDialog(QDialog):
             text, focus_widget = "Дата возврата не может быть больше сегодняшней даты", self.ui.de_duedate
         elif self.ui.cmb_subcategory.isVisible() and self.ui.cmb_subcategory.currentData() == 0:
             text, focus_widget = "Подкатегория платежа не выбрана", self.ui.cmb_subcategory
-        elif self.ui.cmb_responsible.currentData() == 0:
+        elif not self.ui.cmb_responsible.currentData():
             text, focus_widget = "Ответственный не назначен", self.ui.cmb_responsible
         if text:
             self.mark_invalid(focus_widget)
