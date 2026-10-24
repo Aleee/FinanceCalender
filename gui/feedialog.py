@@ -277,7 +277,7 @@ class FeeDialog(QDialog):
                      f"{dec_strcommaspace(statement_total, add_rub=True)}, вычислено "
                      f"{dec_strcommaspace(calculated_total, add_rub=True)}\n")
         text += "Всё равно создать платежи?"
-        return YesNoMessagebox(text).exec() != YesNoMessagebox.NO_RETURN_VALUE
+        return YesNoMessagebox(text, self, cancel_by_default=True).exec() == YesNoMessagebox.YES_RETURN_VALUE
 
     def _check_already_paid(self, categories: list) -> Optional[list]:
         already_paid: list = []
@@ -293,14 +293,13 @@ class FeeDialog(QDialog):
                     already_paid.append((fee_date, liability_category, check_result))
         return already_paid
 
-    @staticmethod
-    def _confirm_duplicate_payments(already_paid: list) -> bool:
+    def _confirm_duplicate_payments(self, already_paid: list) -> bool:
         text = "В базе данных обнаружены уже имеющиеся записи об оплаченных комиссиях за следующие даты:\n"
         for fee_date, liability_category, amount in already_paid:
             date_label = fee_date.strftime("%d.%m.%Y")
             text += f"- {date_label} ({liability_category.name}) на сумму {dec_strcommaspace(amount, add_rub=True)}\n"
         text += "Возможны, будут созданы дублирующие записи. Уверены, что хотите продолжить?"
-        return YesNoMessagebox(text).exec() != YesNoMessagebox.NO_RETURN_VALUE
+        return YesNoMessagebox(text, self, cancel_by_default=True).exec() == YesNoMessagebox.YES_RETURN_VALUE
 
     def _create_fee_liability(
         self, fee_date: date, agg: DailyFees, category: LiabilityCategory, description: str
