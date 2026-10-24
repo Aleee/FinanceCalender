@@ -1,6 +1,7 @@
 import hashlib
 import html
 import json
+from contextlib import contextmanager
 from datetime import date, datetime
 from decimal import Decimal
 from functools import partial
@@ -359,6 +360,24 @@ class MatchingDialog(QDialog):
         self.print_report()
         return True
 
+    @staticmethod
+    @contextmanager
+    def fixed_headers(tables):
+        saved = []
+        for table in tables:
+            vertical = table.verticalHeader()
+            horizontal = table.horizontalHeader()
+            saved.append((vertical, horizontal, [horizontal.sectionResizeMode(column) for column in range(horizontal.count())]))
+            vertical.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+            horizontal.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        try:
+            yield
+        finally:
+            for vertical, horizontal, modes in saved:
+                vertical.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+                for column, mode in enumerate(modes):
+                    horizontal.setSectionResizeMode(column, mode)
+
     def print_report(self):
         result = self.match_result
         tables = (self.ui.tw_proposals, self.ui.tw_statement, self.ui.tw_calendar, self.ui.tw_linked,
@@ -367,13 +386,14 @@ class MatchingDialog(QDialog):
 
         self.refilling = True
         try:
-            self.entries_by_key.clear()
-            self.ui.lb_summary.setText(result.format_summary())
-            self.fill_proposals(result)
-            self.fill_entry_list(self.ui.tw_statement, result.unmatched_statement, COLOR_STATEMENT)
-            self.fill_entry_list(self.ui.tw_calendar, result.unmatched_calendar, COLOR_CALENDAR)
-            self.fill_linked(result.links)
-            self.fill_hidden(result)
+            with self.fixed_headers(tables):
+                self.entries_by_key.clear()
+                self.ui.lb_summary.setText(result.format_summary())
+                self.fill_proposals(result)
+                self.fill_entry_list(self.ui.tw_statement, result.unmatched_statement, COLOR_STATEMENT)
+                self.fill_entry_list(self.ui.tw_calendar, result.unmatched_calendar, COLOR_CALENDAR)
+                self.fill_linked(result.links)
+                self.fill_hidden(result)
             self.apply_search(self.ui.tw_statement, self.ui.le_searchstatement.text())
             self.apply_search(self.ui.tw_calendar, self.ui.le_searchcalendar.text())
         finally:
