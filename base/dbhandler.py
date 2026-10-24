@@ -143,6 +143,11 @@ class DBHandler:
             log.e(f"Количество столбцов в таблице payment ({query.value(0)}) не соответствует ожидаемому ({self.PAYMENT_TABLE_COLUMNUM}).")
             self.db.close()
             return False
+        query = QSqlQuery("PRAGMA quick_check")
+        if not query.exec() or not query.next() or query.value(0) != "ok":
+            log.e(f"Проверка структуры файла базы данных не пройдена: {query.value(0) if query.isActive() else query.lastError().text()}")
+            self.db.close()
+            return False
         self.db.close()
         return True
 

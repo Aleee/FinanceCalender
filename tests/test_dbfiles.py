@@ -70,3 +70,18 @@ def test_recovery_keeps_copy_of_replaced_db(qapp, dbh, work_db_path, backup_fold
     assert len(copies) == 1
     assert copies[0].read_bytes() == b"old database"
     assert work_db_path.read_bytes() == b"new database"
+
+
+def test_damaged_pages_fail_integrity_check(dbh, work_db_path):
+    create_db(work_db_path, dbh.DB_VERSION)
+    with sqlite3.connect(work_db_path) as connection:
+        connection.executemany("INSERT INTO event (receiver, name) VALUES (?, ?)",
+                               [(f"receiver {i}", "x" * 200) for i in range(500)])
+    connection.close()
+    assert dbh.check_db_file_integrity()
+    data = bytearray(work_db_path.read_bytes())
+    page_size = int.from_bytes(data[16:18], "big")
+    last_page = len(data) // page_size - 1
+    data[last_page * page_size:last_page * page_size + 40] = bytes([255]) * 40
+    work_db_path.write_bytes(bytes(data))
+    assert not dbh.check_db_file_integrity()
