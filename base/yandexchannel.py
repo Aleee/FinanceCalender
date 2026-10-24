@@ -1,5 +1,6 @@
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -78,13 +79,15 @@ class YandexDiskApiChannel(SyncChannel):
         if metadata.get("md5") and file_md5(destination) != metadata["md5"]:
             raise SyncError("Скачанный файл общей базы не совпадает с файлом на Яндекс.Диске")
 
-    def upload_master(self, source: Path, info: MasterInfo) -> None:
+    def upload_master(self, source: Path, info: MasterInfo, before_replace: Callable[[], None] | None = None) -> None:
         ensure_master_writable()
         temp_db = self.remote_path(MASTER_DB_NAME + TEMP_SUFFIX)
         info_bytes = info.to_json().encode("utf-8")
         source_md5 = file_md5(source)
         try:
             self.put_file(temp_db, source_md5, source.stat().st_size, upload_file=source)
+            if before_replace is not None:
+                before_replace()
             with self.http.uninterruptible():
                 self.move(temp_db, self.remote_path(MASTER_DB_NAME), source_md5)
                 self.put_file(self.remote_path(MASTER_INFO_NAME), hashlib.md5(info_bytes).hexdigest(), len(info_bytes),

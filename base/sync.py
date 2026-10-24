@@ -208,7 +208,7 @@ class SyncChannel(ABC):
         ...
 
     @abstractmethod
-    def upload_master(self, source: Path, info: MasterInfo) -> None:
+    def upload_master(self, source: Path, info: MasterInfo, before_replace: Callable[[], None] | None = None) -> None:
         ...
 
     @abstractmethod
@@ -245,6 +245,8 @@ class FolderChannel(SyncChannel):
         return self.folder / MASTER_BACKUPS_DIR
 
     def read_master_info(self) -> MasterInfo | None:
+        if not self.folder.exists() and not self.folder.parent.exists():
+            raise SyncError(f"Папка обмена недоступна: {self.folder}")
         if not self.master_info_path.is_file():
             return None
         try:
@@ -262,7 +264,7 @@ class FolderChannel(SyncChannel):
         if file_md5(destination) != file_md5(self.master_db_path):
             raise SyncError("Скопированный файл общей базы не совпадает с исходным")
 
-    def upload_master(self, source: Path, info: MasterInfo) -> None:
+    def upload_master(self, source: Path, info: MasterInfo, before_replace: Callable[[], None] | None = None) -> None:
         ensure_master_writable()
         temp_db_path = self.master_db_path.with_name(MASTER_DB_NAME + TEMP_SUFFIX)
         temp_info_path = self.master_info_path.with_name(MASTER_INFO_NAME + TEMP_SUFFIX)
@@ -271,6 +273,8 @@ class FolderChannel(SyncChannel):
             shutil.copyfile(source, temp_db_path)
             if file_md5(temp_db_path) != file_md5(source):
                 raise SyncError("Загруженный файл общей базы не совпадает с исходным")
+            if before_replace is not None:
+                before_replace()
             os.replace(temp_db_path, self.master_db_path)
             temp_info_path.write_text(info.to_json(), encoding="utf-8")
             os.replace(temp_info_path, self.master_info_path)
@@ -444,8 +448,11 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
         counter = dbh.create_sync_snapshot(str(snapshot), new_token)
         if counter is None or not dbh.check_file_integrity(str(snapshot)):
             raise SyncError("Не удалось подготовить снимок базы данных для отправки")
-        if master_token(channel.read_master_info()) != master_token(master):
-            raise MasterChangedError("Общая база изменилась во время подготовки отправки")
+        def check_master_unchanged() -> None:
+            if master_token(channel.read_master_info()) != master_token(master):
+                raise MasterChangedError("Общая база изменилась во время подготовки отправки")
+
+        check_master_unchanged()
         info = MasterInfo(local.db_uuid, new_token, local.db_version, params.author, params.machine,
                           datetime.now().isoformat(timespec="seconds"), params.app_version)
         stage_started = time.monotonic()
@@ -456,7 +463,7 @@ def push_master(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, over
         stage_started = time.monotonic()
         report_stage(STAGE_UPLOAD)
         try:
-            channel.upload_master(snapshot, info)
+            channel.upload_master(snapshot, info, check_master_unchanged)
         except SyncError as e:
             if not master_has_token(channel, new_token):
                 raise

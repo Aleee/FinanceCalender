@@ -768,9 +768,11 @@ class MainWindow(QMainWindow):
             add_journal_entry(params.author, params.machine, JOURNAL_EXIT, "no_changes")
             return True
         channel = self.get_sync_channel()
-        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, journal_tag=JOURNAL_EXIT),
+        report: SyncReport = SyncReport()
+        action: SyncAction | None = self._run_sync_step(channel, lambda: synchronize(self.db_handler, channel, params, report, merge=True,
+                                                                                    journal_tag=JOURNAL_EXIT),
                                                         SYNC_PLANNED_STAGES)
-        if action == SyncAction.PUSH:
+        if action == SyncAction.PUSH or (action == SyncAction.MERGE and report.merge_pushed):
             return True
         reason: str = self.sync_error if action is None else SYNC_STATUS_TEXT[action]
         return YesNoMessagebox(f"Изменения не отправлены в общую базу ({reason}). Закрыть программу без отправки?",

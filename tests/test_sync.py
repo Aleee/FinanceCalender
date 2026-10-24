@@ -225,3 +225,9 @@ def test_backups_cleanup_due_once_a_day():
     assert backups_cleanup_due(master_info("t", uploaded_at=yesterday))
     assert backups_cleanup_due(master_info("t", uploaded_at="broken"))
     assert not backups_cleanup_due(master_info("t", uploaded_at=today))
+
+
+def test_unreachable_exchange_folder_is_error_not_missing_master(tmp_path):
+    with pytest.raises(SyncError):
+        FolderChannel(tmp_path / "gone" / "exchange").read_master_info()
+    assert FolderChannel(tmp_path / "exchange").read_master_info() is None

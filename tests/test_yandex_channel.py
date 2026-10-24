@@ -341,7 +341,7 @@ def test_merge_push_does_not_reread_master_info_again(machine_a, make_machine, c
     with machine_b as dbh:
         assert synchronize(dbh, reader_b, PARAMS, merge=True) == SyncAction.MERGE
     metadata_requests = [request for request in disk.requests if request == ("GET", "cloud-api.yandex.net/v1/disk/resources")]
-    assert len(metadata_requests) == 6
+    assert len(metadata_requests) == 7
 
 
 def test_push_is_finished_if_master_was_updated_despite_lost_info_response(machine_a, channel, disk):

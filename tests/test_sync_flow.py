@@ -305,8 +305,8 @@ class EditsDuringUpload(FolderChannel):
         super().__init__(folder)
         self.dbh = dbh
 
-    def upload_master(self, source, info):
-        super().upload_master(source, info)
+    def upload_master(self, source, info, before_replace=None):
+        super().upload_master(source, info, before_replace)
         edit(self.dbh, "typed during upload")
 
 
@@ -1081,3 +1081,32 @@ def test_merge_logs_my_changes_in_merged_file(shared_event, channel):
                           "WHERE tablename = 'event' ORDER BY id")
     assert (1, "update", "totalamount", "10.00", "99.00", "tester") in log
     assert [record for record, action, *_ in log if action == "insert"] == [1, 2]
+
+
+class RacingChannel(FolderChannel):
+    hook = None
+
+    def upload_master(self, source, info, before_replace=None):
+        if self.hook is not None:
+            hook, self.hook = self.hook, None
+            hook()
+        super().upload_master(source, info, before_replace)
+
+
+def test_push_does_not_overwrite_master_changed_before_upload(connected, channel):
+    machine_a, machine_b = connected
+    racing = RacingChannel(channel.folder)
+    with machine_a as dbh:
+        edit(dbh, "from-A")
+    with machine_b as dbh:
+        edit(dbh, "from-B")
+
+    def b_pushes():
+        with machine_b as dbh:
+            push_master(dbh, channel, PARAMS)
+
+    racing.hook = b_pushes
+    with machine_a as dbh:
+        with pytest.raises(MasterChangedError):
+            push_master(dbh, racing, PARAMS)
+    assert channel.read_master_info().sync_token == read_meta(machine_b.file)["sync_token"]

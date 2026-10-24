@@ -245,9 +245,6 @@ class SettingsDialog(QDialog):
         if msg_box.exec() != YesNoMessagebox.YES_RETURN_VALUE:
             return
         self.accept()
-        update_controller = getattr(QApplication.instance(), "update_controller", None)
-        if self.result() == QDialog.DialogCode.Accepted and update_controller is not None:
-            QTimer.singleShot(0, lambda: update_controller.offer_update(info))
 
     def show_update_status(self) -> None:
         self.ui.pb_checkupdates.setEnabled(not self.update_checker.checking)
@@ -602,6 +599,10 @@ class SettingsDialog(QDialog):
         QDialog.accept(self)
 
     def done(self, result: int):
+        if self.update_checker is not None:
+            self.update_checker.check_finished.disconnect(self.show_update_status)
+            self.update_checker.update_available.disconnect(self.on_update_found)
+            self.update_checker = None
         self.settings_handler.settings.setValue("SettingsDialog/lastpage", self.ui.lw_menu.currentRow())
         super().done(result)
 
