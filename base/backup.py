@@ -10,6 +10,8 @@ from base.paths import db_path, backup_dir
 from gui.settings import SettingsHandler
 
 BACKUP_FILE_PREFIXES = ("backup_", "before_sync_", "before_restore_")
+SERVICE_COPY_PREFIXES = ("conflict_", "discarded_", "db_corrupt_")
+SERVICE_COPY_KEEP_DAYS = 90
 
 
 def save_backup(sh: SettingsHandler, dbh: DBHandler) -> QDateTime:
@@ -53,6 +55,25 @@ def clean_backup_folder(sh: SettingsHandler) -> bool:
                 Path(os.path.join(backup_foldername, fname)).unlink(missing_ok=True)
             except OSError as e:
                 log.x(f"Не удалось удалить старую резервную копию {fname}: {e}")
+                return False
+    return True
+
+
+def clean_service_copies() -> bool:
+    minimum_date: QDate = QDate.currentDate().addDays(-SERVICE_COPY_KEEP_DAYS)
+    folder: Path = Path(backup_dir())
+    if not folder.is_dir():
+        return True
+    for item in folder.iterdir():
+        prefix: str | None = next((p for p in SERVICE_COPY_PREFIXES if item.name.startswith(p)), None)
+        if prefix is None or not item.is_file():
+            continue
+        filedate: QDate = QDate.fromString(item.name[len(prefix):len(prefix) + 8], "yyyyMMdd")
+        if filedate.isValid() and filedate < minimum_date:
+            try:
+                item.unlink(missing_ok=True)
+            except OSError as e:
+                log.x(f"Не удалось удалить старую служебную копию {item.name}: {e}")
                 return False
     return True
 

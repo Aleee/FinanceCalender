@@ -87,7 +87,7 @@ class CopyDocDialog(QDialog):
             self.set_period(monthly.period)
             self.period_manual = True
             if monthly.month is not None:
-                self.setWindowTitle(f"Ежемесячный платёж — {MONTHS_RU[monthly.month.month() - 1]} {monthly.month.year()}")
+                self.setWindowTitle(f"Ежемесячный платеж — {MONTHS_RU[monthly.month.month() - 1]} {monthly.month.year()}")
             if monthly.last_amount is not None:
                 self.ui.la_amounthint.setText(f"В прошлый раз: {dec_strcommaspace(monthly.last_amount)}")
 
@@ -215,7 +215,7 @@ class CopyDocDialog(QDialog):
         due_date = self.ui.de_duedate.date()
         if month is not None and (due_date.year(), due_date.month()) != (month.year(), month.month()):
             text += (f"Срок оплаты выходит за {MONTHS_RU[month.month() - 1]} {month.year()}, "
-                     f"поэтому платёж не попадёт в перечень этого месяца. ")
+                     f"поэтому платеж не попадёт в перечень этого месяца. ")
         if self.monthly.name_ambiguous and self.ui.te_name.toPlainText().strip() == self.monthly.values.get(Col.NAME):
             text += "Наименование содержит несколько названий месяцев и не менялось - проверьте его. "
         return text

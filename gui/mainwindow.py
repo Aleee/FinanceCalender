@@ -9,7 +9,7 @@ from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPalette, QShort
 from PySide6.QtSql import QSqlTableModel
 from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QStyle, QWidget, QListView, QToolButton, QSizePolicy
 
-from base.backup import clean_backup_folder, save_backup
+from base.backup import clean_backup_folder, clean_service_copies, save_backup
 from base.changelog import build_operations
 from base.casting import str_int
 from base.contract import ContractInfo, DocumentTitle
@@ -731,7 +731,9 @@ class MainWindow(QMainWindow):
             conflict_dlg.exec()
             if conflict_dlg.take_master_chosen():
                 return self._run_sync_step(channel, lambda: take_master(self.db_handler, channel))
-            if conflict_dlg.overwrite_chosen():
+            if conflict_dlg.overwrite_chosen() and YesNoMessagebox(
+                    "Общая база будет заменена вашей версией. Правки другого пользователя, которых нет у вас, пропадут. Продолжить?",
+                    self, cancel_by_default=True).exec() == YesNoMessagebox.YES_RETURN_VALUE:
                 return self._run_sync_step(channel, lambda: overwrite_master(self.db_handler, channel, params))
         return action
 
@@ -932,6 +934,7 @@ class MainWindow(QMainWindow):
             return
         # Очистка папки с резервными копиями
         cleanup_ok: bool = clean_backup_folder(self.settings_handler)
+        cleanup_ok = clean_service_copies() and cleanup_ok
         if not cleanup_ok:
             error_msg = ErrorInfoMessageBox("Не удалось очистить папку с резервными копиями (см. подробности в логе)", parent=self)
             error_msg.exec()

@@ -36,6 +36,8 @@ def add_days(dbh, start: QDate, count: int, days_type: DaysType) -> QDate:
         day = day.addDays(1)
         if is_valid_day(dbh, day):
             left -= 1
+    while not is_valid_day(dbh, day):
+        day = day.addDays(1)
     return day
 
 
@@ -48,7 +50,7 @@ def calculate_payment_date(dbh, terms: ContractDocumentData, trigger_date: QDate
         if terms.days_type is None:
             return None
         result = add_days(dbh, trigger_date, terms.days_count, terms.days_type)
-        # Дополнительное календарное условие: платёж не позднее указанной даты
+        # Дополнительное календарное условие: платеж не позднее указанной даты
         if terms.has_calendar_condition and terms.month_day and terms.month_type:
             limit = fixed_date(period_year, period_month, terms.month_day, terms.month_type)
             result = min(result, next_working_day(dbh, limit))

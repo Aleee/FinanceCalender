@@ -16,7 +16,8 @@ from base.casting import str_int
 from base.dbhandler import DBHandler
 from base.feeparser import (CODE_COLUMNINDEX, DATE_COLUMNINDEX, DESCR_COLUMNINDEX, SUM_COLUMNINDEX,
                             RECEIVER_COLUMNINDEX, UNP_COLUMNINDEX, FEE_IN_TEXT_PATTERN, CSVParseError,
-                            FeeKind, classify_fee, read_bank_unp, parse_date, parse_period)
+                            FeeKind, classify_fee, ensure_no_operations_left, read_bank_unp, parse_date,
+                            parse_period)
 from base.formatting import (str_decimal, dec_html, dec_strcommaspace, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_OK,
                              COLOR_WARNING)
 from base.liability import LiabilityCategory
@@ -135,6 +136,7 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
             if row_index < row_transactions_start:
                 continue
             if not content:
+                ensure_no_operations_left(reader, columns_to_parse[DATE_COLUMNINDEX], row_index)
                 break
 
             try:
@@ -145,6 +147,7 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
                 debit_raw: str = content[columns_to_parse[SUM_COLUMNINDEX]]
                 raw_date: str = content[columns_to_parse[DATE_COLUMNINDEX]]
             except IndexError:
+                ensure_no_operations_left(reader, columns_to_parse[DATE_COLUMNINDEX], row_index)
                 break
 
             description_lower = description.lower()
@@ -244,12 +247,12 @@ def _diff_amounts(statement_entries: list[PaymentEntry], calendar_entries: list[
     remaining_calendar = list(calendar_entries)
     unmatched_statement: list[PaymentEntry] = []
     for entry in statement_entries:
-        match_index = next(
-            (i for i, cal_entry in enumerate(remaining_calendar) if cal_entry.amount == entry.amount), None
-        )
-        if match_index is None:
+        same_amount = [i for i, cal_entry in enumerate(remaining_calendar) if cal_entry.amount == entry.amount]
+        if not same_amount:
             unmatched_statement.append(entry)
         else:
+            match_index = max(same_amount,
+                              key=lambda i: _name_similarity(entry.receiver, remaining_calendar[i].receiver))
             remaining_calendar.pop(match_index)
     return unmatched_statement, remaining_calendar
 
@@ -564,9 +567,9 @@ class RegroupedPayments:
 
         total = dec_strcommaspace(sum((e.amount for e in self.statement), Decimal("0")))
         if len(self.calendar) == 1:
-            title = f"{self.calendar[0].receiver}: один платёж в календаре оплачен несколькими платежами в выписке"
+            title = f"{self.calendar[0].receiver}: один платеж в календаре оплачен несколькими платежами в выписке"
         else:
-            title = f"{self.statement[0].receiver}: один платёж в выписке соответствует нескольким платежам в календаре"
+            title = f"{self.statement[0].receiver}: один платеж в выписке соответствует нескольким платежам в календаре"
         return "\n".join([title, f"Выписка: {side(self.statement)} = {total}",
                           f"Календарь: {side(self.calendar)} = {total}"])
 

@@ -414,7 +414,7 @@ class EventDialog(QDialog):
                 self.ui.le_receiver.setText(self.ui.cmb_contractor.currentText())
                 self.pick_responsible_from_document()
                 QTimer.singleShot(0, lambda: show_status_message(
-                    self, "Образца для этого документа ещё нет - заполните платёж, следующие будут браться за образец", 10000))
+                    self, "Образца для этого документа ещё нет - заполните платеж, следующие будут браться за образец", 10000))
 
         self.ui.de_paymenttrigger.setDate(self.ui.de_incurrencedate.date())
         self.ui.de_incurrencedate.dateChanged.connect(self.ui.de_paymenttrigger.setDate)
@@ -734,6 +734,8 @@ class EventDialog(QDialog):
                                 FilterFlags.PAID in self.index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilityTableModel.qtValueRole))
         if self.ui.de_duedate.date() < QDate.currentDate() and not self.ui.rb_typerefund.isChecked() and not is_source_paid:
             text += "Срок оплаты меньше текущей даты. "
+        if self.ui.de_duedate.date() > QDate.currentDate().addYears(2):
+            text += "Срок оплаты более чем на 2 года позже текущей даты. "
         if self.ui.te_descr.toPlainText().strip() == "":
             text += "Основание платежа не указано. "
         if text:

@@ -68,7 +68,7 @@ class DebtRepository:
             try:
                 event.payments.append(Payment(date.fromisoformat(query.value(1)), Decimal(query.value(2))))
             except (ArithmeticError, ValueError, TypeError) as error:
-                log.x(f"Не удалось разобрать платёж по событию id={query.value(0)} для графика долга: {error}")
+                log.x(f"Не удалось разобрать платеж по событию id={query.value(0)} для графика долга: {error}")
 
         return list(events.values())
 

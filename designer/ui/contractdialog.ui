@@ -381,13 +381,13 @@
    <item>
     <widget class="QGroupBox" name="gb_monthly">
      <property name="title">
-      <string>Ежемесячный платёж</string>
+      <string>Ежемесячный платеж</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
        <widget class="QCheckBox" name="chb_monthly">
         <property name="toolTip">
-         <string>В перечне ежемесячных платежей (Ctrl+Shift+K) для каждого месяца будет видно, создан ли платёж по этому документу</string>
+         <string>В перечне ежемесячных платежей (Ctrl+Shift+K) для каждого месяца будет видно, создан ли платеж по этому документу</string>
         </property>
         <property name="text">
          <string>Включить документ в перечень ежемесячных платежей</string>

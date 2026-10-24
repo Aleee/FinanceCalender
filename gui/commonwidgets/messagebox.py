@@ -65,7 +65,7 @@ class ErrorInfoMessageBox(QMessageBox):
         else:
             self.setIcon(QMessageBox.Icon.Critical if is_failure else QMessageBox.Icon.Warning)
 
-        self.ok_button: QPushButton = QPushButton("OK", self)
+        self.ok_button: QPushButton = QPushButton("ОК", self)
         self.addButton(self.ok_button, QMessageBox.ButtonRole.AcceptRole)
 
         if not is_info and has_log_mention:

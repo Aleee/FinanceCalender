@@ -300,7 +300,7 @@ def test_one_calendar_payment_paid_in_parts_is_grouped():
     assert len(groups) == 1 and rest_statement == [] and rest_calendar == []
     assert groups[0].statement == statement and groups[0].calendar == calendar
     assert groups[0].explanation.splitlines() == [
-        "ООО ЮрСпектр: один платёж в календаре оплачен несколькими платежами в выписке",
+        "ООО ЮрСпектр: один платеж в календаре оплачен несколькими платежами в выписке",
         "Выписка: 1 026,46 + 2,00 = 1 028,46",
         "Календарь: 1 028,46 = 1 028,46",
     ]
@@ -312,7 +312,7 @@ def test_one_statement_payment_for_several_calendar_payments_is_grouped():
     assert len(groups) == 1 and rest_statement == [] and rest_calendar == []
     assert groups[0].statement == calendar and groups[0].calendar == statement
     assert groups[0].explanation.splitlines()[0] == (
-        "ООО ЮрСпектр: один платёж в выписке соответствует нескольким платежам в календаре")
+        "ООО ЮрСпектр: один платеж в выписке соответствует нескольким платежам в календаре")
 
 
 def test_split_with_different_total_is_not_grouped():
@@ -512,3 +512,41 @@ def test_transposed_digits_alone_are_not_enough():
 
 def test_equal_amounts_are_not_transposed_digits():
     assert "цифры суммы переставлены" not in pair_reasons(entry("984.08", "ООО Ромашка"), entry("984.08", "ООО Ромашка"))
+
+
+def test_equal_amounts_are_matched_by_name_regardless_of_calendar_order():
+    from base.paymentmacther import _diff_amounts
+    statement = [entry("100.00", "ООО Василёк")]
+    romashka, vasilek = entry("100.00", "ООО Ромашка"), entry("100.00", "ООО Василёк")
+    for calendar in ([romashka, vasilek], [vasilek, romashka]):
+        only_statement, only_calendar = _diff_amounts(statement, calendar)
+        assert only_statement == [] and only_calendar == [romashka]
+
+
+def write_statement_with_gap(tmp_path, tail_rows: list[list[str]]):
+    rows = [[""] * 10 for _ in range(8)]
+    rows[0][0] = "ВЫПИСКА ПО СЧЕТУ С 06.10.2026 ПО 06.10.2026"
+    rows.append(["06.10.2026", "1", "1", "", "", "100", "Контрагент", "10,00", "0,00", "первая"])
+    rows.append([])
+    rows.extend(tail_rows)
+    path = tmp_path / "statement.csv"
+    path.write_text("\n".join(";".join(row) for row in rows) + "\n", encoding="windows-1251")
+    settings = {"CSVparser/columnstoparse": "0,2,5,8,7,9,6", "CSVparser/rowperiod": "1",
+                "CSVparser/rowtransactionstart": "9", "CSVparser/knownunp": "", "CSVparser/patterns": "",
+                "CSVparser/nomatchpatterns": ""}
+    dbh = SimpleNamespace(get_setting=lambda key, default="": settings.get(key, default))
+    return extract_statement_payments(str(path), dbh)
+
+
+def test_operations_after_blank_row_raise_error(tmp_path):
+    import pytest
+    from base.feeparser import CSVParseError
+    tail = [["06.10.2026", "2", "1", "", "", "100", "Контрагент", "20,00", "0,00", "вторая"]]
+    with pytest.raises(CSVParseError, match="оборвалась"):
+        write_statement_with_gap(tmp_path, tail)
+
+
+def test_totals_after_blank_row_are_ignored(tmp_path):
+    tail = [["", "", "", "", "", "Итого", "", "10,00", "", ""]]
+    result = write_statement_with_gap(tmp_path, tail)
+    assert [e.amount for e in result.by_date[date(2026, 10, 6)]] == [Decimal("10.00")]

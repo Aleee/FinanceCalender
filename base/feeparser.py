@@ -25,6 +25,7 @@ INCOME_FEE_CODE: str = "6"
 # Комиссии, которые банк списывает отдельным требованием — код 2
 OUTGOING_FEE_CODE: str = "2"
 
+DATE_CELL_PATTERN = re.compile(r"\d{2}\.\d{2}\.\d{4}")
 FEE_IN_TEXT_PATTERN = re.compile(r"комиссия\s+(\d{1,3}(?:[ \xa0]\d{3})*(?:[.,]\d+)?)")
 
 
@@ -138,6 +139,14 @@ def parse_date(raw: str, row_index: int) -> date:
         raise CSVParseError(f"Не удалось получить дату из строки {row_index}: {raw!r}")
 
 
+def ensure_no_operations_left(reader, date_column: int, row_index: int) -> None:
+    for next_index, content in enumerate(reader, start=row_index + 1):
+        if date_column < len(content) and DATE_CELL_PATTERN.fullmatch(content[date_column].strip()):
+            raise CSVParseError(
+                f"Строка {row_index}: таблица операций оборвалась, но дальше (строка {next_index}) есть операции"
+            )
+
+
 def read_bank_unp(dbh: DBHandler) -> list[str]:
     return [x for x in dbh.get_setting("CSVparser/knownunp").split(",") if x]
 
@@ -204,12 +213,14 @@ def read_transaction_csv(filename: str, dbh: DBHandler) -> StatementParseResult:
                 continue
 
             if not content:
+                ensure_no_operations_left(reader, columns_to_parse[DATE_COLUMNINDEX], row_index)
                 break  # конец таблицы транзакций
 
             try:
                 transaction_code: str = content[columns_to_parse[CODE_COLUMNINDEX]]
             except IndexError:
                 log.e(f"Ошибка обработки строки {row_index}: столбец недостижим (IndexError)")
+                ensure_no_operations_left(reader, columns_to_parse[DATE_COLUMNINDEX], row_index)
                 break
 
             is_income_fee_code = transaction_code == INCOME_FEE_CODE
@@ -224,6 +235,7 @@ def read_transaction_csv(filename: str, dbh: DBHandler) -> StatementParseResult:
                 raw_date: str = content[columns_to_parse[DATE_COLUMNINDEX]]
             except IndexError:
                 log.e(f"Ошибка обработки строки {row_index}: столбец недостижим (IndexError)")
+                ensure_no_operations_left(reader, columns_to_parse[DATE_COLUMNINDEX], row_index)
                 break
 
             fee_kind = classify_fee(transaction_code, unp, description, bank_unp, keyword_templates)

@@ -225,7 +225,7 @@ class Ui_SyncSettingsDialog(object):
         self.spb_backupinterval.setSpecialValueText(QCoreApplication.translate("SyncSettingsDialog", u"\u043a\u0430\u0436\u0434\u044b\u0439 \u0440\u0430\u0437", None))
         self.spb_backupinterval.setSuffix(QCoreApplication.translate("SyncSettingsDialog", u" \u043c\u0438\u043d", None))
         self.pb_netdiag.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u0414\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0441\u0435\u0442\u0438\u2026", None))
-        self.pb_ok.setText(QCoreApplication.translate("SyncSettingsDialog", u"OK", None))
+        self.pb_ok.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u041e\u041a", None))
         self.pb_cancel.setText(QCoreApplication.translate("SyncSettingsDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
     # retranslateUi
 

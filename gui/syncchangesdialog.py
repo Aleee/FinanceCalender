@@ -161,5 +161,5 @@ class SyncChangesDialog(QDialog):
         return label
 
     def create_buttons(self) -> None:
-        self.button_box.addButton("OK", QDialogButtonBox.ButtonRole.AcceptRole)
+        self.button_box.addButton("ОК", QDialogButtonBox.ButtonRole.AcceptRole)
         self.button_box.accepted.connect(self.accept)
