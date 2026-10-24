@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from base.syncdiff import describe_other_table, describe_row, field_changes, format_value
-from tests.dbtools import create_db
+from tests.dbtools import create_db, fetch_all
 
 
 def insert_event(path: Path, event_id: int, receiver: str = "ООО Ромашка", name: str = "Поставка", amount: str = "100.00",
@@ -189,3 +189,25 @@ def test_finplan_and_fulfillmentdata_are_compared_by_natural_key(dbh, old_db, ne
     assert describe_row("finplan", finplan.added[0]) == "Финплан 2028: 1. Остаток средств на начало периода"
     assert field_changes(*finplan.changed[0]) == [("Январь", "100,00", "150,00")]
     assert describe_row("fulfillmentdata", diff.tables["fulfillmentdata"].added[0]) == "Исполнение за 01.06.2026 — 30.06.2026"
+
+
+def table_columns(path: Path, table: str) -> set[str]:
+    return {row[1] for row in fetch_all(path, f'PRAGMA table_info("{table}")')}
+
+
+def test_detailed_tables_and_references_are_consistent(tmp_path):
+    from base.syncdiff import DETAILED_TABLES, KEY_COLUMNS, REFERENCES, ROW_TITLES, TABLE_DERIVED_COLUMNS, TABLE_KEYS
+    from base.version import DB_VERSION
+    path = create_db(tmp_path / "current.db", DB_VERSION)
+    for table in DETAILED_TABLES:
+        assert table in ROW_TITLES, table
+        assert table_columns(path, table), table
+    assert set(TABLE_DERIVED_COLUMNS) <= set(DETAILED_TABLES)
+    assert set(KEY_COLUMNS) <= set(DETAILED_TABLES) and set(TABLE_KEYS) <= set(DETAILED_TABLES)
+    assert set(REFERENCES) <= set(DETAILED_TABLES)
+    for child, references in REFERENCES.items():
+        for column, parent in references.items():
+            assert column in table_columns(path, child), (child, column)
+            assert table_columns(path, parent), (child, parent)
+            if parent in DETAILED_TABLES:
+                assert DETAILED_TABLES.index(parent) < DETAILED_TABLES.index(child), (parent, child)
