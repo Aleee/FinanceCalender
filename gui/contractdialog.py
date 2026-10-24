@@ -246,6 +246,10 @@ class ContractDocumentDialog(QDialog):
             ErrorInfoMessageBox("Выберите тип документа", parent=self).exec()
             self.ui.cmb_documenttype.setFocus()
             return
+        if data.monthly and not self.ui.chb_byinvoice.isChecked() and not self.ui.dsb_monthlyamount.value():
+            ErrorInfoMessageBox("Укажите сумму ежемесячного платежа или отметьте «по счёту»", parent=self).exec()
+            self.ui.dsb_monthlyamount.setFocus()
+            return
         new_id = self.dbh.save_document_data(data)
         if new_id is None:
             return
