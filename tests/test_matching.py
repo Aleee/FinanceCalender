@@ -146,9 +146,10 @@ def confirm_fee_totals(monkeypatch, statement_total, calculated_total) -> list[s
     asked: list[str] = []
 
     class FakeYesNo:
+        YES_RETURN_VALUE = 2
         NO_RETURN_VALUE = 3
 
-        def __init__(self, text):
+        def __init__(self, text, parent=None, cancel_by_default=False):
             asked.append(text)
 
         def exec(self):
