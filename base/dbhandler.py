@@ -1079,6 +1079,9 @@ class DBHandler:
     def load_column_values(self, column: str, as_set: bool = True) -> set | list | None:
         if not self.is_db_connected():
             return None
+        if column not in EVENT_COLUMN_NAMES:
+            log.e(f"Недопустимое имя столбца таблицы event: {column}")
+            return None
         results: list = []
         query: QSqlQuery = QSqlQuery(f"SELECT {column} FROM event WHERE type = 2{' AND COALESCE(hidden, 0) = 0' if is_viewer() else ''}")
         if query.lastError().isValid():

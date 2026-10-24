@@ -940,3 +940,11 @@ def test_span_columns_spans_exactly_the_visible_header_rows(db_file, open_models
     view.span_columns()
     assert new_header in [table.index(row, Col.ID).data(DB_VALUE) for row in header_rows(table)]
     assert spanned_rows(view) == header_rows(table)
+
+
+def test_load_column_values_accepts_only_event_columns(db_file, open_models, shared_dbh):
+    add_event(db_file, receiver="ООО Ромашка")
+    open_models(db_file)
+    assert shared_dbh.load_column_values("receiver") == {"ООО Ромашка"}
+    assert shared_dbh.load_column_values("receiver FROM event; --") is None
+    assert shared_dbh.load_column_values("nonexistent") is None
