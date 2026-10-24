@@ -12,6 +12,7 @@ from base.edition import is_viewer
 from base.paths import data_dir, logs_dir
 from base.updater import UpdateChecker
 from base.version import APP_VERSION
+from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.commonwidgets.neutralarrowstyle import NeutralArrowStyle
 from gui.mainwindow import MainWindow
 from gui.updatedialog import UpdateController
@@ -49,6 +50,23 @@ def close(pr):
     pr.disable()
     pr.dump_stats('profile_results.pstat')
 
+def install_error_window_hook() -> None:
+    logging_hook = sys.excepthook
+    is_window_shown: list[bool] = [False]
+
+    def show_uncaught_exception(exc_type, exc_value, exc_traceback) -> None:
+        logging_hook(exc_type, exc_value, exc_traceback)
+        if not issubclass(exc_type, Exception) or is_window_shown[0] or QApplication.instance() is None:
+            return
+        is_window_shown[0] = True
+        try:
+            ErrorInfoMessageBox("Произошла непредвиденная ошибка (подробности в логе).").exec()
+        finally:
+            is_window_shown[0] = False
+
+    sys.excepthook = show_uncaught_exception
+
+
 def main():
     # pr = cProfile.Profile()
     # pr.enable()
@@ -71,6 +89,7 @@ def main():
     if sys.stdout is None or sys.stdout.name == '<stdout>':
         sys.stdout = open(os.path.join(logs_folder, "sys_output.log"), "a", encoding="utf-8", buffering=1)
     log.init(os.path.join(logs_folder, "log.log"), level=log.DEBUG)
+    install_error_window_hook()
 
     lock_file: QLockFile = QLockFile(os.path.join(data_dir(), ".lock"))
     if not is_viewer() and not lock_file.tryLock(0):
