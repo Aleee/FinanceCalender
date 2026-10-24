@@ -707,6 +707,9 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
                    <height>55</height>
                   </size>
                  </property>
+                 <property name="tabChangesFocus">
+                  <bool>true</bool>
+                 </property>
                 </widget>
                </item>
               </layout>
@@ -1370,4 +1373,28 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
   <include location="../../resources.qrc"/>
  </resources>
  <connections/>
+ <tabstops>
+  <tabstop>pb_resetfilters</tabstop>
+  <tabstop>le_search</tabstop>
+  <tabstop>spb_term</tabstop>
+  <tabstop>lw_term</tabstop>
+  <tabstop>spb_period</tabstop>
+  <tabstop>de_datefrom</tabstop>
+  <tabstop>de_dateto</tabstop>
+  <tabstop>cmb_perioddate</tabstop>
+  <tabstop>spb_category</tabstop>
+  <tabstop>lw_category</tabstop>
+  <tabstop>spb_responsible</tabstop>
+  <tabstop>cmb_responsiblefilter</tabstop>
+  <tabstop>chb_paytoday</tabstop>
+  <tabstop>trw_event</tabstop>
+  <tabstop>te_descr</tabstop>
+  <tabstop>te_notes</tabstop>
+  <tabstop>tv_payment</tabstop>
+  <tabstop>de_paymentdate</tabstop>
+  <tabstop>dsb_paymentsum</tabstop>
+  <tabstop>pb_addpayment</tabstop>
+  <tabstop>pb_editpayment</tabstop>
+  <tabstop>pb_deletepayment</tabstop>
+ </tabstops>
 </ui>
