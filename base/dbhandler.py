@@ -263,7 +263,7 @@ class DBHandler:
         error = "" if query.exec() else query.lastError().text()
         rows: list[list] = []
         while not error and query.next():
-            rows.append([query.value(i) for i in range(query.record().count())])
+            rows.append([None if query.isNull(i) else query.value(i) for i in range(query.record().count())])
         query.finish()
         del query
         if error:

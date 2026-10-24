@@ -1110,3 +1110,12 @@ def test_push_does_not_overwrite_master_changed_before_upload(connected, channel
         with pytest.raises(MasterChangedError):
             push_master(dbh, racing, PARAMS)
     assert channel.read_master_info().sync_token == read_meta(machine_b.file)["sync_token"]
+
+
+def test_merge_keeps_null_values_as_null(shared_event, channel):
+    machine_a, machine_b = shared_event
+    action = sync_both(machine_a, machine_b, channel, NEW_EVENT_2,
+                       "INSERT INTO event (id, receiver, name) VALUES (3, 'Р', NULL); UPDATE event SET name = NULL WHERE id = 1")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, "SELECT id, name, descr, notes FROM event ORDER BY id") == [
+        (1, None, None, None), (2, "Другое", None, None), (3, None, None, None)]
