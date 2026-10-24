@@ -93,27 +93,38 @@ class LiabilityStore:
     def set_paid_load_months(self, months: int) -> None:
         self.paid_load_months = months
 
-    def reload(self) -> None:
+    def reload(self) -> bool:
         previous = self.snapshot()
-        self.current_date = QDate.currentDate()
-        self.payment_totals = self.db_handler.load_payment_totals(self.current_date) or {}
-        threshold = None if self.paid_load_months is None else paid_threshold(self.current_date, self.paid_load_months)
-        events = self.db_handler.load_events(threshold) or []
+        current_date = QDate.currentDate()
+        payment_totals = self.db_handler.load_payment_totals(current_date)
+        threshold = None if self.paid_load_months is None else paid_threshold(current_date, self.paid_load_months)
+        events = self.db_handler.load_events(threshold)
+        if payment_totals is None or events is None:
+            return False
+        self.current_date = current_date
+        self.payment_totals = payment_totals
         self.events = {values[STORED_INDEX[Col.ID]]: values for values in events}
         self.refresh_derived(*previous)
+        return True
 
-    def load_payment_totals(self) -> None:
+    def load_payment_totals(self) -> bool:
         previous = self.snapshot()
-        self.payment_totals = self.db_handler.load_payment_totals(self.current_date) or {}
+        payment_totals = self.db_handler.load_payment_totals(self.current_date)
+        if payment_totals is None:
+            return False
+        self.payment_totals = payment_totals
         self.refresh_derived(*previous)
+        return True
 
     def refresh_event(self, event_id: int) -> None:
         events = self.db_handler.load_events(event_id=event_id)
+        payments = self.db_handler.load_payment_totals(self.current_date, event_id)
+        if events is None or payments is None:
+            return
         if not events:
             self.remove_event(event_id)
             return
         previous = self.snapshot()
-        payments = self.db_handler.load_payment_totals(self.current_date, event_id) or {}
         self.events = dict(self.events)
         self.events[event_id] = events[0]
         self.payment_totals = {key: value for key, value in self.payment_totals.items() if key != event_id}

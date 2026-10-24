@@ -186,6 +186,8 @@ class MainWindow(QMainWindow):
         # Плоская модель таблицы обязательств над хранилищем LiabilityStore
         self.liability_store = LiabilityStore(self.db_handler)
         self.table_model = LiabilityTableModel(self.liability_store, self.settings_handler.paid_load_months(), self)
+        self.table_model.loadFailed.connect(
+            lambda: ErrorInfoMessageBox("Не удалось загрузить данные из базы (подробности см. в логе)", parent=self).exec())
 
         self.ui.trw_event.setModel(self.table_model)
         self.ui.trw_event.hide_columns()

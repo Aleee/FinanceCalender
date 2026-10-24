@@ -585,3 +585,35 @@ def test_store_works_with_read_only_database(db_file, shared_dbh):
         shared_dbh.db.close()
         shared_dbh.db.setConnectOptions("")
     assert file_hash(db_file) == hash_before
+
+
+def test_failed_reload_keeps_previous_data(rich, monkeypatch):
+    events_before, totals_before = rich.store.events, rich.store.payment_totals
+    rows_before = rich.store.visible_rows()
+    assert events_before and totals_before
+    dbh = rich.store.db_handler
+    monkeypatch.setattr(dbh, "load_payment_totals", lambda *args, **kwargs: None)
+    assert not rich.store.reload()
+    assert not rich.store.load_payment_totals()
+    monkeypatch.undo()
+    monkeypatch.setattr(dbh, "load_events", lambda *args, **kwargs: None)
+    assert not rich.store.reload()
+    assert rich.store.events is events_before
+    assert rich.store.payment_totals is totals_before
+    assert rich.store.visible_rows() == rows_before
+
+
+def test_failed_refresh_event_keeps_row(rich, monkeypatch):
+    event_id = next(iter(rich.store.events))
+    values = rich.store.events[event_id]
+    monkeypatch.setattr(rich.store.db_handler, "load_events", lambda *args, **kwargs: None)
+    rich.store.refresh_event(event_id)
+    assert rich.store.events[event_id] is values
+
+
+def test_empty_payment_totals_are_not_an_error(db_file, case_factory):
+    case = case_factory(db_file)
+    add_event(db_file)
+    assert case.store.reload()
+    assert case.store.payment_totals == {}
+    assert case.store.load_payment_totals()

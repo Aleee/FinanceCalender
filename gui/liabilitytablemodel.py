@@ -42,6 +42,7 @@ class LiabilityTableModel(QAbstractTableModel):
 
     beforeReload = Signal()
     afterReload = Signal()
+    loadFailed = Signal()
 
     # 0 = заголовок, #1 = видимость
     COLUMN_DATA = {
@@ -129,7 +130,8 @@ class LiabilityTableModel(QAbstractTableModel):
         self.document_titles.clear()
         if self.paid_load_months is not None:
             self.store.set_paid_load_months(self.paid_load_months)
-        self.store.reload()
+        if not self.store.reload():
+            self.loadFailed.emit()
         self.take_rows()
 
     def take_rows(self) -> None:
@@ -162,7 +164,8 @@ class LiabilityTableModel(QAbstractTableModel):
         self.layoutChanged.emit()
 
     def load_payment_totals(self) -> None:
-        self.store.load_payment_totals()
+        if not self.store.load_payment_totals():
+            self.loadFailed.emit()
 
     def refresh_event(self, event_id: int) -> None:
         self.change_layout(lambda: self.store.refresh_event(event_id))
