@@ -3,7 +3,7 @@ import sqlite3
 from collections import defaultdict
 from contextlib import closing, contextmanager
 from dataclasses import asdict
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from enum import Enum
 from pathlib import Path
 from datetime import date
@@ -818,8 +818,11 @@ class DBHandler:
         values: dict = {}
         while query.next():
             category = int(query.value(0))
-            plan_values = [None if query.value(n) == '' else query.value(n) for n in range(start_month, end_month + 1)]
-            values[category] = sum(x or 0 for x in plan_values) if not all(x is None for x in plan_values) else None
+            plan_values = [FinPlanTableModel.to_amount(query.value(n)) for n in range(start_month, end_month + 1)]
+            if all(x is None for x in plan_values):
+                values[category] = None
+            else:
+                values[category] = int(sum((x or Decimal(0) for x in plan_values), Decimal(0)).to_integral_value(rounding=ROUND_HALF_UP))
         return values if values else None
 
     def check_fees_paid_fordate(self, fee_date: QDate, liability_category: int) -> Decimal | None:

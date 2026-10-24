@@ -1,5 +1,5 @@
 import lovely_logger as log
-from PySide6.QtCore import QModelIndex, Qt
+from PySide6.QtCore import QModelIndex, Qt, QTimer
 from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtWidgets import QDialog, QApplication
 
@@ -25,8 +25,11 @@ class FinPlanDialog(QDialog):
         self.year: int = year
         self._load_failed: bool = False
         self._saved_values: dict = {}
+        self._invalid_input_count: int = 0
+        self._is_pasting: bool = False
 
         self.model = FinPlanTableModel(read_only=is_viewer())
+        self.model.invalidInput.connect(self.on_invalid_input)
         if not self.load_year(year):
             self._load_failed = True
             return
@@ -95,6 +98,17 @@ class FinPlanDialog(QDialog):
             values += "\t".join(row_content) + "\n"
         QApplication.clipboard().setText(values)
 
+    def on_invalid_input(self) -> None:
+        if self._is_pasting:
+            self._invalid_input_count += 1
+        elif self._invalid_input_count == 0:
+            self._invalid_input_count = 1
+            QTimer.singleShot(0, self.show_invalid_input)
+
+    def show_invalid_input(self) -> None:
+        self._invalid_input_count = 0
+        ErrorInfoMessageBox("Введите число, например 1000 или 1000,50").exec()
+
     def paste(self):
         selected_indexes = self.ui.tv_finplan.selectionModel().selectedIndexes()
         if not selected_indexes:
@@ -102,6 +116,7 @@ class FinPlanDialog(QDialog):
         start_index: QModelIndex = selected_indexes[0]
         cbtext: str = QApplication.clipboard().text()
         i, j = 0, 0
+        self._is_pasting = True
         for row_text in cbtext.splitlines():
             if row_text == "":
                 continue
@@ -112,10 +127,16 @@ class FinPlanDialog(QDialog):
                     self.ui.tv_finplan.model().setData(index, cell_text, Qt.ItemDataRole.EditRole)
                 j += 1
             i += 1
+        self._is_pasting = False
+        if self._invalid_input_count:
+            self.show_invalid_input()
 
     def accept(self, /):
         if is_viewer():
             QDialog.reject(self)
+            return
+        if not self.has_changes():
+            QDialog.accept(self)
             return
         if not self.db_handler.save_finplan_to_db(self.year, self.model.FINPLAN_STRUCTURE, self.model):
             msg_box = ErrorInfoMessageBox("К сожалению, данные не удалось сохранить (см. подробности в логе)")

@@ -1,9 +1,10 @@
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any, Iterable, NamedTuple, Optional
 
-from PySide6.QtCore import QAbstractTableModel, Qt, QModelIndex
+from PySide6.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal
 from PySide6.QtGui import QFont, QColor
 
-from base.formatting import int_strspace
+from base.formatting import dec_strcommaspace, str_decimal
 
 
 class CategoryDef(NamedTuple):
@@ -71,6 +72,8 @@ class FinPlanTableModel(QAbstractTableModel):
     COLOR_SECTION_ROW = "#EAF1E4"
     COLOR_SUBSECTION_ROW = "#F5F8F2"
 
+    invalidInput = Signal()
+
     EditableRole: int = Qt.ItemDataRole.UserRole + 1
     internalValueRole: int = Qt.ItemDataRole.UserRole + 2
 
@@ -80,7 +83,7 @@ class FinPlanTableModel(QAbstractTableModel):
         self.read_only: bool = read_only
 
         self.categories: list[int] = list(self.FINPLAN_STRUCTURE.keys())
-        self.values: dict[int, list[Optional[int]]] = {
+        self.values: dict[int, list[Optional[Decimal]]] = {
             category: [None] * self.MONTHS_COUNT for category in self.categories
         }
 
@@ -91,6 +94,23 @@ class FinPlanTableModel(QAbstractTableModel):
 
     def _definition_at_row(self, row: int) -> CategoryDef:
         return self.FINPLAN_STRUCTURE[self._category_at_row(row)]
+
+    @staticmethod
+    def to_amount(value: Any) -> Optional[Decimal]:
+        if value is None or value == "":
+            return None
+        amount = value if isinstance(value, Decimal) else str_decimal(str(value))
+        try:
+            if amount is None or not amount.is_finite():
+                return None
+            amount = amount.quantize(Decimal("0.01"), ROUND_HALF_UP)
+        except InvalidOperation:
+            return None
+        return Decimal(int(amount)) if amount == amount.to_integral_value() else amount
+
+    @staticmethod
+    def amount_text(amount: Decimal) -> str:
+        return dec_strcommaspace(amount)
 
     def _row_background(self, category: int, definition: CategoryDef) -> Optional[QColor]:
         if category in self.EDGE_CATEGORIES:
@@ -106,16 +126,17 @@ class FinPlanTableModel(QAbstractTableModel):
     # -- расчёты ----------------------------------------------------------------
 
     def calculate_add_totals(self) -> None:
-        def total_for(category: int) -> list[Optional[int]]:
+        def total_for(category: int) -> list[Optional[Decimal]]:
             definition = self.FINPLAN_STRUCTURE[category]
             if not definition.children:
                 return self.values[category]
-            totals = [0] * self.MONTHS_COUNT
+            totals = [Decimal(0)] * self.MONTHS_COUNT
             for child in definition.children:
                 child_values = total_for(child)
                 for month, amount in enumerate(child_values):
                     if amount is not None:
                         totals[month] += amount
+            totals = [self.to_amount(amount) for amount in totals]
             self.values[category] = totals
             return totals
 
@@ -124,12 +145,12 @@ class FinPlanTableModel(QAbstractTableModel):
 
     # -- загрузка данных ----------------------------------------------------------
 
-    def load_values(self, values: dict[int, list[Optional[int]]]) -> None:
+    def load_values(self, values: dict[int, list[Optional[Decimal]]]) -> None:
         self.beginResetModel()
         for category in self.categories:
             loaded = values.get(category)
             if loaded is not None:
-                self.values[category] = list(loaded)
+                self.values[category] = [self.to_amount(amount) for amount in loaded]
         self.calculate_add_totals()
         self.endResetModel()
 
@@ -157,19 +178,21 @@ class FinPlanTableModel(QAbstractTableModel):
             if is_label_column:
                 return definition.title
             value = self.values[category][index.column() - 1]
-            return int_strspace(value) if value is not None else ""
+            return self.amount_text(value) if value is not None else ""
 
         elif role == self.internalValueRole:
             if is_label_column:
                 return definition.title
             value = self.values[category][index.column() - 1]
-            return value if value is not None else ""
+            if value is None:
+                return ""
+            return int(value) if value == value.to_integral_value() else float(value)
 
         elif role == Qt.ItemDataRole.EditRole:
             if is_label_column:
                 return None
             value = self.values[category][index.column() - 1]
-            return value if value is not None else ""
+            return str(value).replace(".", ",") if value is not None else ""
 
         elif role == Qt.ItemDataRole.TextAlignmentRole:
             return Qt.AlignmentFlag.AlignLeft if is_label_column else Qt.AlignmentFlag.AlignRight
@@ -205,14 +228,11 @@ class FinPlanTableModel(QAbstractTableModel):
         if self.FINPLAN_STRUCTURE[category].children:
             return False
 
-        if value == "" or value is None:
-            self.values[category][index.column() - 1] = None
-        else:
-            try:
-                int_value = int(str(value).replace(" ", ""))
-            except ValueError:
-                return False
-            self.values[category][index.column() - 1] = int_value
+        amount = self.to_amount(value)
+        if amount is None and not (value == "" or value is None):
+            self.invalidInput.emit()
+            return False
+        self.values[category][index.column() - 1] = amount
 
         return True
 
