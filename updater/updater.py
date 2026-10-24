@@ -92,7 +92,7 @@ def replace_files(app_dir: Path, new_dir: Path, old_dir: Path) -> None:
         for name in ITEMS:
             rename_with_retries(new_dir / name, app_dir / name)
             placed_new.append(name)
-    except OSError:
+    except Exception:
         log.exception("Ошибка при замене файлов, выполняется откат")
         rollback(app_dir, new_dir, old_dir, moved_old, placed_new)
         raise
@@ -194,6 +194,8 @@ def main() -> int:
         return run_update(args.pid, app_dir, new_dir, args.wait_timeout)
     except Exception:
         log.exception("Непредвиденная ошибка апдейтера")
+        start_app(app_dir)
+        show_error("Не удалось завершить обновление из-за непредвиденной ошибки. Программа запущена.\nПодробности: data\\logs\\updater.log")
         return 3
 
 

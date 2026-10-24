@@ -77,6 +77,39 @@ def test_failed_replacement_rolls_back(updater, stand, monkeypatch):
     assert len(updater.errors) == 1
 
 
+def test_unexpected_error_starts_app_and_shows_message(updater, stand, monkeypatch):
+    app_dir, new_dir = stand
+
+    def broken_run_update(*args):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(updater, "run_update", broken_run_update)
+    monkeypatch.setattr(updater, "setup_logging", lambda folder: None)
+    monkeypatch.setattr(sys, "argv", ["updater", "--pid", "1", "--app-dir", str(app_dir), "--new-dir", str(new_dir)])
+    assert updater.main() == 3
+    assert updater.started == [app_dir.resolve()]
+    assert len(updater.errors) == 1
+
+
+def test_unexpected_error_during_replacement_rolls_back(updater, stand, monkeypatch):
+    app_dir, new_dir = stand
+    original = updater.rename_with_retries
+    calls = []
+
+    def failing_rename(*args, **kwargs):
+        calls.append(args)
+        if len(calls) == 4:
+            raise RuntimeError("boom")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(updater, "rename_with_retries", failing_rename)
+    with pytest.raises(RuntimeError):
+        updater.run_update(1, app_dir, new_dir, 1)
+    assert (app_dir / "FinanceCalender.exe").read_text() == "old"
+    assert (app_dir / "_internal" / "lib.dll").read_text() == "old"
+    assert (app_dir / "data" / "db.db").read_text() == "user data"
+
+
 def test_update_refused_when_new_files_incomplete(updater, stand):
     app_dir, new_dir = stand
     (new_dir / "_internal" / "lib.dll").unlink()
