@@ -1217,13 +1217,15 @@ class MainWindow(QMainWindow):
 
         if amount == 0:
             return False
-        paid = self.current_data(Col.TOTALAMOUNT, LiabilityTableModel.qtValueRole) - self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole)
-        if paid + amount < 0:
-            ErrorInfoMessageBox(f"Сумма возврата ({dec_strcommaspace(-amount)}) превышает сумму оплат по платежу ({dec_strcommaspace(paid)})", parent=self).exec()
-            return False
+        total = self.current_data(Col.TOTALAMOUNT, LiabilityTableModel.qtValueRole)
         remain = self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole)
-        if amount > remain:
-            ErrorInfoMessageBox(f"Сумма оплаты ({dec_strcommaspace(amount)}) превышает остаток задолженности ({dec_strcommaspace(remain)})", parent=self).exec()
+        sign = -1 if total < 0 else 1
+        paid = total - remain
+        if sign * (paid + amount) < 0:
+            ErrorInfoMessageBox(f"Сумма возврата ({dec_strcommaspace(abs(amount))}) превышает сумму оплат по платежу ({dec_strcommaspace(abs(paid))})", parent=self).exec()
+            return False
+        if sign * amount > sign * remain:
+            ErrorInfoMessageBox(f"Сумма оплаты ({dec_strcommaspace(abs(amount))}) превышает остаток задолженности ({dec_strcommaspace(abs(remain))})", parent=self).exec()
             return False
         if date > QDate.currentDate():
             msg_box = YesNoMessagebox(f"Выбранная дата ({date_displstr(date)}) больше текущей даты. Уверены, что хотите продолжить?", self)
