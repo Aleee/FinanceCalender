@@ -63,7 +63,7 @@ class SettingsHandler:
         return self.settings.value("Sync/author", "") or getpass.getuser()
 
     def sync_interval_minutes(self) -> int:
-        return str_int(self.settings.value("Sync/interval"), 5)
+        return max(1, min(60, str_int(self.settings.value("Sync/interval"), 5)))
 
     def sync_idle_seconds(self) -> int:
         return str_int(self.settings.value("Sync/idleseconds"), 60)

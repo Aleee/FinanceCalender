@@ -842,6 +842,7 @@ class MainWindow(QMainWindow):
     def refresh_on_date_change(self) -> None:
         if QDate.currentDate() == self.table_model.current_date or QApplication.activeModalWidget() is not None:
             return
+        self.save_note()
         self.table_model.reload()
         self.update_filters_and_select()
         self.on_currentevent_change()
@@ -1568,8 +1569,11 @@ class MainWindow(QMainWindow):
         self.responsible_partial_sorted_model.sort(0, Qt.SortOrder.AscendingOrder)
 
         if update_widgets:
+            responsible_id = self.ui.cmb_responsiblefilter.currentData(Qt.ItemDataRole.UserRole)
             self.responsible_full_model.sort(0)
             self.ui.cmb_responsiblefilter.setModel(self.responsible_full_model)
+            responsible_row = self.ui.cmb_responsiblefilter.findData(responsible_id, Qt.ItemDataRole.UserRole)
+            self.ui.cmb_responsiblefilter.setCurrentIndex(max(responsible_row, 0))
 
         return True
 

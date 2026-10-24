@@ -3,7 +3,7 @@ import sys
 import cProfile
 import lovely_logger as log
 import PySide6
-from PySide6.QtCore import QLockFile, QTranslator
+from PySide6.QtCore import QLockFile, Qt, QTranslator
 from PySide6.QtNetwork import QNetworkProxyFactory
 
 from PySide6.QtWidgets import QApplication, QMessageBox
@@ -28,6 +28,7 @@ class App(QApplication):
             self.installTranslator(self.qt_translator)
 
         QNetworkProxyFactory.setUseSystemConfiguration(True)
+        self.styleHints().setColorScheme(Qt.ColorScheme.Light)
 
         self.app_version = APP_VERSION
 

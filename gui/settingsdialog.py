@@ -594,11 +594,11 @@ class SettingsDialog(QDialog):
                     return
                 seen_positions.add(pos)
 
-        self.save_settings_values()
-        self.settings_handler.apply_settings()
         if not self.db_handler.save_personal_data(self.personal_model.tdata):
             ErrorInfoMessageBox("Не удалось сохранить данные персонала (подробности см. в логе)", parent=self).exec()
             return
+        self.save_settings_values()
+        self.settings_handler.apply_settings()
         QDialog.accept(self)
 
     def done(self, result: int):
