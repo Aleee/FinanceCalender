@@ -236,16 +236,21 @@ class FeeDialog(QDialog):
             return False
 
         created_count = 0
-        for daily, liability_category, description in categories:
-            for fee_date, agg in daily.items():
-                if not self._create_fee_liability(fee_date, agg, liability_category, description):
-                    if created_count:
-                        ErrorInfoMessageBox(
-                            f"До момента ошибки было успешно создано {created_count} записей о комиссиях. "
-                            f"Проверьте список платежей, чтобы не создать дубликаты при повторном запуске."
-                        ).exec()
-                    return False
-                created_count += 1
+
+        def create_all() -> bool:
+            nonlocal created_count
+            for daily, liability_category, description in categories:
+                for fee_date, agg in daily.items():
+                    if not self._create_fee_liability(fee_date, agg, liability_category, description):
+                        return False
+                    created_count += 1
+            return True
+
+        if not self.dbh.run_in_transaction(create_all):
+            self.table_model.reload()
+            ErrorInfoMessageBox("При создании записей о комиссиях произошла ошибка (подробнее см. лог). "
+                                "Изменения отменены, ни одна запись не создана.").exec()
+            return False
 
         show_status_message(self, f"Комиссии добавлены в календарь: {created_count}")
         self.close()
@@ -327,7 +332,6 @@ class FeeDialog(QDialog):
 
         new_event_id = self.table_model.insert_event(event_data)
         if new_event_id is None:
-            ErrorInfoMessageBox("При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)").exec()
             log.e("Не удалось вставить новую строку в таблицу event")
             return False
 
@@ -339,9 +343,6 @@ class FeeDialog(QDialog):
         ]
         if not self.payment_model.append_row(payment_data):
             log.e("Не удалось вставить новую строку в таблицу payment")
-            if not self.table_model.delete_event(new_event_id):
-                log.e(f"Не удалось удалить строку {new_event_id} из таблицы event после неудачной записи оплаты")
-            ErrorInfoMessageBox("При создании записи об уплаченной комиссии произошла ошибка (подробнее см. лог)").exec()
             return False
 
         return True

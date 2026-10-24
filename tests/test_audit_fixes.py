@@ -1,4 +1,6 @@
 import sqlite3
+from datetime import date, timedelta
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -9,6 +11,8 @@ from base.migrations import change_counter_triggers
 from gui.paymenthistorymodel import PaymentHistoryTableModel
 from tests.dbtools import create_db, read_meta
 from tests.test_readpath import add_event, add_payment, day, db_file, models, open_models, run_sql  # noqa: F401
+
+TODAY_DATE = date.today()
 
 
 def new_event_data(receiver: str = "ООО Новое") -> list:
@@ -227,3 +231,49 @@ def test_migration_closes_database_when_version_is_unreadable(dbh, work_db_path)
     con.close()
     assert not dbh.migrate_db()
     assert not dbh.db.isOpen()
+
+
+def make_fee_dialog(models, shared_dbh):
+    from base.feeparser import DailyFees, FeeCategoryResult, StatementParseResult
+    from gui.feedialog import FeeDialog
+
+    def fees(*days: int) -> FeeCategoryResult:
+        result = FeeCategoryResult()
+        for offset in days:
+            result.daily[TODAY_DATE.replace(day=1) + timedelta(days=offset)] = DailyFees(1, Decimal("5.50"), [Decimal("5.50")])
+        return result
+
+    dialog = FeeDialog(None, shared_dbh, models.table, make_payment_model(shared_dbh))
+    dialog.parse_result = StatementParseResult((TODAY_DATE, TODAY_DATE), fees(0, 1), fees(2))
+    return dialog
+
+
+def test_fee_payments_are_created_in_one_transaction(models, shared_dbh, monkeypatch):
+    import gui.feedialog as feedialogmod
+    dialog = make_fee_dialog(models, shared_dbh)
+    monkeypatch.setattr(feedialogmod, "show_status_message", lambda *args, **kwargs: None)
+    assert dialog.make_fee_payments()
+    assert query_all(models.path, "SELECT COUNT(*) FROM event")[0][0] == 3
+    assert query_all(models.path, "SELECT COUNT(*) FROM payment")[0][0] == 3
+
+
+def test_failed_fee_payment_rolls_back_all_created_before(models, shared_dbh, monkeypatch):
+    import gui.feedialog as feedialogmod
+    dialog = make_fee_dialog(models, shared_dbh)
+    shown = []
+    monkeypatch.setattr(feedialogmod, "show_status_message", lambda *args, **kwargs: None)
+    monkeypatch.setattr(feedialogmod, "ErrorInfoMessageBox", lambda text, *args, **kwargs: type("Box", (), {"exec": lambda self: shown.append(text)})())
+    original = shared_dbh.insert_payment
+    calls = []
+
+    def failing_insert_payment(data):
+        calls.append(data)
+        return None if len(calls) == 3 else original(data)
+
+    monkeypatch.setattr(shared_dbh, "insert_payment", failing_insert_payment)
+    assert not dialog.make_fee_payments()
+    assert len(calls) == 3
+    assert query_all(models.path, "SELECT COUNT(*) FROM event")[0][0] == 0
+    assert query_all(models.path, "SELECT COUNT(*) FROM payment")[0][0] == 0
+    assert models.table.stored_count == 0
+    assert len(shown) == 1 and "отменены" in shown[0]
