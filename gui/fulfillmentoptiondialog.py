@@ -105,7 +105,9 @@ class FulfillmentOptionDialog(QDialog):
 
     def save_inflow(self, begin_date: QDate, end_date: QDate):
         values = [spb.value() for spb in (self.ui.spb_10000, self.ui.spb_21000, self.ui.spb_22000, self.ui.spb_23100, self.ui.spb_23200)]
-        if any(value != 0 for value in values) and not is_viewer():
+        if is_viewer():
+            return
+        if any(value != 0 for value in values) or self.db_handler.load_fulfillmentdata_from_db(begin_date, end_date) is not None:
             self.db_handler.save_fulfillmentdata_to_db(begin_date, end_date, values)
 
     def get_inflow_data(self) -> list[int]:

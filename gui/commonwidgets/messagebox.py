@@ -53,12 +53,18 @@ class ErrorInfoMessageBox(QMessageBox):
 
     LOG_MENTION = re.compile(r"\bлог[еа]?\b", re.IGNORECASE)
     FAILURE_MENTION = re.compile(r"не удалось|ошибк", re.IGNORECASE)
+    LOG_PARENTHESES = re.compile(r"\s*\([^()]*\bлог[еа]?\b[^()]*\)", re.IGNORECASE)
+    LOG_HINT = "Подробности записаны в журнал программы. Папку с журналом открывает кнопка «Открыть папку логов»."
 
     def __init__(self, text, is_info: bool = False, parent=None, details: str | None = None):
         super(ErrorInfoMessageBox, self).__init__(parent)
         has_log_mention: bool = bool(self.LOG_MENTION.search(text))
         is_failure: bool = has_log_mention or bool(self.FAILURE_MENTION.search(text))
         self.setWindowTitle("Информация" if is_info else "Ошибка")
+        if not is_info and has_log_mention:
+            stripped: str = self.LOG_PARENTHESES.sub("", text)
+            if stripped != text:
+                text = f"{stripped}\n\n{self.LOG_HINT}"
         self.setText(text)
         if is_info:
             self.setIcon(QMessageBox.Icon.Information)
