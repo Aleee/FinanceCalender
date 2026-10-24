@@ -41,16 +41,11 @@ def str_date(string: Optional[str], python_date: bool = False) -> QDate | date:
 
 
 def date_str(date_obj: Optional[QDate | date]) -> str:
-    try:
-        if isinstance(date_obj, QDate):
-            return date_obj.toString("yyyy-MM-dd")
-        elif isinstance(date_obj, date):
-            return date_obj.isoformat()
-        else:
-            return "<DATE CONVERSION ERROR>"
-    except ValueError:
-        log.e(f"Не удалось преобразовать дату ({date_obj}) в строку")
-        return "<DATE CONVERSION ERROR>"
+    if isinstance(date_obj, QDate):
+        return date_obj.toString("yyyy-MM-dd")
+    elif isinstance(date_obj, date):
+        return date_obj.isoformat()
+    raise TypeError(f"Ожидалась дата, получено: {date_obj!r}")
 
 
 def date_purestr(qdate: QDate, short: bool = False) -> str:
