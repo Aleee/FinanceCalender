@@ -181,3 +181,53 @@ class TestVerifyAndExtract:
         prepare(downloader, tmp_path, FULL_ARCHIVE + ["data/db/db.db"])
         with pytest.raises(UpdateError):
             downloader.verify_and_extract()
+
+
+class FullDiskFile:
+
+    def __init__(self):
+        self.closed = False
+
+    def write(self, data):
+        return len(data) // 2
+
+    def errorString(self):
+        return "No space left on device"
+
+    def close(self):
+        self.closed = True
+
+
+class FakeReply:
+
+    def __init__(self):
+        self.aborted = False
+
+    def readAll(self):
+        return b"abcdefgh"
+
+    def abort(self):
+        self.aborted = True
+
+    def error(self):
+        return updmod.QNetworkReply.NetworkError.NoError
+
+    def errorString(self):
+        return ""
+
+    def deleteLater(self):
+        pass
+
+
+def test_full_disk_stops_download_with_clear_message(downloader, tmp_path):
+    prepare(downloader, tmp_path, FULL_ARCHIVE)
+    downloader.file = FullDiskFile()
+    downloader.reply = FakeReply()
+    reply = downloader.reply
+    messages = []
+    downloader.failed.connect(messages.append)
+    downloader.on_ready_read()
+    assert reply.aborted and downloader.write_failed
+    downloader.on_download_finished()
+    assert downloader.file.closed
+    assert len(messages) == 1 and "не хватает места" in messages[0]

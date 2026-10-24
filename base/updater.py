@@ -230,6 +230,7 @@ class UpdateDownloader(QObject):
         self.file: Optional[QFile] = None
         self.info: Optional[UpdateInfo] = None
         self.cancelled: bool = False
+        self.write_failed: bool = False
         self.attempt: int = 0
 
     def start(self, info: UpdateInfo) -> None:
@@ -295,6 +296,7 @@ class UpdateDownloader(QObject):
             reply.deleteLater()
 
         self.file = QFile(self.zip_path())
+        self.write_failed = False
         if not self.file.open(QIODevice.OpenModeFlag.WriteOnly):
             log.e(f"Не удалось открыть {self.zip_path()} для записи: {self.file.errorString()}")
             self.failed.emit("Не удалось записать файл обновления в папку программы.")
@@ -306,16 +308,30 @@ class UpdateDownloader(QObject):
         self.reply.downloadProgress.connect(lambda received, total: self.progress.emit(received, total))
         self.reply.finished.connect(self.on_download_finished)
 
+    def write_chunk(self, data) -> bool:
+        if self.file.write(data) == len(data):
+            return True
+        log.e(f"Не удалось записать {self.zip_path()}: {self.file.errorString()}")
+        self.write_failed = True
+        return False
+
     def on_ready_read(self) -> None:
-        self.file.write(self.reply.readAll())
+        if self.write_failed:
+            return
+        if not self.write_chunk(self.reply.readAll()):
+            self.reply.abort()
 
     def on_download_finished(self) -> None:
         reply, self.reply = self.reply, None
-        self.file.write(reply.readAll())
+        if not self.write_failed:
+            self.write_chunk(reply.readAll())
         self.file.close()
         error, error_text = reply.error(), reply.errorString()
         reply.deleteLater()
         if self.cancelled:
+            return
+        if self.write_failed:
+            self.failed.emit("Не удалось записать файл обновления. Возможно, на диске не хватает места.")
             return
         if error != QNetworkReply.NetworkError.NoError:
             log.w(f"Ошибка скачивания обновления (попытка {self.attempt} из {NETWORK_ATTEMPTS}): "
