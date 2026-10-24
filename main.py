@@ -3,12 +3,13 @@ import sys
 import cProfile
 import lovely_logger as log
 import PySide6
-from PySide6.QtCore import QTranslator
+from PySide6.QtCore import QLockFile, QTranslator
 from PySide6.QtNetwork import QNetworkProxyFactory
 
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from base.paths import logs_dir
+from base.edition import is_viewer
+from base.paths import data_dir, logs_dir
 from base.updater import UpdateChecker
 from base.version import APP_VERSION
 from gui.commonwidgets.neutralarrowstyle import NeutralArrowStyle
@@ -69,6 +70,12 @@ def main():
     if sys.stdout is None or sys.stdout.name == '<stdout>':
         sys.stdout = open(os.path.join(logs_folder, "sys_output.log"), "a", encoding="utf-8", buffering=1)
     log.init(os.path.join(logs_folder, "log.log"), level=log.DEBUG)
+
+    lock_file: QLockFile = QLockFile(os.path.join(data_dir(), ".lock"))
+    if not is_viewer() and not lock_file.tryLock(0):
+        QApplication(sys.argv)
+        QMessageBox.warning(None, "Платежный календарь", "Программа уже запущена. Закройте другое окно программы и повторите запуск.")
+        sys.exit(1)
 
     # application: App = App(pr)
     # application.aboutToQuit.connect(lambda: close(pr))

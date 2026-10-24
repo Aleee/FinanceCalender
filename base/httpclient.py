@@ -9,6 +9,7 @@ import lovely_logger as log
 from PySide6.QtCore import QByteArray, QEventLoop, QFile, QIODevice, QTimer, QUrl
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
+from base.netdiagreport import sanitize_text
 from base.sync import NetworkError, SyncCancelledError, SyncError
 
 QUIET_WAIT_MS = 350
@@ -110,7 +111,7 @@ class QtHttpClient(HttpClient):
              upload_file: Path | None = None, download_file: Path | None = None) -> HttpResponse:
         self.check_cancel()
         qurl = QUrl(url)
-        target = f"{method} {qurl.host()}{qurl.path()}"
+        target = sanitize_text(f"{method} {qurl.host()}{qurl.path()}")
         failures: list[str] = []
         if time.monotonic() - self.last_request_at > IDLE_RECONNECT_S:
             self.manager.clearConnectionCache()

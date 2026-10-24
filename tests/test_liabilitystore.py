@@ -384,7 +384,7 @@ def test_refunds_and_overpayment_in_rows_and_totals(db_file, case_factory):
     store = case.store
 
     assert store.row_by_id(refund).remain == Decimal("-500.00")
-    assert store.row_by_id(refund).filter_flags == FilterFlags.PAID
+    assert store.row_by_id(refund).filter_flags == FilterFlags.NOTPAID | FilterFlags.DUE
     assert store.row_by_id(refunded).filter_flags == FilterFlags.PAID
     assert store.row_by_id(over).remain == Decimal("-50.00")
     assert store.row_by_id(over).today_share == Decimal("150.00")
@@ -395,9 +395,9 @@ def test_refunds_and_overpayment_in_rows_and_totals(db_file, case_factory):
         assert_matches_reference(case, term)
 
     case.apply(TermCategory.UNPAID)
-    assert [row.event_id for row in store.visible_rows() if row.row_type == RowType.LIABILITY] == [over]
+    assert [row.event_id for row in store.visible_rows() if row.row_type == RowType.LIABILITY] == [refund, over]
     assert store.totals().total[1102] == Decimal("100.00")
-    assert store.totals().remain[store.TOTAL_CATEGORY] == Decimal("-50.00")
+    assert store.totals().remain[store.TOTAL_CATEGORY] == Decimal("-550.00")
     assert store.totals().today[store.TOTAL_CATEGORY] == Decimal("150.00")
 
     case.apply(TermCategory.PAID)

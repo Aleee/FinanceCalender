@@ -166,13 +166,16 @@ EVENT_COLUMN_NAMES = ("receiver", "id", "type", "contractdocument_id", "category
                       "nds", "duedate", "createdate", "paymenttype", "descr", "responsible", "notes", "featured", "hidden")
 
 
-def calculate_filterflags(remainamount: Decimal, duedate: QDate, are_today_payments_present: bool, current_date: QDate) -> FilterFlags:
+def calculate_filterflags(remainamount: Decimal, duedate: QDate, are_today_payments_present: bool, current_date: QDate,
+                          are_payments_present: bool = True) -> FilterFlags:
     filter_flags: FilterFlags = FilterFlags.NONE
     # Проверка на оплаченность
-    if remainamount <= 0 and not are_today_payments_present:
+    if remainamount <= 0 and are_payments_present and not are_today_payments_present:
         filter_flags |= FilterFlags.PAID
     else:
         filter_flags |= FilterFlags.NOTPAID
+        if not duedate.isValid():
+            return filter_flags
         # Проверка по дате
         date_diff = get_date_diff(current_date, duedate)
         if date_diff < 0:

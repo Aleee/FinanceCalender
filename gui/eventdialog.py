@@ -350,13 +350,16 @@ class EventDialog(QDialog):
             self.non_editable_values["paidamount"] = (self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilityTableModel.qtValueRole)
                                                       - self.index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilityTableModel.qtValueRole))
             self.non_editable_values["featured"] = self.index.siblingAtColumn(Col.FEATURED).data(LiabilityTableModel.qtValueRole)
+            self.non_editable_values["totalamount"] = self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilityTableModel.dbValueRole)
 
         if self.edit_mode or self.copy_mode:
             # Заполнить имеющимися значениями
             self.ui.le_receiver.setText(self.index.siblingAtColumn(Col.RECEIVER).data(LiabilityTableModel.qtValueRole))
             self.ui.le_receiver.setCursorPosition(0)
             self.ui.te_name.setPlainText(self.index.siblingAtColumn(Col.NAME).data(LiabilityTableModel.qtValueRole))
-            self.ui.dsb_totalamount.setValue(self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilityTableModel.qtValueRole))
+            self.ui.dsb_totalamount.setValue(abs(self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilityTableModel.qtValueRole)))
+            if self.edit_mode:
+                self.non_editable_values["shown_amount"] = self.ui.dsb_totalamount.value()
             self.ui.de_duedate.setDate(self.index.siblingAtColumn(Col.DUEDATE).data(LiabilityTableModel.qtValueRole))
             if self.edit_mode:
                 self.ui.de_incurrencedate.setDate(self.index.siblingAtColumn(Col.INCURRENCEDATE).data(LiabilityTableModel.qtValueRole))
@@ -372,6 +375,10 @@ class EventDialog(QDialog):
                 self.button_group.button(self.index.siblingAtColumn(Col.PAYMENTTYPE).data(LiabilityTableModel.qtValueRole)).setChecked(True)
             else:
                 self.button_group.button(PaymentType.NORMAL).setChecked(True)
+            if self.edit_mode and self.ui.rb_typerefund.isChecked():
+                self.ui.dsb_totalamount.setEnabled(False)
+                self.ui.rb_typenormal.setEnabled(False)
+                self.ui.rb_typeadvance.setEnabled(False)
             cmb_index: int = self.ui.cmb_nds.findData(self.index.siblingAtColumn(Col.NDS).data(LiabilityTableModel.qtValueRole))
             self.ui.cmb_nds.setCurrentIndex(cmb_index)
             cmb_index: int = self.ui.cmb_responsible.findData(self.index.siblingAtColumn(Col.RESPONSIBLE).data(LiabilityTableModel.qtValueRole))
@@ -775,7 +782,11 @@ class EventDialog(QDialog):
             total_amount = Decimal(str(self.ui.dsb_totalamount.value()))
         else:
             total_amount = -Decimal(str(self.ui.dsb_totalamount.value()))
-        data.append(str(total_amount))
+        if self.edit_mode and (self.ui.rb_typerefund.isChecked()
+                               or self.ui.dsb_totalamount.value() == self.non_editable_values["shown_amount"]):
+            data.append(self.non_editable_values["totalamount"])
+        else:
+            data.append(str(total_amount))
         # nds
         data.append(self.ui.cmb_nds.currentData())
         # duedate
@@ -812,7 +823,7 @@ class EventDialog(QDialog):
             else:
                 saved = self.model.insert_event(data) is not None
             if not saved:
-                log.e(f"Не удалось вставить новую строку в таблицу event со следующими данными: {data}")
+                log.e("Не удалось вставить новую строку в таблицу event")
                 ErrorInfoMessageBox("Не удалось сохранить платеж (подробности см. в логе)", parent=self).exec()
                 return
             QDialog.accept(self)

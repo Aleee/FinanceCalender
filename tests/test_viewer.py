@@ -4,19 +4,32 @@ import shutil
 import pytest
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtSql import QSqlQuery
-from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit, QPlainTextEdit, QWidget
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit, QPlainTextEdit, QTreeWidget, QTreeWidgetItemIterator, QWidget
 
 import base.edition as edition
 from base.date import date_str
 from base.liability import RowType
-from base.sync import FolderChannel, SyncAction, SyncError, pull_master, push_master, synchronize
+from base.sync import FolderChannel, SyncAction, SyncError, SyncReport, pull_master, push_master, synchronize
 from base.version import DB_VERSION
 from gui.commonwidgets.readonly import make_read_only
 from gui.finplanmodel import FinPlanTableModel
+from gui.syncchangesdialog import SyncChangesDialog
+from gui.syncmanager import pull_tabs
 from tests.dbtools import create_db, read_meta
-from tests.test_readpath import add_event, add_payment
+from tests.test_readpath import add_event, add_payment, run_sql
 from tests.test_sync_flow import (PARAMS, channel, connected, edit, machine_a, make_machine,  # noqa: F401
                                   patch_backup_dir)
+
+
+def tree_texts(dialog) -> list[str]:
+    result = []
+    for tree in dialog.findChildren(QTreeWidget):
+        iterator = QTreeWidgetItemIterator(tree)
+        while iterator.value():
+            item = iterator.value()
+            result.append(" | ".join(item.text(column) for column in range(item.columnCount())))
+            iterator += 1
+    return result
 
 
 @pytest.fixture
@@ -193,3 +206,38 @@ def test_updater_uses_separate_channel_for_viewer(viewer):
         importlib.reload(updater)
     assert updater.APP_EXE == "FinanceCalender.exe"
     assert updater.VERSION_FILE != "version-viewer.json"
+
+
+def test_viewer_pull_report_hides_hidden_events(qapp, connected, channel):
+    machine_a, machine_b = connected
+    with machine_b as dbh:
+        hidden = add_event(dbh.local_db_path(), hidden=1, receiver="СЕКРЕТ-ПОСТАВЩИК", total="987654.32")
+        add_payment(dbh.local_db_path(), hidden, date_str(QDate.currentDate()), "111.11")
+        shown = add_event(dbh.local_db_path(), hidden=0, receiver="ОТКРЫТЫЙ-ПОСТАВЩИК", total="500.00")
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PUSH
+    edition.set_viewer(True)
+    try:
+        with machine_a as dbh:
+            report = SyncReport()
+            assert synchronize(dbh, channel, PARAMS, report) == SyncAction.PULL
+            text = "\n".join(tree_texts(SyncChangesDialog("m", pull_tabs(report))))
+    finally:
+        edition.set_viewer(False)
+    assert "СЕКРЕТ-ПОСТАВЩИК" not in text and "987654" not in text and "111.11" not in text
+    assert "ОТКРЫТЫЙ-ПОСТАВЩИК" in text
+
+
+def test_viewer_personal_frequency_skips_hidden(dbh, work_db_path):
+    create_db(work_db_path, DB_VERSION)
+    run_sql(work_db_path, "INSERT INTO personal (id, name, department, archived, position) VALUES (7, 'Иванов', 'Отдел', 0, 1)")
+    add_event(work_db_path, hidden=0, category=1101, responsible="7")
+    add_event(work_db_path, hidden=1, category=1102, responsible="7")
+    assert dbh.open_db_connection()
+    assert set(dbh.load_personal_data()[1]) == {1101, 1102}
+    dbh.db.close()
+    edition.set_viewer(True)
+    try:
+        assert dbh.open_db_connection()
+        assert set(dbh.load_personal_data()[1]) == {1101}
+    finally:
+        edition.set_viewer(False)

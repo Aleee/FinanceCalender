@@ -195,7 +195,7 @@ class MainWindow(QMainWindow):
         self.payment_model: PaymentHistoryTableModel = PaymentHistoryTableModel(self.db_handler, self)
         self.payment_model.setTable("payment")
         self.payment_model.setEditStrategy(QSqlTableModel.EditStrategy.OnManualSubmit)
-        self.payment_model.select()
+        self.payment_model.update_filter()
 
         self.payment_proxy_model = PaymentHistoryProxyModel()
         self.payment_proxy_model.setSourceModel(self.payment_model)
@@ -948,7 +948,10 @@ class MainWindow(QMainWindow):
     def set_data_to_event(self, index: QModelIndex, column: Col, value: Any) -> bool:
         if not index.isValid():
             return False
-        return self.table_model.setData(index.siblingAtColumn(column), value)
+        if self.table_model.setData(index.siblingAtColumn(column), value):
+            return True
+        ErrorInfoMessageBox("Не удалось сохранить изменения (подробности см. в логе)", parent=self).exec()
+        return False
 
     def set_data_to_current_event(self, column: Col, value: Any) -> bool:
         return self.set_data_to_event(self.get_current_event_index(), column, value)
@@ -1333,7 +1336,7 @@ class MainWindow(QMainWindow):
             self.warn_selection_lost()
             return False
         title = self.table_model.document_title(self.bound_document_id) if self.bound_document_id else None
-        if title is None:
+        if title is None or curr_index.siblingAtColumn(Col.PAYMENTTYPE).data(LiabilityTableModel.qtValueRole) == PaymentType.REFUND:
             return False
 
         is_current_paid = FilterFlags.PAID in curr_index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilityTableModel.qtValueRole)

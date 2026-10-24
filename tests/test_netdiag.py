@@ -257,3 +257,9 @@ def test_soak_pings_gateway_and_groups_samples(diag, monkeypatch):
     assert gateway_samples and not gateway_samples[0]["ok"]
     assert {sample["group"] for sample in diag.report.samples if sample["kind"] == "soak"} == {
         "gateway", "yandex", "control"}
+
+
+def test_sanitize_hides_signed_link_with_port():
+    result = sanitize_text("GET https://downloader.disk.yandex.ru:443/disk/abcdef/file.zip ok")
+    assert "abcdef" not in result
+    assert "downloader.disk.yandex.ru:443/…" in result

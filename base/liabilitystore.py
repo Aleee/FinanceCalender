@@ -175,7 +175,8 @@ class LiabilityStore:
         except (InvalidOperation, TypeError):
             remain = -paid
         incurrence = values[STORED_INDEX[Col.INCURRENCEDATE]]
-        filter_flags = calculate_filterflags(remain, self.due_dates[event_id], today_share != 0, self.current_date)
+        filter_flags = calculate_filterflags(remain, self.due_dates[event_id], today_share != 0, self.current_date,
+                                             bool(last_payment_date))
         total = to_decimal(values[STORED_INDEX[Col.TOTALAMOUNT]])
         search_text = "\n".join([str(values[STORED_INDEX[column]] or "")
                                  for column in (Col.NAME, Col.DESCR, Col.RECEIVER)]

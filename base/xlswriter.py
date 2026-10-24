@@ -240,6 +240,14 @@ class BaseXlsWriter:
 
         return file_path
 
+    @staticmethod
+    def _remove_temp_files(*temp_paths: str) -> None:
+        for temp_path in temp_paths:
+            try:
+                Path(temp_path).unlink(missing_ok=True)
+            except Exception as e:
+                log.w(f"Не удалось удалить временный файл {temp_path}: {e}")
+
     def _finalize_export(self, export_format: ExportFormat, temp_xlsx_path: str,
                           temp_pdf_path: str, file_path: str) -> bool:
         success = False
@@ -271,11 +279,7 @@ class BaseXlsWriter:
                 details=str(e)
             ).exec()
         finally:
-            for temp_path in (temp_xlsx_path, temp_pdf_path):
-                try:
-                    Path(temp_path).unlink(missing_ok=True)
-                except Exception as e:
-                    log.w(f"Не удалось удалить временный файл {temp_path}: {e}")
+            self._remove_temp_files(temp_xlsx_path, temp_pdf_path)
 
         if success:
             self._set_last_dir(file_path)
@@ -505,6 +509,7 @@ class LiabilityXlsWriter(BaseXlsWriter):
 
         file_path = self._ask_save_path(self.view, export_format, default_xls_filename, default_pdf_filename)
         if not file_path:
+            self._remove_temp_files(temp_xlsx_path, temp_pdf_path)
             return False
 
         return self._finalize_export(export_format, temp_xlsx_path, temp_pdf_path, file_path)
@@ -636,6 +641,7 @@ class FulfilmentXlsWriter(BaseXlsWriter):
 
         file_path = self._ask_save_path(self.view, export_format, default_xls_filename, default_pdf_filename)
         if not file_path:
+            self._remove_temp_files(temp_xlsx_path, temp_pdf_path)
             return False
 
         return self._finalize_export(export_format, temp_xlsx_path, temp_pdf_path, file_path)

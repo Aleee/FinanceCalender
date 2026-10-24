@@ -9,7 +9,7 @@ from pathlib import Path
 
 OAUTH_RE = re.compile(r"OAuth\s+\S+")
 YANDEX_TOKEN_RE = re.compile(r"\by[0-9a-z]_[A-Za-z0-9_\-]{20,}")
-SIGNED_URL_RE = re.compile(r"((?:downloader|uploader)[\w.\-]*\.disk\.yandex\.\w+)/\S+")
+SIGNED_URL_RE = re.compile(r"((?:downloader|uploader)[\w.\-]*\.disk\.yandex\.\w+(?::\d+)?)/\S+")
 URL_CREDENTIALS_RE = re.compile(r"://[^/@\s]+@")
 PRIVATE_LINE_RE = re.compile(r"physical address|физический адрес|duid|iaid|\bether\b", re.IGNORECASE)
 WIFI_IDENTITY_RE = re.compile(r"^\s*(b?ssid|profile|профиль|идентификатор guid|guid|physical address|физический адрес)\b", re.IGNORECASE)

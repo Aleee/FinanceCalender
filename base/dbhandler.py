@@ -479,13 +479,25 @@ class DBHandler:
         def read(sql: str) -> list[list]:
             return self._file_execute(connection, sql)
 
+        def visible(alias: str, schema: str) -> str:
+            if not is_viewer():
+                return ""
+            if table == "event":
+                return f' AND COALESCE({alias}."hidden", 0) = 0'
+            if table == "payment":
+                return f' AND {alias}."eventid" IN (SELECT id FROM {schema}."event" WHERE COALESCE(hidden, 0) = 0)'
+            return ""
+
         added = read(f'SELECT {select("n", "main")} FROM main."{table}" n '
-                     f'WHERE {key_sql(table, "n")} NOT IN (SELECT {key_sql(table, "k")} FROM old."{table}" k) ORDER BY {key_sql(table, "n")}')
+                     f'WHERE {key_sql(table, "n")} NOT IN (SELECT {key_sql(table, "k")} FROM old."{table}" k){visible("n", "main")} '
+                     f'ORDER BY {key_sql(table, "n")}')
         removed = read(f'SELECT {select("o", "old")} FROM old."{table}" o '
-                       f'WHERE {key_sql(table, "o")} NOT IN (SELECT {key_sql(table, "k")} FROM main."{table}" k) ORDER BY {key_sql(table, "o")}')
+                       f'WHERE {key_sql(table, "o")} NOT IN (SELECT {key_sql(table, "k")} FROM main."{table}" k){visible("o", "old")} '
+                       f'ORDER BY {key_sql(table, "o")}')
         differs = " OR ".join(f'n."{column}" IS NOT o."{column}"' for column in columns)
         changed = read(f'SELECT {select("n", "main")}, {select("o", "old")} FROM main."{table}" n '
-                       f'JOIN old."{table}" o ON {key_sql(table, "n")} = {key_sql(table, "o")} WHERE {differs} ORDER BY {key_sql(table, "n")}')
+                       f'JOIN old."{table}" o ON {key_sql(table, "n")} = {key_sql(table, "o")} '
+                       f'WHERE ({differs}){visible("n", "main")}{visible("o", "old")} ORDER BY {key_sql(table, "n")}')
         width = len(names)
         return TableDiff([dict(zip(names, row)) for row in added],
                          [dict(zip(names, row)) for row in removed],
@@ -918,7 +930,8 @@ class DBHandler:
                 query.value(0)) > self.personal_data_max_id else self.personal_data_max_id
 
         query = QSqlQuery(
-            "SELECT category, responsible, COUNT(*) AS cnt FROM event WHERE responsible IN (SELECT id FROM personal) "
+            f"SELECT category, responsible, COUNT(*) AS cnt FROM event WHERE responsible IN (SELECT id FROM personal)"
+            f"{' AND COALESCE(hidden, 0) = 0' if is_viewer() else ''} "
             "GROUP BY category, responsible ORDER BY category, responsible")
         if not query.exec():
             log.e(
