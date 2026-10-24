@@ -1,13 +1,14 @@
 import json
 import os
 import re
+import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import lovely_logger as log
 
-from base.paths import sync_journal_path, sync_journal_uploaded_path
+from base.paths import sync_install_id_path, sync_journal_path, sync_journal_uploaded_path
 
 if TYPE_CHECKING:
     from base.sync import SyncChannel
@@ -20,8 +21,24 @@ JOURNAL_MANUAL = "manual"
 JOURNAL_AUTO = "auto"
 
 
+def install_id() -> str:
+    path = Path(sync_install_id_path())
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+        if value:
+            return value
+    except OSError:
+        pass
+    value = uuid.uuid4().hex[:6]
+    try:
+        path.write_text(value, encoding="utf-8")
+    except OSError as e:
+        log.w(f"Не удалось сохранить идентификатор установки: {e}")
+    return value
+
+
 def journal_remote_name(machine: str) -> str:
-    return re.sub(r"[^\w.-]", "_", machine) + ".jsonl"
+    return f"{re.sub(r'[^\w.-]', '_', machine)}-{install_id()}.jsonl"
 
 
 def journal_upload_due() -> bool:
@@ -45,7 +62,7 @@ def upload_journal_if_due(channel: "SyncChannel", machine: str) -> None:
 
 def entry_time(line: str) -> datetime | None:
     try:
-        return datetime.fromisoformat(json.loads(line)["time"])
+        return datetime.fromisoformat(json.loads(line)["time"]).astimezone()
     except (ValueError, KeyError, TypeError):
         return None
 
@@ -57,8 +74,8 @@ def is_fresh(line: str, cutoff: datetime) -> bool:
 
 def add_journal_entry(author: str, machine: str, event: str, result: str, path: Path | None = None) -> None:
     path = path or Path(sync_journal_path())
-    entry = {"time": datetime.now().isoformat(timespec="seconds"), "author": author, "machine": machine, "event": event, "result": result}
-    cutoff = datetime.now() - timedelta(days=JOURNAL_KEEP_DAYS)
+    entry = {"time": datetime.now().astimezone().isoformat(timespec="seconds"), "author": author, "machine": machine, "event": event, "result": result}
+    cutoff = datetime.now().astimezone() - timedelta(days=JOURNAL_KEEP_DAYS)
     try:
         lines = path.read_text(encoding="utf-8").splitlines() if path.is_file() else []
         lines = [line for line in lines if line.strip() and is_fresh(line, cutoff)]

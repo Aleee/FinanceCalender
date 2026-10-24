@@ -62,6 +62,10 @@ def sync_journal_uploaded_path() -> str:
     return os.path.join(_data_subdir("sync"), "journal_uploaded.txt")
 
 
+def sync_install_id_path() -> str:
+    return os.path.join(_data_subdir("sync"), "install_id.txt")
+
+
 def export_dir() -> str:
     return _data_subdir("export")
 

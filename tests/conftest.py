@@ -74,6 +74,7 @@ def migrations(dbh) -> dict:
 def patch_sync_journal_path(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(syncjournalmod, "sync_journal_path", lambda: str(tmp_path / "journal.jsonl"))
     monkeypatch.setattr(syncjournalmod, "sync_journal_uploaded_path", lambda: str(tmp_path / "journal_uploaded.txt"))
+    monkeypatch.setattr(syncjournalmod, "sync_install_id_path", lambda: str(tmp_path / "install_id.txt"))
 
 
 @pytest.fixture(autouse=True)

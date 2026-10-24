@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from base.sync import FolderChannel, SyncAction, SyncError, SyncParams, push_master, synchronize
-from base.syncjournal import add_journal_entry
+from base.syncjournal import add_journal_entry, entry_time, install_id, is_fresh, journal_remote_name
 from tests.test_sync_flow import make_machine, patch_backup_dir  # noqa: F401
 
 PARAMS = SyncParams("Автор", "PC-1", "2026.10.04")
@@ -46,7 +46,7 @@ def test_synchronize_writes_result(tmp_path, dbh):
 
 def test_journal_uploaded_once_a_day(tmp_path, make_machine):
     channel = FolderChannel(tmp_path / "cloud")
-    uploaded = tmp_path / "cloud" / "journal" / "PC-1.jsonl"
+    uploaded = tmp_path / "cloud" / "journal" / f"PC-1-{install_id()}.jsonl"
     with make_machine("a") as dbh:
         synchronize(dbh, channel, PARAMS, journal_tag="start")
         assert uploaded.is_file()
@@ -93,3 +93,21 @@ def test_automatic_other_results_are_journaled(tmp_path, make_machine):
     with make_machine("a") as dbh:
         assert synchronize(dbh, channel, PARAMS) == SyncAction.NO_MASTER
     assert [(entry["event"], entry["result"]) for entry in read_journal(tmp_path)] == [("auto", "no_master")]
+
+
+def test_remote_name_is_stable_for_installation_and_differs_between_installations(tmp_path):
+    first = journal_remote_name("PC-1")
+    assert journal_remote_name("PC-1") == first
+    (tmp_path / "install_id.txt").unlink()
+    assert journal_remote_name("PC-1") != first
+    assert install_id() in journal_remote_name("PC-1")
+
+
+def test_entry_time_has_timezone_and_old_records_are_read(tmp_path):
+    add_journal_entry("A", "M", "start", "push")
+    assert entry_time(json.dumps(read_journal(tmp_path)[0])).tzinfo is not None
+    old_line = json.dumps({"time": datetime.now().isoformat(timespec="seconds")})
+    assert entry_time(old_line).tzinfo is not None
+    cutoff = datetime.now().astimezone() - timedelta(days=1)
+    assert is_fresh(old_line, cutoff)
+    assert not is_fresh(json.dumps({"time": (datetime.now() - timedelta(days=3)).isoformat()}), cutoff)
