@@ -166,7 +166,12 @@ def merge_message(report: SyncReport) -> str:
     if report.master_info is not None:
         text += f" ({describe_master(report.master_info)})"
     text += ". Ваши изменения объединены с ними"
-    text += " и отправлены в общую базу." if report.merge_pushed else ". Они будут отправлены при следующей синхронизации."
+    if report.merge_sent:
+        text += " и отправлены в общую базу."
+    elif report.merge_pushed:
+        text += ". Они уже были в общей базе, отправлять нечего."
+    else:
+        text += ". Они будут отправлены при следующей синхронизации."
     return text
 
 

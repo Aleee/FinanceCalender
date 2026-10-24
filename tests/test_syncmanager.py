@@ -126,11 +126,13 @@ def test_merge_message_and_tabs():
     from base.syncdiff import DbDiff, MergeWarnings
     from gui.syncmanager import merge_message, merge_tabs, merge_warning_lines
     their, mine = DbDiff(), DbDiff()
-    report = SyncReport(their_changes=their, my_changes=mine, merge_pushed=True,
+    report = SyncReport(their_changes=their, my_changes=mine, merge_pushed=True, merge_sent=True,
                         master_info=MasterInfo("u", "t", 5, "Иванов", "PC-2", "2026-10-11T14:32:00", "2026.10.11"),
                         warnings=MergeWarnings(duplicate_events=[sample_event("100")]))
     text = merge_message(report)
     assert "11.10.2026 14:32, Иванов (PC-2)" in text and "отправлены в общую базу" in text
+    report.merge_sent = False
+    assert "отправлять нечего" in merge_message(report)
     report.merge_pushed = False
     assert "будут отправлены при следующей синхронизации" in merge_message(report)
     assert merge_tabs(report) == [("Изменения другого пользователя", their), ("Ваши изменения", mine)]

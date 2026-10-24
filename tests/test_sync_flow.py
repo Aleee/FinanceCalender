@@ -591,7 +591,7 @@ def test_merge_adds_new_events_and_payments_with_new_ids(connected, channel, bac
     report = syncmod.SyncReport()
     with machine_b as dbh:
         assert synchronize(dbh, channel, PARAMS, report, merge=True) == SyncAction.MERGE
-        assert report.merge_pushed
+        assert report.merge_pushed and report.merge_sent
     assert rows(machine_b, "SELECT id, name FROM event ORDER BY id") == [(1, "От первого"), (2, "От второго")]
     assert rows(machine_b, "SELECT id, eventid, sum FROM payment ORDER BY id") == [(1, 1, "3.00"), (2, 2, "4.00")]
     assert [row["name"] for row in report.their_changes.tables["event"].added] == ["От первого"]
@@ -696,7 +696,7 @@ def test_merge_keeps_changes_for_next_push_when_push_fails(connected, channel, m
     report = syncmod.SyncReport()
     with machine_b as dbh:
         assert synchronize(dbh, channel, PARAMS, report, merge=True) == SyncAction.MERGE
-        assert not report.merge_pushed
+        assert not report.merge_pushed and not report.merge_sent
     monkeypatch.setattr(syncmod, "push_master", real_push)
     with machine_b as dbh:
         assert synchronize(dbh, channel, PARAMS) == SyncAction.PUSH
@@ -1142,3 +1142,24 @@ def test_merge_keeps_null_values_as_null(shared_event, channel):
     assert action == SyncAction.MERGE
     assert rows(machine_b, "SELECT id, name, descr, notes FROM event ORDER BY id") == [
         (1, None, None, None), (2, "Другое", None, None), (3, None, None, None)]
+
+
+def rename_event(machine: Machine, event_id: int, name: str) -> None:
+    import sqlite3
+    con = sqlite3.connect(machine.file)
+    con.execute("UPDATE event SET name = ? WHERE id = ?", (name, event_id))
+    con.commit()
+    con.close()
+
+
+def test_merge_of_identical_edits_has_nothing_to_send(shared_event, channel):
+    machine_a, machine_b = shared_event
+    rename_event(machine_a, 1, "Одинаково")
+    rename_event(machine_b, 1, "Одинаково")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    report = syncmod.SyncReport()
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS, report, merge=True) == SyncAction.MERGE
+        assert report.merge_pushed and not report.merge_sent
+    assert rows(machine_b, "SELECT name FROM event") == [("Одинаково",)]

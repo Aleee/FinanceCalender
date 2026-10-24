@@ -120,6 +120,7 @@ class SyncReport:
     warnings: MergeWarnings | None = None
     conflicts: list[Conflict] = field(default_factory=list)
     merge_pushed: bool = False
+    merge_sent: bool = False
 
 
 @dataclass
@@ -686,6 +687,7 @@ def run_synchronize(dbh: "DBHandler", channel: SyncChannel, params: SyncParams, 
             try:
                 if read_local_state(dbh).has_changes:
                     push_master(dbh, channel, params, master=master)
+                    report.merge_sent = True
                 report.merge_pushed = True
             except SyncError as e:
                 log.w(f"Объединённая база не отправлена, отправка будет повторена: {e}")
