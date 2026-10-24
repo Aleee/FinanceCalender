@@ -541,6 +541,10 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
         try:
             if not is_viewer() and not dbh.copy_db_file(str(local_copy)):
                 raise SyncError("Не удалось сохранить локальную копию перед заменой")
+            if not is_viewer():
+                current = dbh.read_file_settings(dbh.local_db_path(), ("change_counter",))
+                if current is None or current["change_counter"] != str(local.change_counter):
+                    raise SyncError("Во время загрузки общей базы данные были изменены, синхронизация будет повторена")
             if report is not None and action == SyncAction.PULL:
                 report.their_changes = dbh.read_db_diff(dbh.local_db_path(), str(new_file))
                 report.master_info = master

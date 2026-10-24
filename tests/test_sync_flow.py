@@ -322,6 +322,29 @@ def test_edit_during_upload_stays_unsent(connected, channel):
     assert read_meta(channel.master_db_path)["marker"] == "typed during upload"
 
 
+class EditsDuringDownload(FolderChannel):
+    def __init__(self, folder, dbh):
+        super().__init__(folder)
+        self.dbh = dbh
+
+    def download_master(self, destination):
+        super().download_master(destination)
+        edit(self.dbh, "typed during download")
+
+
+def test_edit_during_pull_is_not_lost(connected, channel):
+    machine_a, machine_b = connected
+    with machine_a as dbh:
+        edit(dbh, "from first")
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        with pytest.raises(SyncError):
+            synchronize(dbh, EditsDuringDownload(channel.folder, dbh), PARAMS)
+        assert dbh.get_setting("marker") == "typed during download"
+        assert int(dbh.get_setting("change_counter")) > 0
+        assert synchronize(dbh, channel, PARAMS, merge=True) == SyncAction.CONFLICT
+
+
 def test_pull_refused_when_master_db_and_info_disagree(connected, channel):
     machine_a, machine_b = connected
     with machine_b as dbh:
