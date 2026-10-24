@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from PySide6.QtCore import QSortFilterProxyModel, QModelIndex
 from PySide6.QtGui import QColor, QBrush
-from PySide6.QtWidgets import QTreeView, QTableView, QFrame
+from PySide6.QtWidgets import QTreeView, QTableView, QFrame, QDialog
 
 
 @dataclass(slots=True)
@@ -21,6 +21,13 @@ class StatusBarSeparator(QFrame):
         self.setFrameShape(QFrame.Shape.VLine)  # вертикальная линия
         self.setFrameShadow(QFrame.Shadow.Sunken)  # стиль тени
         self.setLineWidth(1)
+
+
+def run_dialog(dialog: QDialog) -> int:
+    try:
+        return dialog.exec()
+    finally:
+        dialog.deleteLater()
 
 
 def is_selection_filteredout(proxy_model: QSortFilterProxyModel, widget: QTreeView | QTableView, current_instead: bool = False) -> bool:

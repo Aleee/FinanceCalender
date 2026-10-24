@@ -26,7 +26,7 @@ from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
 from gui.changelogdialog import ChangeLogDialog
 from gui.chartchoicedialog import ChartChoiceDialog
-from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparator
+from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparator, run_dialog
 from gui.commonwidgets.messagebox import YesNoMessagebox, ErrorInfoMessageBox
 from gui.commonwidgets.persistentheader import PersistentHeader
 from gui.contractdialog import ContractDocumentDialog
@@ -678,7 +678,7 @@ class MainWindow(QMainWindow):
                 else:
                     changes_dlg = SyncChangesDialog(pull_message(report.master_info or self.sync_master_info), pull_tabs(report), self)
                 self.sync_progress.show_stage_now(SYNC_STAGE_CHANGES_NOTICE)
-                changes_dlg.exec()
+                run_dialog(changes_dlg)
         finally:
             if quiet:
                 self.ui.statusBar.clearMessage()
@@ -852,7 +852,7 @@ class MainWindow(QMainWindow):
         self.on_currentevent_change()
 
     def open_sync_settings_dialog(self) -> None:
-        if SyncSettingsDialog(self.settings_handler, self).exec() == QDialog.DialogCode.Accepted:
+        if run_dialog(SyncSettingsDialog(self.settings_handler, self)) == QDialog.DialogCode.Accepted:
             self.apply_sync_timer()
             self.update_sync_status()
             QTimer.singleShot(1000, lambda: self.auto_sync(quiet=False))
@@ -1073,7 +1073,7 @@ class MainWindow(QMainWindow):
                                 contract_date=title.contract_date)
         dlg = ContractDocumentDialog(self.db_handler, self.settings_handler.settings, title.document_id, contract, parent,
                                     self.open_event_view)
-        if not dlg.exec():
+        if not run_dialog(dlg):
             return False
         self.table_model.document_titles.clear()
         return True
@@ -1084,8 +1084,8 @@ class MainWindow(QMainWindow):
             return
         scope, note, subtitle = document_scope(title.document_name, title.contract_number, title.contract_date,
                                                title.contractor_name)
-        ContractHistoryDialog(self.db_handler, scope, title.contractor_id, title.contract_id, self.open_event_view, self,
-                              self.bound_document_id, subtitle, note).exec()
+        run_dialog(ContractHistoryDialog(self.db_handler, scope, title.contractor_id, title.contract_id, self.open_event_view, self,
+                                         self.bound_document_id, subtitle, note))
 
     def change_value_resolvers(self) -> dict[str, Callable[[str], str | None]]:
         def responsible_name(value: str) -> str | None:
@@ -1110,7 +1110,7 @@ class MainWindow(QMainWindow):
             return
         records, payments = loaded
         title = f"{self.current_data(Col.RECEIVER)} — {self.current_data(Col.NAME)}"
-        ChangeLogDialog(build_operations(records, payments, self.change_value_resolvers()), title, self).exec()
+        run_dialog(ChangeLogDialog(build_operations(records, payments, self.change_value_resolvers()), title, self))
 
     # Общий набор аргументов для set_filters, чтобы не дублировать список из 9 параметров
     def _current_filter_args(self) -> tuple:
@@ -1305,7 +1305,7 @@ class MainWindow(QMainWindow):
                                                 settings_handler=self.settings_handler, db_handler=self.db_handler, edit_mode=edit, copy_mode=copy, current_index=curr_index, initial_amount=initial_amount,
                                                 from_statement=from_statement, payment_date=payment_date, view_mode=is_viewer(),
                                                 bind_document_id=bind_document_id, parent=parent or self)
-        if event_dialog.exec():
+        if run_dialog(event_dialog):
             if not edit:
                 set_due_filter = False
                 if copy:
@@ -1348,7 +1348,7 @@ class MainWindow(QMainWindow):
         is_current_paid = FilterFlags.PAID in curr_index.siblingAtColumn(Col.FILTERFLAGS).data(LiabilityTableModel.qtValueRole)
         copydoc_dialog = CopyDocDialog(final_proxy_model=self.table_model, db_handler=self.db_handler, settings_handler=self.settings_handler,
                                        current_index=curr_index, title=title, parent=self)
-        if not copydoc_dialog.exec():
+        if not run_dialog(copydoc_dialog):
             return False
         self.select_new_event(is_current_paid)
         return True
@@ -1356,8 +1356,8 @@ class MainWindow(QMainWindow):
     def open_monthly_dialog(self) -> None:
         if is_viewer():
             return
-        MonthlyDialog(self.db_handler, self.create_monthly_event, self.open_event_view, self.settings_handler.settings,
-                      self.open_document_dialog, parent=self).exec()
+        run_dialog(MonthlyDialog(self.db_handler, self.create_monthly_event, self.open_event_view, self.settings_handler.settings,
+                                 self.open_document_dialog, parent=self))
 
     def create_monthly_event(self, entry: MonthlyEntry, month: QDate, full_form: bool, parent: QWidget) -> bool:
         template = build_monthly_template(self.db_handler, entry.title.document_id, month)
@@ -1369,7 +1369,7 @@ class MainWindow(QMainWindow):
             return self.open_event_dialog(copy=True, current_index=template_index, parent=parent)
         copydoc_dialog = CopyDocDialog(final_proxy_model=self.table_model, db_handler=self.db_handler, settings_handler=self.settings_handler,
                                        current_index=template_index, title=entry.title, parent=parent, monthly=template)
-        if not copydoc_dialog.exec():
+        if not run_dialog(copydoc_dialog):
             return False
         self.select_new_event(False)
         return True
@@ -1430,7 +1430,7 @@ class MainWindow(QMainWindow):
 
     def open_settings_dialog(self) -> None:
         settings_dialog: SettingsDialog = SettingsDialog(self.settings_handler, self.db_handler, self)
-        settings_dialog.exec()
+        run_dialog(settings_dialog)
         self.on_currentevent_change()
         self.table_model.reload()
         self.update_filters_and_select()
@@ -1453,7 +1453,7 @@ class MainWindow(QMainWindow):
             return
         fees_dialog: FeeDialog = FeeDialog(self.settings_handler, self.db_handler, self.table_model, self.payment_model,
                                            parent or self, csv_path, statement_fee_totals)
-        fees_dialog.exec()
+        run_dialog(fees_dialog)
         self.table_model.reload()
         self.update_filters_and_select()
 
@@ -1471,7 +1471,7 @@ class MainWindow(QMainWindow):
                                                                         payment_date=fee_date),
                 lambda entry, new_amount, dialog: self.open_payment_amount_dialog(entry.payment_id, new_amount, dialog),
                 self.open_fees_dialog, self)
-        matching_dialog.exec()
+        run_dialog(matching_dialog)
         self.table_model.reload()
         self.payment_model.update_filter()
         self.update_filters_and_select()
@@ -1518,7 +1518,7 @@ class MainWindow(QMainWindow):
         if info is None:
             ErrorInfoMessageBox("Не удалось прочитать платеж для этой оплаты (подробности см. в логе)", parent=parent).exec()
             return False
-        return PaymentAmountDialog(self.db_handler, info, new_amount, parent).exec() == QDialog.DialogCode.Accepted
+        return run_dialog(PaymentAmountDialog(self.db_handler, info, new_amount, parent)) == QDialog.DialogCode.Accepted
 
     def open_export_dialog(self) -> bool:
         if self.table_model.rowCount() == 0:
@@ -1527,26 +1527,24 @@ class MainWindow(QMainWindow):
             msg.exec()
             return False
         dlg: ExportDialog = ExportDialog(self.xls_writer, self.ui.trw_event.get_columnvisibility_list(), self)
-        return dlg.exec() == QDialog.DialogCode.Accepted
+        return run_dialog(dlg) == QDialog.DialogCode.Accepted
 
     def open_finplan_dialog(self) -> None:
         year: int = QDate().currentDate().year()
         dlg: FinPlanDialog = FinPlanDialog(self.db_handler, self.settings_handler, year, self)
-        dlg.exec()
+        run_dialog(dlg)
 
     def open_fulfillment_dialog(self) -> None:
         dlg: FulfillmentOptionDialog = FulfillmentOptionDialog(self.db_handler, self.settings_handler, self)
-        dlg.exec()
+        run_dialog(dlg)
 
     def open_chart_dialog(self) -> None:
         if is_viewer():
             return
-        self.chart_choice_dialog = ChartChoiceDialog(self)
-        self.chart_choice_dialog.exec()
+        run_dialog(ChartChoiceDialog(self))
 
     def open_contractor_dialog(self) -> None:
-        self.contractor_dialog = ContractorDialog(self.db_handler, self.settings_handler.settings, self.open_event_view, self)
-        self.contractor_dialog.exec()
+        run_dialog(ContractorDialog(self.db_handler, self.settings_handler.settings, self.open_event_view, self))
         self.table_model.document_titles.clear()
         self.update_eventinfo()
 
