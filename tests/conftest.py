@@ -62,6 +62,7 @@ def dbh(shared_dbh, tmp_path: Path, work_db_path: Path, backup_folder: Path, mon
     shared_dbh.settings_handler = FakeSettingsHandler(tmp_path / "settings.ini")
     yield shared_dbh
     shared_dbh.db.close()
+    shared_dbh.db.setConnectOptions("")
 
 
 @pytest.fixture

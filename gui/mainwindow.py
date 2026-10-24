@@ -161,8 +161,10 @@ class MainWindow(QMainWindow):
                                 "Файл базы данных не изменён, программа будет закрыта. "
                                 "Передайте разработчику файлы из папки логов (подробности см. в логе)").exec()
             sys.exit()
+        self._exit_if_db_busy()
         ## Проверка файла
         if not self.db_handler.check_db_file_integrity():
+            self._exit_if_db_busy()
             recover_dlg = RecoveryDialog(self.settings_handler, self.db_handler,
                                          text="К сожалению, при проверке файла базы данных обнаружены ошибки (подробности см. в логе). "
                                               "Выберите файл для восстановления",
@@ -172,6 +174,12 @@ class MainWindow(QMainWindow):
 
         if not self.db_handler.open_db_connection():
             ErrorInfoMessageBox("Не удалось открыть базу данных (подробности см. в логе)").exec()
+            sys.exit()
+
+    def _exit_if_db_busy(self) -> None:
+        if self.db_handler.db_busy:
+            ErrorInfoMessageBox("Файл базы данных занят другим процессом (возможно, программа уже запущена). "
+                                "Закройте другие окна программы и запустите её снова. Файл не изменён").exec()
             sys.exit()
 
     def _init_models(self) -> None:

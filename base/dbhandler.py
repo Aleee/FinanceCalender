@@ -1,6 +1,7 @@
 import shutil
+import sqlite3
 from collections import defaultdict
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from dataclasses import asdict
 from decimal import Decimal
 from enum import Enum
@@ -52,6 +53,7 @@ class DBHandler:
         self.personal_data_max_id: int = 0
         self.after_commit_actions: list[Callable[[], None]] = []
         self.migration_failed: bool = False
+        self.db_busy: bool = False
         self.in_transaction: bool = False
 
     @staticmethod
@@ -78,9 +80,20 @@ class DBHandler:
             return False
         return True
 
+    @staticmethod
+    def _is_file_locked(path: str) -> bool:
+        try:
+            with closing(sqlite3.connect(path, timeout=0)) as connection:
+                connection.execute("SELECT COUNT(*) FROM sqlite_master").fetchone()
+        except sqlite3.Error as e:
+            return "locked" in str(e) or "busy" in str(e)
+        return False
+
     def get_db_version(self) -> int | None:
+        self.db_busy = False
         query = QSqlQuery("SELECT value FROM meta WHERE key = 'db_version'")
         if not query.exec():
+            self.db_busy = self._is_file_locked(self.db.databaseName())
             log.e(f"Не удалось проверить версию базы данных. Ошибка: {query.lastError().text()}")
             self.db.close()
             return None
@@ -664,14 +677,16 @@ class DBHandler:
     def switch_db_files(self, new_file_path: str = "", close_current_connection: bool = False) -> bool:
         if close_current_connection:
             self.db.close()
+        temp_path: Path = Path(db_path()).with_name("db_new.db")
         try:
-            Path(db_path()).unlink(missing_ok=True)
-            shutil.copy(new_file_path, db_path())
+            shutil.copy(new_file_path, temp_path)
+            temp_path.replace(db_path())
             return True
         except FileNotFoundError:
-            log.c(f"Файл {new_file_path} не найден, рабочая база данных {db_path()} могла быть удалена")
+            log.c(f"Файл {new_file_path} не найден, рабочая база данных {db_path()} не изменена")
         except Exception as e:
-            log.x(f"При замене файла БД произошла ошибка, рабочая база данных {db_path()} могла быть удалена: {e}")
+            log.x(f"При замене файла БД произошла ошибка, рабочая база данных {db_path()} не изменена: {e}")
+        temp_path.unlink(missing_ok=True)
         return False
 
     def load_fulfillmentdata_from_db(self, begin_date: QDate, end_date: QDate) -> list | None:

@@ -1,10 +1,13 @@
+import shutil
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+import lovely_logger as log
+from PySide6.QtCore import Qt, QDateTime
 from PySide6.QtWidgets import QApplication, QDialog, QVBoxLayout, QLabel, QPushButton, QFileDialog, QWidget
 
 from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
+from base.paths import db_path, backup_dir
 from base.sync import SyncError, fetch_master
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.settings import SettingsHandler
@@ -47,12 +50,30 @@ class RecoveryDialog(QDialog):
         if migrated_path is None:
             self._fail("При проверке файла базы данных обнаружились ошибки (для подробностей см. лог). Выберите другой файл")
             return
+        if not self._save_corrupt_copy():
+            Path(migrated_path).unlink(missing_ok=True)
+            self._fail("Не удалось сохранить копию текущего файла базы данных перед заменой (для подробностей см. лог). "
+                       "Файл не заменён")
+            return
         switched: bool = self.db_handler.switch_db_files(migrated_path, close_current_connection=True)
         Path(migrated_path).unlink(missing_ok=True)
         if switched:
             self.accept()
         else:
             self._fail("При попытке заменить файл базы данных произошла ошибка (для подробностей см. лог)")
+
+    @staticmethod
+    def _save_corrupt_copy() -> bool:
+        if not Path(db_path()).is_file():
+            return True
+        copy_path: Path = Path(backup_dir()) / ("db_corrupt_" + QDateTime.currentDateTime().toString("yyyyMMdd-hhmmss") + ".db")
+        try:
+            copy_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(db_path(), copy_path)
+        except OSError as e:
+            log.x(f"Не удалось сохранить копию текущей базы данных в {copy_path}: {e}")
+            return False
+        return True
 
     def try_fetch_from_server(self) -> None:
         if SyncSettingsDialog(self.settings_handler, self).exec() != QDialog.DialogCode.Accepted:

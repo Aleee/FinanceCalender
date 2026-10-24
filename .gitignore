@@ -1,7 +1,7 @@
 /.idea/
 /.pytest_cache/
 /.venv/
-/__pycache__/
+__pycache__/
 /bin/
 /build/
 /dist/
@@ -16,6 +16,11 @@ profile_results.pstat
 /data/config/
 /data/logs/
 /docs/
+/db_user.db
+/test.csv
+/tempanalysis/
+/.coverage
+/htmlcov/
 /tempmatching/data/config/settings.ini
 /tempmatching/data/db/db.db
 /tempmatching/shots_review/00_empty.png
