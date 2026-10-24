@@ -81,8 +81,9 @@ OTHER_TABLES_DDL = [
     'CREATE TABLE "personal" ("id" INTEGER NOT NULL, "name" TEXT, "department" INTEGER, "position" INTEGER, "archived" INTEGER, PRIMARY KEY("id"))',
     'CREATE TABLE "position" ("id" INTEGER, "department" INTEGER, "name" TEXT, PRIMARY KEY("id"))',
     'CREATE TABLE "department" ("id" INTEGER NOT NULL, "name" TEXT NOT NULL, PRIMARY KEY("id"))',
-    'CREATE TABLE "finplan" ("year" INTEGER, "category" INTEGER, "m1" INTEGER)',
-    'CREATE TABLE "fulfillmentdata" ("startdate" TEXT, "enddate" TEXT, "10000" INTEGER, UNIQUE("enddate", "startdate"))',
+    'CREATE TABLE "finplan" ("year" INTEGER, "category" INTEGER, ' + ", ".join(f'"m{month}" INTEGER' for month in range(1, 13)) + ")",
+    'CREATE TABLE "fulfillmentdata" ("startdate" TEXT, "enddate" TEXT, "10000" INTEGER, "21000" INTEGER, "22000" INTEGER, '
+    '"23100" INTEGER, "23200" INTEGER, UNIQUE("enddate", "startdate"))',
     'CREATE TABLE "contractdocumenttype" ("id" INTEGER, "name" TEXT)',
 ]
 

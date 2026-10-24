@@ -1,5 +1,3 @@
-import sqlite3
-
 import pytest
 from PySide6.QtCore import QDate
 
@@ -14,11 +12,6 @@ END = QDate(2026, 1, 31)
 @pytest.fixture
 def hdb(tmp_path, shared_dbh):
     path = create_db(tmp_path / "db" / "db.db", DB_VERSION)
-    with sqlite3.connect(path) as con:
-        con.execute('DROP TABLE fulfillmentdata')
-        con.execute('CREATE TABLE fulfillmentdata (startdate TEXT, enddate TEXT, "10000" INTEGER, "21000" INTEGER, '
-                    '"22000" INTEGER, "23100" INTEGER, "23200" INTEGER, UNIQUE(enddate, startdate))')
-    con.close()
     shared_dbh.db.close()
     shared_dbh.db.setDatabaseName(str(path))
     assert shared_dbh.db.open()
