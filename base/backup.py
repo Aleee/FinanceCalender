@@ -10,7 +10,7 @@ from base.paths import db_path, backup_dir
 from gui.settings import SettingsHandler
 
 BACKUP_FILE_PREFIXES = ("backup_", "before_sync_", "before_restore_")
-SERVICE_COPY_PREFIXES = ("conflict_", "discarded_", "db_corrupt_")
+SERVICE_COPY_PREFIXES = ("conflict_", "discarded_", "db_corrupt_", "before_sync_", "before_restore_")
 SERVICE_COPY_KEEP_DAYS = 90
 
 
