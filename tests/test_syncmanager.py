@@ -33,6 +33,7 @@ def test_messages_only_for_actions_without_automatic_result():
 
 
 def test_channel_uses_folder_from_settings(settings_handler, tmp_path):
+    settings_handler.settings.setValue("Sync/channel", "folder")
     settings_handler.set_sync_folder(str(tmp_path / "exchange"))
     channel = create_sync_channel(settings_handler)
     assert isinstance(channel, FolderChannel)
@@ -85,6 +86,7 @@ def test_failure_status_texts():
 
 
 def test_channel_type_follows_settings(settings_handler, tmp_path):
+    settings_handler.settings.setValue("Sync/channel", "folder")
     assert isinstance(create_sync_channel(settings_handler), FolderChannel)
     settings_handler.settings.setValue("Sync/channel", "yandex")
     settings_handler.settings.setValue("Sync/token", " abc ")

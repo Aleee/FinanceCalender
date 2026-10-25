@@ -41,8 +41,8 @@ class SettingsHandler:
         return str_bool(self.settings.value("Sync/enabled"), False)
 
     def sync_channel_type(self) -> str:
-        channel_type: str = self.settings.value("Sync/channel", "folder")
-        return channel_type if channel_type in ("yandex", "folder") else "folder"
+        channel_type: str = self.settings.value("Sync/channel", "yandex")
+        return channel_type if channel_type in ("yandex", "folder") else "yandex"
 
     def sync_token(self) -> str:
         return self.settings.value("Sync/token", "") or ""

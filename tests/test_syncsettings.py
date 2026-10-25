@@ -45,6 +45,7 @@ def test_defaults(settings_handler):
 def test_dialog_saves_values(settings_handler, tmp_path, messages):
     dialog = SyncSettingsDialog(settings_handler)
     dialog.ui.chb_enabled.setChecked(True)
+    dialog.ui.cmb_channel.setCurrentIndex(dialog.ui.cmb_channel.findData("folder"))
     dialog.ui.le_folder.setText(str(tmp_path))
     dialog.ui.le_author.setText("  Иванов ")
     dialog.ui.spb_interval.setValue(10)
@@ -97,16 +98,16 @@ def test_disabled_sync_does_not_require_folder(settings_handler, messages):
     assert messages == []
 
 
-def test_channel_defaults_keep_folder_mode(settings_handler):
-    assert settings_handler.sync_channel_type() == "folder"
+def test_channel_defaults_to_yandex(settings_handler):
+    assert settings_handler.sync_channel_type() == "yandex"
     assert settings_handler.sync_token() == ""
     assert settings_handler.sync_disk_folder() == "app:/"
     assert settings_handler.sync_token_expires() == ""
 
 
-def test_unknown_channel_type_falls_back_to_folder(settings_handler):
+def test_unknown_channel_type_falls_back_to_yandex(settings_handler):
     settings_handler.settings.setValue("Sync/channel", "ftp")
-    assert settings_handler.sync_channel_type() == "folder"
+    assert settings_handler.sync_channel_type() == "yandex"
 
 
 def test_dialog_shows_only_rows_of_selected_channel(settings_handler):
