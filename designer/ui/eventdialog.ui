@@ -959,7 +959,6 @@
   <tabstop>te_descr</tabstop>
   <tabstop>te_notes</tabstop>
   <tabstop>chb_hidden</tabstop>
-  <tabstop>pb_cancel</tabstop>
   <tabstop>pb_toggle</tabstop>
   <tabstop>cmb_contractor</tabstop>
   <tabstop>cmb_contract</tabstop>
@@ -971,6 +970,8 @@
   <tabstop>pb_applypaymentdate</tabstop>
   <tabstop>pb_fillwithvalues</tabstop>
   <tabstop>pb_savevalues</tabstop>
+  <tabstop>pb_cancel</tabstop>
+  <tabstop>pb_accept</tabstop>
  </tabstops>
  <resources>
   <include location="../../resources.qrc"/>

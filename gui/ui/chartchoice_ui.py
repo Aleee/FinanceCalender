@@ -99,6 +99,10 @@ class Ui_ChartChoiceDialog(object):
 
         self.gridLayout.addWidget(self.de_start, 0, 2, 1, 1)
 
+        QWidget.setTabOrder(self.de_start, self.de_end)
+        QWidget.setTabOrder(self.de_end, self.rb_chart1)
+        QWidget.setTabOrder(self.rb_chart1, self.pb_cancel)
+        QWidget.setTabOrder(self.pb_cancel, self.pb_continue)
 
         self.retranslateUi(ChartChoiceDialog)
 

@@ -92,6 +92,13 @@
    <header>gui/fulfillmentwidget.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>tv_fulfillment</tabstop>
+  <tabstop>cb_highlight</tabstop>
+  <tabstop>pb_exportxls</tabstop>
+  <tabstop>pb_exportpdf</tabstop>
+  <tabstop>pb_close</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

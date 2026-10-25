@@ -430,9 +430,9 @@
   <tabstop>lw_document</tabstop>
   <tabstop>tb_history_document</tabstop>
   <tabstop>chb_show_archived</tabstop>
-  <tabstop>pb_next</tabstop>
-  <tabstop>pb_cancel</tabstop>
   <tabstop>pb_back</tabstop>
+  <tabstop>pb_cancel</tabstop>
+  <tabstop>pb_next</tabstop>
  </tabstops>
  <resources>
   <include location="../../resources.qrc"/>

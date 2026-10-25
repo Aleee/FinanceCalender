@@ -358,10 +358,24 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout.addWidget(self.pb_cancel, 16, 1, 1, 1)
 
+        QWidget.setTabOrder(self.rb_planfulfillment, self.rb_ndsfreepayments)
+        QWidget.setTabOrder(self.rb_ndsfreepayments, self.rb_onemonth)
+        QWidget.setTabOrder(self.rb_onemonth, self.cmb_onemonth)
+        QWidget.setTabOrder(self.cmb_onemonth, self.spb_onemonth_year)
+        QWidget.setTabOrder(self.spb_onemonth_year, self.rb_severalmonths)
+        QWidget.setTabOrder(self.rb_severalmonths, self.cmb_severalmonths_begin)
+        QWidget.setTabOrder(self.cmb_severalmonths_begin, self.cmb_severalmonths_end)
+        QWidget.setTabOrder(self.cmb_severalmonths_end, self.spb_severalmonths_year_end)
+        QWidget.setTabOrder(self.spb_severalmonths_year_end, self.rb_customperiod)
+        QWidget.setTabOrder(self.rb_customperiod, self.de_customperiod_begin)
+        QWidget.setTabOrder(self.de_customperiod_begin, self.de_customperiod_end)
+        QWidget.setTabOrder(self.de_customperiod_end, self.spb_10000)
         QWidget.setTabOrder(self.spb_10000, self.spb_21000)
         QWidget.setTabOrder(self.spb_21000, self.spb_22000)
         QWidget.setTabOrder(self.spb_22000, self.spb_23100)
         QWidget.setTabOrder(self.spb_23100, self.spb_23200)
+        QWidget.setTabOrder(self.spb_23200, self.pb_cancel)
+        QWidget.setTabOrder(self.pb_cancel, self.pb_continue)
 
         self.retranslateUi(FulfillmentOptionDialog)
 

@@ -555,8 +555,7 @@ class Ui_EventDialog(object):
         QWidget.setTabOrder(self.tb_responsible, self.te_descr)
         QWidget.setTabOrder(self.te_descr, self.te_notes)
         QWidget.setTabOrder(self.te_notes, self.chb_hidden)
-        QWidget.setTabOrder(self.chb_hidden, self.pb_cancel)
-        QWidget.setTabOrder(self.pb_cancel, self.pb_toggle)
+        QWidget.setTabOrder(self.chb_hidden, self.pb_toggle)
         QWidget.setTabOrder(self.pb_toggle, self.cmb_contractor)
         QWidget.setTabOrder(self.cmb_contractor, self.cmb_contract)
         QWidget.setTabOrder(self.cmb_contract, self.cmb_document)
@@ -567,6 +566,8 @@ class Ui_EventDialog(object):
         QWidget.setTabOrder(self.spb_paymentperiodyear, self.pb_applypaymentdate)
         QWidget.setTabOrder(self.pb_applypaymentdate, self.pb_fillwithvalues)
         QWidget.setTabOrder(self.pb_fillwithvalues, self.pb_savevalues)
+        QWidget.setTabOrder(self.pb_savevalues, self.pb_cancel)
+        QWidget.setTabOrder(self.pb_cancel, self.pb_accept)
 
         self.retranslateUi(EventDialog)
 

@@ -144,6 +144,13 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>de_start</tabstop>
+  <tabstop>de_end</tabstop>
+  <tabstop>rb_chart1</tabstop>
+  <tabstop>pb_cancel</tabstop>
+  <tabstop>pb_continue</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

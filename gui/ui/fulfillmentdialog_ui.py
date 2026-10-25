@@ -62,6 +62,10 @@ class Ui_FulfillmentDialog(object):
 
         self.gridLayout.addItem(self.verticalSpacer, 1, 0, 1, 1)
 
+        QWidget.setTabOrder(self.tv_fulfillment, self.cb_highlight)
+        QWidget.setTabOrder(self.cb_highlight, self.pb_exportxls)
+        QWidget.setTabOrder(self.pb_exportxls, self.pb_exportpdf)
+        QWidget.setTabOrder(self.pb_exportpdf, self.pb_close)
 
         self.retranslateUi(FulfillmentDialog)
 

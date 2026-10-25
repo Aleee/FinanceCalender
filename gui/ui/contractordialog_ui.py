@@ -225,9 +225,9 @@ class Ui_ContractorDialog(object):
         QWidget.setTabOrder(self.tb_history_contract, self.lw_document)
         QWidget.setTabOrder(self.lw_document, self.tb_history_document)
         QWidget.setTabOrder(self.tb_history_document, self.chb_show_archived)
-        QWidget.setTabOrder(self.chb_show_archived, self.pb_next)
-        QWidget.setTabOrder(self.pb_next, self.pb_cancel)
-        QWidget.setTabOrder(self.pb_cancel, self.pb_back)
+        QWidget.setTabOrder(self.chb_show_archived, self.pb_back)
+        QWidget.setTabOrder(self.pb_back, self.pb_cancel)
+        QWidget.setTabOrder(self.pb_cancel, self.pb_next)
 
         self.retranslateUi(ContractorDialog)
 

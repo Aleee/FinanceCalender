@@ -607,11 +607,25 @@
   </customwidget>
  </customwidgets>
  <tabstops>
+  <tabstop>rb_planfulfillment</tabstop>
+  <tabstop>rb_ndsfreepayments</tabstop>
+  <tabstop>rb_onemonth</tabstop>
+  <tabstop>cmb_onemonth</tabstop>
+  <tabstop>spb_onemonth_year</tabstop>
+  <tabstop>rb_severalmonths</tabstop>
+  <tabstop>cmb_severalmonths_begin</tabstop>
+  <tabstop>cmb_severalmonths_end</tabstop>
+  <tabstop>spb_severalmonths_year_end</tabstop>
+  <tabstop>rb_customperiod</tabstop>
+  <tabstop>de_customperiod_begin</tabstop>
+  <tabstop>de_customperiod_end</tabstop>
   <tabstop>spb_10000</tabstop>
   <tabstop>spb_21000</tabstop>
   <tabstop>spb_22000</tabstop>
   <tabstop>spb_23100</tabstop>
   <tabstop>spb_23200</tabstop>
+  <tabstop>pb_cancel</tabstop>
+  <tabstop>pb_continue</tabstop>
  </tabstops>
  <resources/>
  <connections/>
