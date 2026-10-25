@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 from pathlib import Path
 import lovely_logger as log
 from PySide6.QtCore import QDateTime, QDate
@@ -12,6 +13,8 @@ from gui.settings import SettingsHandler
 BACKUP_FILE_PREFIXES = ("backup_", "before_sync_", "before_restore_")
 SERVICE_COPY_PREFIXES = ("conflict_", "discarded_", "db_corrupt_", "before_sync_", "before_restore_")
 SERVICE_COPY_KEEP_DAYS = 90
+RENAME_ATTEMPTS = 5
+RENAME_PAUSE_SECONDS = 0.5
 
 
 def save_backup(sh: SettingsHandler, dbh: DBHandler) -> QDateTime:
@@ -106,6 +109,18 @@ def save_pre_restore_copy(dbh: DBHandler) -> bool:
     return dbh.copy_db_file(str(copy_path))
 
 
+def rename_with_retry(source: Path, target: Path) -> None:
+    for attempt in range(1, RENAME_ATTEMPTS + 1):
+        try:
+            source.rename(target)
+            return
+        except PermissionError as e:
+            if attempt == RENAME_ATTEMPTS:
+                raise
+            log.w(f"Файл {source.name} занят, попытка {attempt} из {RENAME_ATTEMPTS}: {e}")
+            time.sleep(RENAME_PAUSE_SECONDS)
+
+
 def replace_db_file(dbh: DBHandler, db_file_path: str) -> bool:
     temp_file_created: bool = False
     database: QSqlDatabase = QSqlDatabase.database()
@@ -115,7 +130,7 @@ def replace_db_file(dbh: DBHandler, db_file_path: str) -> bool:
     temp_db_path: Path = default_db_path.parent / "db_temp.db"
     try:
         temp_db_path.unlink(missing_ok=True)
-        default_db_path.rename(temp_db_path)
+        rename_with_retry(default_db_path, temp_db_path)
         temp_file_created = True
         shutil.copy(Path(db_file_path), default_db_path)
         temp_db_path.unlink(missing_ok=True)
