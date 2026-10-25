@@ -102,6 +102,7 @@ class ContractDocumentDialog(QDialog):
             self.setup_view_mode()
 
     def setup_view_mode(self) -> None:
+        self.setWindowTitle(f"{self.windowTitle()} (просмотр)")
         make_read_only(self)
         self.btn_save.hide()
         cancel_button = self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Cancel)
