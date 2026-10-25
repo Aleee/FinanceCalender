@@ -276,3 +276,6 @@ class SettingsHandler:
         self.settings.setValue("Mainwindow/pos", normal_geometry.topLeft())
         window_state: int = 2 if self.mw.isFullScreen() else int(self.mw.isMaximized())
         self.settings.setValue("Mainwindow/fullscreen", window_state)
+
+        for obsolete_key in ("Sidepanel/receiverfilter", "Matching/csvhash", "Matching/mainsplitter"):
+            self.settings.remove(obsolete_key)
