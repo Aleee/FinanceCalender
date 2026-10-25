@@ -403,7 +403,7 @@ class MainWindow(QMainWindow):
         self.table_model.layoutChanged.connect(self.check_export_availability)
         # События при смене выбранного ивента
         self.ui.trw_event.selectionModel().currentChanged.connect(self.on_currentevent_change)
-        self.ui.trw_event.doubleClicked.connect(lambda: self.ui.act_edit.trigger())
+        self.ui.trw_event.activated.connect(lambda: self.ui.act_edit.trigger())
         # Сигналы таблицы платежей
         self.ui.tv_payment.selectionModel().selectionChanged.connect(self.check_payment_selection_visibility)
         self.ui.tv_payment.doubleClicked.connect(self.edit_payment)
