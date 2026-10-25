@@ -322,7 +322,7 @@ def build_manual(output_dir: Path = OUTPUT_DIR) -> bool:
     for warning in warnings:
         print("  !", warning)
     print(f"Руководство собрано: {len(grouped)} разделов -> {output_dir}")
-    return True
+    return not warnings
 
 
 def main() -> None:

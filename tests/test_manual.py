@@ -45,7 +45,7 @@ def built_manual(tmp_path, monkeypatch) -> Path:
     write_source(source)
     monkeypatch.setattr(buildmod, "SOURCE_DIR", source)
     output = tmp_path / "manual"
-    assert buildmod.build_manual(output)
+    assert not buildmod.build_manual(output)
     return output
 
 
