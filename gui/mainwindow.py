@@ -1108,7 +1108,9 @@ class MainWindow(QMainWindow):
                 return None
             return f"{title.contractor_name}, № {title.contract_number} от {date_displstr(title.contract_date)} ({title.document_name})"
 
-        return {"responsible": responsible_name, "contractdocument_id": document_name}
+        subcategories = {str(code): name for name, code in EventDialog.SUBCATEGORY_COMBOBOX if code}
+
+        return {"responsible": responsible_name, "contractdocument_id": document_name, "subcategory": subcategories.get}
 
     def open_change_log(self) -> None:
         if self.current_data(Col.TYPE) != RowType.LIABILITY:

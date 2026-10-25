@@ -45,6 +45,22 @@ def test_insert_and_delete_show_snapshot_without_service_columns(dbh, current_db
     assert ("Получатель", "ООО Ромашка", "—") in delete.fields
 
 
+def test_snapshot_hides_row_type_and_unset_references(dbh, current_db, event_id):
+    assert dbh.delete_event(event_id)
+    delete, insert = operations_of(dbh, event_id)
+    titles = [title for title, _, _ in insert.fields]
+    assert "Тип" not in titles and "Подкатегория" not in titles and "Документ договора" not in titles
+
+
+def test_unset_reference_is_shown_as_not_set_and_subcategory_is_resolved(dbh, current_db, event_id):
+    assert dbh.update_event_field(event_id, "subcategory", "2")
+    assert dbh.update_event_field(event_id, "subcategory", "0")
+    resolvers = {"subcategory": {"2": "Погашение лизинга"}.get}
+    fields = [field for operation in operations_of(dbh, event_id, resolvers) for field in operation.fields]
+    assert ("Подкатегория", "—", "Погашение лизинга") in fields
+    assert ("Подкатегория", "Погашение лизинга", "не задан") in fields
+
+
 def test_history_is_limited_to_the_selected_event(dbh, current_db, event_id):
     other = dbh.insert_event(event_data(receiver="Другой", type=2, name="Иное"))
     assert dbh.insert_payment([other, "2026-10-10", "5.00", "2026-10-10"]) is not None

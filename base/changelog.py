@@ -7,7 +7,8 @@ from base.syncdiff import BOOL_COLUMNS, column_title, format_value
 
 INSERT, UPDATE, DELETE = "insert", "update", "delete"
 EVENT_TABLE, PAYMENT_TABLE = "event", "payment"
-SNAPSHOT_SKIPPED_COLUMNS = ("id", "eventid")
+SNAPSHOT_SKIPPED_COLUMNS = ("id", "eventid", "type")
+UNSET_COLUMNS = ("subcategory", "contractdocument_id")
 EVENT_TITLES = {INSERT: "Платеж добавлен", UPDATE: "Платеж изменён", DELETE: "Платеж удалён"}
 PAYMENT_ACTION_TITLES = {INSERT: "добавлена", UPDATE: "изменена", DELETE: "удалена"}
 
@@ -44,7 +45,13 @@ class ChangeOperation:
     fields: list[tuple[str, str, str]] = field(default_factory=list)
 
 
+def is_unset(column: str, value: object) -> bool:
+    return column in UNSET_COLUMNS and str(value) == "0"
+
+
 def display_value(column: str, value: object, resolvers: ValueResolvers) -> str:
+    if is_unset(column, value):
+        return "не задан"
     resolve = resolvers.get(column)
     name = resolve(str(value)) if resolve is not None and value not in (None, "") else None
     return format_value(value if name is None else name, column)
@@ -89,7 +96,8 @@ def snapshot_fields(record: ChangeRecord, resolvers: ValueResolvers) -> list[tup
     is_insert = record.action == INSERT
     fields: list[tuple[str, str, str]] = []
     for column, value in snapshot_values(record.new_value if is_insert else record.old_value).items():
-        if column in SNAPSHOT_SKIPPED_COLUMNS or value in (None, "") or (column in BOOL_COLUMNS and str(value) in ("0", "False")):
+        if (column in SNAPSHOT_SKIPPED_COLUMNS or value in (None, "") or is_unset(column, value)
+                or (column in BOOL_COLUMNS and str(value) in ("0", "False"))):
             continue
         shown = display_value(column, value, resolvers)
         fields.append((column_title(column), "—" if is_insert else shown, shown if is_insert else "—"))
