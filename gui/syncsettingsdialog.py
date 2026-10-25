@@ -78,6 +78,7 @@ class SyncSettingsDialog(QDialog):
             ErrorInfoMessageBox("Укажите токен", parent=self).exec()
             return
         channel = create_yandex_channel(token, self.ui.le_diskfolder.text())
+        self.setEnabled(False)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
             channel.check_connection()
@@ -87,10 +88,16 @@ class SyncSettingsDialog(QDialog):
             error = ""
         finally:
             QApplication.restoreOverrideCursor()
+            self.setEnabled(True)
         if error:
             ErrorInfoMessageBox(f"Подключиться не удалось: {error}", parent=self).exec()
         else:
             ErrorInfoMessageBox("Подключение работает", is_info=True, parent=self).exec()
+
+    def done(self, result: int) -> None:
+        if not self.isEnabled():
+            return
+        super().done(result)
 
     def open_netdiag(self) -> None:
         NetDiagDialog(self.ui.le_token.text().strip(), self.ui.le_diskfolder.text().strip() or "app:/", self).exec()
