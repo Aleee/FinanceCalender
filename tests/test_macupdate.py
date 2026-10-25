@@ -71,14 +71,14 @@ def test_failed_copy_keeps_old_version(stand):
 
 def test_waits_for_running_process(stand, monkeypatch):
     tmp_path, app, *_ = stand
+    if os.name == "nt":
+        pytest.skip("pid Windows не виден из msys bash")
     process = subprocess.Popen([BASH, "-c", "sleep 2"])
     try:
-        pid = str(process.pid)
-        if os.name == "nt":
-            pytest.skip("pid Windows не виден из msys bash")
-        result = run_script(stand, pid)
+        result = run_script(stand, str(process.pid))
     finally:
         process.kill()
+        process.wait()
     assert result.returncode == 0
     assert (app / "new.txt").exists()
 

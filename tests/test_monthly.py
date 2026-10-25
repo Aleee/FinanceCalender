@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import closing
 from decimal import Decimal
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from tests.dbtools import create_db, fetch_all, table_columns
 @pytest.fixture
 def old_db(dbh, work_db_path: Path) -> Path:
     create_db(work_db_path, 8)
-    with sqlite3.connect(work_db_path) as con:
+    with closing(sqlite3.connect(work_db_path)) as con, con:
         con.execute("INSERT INTO contractor (id, name) VALUES (1, 'ООО Ромашка')")
         con.execute("INSERT INTO contract (id, contractor_id, name, date) VALUES (1, 1, '1', '2026-01-01')")
     return work_db_path
@@ -35,7 +36,7 @@ def document(document_id: int = 0, monthly: bool = False, monthly_amount: Decima
 
 
 def test_migration_to_v9_adds_monthly_columns(dbh, old_db):
-    with sqlite3.connect(old_db) as con:
+    with closing(sqlite3.connect(old_db)) as con, con:
         con.execute("INSERT INTO contractdocument (id, contract_id, document_name) VALUES (1, 1, 'Акт')")
 
     assert dbh.migrate_db()
