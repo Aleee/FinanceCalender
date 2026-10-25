@@ -7,8 +7,9 @@ from base.formatting import str_decimal
 
 @pytest.mark.parametrize("raw, expected", [
     ("1234.50", Decimal("1234.50")),
-    ("1234,50", Decimal("1234.50")),
     ("1 234,50", Decimal("1234.50")),
+    ("1 234,50", Decimal("1234.50")),
+    ("1 234,50", Decimal("1234.50")),
     ("-20", Decimal("-20")),
     ("0", Decimal("0")),
 ])

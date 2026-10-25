@@ -41,7 +41,7 @@ def str_rubstr(string: str) -> str:
 
 def str_decimal(raw: str) -> Optional[Decimal]:
     try:
-        value = Decimal(raw.replace(" ", "").replace(",", "."))
+        value = Decimal(raw.replace(" ", "").replace("\u00a0", "").replace("\u202f", "").replace(",", "."))
     except (InvalidOperation, AttributeError):
         return None
     return value if value.is_finite() else None
