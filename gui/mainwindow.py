@@ -252,7 +252,8 @@ class MainWindow(QMainWindow):
             planfact_actions = [self.ui.act_finplan, self.ui.act_fulfillment, self.ui.act_chart]
             view_tooltip, bank_tooltip = "На контроле, заголовки и итоги разделов", "Сверка банковской выписки и учет комиссий"
             planfact_tooltip = "Исполнение финансового плана, финансовый план и графики"
-        tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions, view_tooltip)
+        self.view_tooltip = view_tooltip
+        tb_view = self.tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions, view_tooltip)
         tb_bank = self._make_toolbar_split_button(
             self.ui.act_matching, bank_actions, "Сверка", ":/icon-toolbar/designer/icons/matching.svg", bank_tooltip)
         tb_copy = None if is_viewer() else self._make_toolbar_split_button(self.ui.act_copy, copy_actions)
@@ -1143,6 +1144,14 @@ class MainWindow(QMainWindow):
         self.ui.lw_category.update_labels(category_labeldata)
         self.ui.trw_event.span_columns()
         self.ui.pb_resetfilters.setEnabled(self.any_filter_active())
+        self.update_view_button_state()
+
+    def update_view_button_state(self) -> None:
+        featured: bool = self.ui.act_featured.isChecked()
+        font_style: str = f"font-size: {FontSize.LARGE - 1}pt;"
+        highlight: str = "background-color: #d6e6f7; border: 1px solid #7aa7d6; border-radius: 3px;"
+        self.tb_view.setStyleSheet(f"QToolButton {{ {font_style} {highlight if featured else ''} }}")
+        self.tb_view.setToolTip(f"{self.view_tooltip}\nВключён фильтр: На контроле" if featured else self.view_tooltip)
 
     def any_filter_active(self) -> bool:
         return (any(is_active() for *_, is_active in self.filter_sections)
