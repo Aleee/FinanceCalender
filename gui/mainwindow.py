@@ -287,11 +287,14 @@ class MainWindow(QMainWindow):
             button.ensurePolished()
             button_groups[-1].append(button)
         for group in button_groups:
-            group_width: int = max(self._toolbar_button_width(button) +
-                                   (self._toolbar_arrow_width(button) if button in (tb_contracts, tb_copy) else 0)
-                                   for button in group)
+            widest: QToolButton = max(group, key=lambda b: self._toolbar_button_width(b) + self._toolbar_arrow_width(b))
+            group_width: int = self._toolbar_button_width(widest) + self._toolbar_arrow_width(widest)
+            plain_width: int = group_width - self._toolbar_arrow_width(widest)
             for button in group:
-                button.setFixedWidth(group_width + (0 if button in (tb_contracts, tb_copy) else self._toolbar_arrow_width(button)))
+                if self._toolbar_arrow_width(button):
+                    button.setFixedWidth(group_width)
+                else:
+                    button.setFixedWidth(max(plain_width, self._toolbar_button_width(button)))
 
     @staticmethod
     def _toolbar_button_width(button: QToolButton) -> int:
