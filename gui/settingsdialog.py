@@ -1,5 +1,4 @@
 import os.path
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -7,7 +6,7 @@ from PySide6 import QtGui
 from PySide6.QtGui import QPalette, QRegularExpressionValidator, QShortcut, QKeySequence, QDesktopServices
 from PySide6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QLineEdit, QFileDialog, QButtonGroup, QWidget, \
     QInputDialog, QPushButton, QApplication
-from PySide6.QtCore import Qt, QSize, QRegularExpression, QModelIndex, QDate, QTimer, QUrl
+from PySide6.QtCore import Qt, QSize, QRegularExpression, QModelIndex, QDate, QUrl
 
 from gui.manualdialog import add_help_shortcut, open_manual
 from base.backup import restore_backup

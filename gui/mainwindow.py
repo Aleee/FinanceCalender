@@ -7,7 +7,7 @@ import lovely_logger as log
 from PySide6.QtCore import QEvent, QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
 from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPalette, QShortcut
 from PySide6.QtSql import QSqlTableModel
-from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QStyle, QWidget, QListView, QToolButton, QSizePolicy
+from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QStyle, QWidget, QListView, QToolButton
 
 from base.backup import clean_backup_folder, clean_service_copies, save_backup
 from base.changelog import build_operations

@@ -18,7 +18,7 @@ from base.edition import is_viewer
 from base.httpclient import MAX_ATTEMPTS, RESPONSE_TIMEOUT_MS, RETRY_PAUSE_MS
 from base.macupdate import APP_BUNDLE, install_location_problem, launch_mac_updater
 from base.paths import app_dir, update_dir
-from base.version import APP_VERSION, DB_VERSION, is_newer
+from base.version import DB_VERSION, is_newer
 
 API_URL = "https://cloud-api.yandex.net/v1/disk/public/resources/download"
 PUBLIC_KEY = "https://disk.yandex.by/d/-feulMjOLlZpoA"

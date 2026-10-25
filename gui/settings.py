@@ -4,7 +4,7 @@ from enum import IntEnum
 
 import lovely_logger as log
 
-from PySide6.QtCore import QSettings, QDir, QSize, QPoint, QRect, QCoreApplication, QTimer, Qt
+from PySide6.QtCore import QSettings, QSize, QPoint, QRect, QCoreApplication, QTimer, Qt
 from PySide6.QtWidgets import QApplication, QWidget
 
 from base.casting import str_bool, str_int

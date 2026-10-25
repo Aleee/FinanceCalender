@@ -16,15 +16,15 @@ from PySide6.QtSql import QSqlDatabase, QSqlQuery
 import lovely_logger as log
 
 from base.changelog import ChangeRecord
-from base.date import str_date, date_str, date_displstr
+from base.date import str_date, date_str
 from base.edition import is_viewer
 from base.formatting import str_decimal
-from base.liability import EVENT_COLUMN_NAMES, LiabilityCategory, RowType
+from base.liability import EVENT_COLUMN_NAMES, RowType
 from base.migrations import (MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS, CHANGELOG_TABLE,
                              CHANGELOG_DATA_TABLES, CHANGELOG_ACTIONS, CHANGELOG_AUTHOR_KEY, CHANGELOG_MACHINE_KEY,
                              changelog_triggers)
 from base.paths import db_path, backup_dir
-from base.payment import Payment, PaymentEntry, PaymentInfo
+from base.payment import PaymentEntry, PaymentInfo
 from base.syncdiff import (DbDiff, TableDiff, MergePlan, MergeWarnings, DETAILED_TABLES, KEY_COLUMNS, REFERENCES,
                            TABLE_DERIVED_COLUMNS, key_sql, table_key)
 from base.workcalendar import clear_calendar_cache

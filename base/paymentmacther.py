@@ -10,7 +10,6 @@ from decimal import Decimal
 from itertools import combinations
 from typing import Optional
 
-import lovely_logger as log
 
 from base.casting import str_int
 from base.dbhandler import DBHandler

@@ -1,15 +1,13 @@
 from decimal import Decimal
 from typing import Callable, Optional
 
-from PySide6.QtCore import QDate, QSettings
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QDialog, QButtonGroup, QLayout, QDialogButtonBox, QWidget
 
 from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
 from base.edition import is_viewer
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, ContractInfo
-from base.paymentdate import calculate_payment_date
-from base.workcalendar import WEEKDAY_ABBR
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.commonwidgets.readonly import make_read_only
 from gui.contracthistorydialog import ContractHistoryDialog, document_scope
