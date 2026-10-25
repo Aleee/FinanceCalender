@@ -323,8 +323,12 @@ class MatchingDialog(QDialog):
 
     def load_marks(self) -> ReconciliationMarks:
         saved = self.read_saved_marks().get(self.csv_hash, {})
-        return ReconciliationMarks(set(saved.get("hidden", [])), [tuple(keys) for keys in saved.get("links", [])],
-                                   set(saved.get("rejected", [])))
+        try:
+            return ReconciliationMarks(set(saved.get("hidden", [])), [tuple(keys) for keys in saved.get("links", [])],
+                                       set(saved.get("rejected", [])))
+        except (AttributeError, TypeError, ValueError) as e:
+            log.w(f"Пометки сверки для выписки повреждены и не загружены: {e!r}")
+            return ReconciliationMarks()
 
     def save_marks(self):
         state = self.read_saved_marks()
