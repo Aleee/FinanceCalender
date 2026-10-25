@@ -46,6 +46,7 @@ class RecoveryDialog(QDialog):
                                                 "SQLite3 Database (*.db)")[0]
         if not path:
             return
+        self.settings_handler.settings.setValue("Recovery/path", str(Path(path).parent))
         migrated_path: str | None = self.db_handler.make_migrated_copy(path)
         if migrated_path is None:
             self._fail("При проверке файла базы данных обнаружились ошибки (для подробностей см. лог). Выберите другой файл")
