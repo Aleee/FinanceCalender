@@ -88,13 +88,14 @@ class UpdateController(QObject):
             self.progress_dialog = None
 
     def on_progress(self, received: int, total: int) -> None:
-        if self.progress_dialog is None or total <= 0:
+        dialog = self.progress_dialog
+        if dialog is None or total <= 0:
             return
-        self.progress_dialog.setMaximum(total)
-        self.progress_dialog.setValue(received)
-        if received >= total:
-            self.progress_dialog.setLabelText("Проверка и распаковка файлов…")
-            self.progress_dialog.setCancelButton(None)
+        dialog.setMaximum(total)
+        dialog.setValue(received)
+        if received >= total and self.progress_dialog is dialog:
+            dialog.setLabelText("Проверка и распаковка файлов…")
+            dialog.setCancelButton(None)
             QApplication.processEvents()
 
     def on_failed(self, message: str) -> None:
