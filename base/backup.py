@@ -7,6 +7,7 @@ from PySide6.QtCore import QDateTime, QDate
 from PySide6.QtSql import QSqlDatabase
 
 from base.dbhandler import DBHandler
+from base.lockinfo import lock_holders
 from base.paths import db_path, backup_dir
 from gui.settings import SettingsHandler
 
@@ -109,12 +110,24 @@ def save_pre_restore_copy(dbh: DBHandler) -> bool:
     return dbh.copy_db_file(str(copy_path))
 
 
+def describe_busy_file(path: Path) -> str:
+    connections: str = ", ".join(f"{name}: {'открыто' if QSqlDatabase.database(name, False).isOpen() else 'закрыто'}"
+                                 for name in QSqlDatabase.connectionNames()) or "нет"
+    try:
+        neighbours: str = ", ".join(f"{item.name} ({item.stat().st_size} байт)" for item in sorted(path.parent.iterdir()))
+    except OSError as e:
+        neighbours = f"не удалось прочитать папку ({e})"
+    return f"соединения Qt: {connections}; файлы в папке: {neighbours}; процессы, держащие файл: {lock_holders(path)}"
+
+
 def rename_with_retry(source: Path, target: Path) -> None:
     for attempt in range(1, RENAME_ATTEMPTS + 1):
         try:
             source.rename(target)
             return
         except PermissionError as e:
+            if attempt in (1, RENAME_ATTEMPTS):
+                log.w(f"Диагностика занятого файла {source.name}, попытка {attempt} из {RENAME_ATTEMPTS}: {describe_busy_file(source)}")
             if attempt == RENAME_ATTEMPTS:
                 raise
             log.w(f"Файл {source.name} занят, попытка {attempt} из {RENAME_ATTEMPTS}: {e}")
