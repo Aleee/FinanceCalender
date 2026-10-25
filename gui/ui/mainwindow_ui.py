@@ -217,21 +217,21 @@ class Ui_MainWindow(object):
 
         self.gridLayout_2.addWidget(self.wdg_search, 1, 0, 1, 1)
 
-        self.scrollArea = QScrollArea(self.wdg_eventfilter)
-        self.scrollArea.setObjectName(u"scrollArea")
-        self.scrollArea.setStyleSheet(u"QPushButton {\n"
+        self.sa_eventfilter = QScrollArea(self.wdg_eventfilter)
+        self.sa_eventfilter.setObjectName(u"sa_eventfilter")
+        self.sa_eventfilter.setStyleSheet(u"QPushButton {\n"
 "    border:none\n"
 "}\n"
 "QWidget#scrollAreaWidgetContents {background-color:white;}")
-        self.scrollArea.setFrameShape(QFrame.Shape.NoFrame)
-        self.scrollArea.setLineWidth(1)
-        self.scrollArea.setWidgetResizable(True)
-        self.scrollAreaWidgetContents = QWidget()
-        self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 337, 671))
-        self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents)
+        self.sa_eventfilter.setFrameShape(QFrame.Shape.NoFrame)
+        self.sa_eventfilter.setLineWidth(1)
+        self.sa_eventfilter.setWidgetResizable(True)
+        self.wdg_eventfilter_contents = QWidget()
+        self.wdg_eventfilter_contents.setObjectName(u"wdg_eventfilter_contents")
+        self.wdg_eventfilter_contents.setGeometry(QRect(0, 0, 337, 671))
+        self.gridLayout_3 = QGridLayout(self.wdg_eventfilter_contents)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.spb_responsible = SwitchPushButton(self.scrollAreaWidgetContents)
+        self.spb_responsible = SwitchPushButton(self.wdg_eventfilter_contents)
         self.spb_responsible.setObjectName(u"spb_responsible")
         font = QFont()
         font.setBold(True)
@@ -244,14 +244,14 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addItem(self.verticalSpacer_7, 16, 0, 1, 1)
 
-        self.spb_period = SwitchPushButton(self.scrollAreaWidgetContents)
+        self.spb_period = SwitchPushButton(self.wdg_eventfilter_contents)
         self.spb_period.setObjectName(u"spb_period")
         self.spb_period.setFont(font)
         self.spb_period.setStyleSheet(u"border-width: 0px; text-align: left;")
 
         self.gridLayout_3.addWidget(self.spb_period, 7, 0, 1, 2)
 
-        self.wdg_period = QWidget(self.scrollAreaWidgetContents)
+        self.wdg_period = QWidget(self.wdg_eventfilter_contents)
         self.wdg_period.setObjectName(u"wdg_period")
         self.gridLayout_period = QGridLayout(self.wdg_period)
         self.gridLayout_period.setObjectName(u"gridLayout_period")
@@ -265,10 +265,10 @@ class Ui_MainWindow(object):
 
         self.gridLayout_period.addWidget(self.cmb_perioddate, 3, 0, 1, 2)
 
-        self.label_datefrom = QLabel(self.wdg_period)
-        self.label_datefrom.setObjectName(u"label_datefrom")
+        self.la_datefrom = QLabel(self.wdg_period)
+        self.la_datefrom.setObjectName(u"la_datefrom")
 
-        self.gridLayout_period.addWidget(self.label_datefrom, 0, 0, 1, 1)
+        self.gridLayout_period.addWidget(self.la_datefrom, 0, 0, 1, 1)
 
         self.de_datefrom = OptionalDateEdit(self.wdg_period)
         self.de_datefrom.setObjectName(u"de_datefrom")
@@ -277,10 +277,10 @@ class Ui_MainWindow(object):
 
         self.gridLayout_period.addWidget(self.de_datefrom, 0, 1, 1, 1)
 
-        self.label_dateto = QLabel(self.wdg_period)
-        self.label_dateto.setObjectName(u"label_dateto")
+        self.la_dateto = QLabel(self.wdg_period)
+        self.la_dateto.setObjectName(u"la_dateto")
 
-        self.gridLayout_period.addWidget(self.label_dateto, 1, 0, 1, 1)
+        self.gridLayout_period.addWidget(self.la_dateto, 1, 0, 1, 1)
 
         self.de_dateto = OptionalDateEdit(self.wdg_period)
         self.de_dateto.setObjectName(u"de_dateto")
@@ -300,13 +300,13 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addItem(self.verticalSpacer_11, 9, 0, 1, 1)
 
-        self.chb_paytoday = QCheckBox(self.scrollAreaWidgetContents)
+        self.chb_paytoday = QCheckBox(self.wdg_eventfilter_contents)
         self.chb_paytoday.setObjectName(u"chb_paytoday")
         self.chb_paytoday.setFont(font)
 
         self.gridLayout_3.addWidget(self.chb_paytoday, 20, 0, 1, 2)
 
-        self.lw_term = TermFilterListWidget(self.scrollAreaWidgetContents)
+        self.lw_term = TermFilterListWidget(self.wdg_eventfilter_contents)
         self.lw_term.setObjectName(u"lw_term")
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -318,14 +318,14 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addWidget(self.lw_term, 5, 0, 1, 2)
 
-        self.spb_category = SwitchPushButton(self.scrollAreaWidgetContents)
+        self.spb_category = SwitchPushButton(self.wdg_eventfilter_contents)
         self.spb_category.setObjectName(u"spb_category")
         self.spb_category.setFont(font)
         self.spb_category.setStyleSheet(u"border-width: 0px; text-align: left;")
 
         self.gridLayout_3.addWidget(self.spb_category, 10, 0, 1, 2)
 
-        self.cmb_responsiblefilter = QComboBox(self.scrollAreaWidgetContents)
+        self.cmb_responsiblefilter = QComboBox(self.wdg_eventfilter_contents)
         self.cmb_responsiblefilter.setObjectName(u"cmb_responsiblefilter")
 
         self.gridLayout_3.addWidget(self.cmb_responsiblefilter, 18, 0, 1, 2)
@@ -338,7 +338,7 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addItem(self.verticalSpacer, 21, 0, 1, 2)
 
-        self.lw_category = CategoryFilterListWidget(self.scrollAreaWidgetContents)
+        self.lw_category = CategoryFilterListWidget(self.wdg_eventfilter_contents)
         self.lw_category.setObjectName(u"lw_category")
         sizePolicy.setHeightForWidth(self.lw_category.sizePolicy().hasHeightForWidth())
         self.lw_category.setSizePolicy(sizePolicy)
@@ -347,7 +347,7 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addWidget(self.lw_category, 12, 0, 1, 2)
 
-        self.spb_term = SwitchPushButton(self.scrollAreaWidgetContents)
+        self.spb_term = SwitchPushButton(self.wdg_eventfilter_contents)
         self.spb_term.setObjectName(u"spb_term")
         self.spb_term.setFont(font)
         self.spb_term.setStyleSheet(u"border-width: 0px; text-align: left;")
@@ -362,9 +362,9 @@ class Ui_MainWindow(object):
 
         self.gridLayout_3.addItem(self.verticalSpacer_9, 3, 0, 1, 1)
 
-        self.scrollArea.setWidget(self.scrollAreaWidgetContents)
+        self.sa_eventfilter.setWidget(self.wdg_eventfilter_contents)
 
-        self.gridLayout_2.addWidget(self.scrollArea, 2, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.sa_eventfilter, 2, 0, 1, 1)
 
         self.spl_main.addWidget(self.wdg_eventfilter)
         self.spl_workarea = QSplitter(self.spl_main)
@@ -496,11 +496,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.tla_remainsum = QLabel(self.wdg_eventinfo)
-        self.tla_remainsum.setObjectName(u"tla_remainsum")
-        self.tla_remainsum.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.la_remainsum_title = QLabel(self.wdg_eventinfo)
+        self.la_remainsum_title.setObjectName(u"la_remainsum_title")
+        self.la_remainsum_title.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.horizontalLayout.addWidget(self.tla_remainsum)
+        self.horizontalLayout.addWidget(self.la_remainsum_title)
 
         self.la_remainsum = QLabel(self.wdg_eventinfo)
         self.la_remainsum.setObjectName(u"la_remainsum")
@@ -516,11 +516,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_4 = QHBoxLayout()
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.tla_contractbound = QLabel(self.wdg_eventinfo)
-        self.tla_contractbound.setObjectName(u"tla_contractbound")
-        self.tla_contractbound.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.la_contractbound_title = QLabel(self.wdg_eventinfo)
+        self.la_contractbound_title.setObjectName(u"la_contractbound_title")
+        self.la_contractbound_title.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.horizontalLayout_4.addWidget(self.tla_contractbound)
+        self.horizontalLayout_4.addWidget(self.la_contractbound_title)
 
         self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -531,11 +531,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.tla_paymenttype = QLabel(self.wdg_eventinfo)
-        self.tla_paymenttype.setObjectName(u"tla_paymenttype")
-        self.tla_paymenttype.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.la_paymenttype_title = QLabel(self.wdg_eventinfo)
+        self.la_paymenttype_title.setObjectName(u"la_paymenttype_title")
+        self.la_paymenttype_title.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.horizontalLayout_3.addWidget(self.tla_paymenttype)
+        self.horizontalLayout_3.addWidget(self.la_paymenttype_title)
 
         self.la_paymenttype = QLabel(self.wdg_eventinfo)
         self.la_paymenttype.setObjectName(u"la_paymenttype")
@@ -554,11 +554,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_3.addWidget(self.ln_paymenttype)
 
-        self.tla_createdate = QLabel(self.wdg_eventinfo)
-        self.tla_createdate.setObjectName(u"tla_createdate")
-        self.tla_createdate.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.la_createdate_title = QLabel(self.wdg_eventinfo)
+        self.la_createdate_title.setObjectName(u"la_createdate_title")
+        self.la_createdate_title.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.horizontalLayout_3.addWidget(self.tla_createdate)
+        self.horizontalLayout_3.addWidget(self.la_createdate_title)
 
         self.la_createdate = QLabel(self.wdg_eventinfo)
         self.la_createdate.setObjectName(u"la_createdate")
@@ -584,11 +584,11 @@ class Ui_MainWindow(object):
 
         self.gridLayout_6.addWidget(self.label, 11, 0, 1, 4)
 
-        self.tla_descr = QLabel(self.wdg_eventinfo)
-        self.tla_descr.setObjectName(u"tla_descr")
-        self.tla_descr.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
+        self.la_descr_title = QLabel(self.wdg_eventinfo)
+        self.la_descr_title.setObjectName(u"la_descr_title")
+        self.la_descr_title.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
 
-        self.gridLayout_6.addWidget(self.tla_descr, 9, 0, 1, 4)
+        self.gridLayout_6.addWidget(self.la_descr_title, 9, 0, 1, 4)
 
         self.te_descr = AutoResizingTextEdit(self.wdg_eventinfo)
         self.te_descr.setObjectName(u"te_descr")
@@ -782,10 +782,10 @@ class Ui_MainWindow(object):
         self.cmb_perioddate.setItemText(1, QCoreApplication.translate("MainWindow", u"\u0414\u0430\u0442\u0430 \u0432\u043e\u0437\u043d\u0438\u043a\u043d\u043e\u0432\u0435\u043d\u0438\u044f", None))
         self.cmb_perioddate.setItemText(2, QCoreApplication.translate("MainWindow", u"\u0414\u0430\u0442\u0430 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0439 \u043e\u043f\u043b\u0430\u0442\u044b", None))
 
-        self.label_datefrom.setText(QCoreApplication.translate("MainWindow", u"\u0421:", None))
+        self.la_datefrom.setText(QCoreApplication.translate("MainWindow", u"\u0421:", None))
         self.de_datefrom.setSpecialValueText(QCoreApplication.translate("MainWindow", u"\u00a0", None))
         self.de_datefrom.setDisplayFormat(QCoreApplication.translate("MainWindow", u"dd.MM.yyyy", None))
-        self.label_dateto.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e:", None))
+        self.la_dateto.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e:", None))
         self.de_dateto.setSpecialValueText(QCoreApplication.translate("MainWindow", u"\u00a0", None))
         self.de_dateto.setDisplayFormat(QCoreApplication.translate("MainWindow", u"dd.MM.yyyy", None))
         self.chb_paytoday.setText(QCoreApplication.translate("MainWindow", u"\u041e\u041f\u041b\u0410\u0422\u0410 \u0421\u0415\u0413\u041e\u0414\u041d\u042f", None))
@@ -795,16 +795,16 @@ class Ui_MainWindow(object):
         self.pb_deletepayment.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c", None))
         self.pb_addpayment.setText(QCoreApplication.translate("MainWindow", u"\u041e\u043f\u043b\u0430\u0442\u0438\u0442\u044c", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"\u0414\u0430\u0442\u0430 \u0438 \u0441\u0443\u043c\u043c\u0430", None))
-        self.tla_remainsum.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0441\u0442\u0430\u0442\u043e\u043a \u043f\u043b\u0430\u0442\u0435\u0436\u0430:  ", None))
+        self.la_remainsum_title.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0441\u0442\u0430\u0442\u043e\u043a \u043f\u043b\u0430\u0442\u0435\u0436\u0430:  ", None))
         self.la_remainsum.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.tla_contractbound.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u0438\u0432\u044f\u0437\u0430\u043d \u043a \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0443:", None))
-        self.tla_paymenttype.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0438\u0434:  ", None))
+        self.la_contractbound_title.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u0438\u0432\u044f\u0437\u0430\u043d \u043a \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0443:", None))
+        self.la_paymenttype_title.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0438\u0434:  ", None))
         self.la_paymenttype.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.tla_createdate.setText(QCoreApplication.translate("MainWindow", u"   \u0414\u0430\u0442\u0430 \u0432\u043e\u0437\u043d\u0438\u043a\u043d\u043e\u0432\u0435\u043d\u0438\u044f:  ", None))
+        self.la_createdate_title.setText(QCoreApplication.translate("MainWindow", u"   \u0414\u0430\u0442\u0430 \u0432\u043e\u0437\u043d\u0438\u043a\u043d\u043e\u0432\u0435\u043d\u0438\u044f:  ", None))
         self.la_createdate.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.la_contractbound.setText("")
         self.label.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043c\u0435\u0442\u043a\u0438:", None))
-        self.tla_descr.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0441\u043d\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0430:", None))
+        self.la_descr_title.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0441\u043d\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0430:", None))
         self.la_emptyinfo.setText(QCoreApplication.translate("MainWindow", u"\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043f\u043b\u0430\u0442\u0435\u0436 \u0432 \u0442\u0430\u0431\u043b\u0438\u0446\u0435, \u0447\u0442\u043e\u0431\u044b \u0443\u0432\u0438\u0434\u0435\u0442\u044c \u043f\u043e\u0434\u0440\u043e\u0431\u043d\u043e\u0441\u0442\u0438", None))
         self.tlbr.setWindowTitle(QCoreApplication.translate("MainWindow", u"\u041f\u0430\u043d\u0435\u043b\u044c \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u043e\u0432", None))
     # retranslateUi

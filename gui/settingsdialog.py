@@ -181,8 +181,8 @@ class SettingsDialog(QDialog):
         self.ui.lv_personal.doubleClicked.disconnect()
         self.ui.lw_positions.itemDoubleClicked.disconnect()
         make_read_only(self.ui.pg_common)
-        make_read_only(self.ui.page_2, keep=(self.ui.cmb_calender_year,))
-        make_read_only(self.ui.page, keep=(self.ui.cmb_positions_department,))
+        make_read_only(self.ui.pg_calendar, keep=(self.ui.cmb_calender_year,))
+        make_read_only(self.ui.pg_personal, keep=(self.ui.cmb_positions_department,))
 
     def prepare_personalpage(self):
         self.personal_model = PersonalTableModel(self.db_handler, self)
@@ -658,7 +658,7 @@ class SettingsDialog(QDialog):
                                 f"font-weight: {'bold' if chb_bold.isChecked() else 'normal'}; "
                                 "border: 1px solid #c0c0c0; padding: 2px 8px;")
         # Qt не пересчитывает раскладку скрытой страницы до её первого показа
-        self.ui.groupBox_8.layout().activate()
+        self.ui.grp_format_view.layout().activate()
 
     def change_path(self, le_widget: QLineEdit) -> None:
         path: str = QFileDialog.getExistingDirectory(self, "Выберите папку", le_widget.text())

@@ -36,11 +36,11 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout.addWidget(self.pb_continue, 16, 2, 1, 1)
 
-        self.stackedWidget = QStackedWidget(FulfillmentOptionDialog)
-        self.stackedWidget.setObjectName(u"stackedWidget")
-        self.page = QWidget()
-        self.page.setObjectName(u"page")
-        self.gridLayout_2 = QGridLayout(self.page)
+        self.stw_option = QStackedWidget(FulfillmentOptionDialog)
+        self.stw_option.setObjectName(u"stw_option")
+        self.pg_period = QWidget()
+        self.pg_period.setObjectName(u"pg_period")
+        self.gridLayout_2 = QGridLayout(self.pg_period)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.verticalSpacer_2 = QSpacerItem(20, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
@@ -48,15 +48,15 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.horizontalLayout_4 = QHBoxLayout()
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.widget_3 = QWidget(self.page)
-        self.widget_3.setObjectName(u"widget_3")
-        self.widget_3.setMinimumSize(QSize(30, 0))
-        self.widget_3.setMaximumSize(QSize(30, 16777215))
-        self.horizontalLayout_8 = QHBoxLayout(self.widget_3)
+        self.wdg_indent_onemonth = QWidget(self.pg_period)
+        self.wdg_indent_onemonth.setObjectName(u"wdg_indent_onemonth")
+        self.wdg_indent_onemonth.setMinimumSize(QSize(30, 0))
+        self.wdg_indent_onemonth.setMaximumSize(QSize(30, 16777215))
+        self.horizontalLayout_8 = QHBoxLayout(self.wdg_indent_onemonth)
         self.horizontalLayout_8.setSpacing(0)
         self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
         self.horizontalLayout_8.setContentsMargins(0, 0, 0, 0)
-        self.label_4 = QLabel(self.widget_3)
+        self.label_4 = QLabel(self.wdg_indent_onemonth)
         self.label_4.setObjectName(u"label_4")
         self.label_4.setMinimumSize(QSize(25, 0))
         self.label_4.setMaximumSize(QSize(25, 16777215))
@@ -65,14 +65,14 @@ class Ui_FulfillmentOptionDialog(object):
         self.horizontalLayout_8.addWidget(self.label_4)
 
 
-        self.horizontalLayout_4.addWidget(self.widget_3)
+        self.horizontalLayout_4.addWidget(self.wdg_indent_onemonth)
 
-        self.cmb_severalmonths_end = QComboBox(self.page)
+        self.cmb_severalmonths_end = QComboBox(self.pg_period)
         self.cmb_severalmonths_end.setObjectName(u"cmb_severalmonths_end")
 
         self.horizontalLayout_4.addWidget(self.cmb_severalmonths_end)
 
-        self.spb_severalmonths_year_end = QSpinBox(self.page)
+        self.spb_severalmonths_year_end = QSpinBox(self.pg_period)
         self.spb_severalmonths_year_end.setObjectName(u"spb_severalmonths_year_end")
         self.spb_severalmonths_year_end.setMinimumSize(QSize(70, 0))
         self.spb_severalmonths_year_end.setMaximumSize(QSize(70, 16777215))
@@ -86,15 +86,15 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.widget_2 = QWidget(self.page)
-        self.widget_2.setObjectName(u"widget_2")
-        self.widget_2.setMinimumSize(QSize(30, 0))
-        self.widget_2.setMaximumSize(QSize(30, 16777215))
-        self.horizontalLayout_7 = QHBoxLayout(self.widget_2)
+        self.wdg_indent_severalmonths = QWidget(self.pg_period)
+        self.wdg_indent_severalmonths.setObjectName(u"wdg_indent_severalmonths")
+        self.wdg_indent_severalmonths.setMinimumSize(QSize(30, 0))
+        self.wdg_indent_severalmonths.setMaximumSize(QSize(30, 16777215))
+        self.horizontalLayout_7 = QHBoxLayout(self.wdg_indent_severalmonths)
         self.horizontalLayout_7.setSpacing(0)
         self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
         self.horizontalLayout_7.setContentsMargins(0, 0, 0, 0)
-        self.label_3 = QLabel(self.widget_2)
+        self.label_3 = QLabel(self.wdg_indent_severalmonths)
         self.label_3.setObjectName(u"label_3")
         self.label_3.setMinimumSize(QSize(25, 0))
         self.label_3.setMaximumSize(QSize(25, 16777215))
@@ -103,9 +103,9 @@ class Ui_FulfillmentOptionDialog(object):
         self.horizontalLayout_7.addWidget(self.label_3)
 
 
-        self.horizontalLayout_3.addWidget(self.widget_2)
+        self.horizontalLayout_3.addWidget(self.wdg_indent_severalmonths)
 
-        self.cmb_severalmonths_begin = QComboBox(self.page)
+        self.cmb_severalmonths_begin = QComboBox(self.pg_period)
         self.cmb_severalmonths_begin.setObjectName(u"cmb_severalmonths_begin")
 
         self.horizontalLayout_3.addWidget(self.cmb_severalmonths_begin)
@@ -119,7 +119,7 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.rb_customperiod = QRadioButton(self.page)
+        self.rb_customperiod = QRadioButton(self.pg_period)
         self.rb_customperiod.setObjectName(u"rb_customperiod")
         font = QFont()
         font.setBold(False)
@@ -131,23 +131,23 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.horizontalLayout.addItem(self.horizontalSpacer_2)
 
-        self.label = QLabel(self.page)
+        self.label = QLabel(self.pg_period)
         self.label.setObjectName(u"label")
 
         self.horizontalLayout.addWidget(self.label)
 
-        self.de_customperiod_begin = FirstDayDateEdit(self.page)
+        self.de_customperiod_begin = FirstDayDateEdit(self.pg_period)
         self.de_customperiod_begin.setObjectName(u"de_customperiod_begin")
         self.de_customperiod_begin.setCalendarPopup(True)
 
         self.horizontalLayout.addWidget(self.de_customperiod_begin)
 
-        self.label_2 = QLabel(self.page)
+        self.label_2 = QLabel(self.pg_period)
         self.label_2.setObjectName(u"label_2")
 
         self.horizontalLayout.addWidget(self.label_2)
 
-        self.de_customperiod_end = QDateEdit(self.page)
+        self.de_customperiod_end = QDateEdit(self.pg_period)
         self.de_customperiod_end.setObjectName(u"de_customperiod_end")
         self.de_customperiod_end.setCalendarPopup(True)
 
@@ -156,14 +156,14 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout_2.addLayout(self.horizontalLayout, 9, 0, 1, 1)
 
-        self.line_3 = QFrame(self.page)
+        self.line_3 = QFrame(self.pg_period)
         self.line_3.setObjectName(u"line_3")
         self.line_3.setFrameShape(QFrame.Shape.HLine)
         self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_2.addWidget(self.line_3, 2, 0, 1, 1)
 
-        self.rb_planfulfillment = QRadioButton(self.page)
+        self.rb_planfulfillment = QRadioButton(self.pg_period)
         self.rb_planfulfillment.setObjectName(u"rb_planfulfillment")
         self.rb_planfulfillment.setChecked(True)
 
@@ -175,19 +175,19 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.horizontalLayout_5 = QHBoxLayout()
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
-        self.widget = QWidget(self.page)
-        self.widget.setObjectName(u"widget")
-        self.widget.setMinimumSize(QSize(30, 0))
-        self.widget.setMaximumSize(QSize(30, 16777215))
+        self.wdg_indent_customperiod = QWidget(self.pg_period)
+        self.wdg_indent_customperiod.setObjectName(u"wdg_indent_customperiod")
+        self.wdg_indent_customperiod.setMinimumSize(QSize(30, 0))
+        self.wdg_indent_customperiod.setMaximumSize(QSize(30, 16777215))
 
-        self.horizontalLayout_5.addWidget(self.widget)
+        self.horizontalLayout_5.addWidget(self.wdg_indent_customperiod)
 
-        self.cmb_onemonth = QComboBox(self.page)
+        self.cmb_onemonth = QComboBox(self.pg_period)
         self.cmb_onemonth.setObjectName(u"cmb_onemonth")
 
         self.horizontalLayout_5.addWidget(self.cmb_onemonth)
 
-        self.spb_onemonth_year = QSpinBox(self.page)
+        self.spb_onemonth_year = QSpinBox(self.pg_period)
         self.spb_onemonth_year.setObjectName(u"spb_onemonth_year")
         self.spb_onemonth_year.setMinimumSize(QSize(70, 0))
         self.spb_onemonth_year.setMaximumSize(QSize(70, 16777215))
@@ -199,45 +199,45 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout_2.addLayout(self.horizontalLayout_5, 4, 0, 1, 1)
 
-        self.rb_onemonth = QRadioButton(self.page)
+        self.rb_onemonth = QRadioButton(self.pg_period)
         self.rb_onemonth.setObjectName(u"rb_onemonth")
         self.rb_onemonth.setFont(font)
 
         self.gridLayout_2.addWidget(self.rb_onemonth, 3, 0, 1, 1)
 
-        self.rb_severalmonths = QRadioButton(self.page)
+        self.rb_severalmonths = QRadioButton(self.pg_period)
         self.rb_severalmonths.setObjectName(u"rb_severalmonths")
         self.rb_severalmonths.setFont(font)
 
         self.gridLayout_2.addWidget(self.rb_severalmonths, 5, 0, 1, 1)
 
-        self.rb_ndsfreepayments = QRadioButton(self.page)
+        self.rb_ndsfreepayments = QRadioButton(self.pg_period)
         self.rb_ndsfreepayments.setObjectName(u"rb_ndsfreepayments")
         self.rb_ndsfreepayments.setEnabled(True)
 
         self.gridLayout_2.addWidget(self.rb_ndsfreepayments, 1, 0, 1, 1)
 
-        self.stackedWidget.addWidget(self.page)
-        self.page_2 = QWidget()
-        self.page_2.setObjectName(u"page_2")
-        self.gridLayout_3 = QGridLayout(self.page_2)
+        self.stw_option.addWidget(self.pg_period)
+        self.pg_nds = QWidget()
+        self.pg_nds.setObjectName(u"pg_nds")
+        self.gridLayout_3 = QGridLayout(self.pg_nds)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.gridLayout_3.setVerticalSpacing(4)
-        self.line_7 = QFrame(self.page_2)
+        self.line_7 = QFrame(self.pg_nds)
         self.line_7.setObjectName(u"line_7")
         self.line_7.setFrameShape(QFrame.Shape.HLine)
         self.line_7.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_3.addWidget(self.line_7, 11, 0, 1, 2)
 
-        self.line_5 = QFrame(self.page_2)
+        self.line_5 = QFrame(self.pg_nds)
         self.line_5.setObjectName(u"line_5")
         self.line_5.setFrameShape(QFrame.Shape.HLine)
         self.line_5.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_3.addWidget(self.line_5, 7, 0, 1, 2)
 
-        self.spb_10000 = AutoSelectSpinbox(self.page_2)
+        self.spb_10000 = AutoSelectSpinbox(self.pg_nds)
         self.spb_10000.setObjectName(u"spb_10000")
         self.spb_10000.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.spb_10000.setProperty(u"showGroupSeparator", True)
@@ -246,12 +246,12 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout_3.addWidget(self.spb_10000, 4, 1, 1, 1)
 
-        self.label_5 = QLabel(self.page_2)
+        self.label_5 = QLabel(self.pg_nds)
         self.label_5.setObjectName(u"label_5")
 
         self.gridLayout_3.addWidget(self.label_5, 4, 0, 1, 1)
 
-        self.spb_23100 = AutoSelectSpinbox(self.page_2)
+        self.spb_23100 = AutoSelectSpinbox(self.pg_nds)
         self.spb_23100.setObjectName(u"spb_23100")
         self.spb_23100.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.spb_23100.setProperty(u"showGroupSeparator", True)
@@ -260,12 +260,12 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout_3.addWidget(self.spb_23100, 10, 1, 1, 1)
 
-        self.label_8 = QLabel(self.page_2)
+        self.label_8 = QLabel(self.pg_nds)
         self.label_8.setObjectName(u"label_8")
 
         self.gridLayout_3.addWidget(self.label_8, 10, 0, 1, 1)
 
-        self.spb_21000 = AutoSelectSpinbox(self.page_2)
+        self.spb_21000 = AutoSelectSpinbox(self.pg_nds)
         self.spb_21000.setObjectName(u"spb_21000")
         self.spb_21000.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.spb_21000.setProperty(u"showGroupSeparator", True)
@@ -274,12 +274,12 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout_3.addWidget(self.spb_21000, 6, 1, 1, 1)
 
-        self.label_6 = QLabel(self.page_2)
+        self.label_6 = QLabel(self.pg_nds)
         self.label_6.setObjectName(u"label_6")
 
         self.gridLayout_3.addWidget(self.label_6, 6, 0, 1, 1)
 
-        self.spb_23200 = AutoSelectSpinbox(self.page_2)
+        self.spb_23200 = AutoSelectSpinbox(self.pg_nds)
         self.spb_23200.setObjectName(u"spb_23200")
         self.spb_23200.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.spb_23200.setProperty(u"showGroupSeparator", True)
@@ -292,17 +292,17 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout_3.addItem(self.verticalSpacer_3, 13, 0, 1, 1)
 
-        self.label_9 = QLabel(self.page_2)
+        self.label_9 = QLabel(self.pg_nds)
         self.label_9.setObjectName(u"label_9")
 
         self.gridLayout_3.addWidget(self.label_9, 12, 0, 1, 1)
 
-        self.label_10 = QLabel(self.page_2)
+        self.label_10 = QLabel(self.pg_nds)
         self.label_10.setObjectName(u"label_10")
 
         self.gridLayout_3.addWidget(self.label_10, 1, 0, 1, 1)
 
-        self.line_2 = QFrame(self.page_2)
+        self.line_2 = QFrame(self.pg_nds)
         self.line_2.setObjectName(u"line_2")
         self.line_2.setMidLineWidth(2)
         self.line_2.setFrameShape(QFrame.Shape.HLine)
@@ -310,19 +310,19 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout_3.addWidget(self.line_2, 2, 0, 1, 2)
 
-        self.line_6 = QFrame(self.page_2)
+        self.line_6 = QFrame(self.pg_nds)
         self.line_6.setObjectName(u"line_6")
         self.line_6.setFrameShape(QFrame.Shape.HLine)
         self.line_6.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_3.addWidget(self.line_6, 9, 0, 1, 2)
 
-        self.label_7 = QLabel(self.page_2)
+        self.label_7 = QLabel(self.pg_nds)
         self.label_7.setObjectName(u"label_7")
 
         self.gridLayout_3.addWidget(self.label_7, 8, 0, 1, 1)
 
-        self.spb_22000 = AutoSelectSpinbox(self.page_2)
+        self.spb_22000 = AutoSelectSpinbox(self.pg_nds)
         self.spb_22000.setObjectName(u"spb_22000")
         self.spb_22000.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
         self.spb_22000.setProperty(u"showGroupSeparator", True)
@@ -331,7 +331,7 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout_3.addWidget(self.spb_22000, 8, 1, 1, 1)
 
-        self.line_4 = QFrame(self.page_2)
+        self.line_4 = QFrame(self.pg_nds)
         self.line_4.setObjectName(u"line_4")
         self.line_4.setFrameShape(QFrame.Shape.HLine)
         self.line_4.setFrameShadow(QFrame.Shadow.Sunken)
@@ -342,9 +342,9 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.gridLayout_3.addItem(self.verticalSpacer_4, 3, 0, 1, 1)
 
-        self.stackedWidget.addWidget(self.page_2)
+        self.stw_option.addWidget(self.pg_nds)
 
-        self.gridLayout.addWidget(self.stackedWidget, 9, 0, 1, 3)
+        self.gridLayout.addWidget(self.stw_option, 9, 0, 1, 3)
 
         self.line = QFrame(FulfillmentOptionDialog)
         self.line.setObjectName(u"line")
@@ -379,7 +379,7 @@ class Ui_FulfillmentOptionDialog(object):
 
         self.retranslateUi(FulfillmentOptionDialog)
 
-        self.stackedWidget.setCurrentIndex(0)
+        self.stw_option.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(FulfillmentOptionDialog)

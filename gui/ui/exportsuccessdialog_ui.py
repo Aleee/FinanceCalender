@@ -27,11 +27,11 @@ class Ui_ExportSuccessDialog(object):
         self.gridLayout = QGridLayout(ExportSuccessDialog)
         self.gridLayout.setObjectName(u"gridLayout")
         self.gridLayout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
-        self.lbl_icon = QLabel(ExportSuccessDialog)
-        self.lbl_icon.setObjectName(u"lbl_icon")
-        self.lbl_icon.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
+        self.la_icon = QLabel(ExportSuccessDialog)
+        self.la_icon.setObjectName(u"la_icon")
+        self.la_icon.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
 
-        self.gridLayout.addWidget(self.lbl_icon, 0, 0, 2, 1)
+        self.gridLayout.addWidget(self.la_icon, 0, 0, 2, 1)
 
         self.label = QLabel(ExportSuccessDialog)
         self.label.setObjectName(u"label")

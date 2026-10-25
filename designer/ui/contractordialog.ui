@@ -21,7 +21,7 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
-    <widget class="QLabel" name="lbl_steps">
+    <widget class="QLabel" name="la_steps">
      <property name="text">
       <string>Контрагент → Договор → Документ</string>
      </property>
@@ -38,7 +38,7 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="page">
+     <widget class="QWidget" name="pg_contractors">
       <layout class="QGridLayout" name="gridLayout_2">
        <property name="topMargin">
         <number>0</number>
@@ -174,7 +174,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="page_2">
+     <widget class="QWidget" name="pg_contracts">
       <layout class="QGridLayout" name="gridLayout_3">
        <property name="topMargin">
         <number>0</number>
@@ -300,7 +300,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="page_3">
+     <widget class="QWidget" name="pg_documents">
       <layout class="QGridLayout" name="gridLayout_4">
        <property name="topMargin">
         <number>0</number>

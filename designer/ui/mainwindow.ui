@@ -106,7 +106,7 @@ QPushButton:disabled {color: #6e6e6e;}</string>
          </widget>
         </item>
         <item row="2" column="0">
-         <widget class="QScrollArea" name="scrollArea">
+         <widget class="QScrollArea" name="sa_eventfilter">
           <property name="styleSheet">
            <string notr="true">QPushButton {
     border:none
@@ -122,7 +122,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
           <property name="widgetResizable">
            <bool>true</bool>
           </property>
-          <widget class="QWidget" name="scrollAreaWidgetContents">
+          <widget class="QWidget" name="wdg_eventfilter_contents">
            <property name="geometry">
             <rect>
              <x>0</x>
@@ -216,7 +216,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
                 </widget>
                </item>
                <item row="0" column="0">
-                <widget class="QLabel" name="label_datefrom">
+                <widget class="QLabel" name="la_datefrom">
                  <property name="text">
                   <string>С:</string>
                  </property>
@@ -243,7 +243,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
                 </widget>
                </item>
                <item row="1" column="0">
-                <widget class="QLabel" name="label_dateto">
+                <widget class="QLabel" name="la_dateto">
                  <property name="text">
                   <string>По:</string>
                  </property>
@@ -717,7 +717,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
              <item row="0" column="0" colspan="5">
               <layout class="QHBoxLayout" name="horizontalLayout">
                <item>
-                <widget class="QLabel" name="tla_remainsum">
+                <widget class="QLabel" name="la_remainsum_title">
                  <property name="text">
                   <string>Остаток платежа:  </string>
                  </property>
@@ -751,7 +751,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
              <item row="5" column="0" colspan="5">
               <layout class="QHBoxLayout" name="horizontalLayout_4">
                <item>
-                <widget class="QLabel" name="tla_contractbound">
+                <widget class="QLabel" name="la_contractbound_title">
                  <property name="text">
                   <string>Привязан к договору:</string>
                  </property>
@@ -778,7 +778,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
              <item row="3" column="0" colspan="5">
               <layout class="QHBoxLayout" name="horizontalLayout_3">
                <item>
-                <widget class="QLabel" name="tla_paymenttype">
+                <widget class="QLabel" name="la_paymenttype_title">
                  <property name="text">
                   <string>Вид:  </string>
                  </property>
@@ -824,7 +824,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="tla_createdate">
+                <widget class="QLabel" name="la_createdate_title">
                  <property name="text">
                   <string>   Дата возникновения:  </string>
                  </property>
@@ -876,7 +876,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
               </widget>
              </item>
              <item row="9" column="0" colspan="4">
-              <widget class="QLabel" name="tla_descr">
+              <widget class="QLabel" name="la_descr_title">
                <property name="text">
                 <string>Основание платежа:</string>
                </property>

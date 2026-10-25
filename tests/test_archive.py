@@ -150,18 +150,18 @@ def test_steps_line_shows_chosen_values_escaped(db_file, open_models, shared_dbh
     con.commit()
     con.close()
     dlg = make_dialog(db_file, open_models, shared_dbh, tmp_path)
-    assert "Контрагент" in dlg.ui.lbl_steps.text()
+    assert "Контрагент" in dlg.ui.la_steps.text()
 
     dlg.ui.lw_contractor.setCurrentRow(1)
     dlg.on_continue_to_contracts()
-    steps = dlg.ui.lbl_steps.text()
+    steps = dlg.ui.la_steps.text()
     assert "А&lt;b&gt;&amp;Б" in steps
     assert "А<b>&Б" not in steps
     assert "<b>Договор</b>" in steps
 
     dlg.ui.lw_contract.setCurrentRow(1)
     dlg.on_continue_to_documents()
-    steps = dlg.ui.lbl_steps.text()
+    steps = dlg.ui.la_steps.text()
     assert "А&lt;b&gt;&amp;Б" in steps
     assert "5&lt;i&gt; от 03.02.2026" in steps
     assert "<b>Документ</b>" in steps

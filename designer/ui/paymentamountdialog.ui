@@ -27,14 +27,14 @@
      </property>
      <layout class="QFormLayout" name="formLayout_info">
       <item row="0" column="0">
-       <widget class="QLabel" name="label_receiver">
+       <widget class="QLabel" name="la_receiver_title">
         <property name="text">
          <string>Получатель:</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLabel" name="lbl_receiver">
+       <widget class="QLabel" name="la_receiver">
         <property name="text">
          <string/>
         </property>
@@ -44,14 +44,14 @@
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QLabel" name="label_name">
+       <widget class="QLabel" name="la_name_title">
         <property name="text">
          <string>Наименование:</string>
         </property>
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QLabel" name="lbl_name">
+       <widget class="QLabel" name="la_name">
         <property name="text">
          <string/>
         </property>
@@ -61,42 +61,42 @@
        </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QLabel" name="label_duedate">
+       <widget class="QLabel" name="la_duedate_title">
         <property name="text">
          <string>Срок оплаты:</string>
         </property>
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QLabel" name="lbl_duedate">
+       <widget class="QLabel" name="la_duedate">
         <property name="text">
          <string/>
         </property>
        </widget>
       </item>
       <item row="3" column="0">
-       <widget class="QLabel" name="label_paidbefore">
+       <widget class="QLabel" name="la_paidbefore_title">
         <property name="text">
          <string>Оплачено ранее:</string>
         </property>
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QLabel" name="lbl_paidbefore">
+       <widget class="QLabel" name="la_paidbefore">
         <property name="text">
          <string/>
         </property>
        </widget>
       </item>
       <item row="4" column="0">
-       <widget class="QLabel" name="label_remain">
+       <widget class="QLabel" name="la_remain_title">
         <property name="text">
          <string>Остаток после изменения:</string>
         </property>
        </widget>
       </item>
       <item row="4" column="1">
-       <widget class="QLabel" name="lbl_remain">
+       <widget class="QLabel" name="la_remain">
         <property name="text">
          <string/>
         </property>
@@ -112,7 +112,7 @@
      </property>
      <layout class="QFormLayout" name="formLayout_amounts">
       <item row="0" column="0">
-       <widget class="QLabel" name="lbl_paymentdate">
+       <widget class="QLabel" name="la_paymentdate">
         <property name="text">
          <string>Дата оплаты:</string>
         </property>
@@ -152,7 +152,7 @@
        </layout>
       </item>
       <item row="1" column="0">
-       <widget class="QLabel" name="lbl_payment">
+       <widget class="QLabel" name="la_payment">
         <property name="text">
          <string>Сумма оплаты:</string>
         </property>
@@ -208,7 +208,7 @@
        </widget>
       </item>
       <item row="3" column="0">
-       <widget class="QLabel" name="label_total">
+       <widget class="QLabel" name="la_total_title">
         <property name="text">
          <string>Общая сумма платежа:</string>
         </property>

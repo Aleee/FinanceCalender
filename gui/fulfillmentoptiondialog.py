@@ -73,7 +73,7 @@ class FulfillmentOptionDialog(QDialog):
 
     def continue_clicked(self) -> None:
         begin_date, end_date = self.get_period_data()
-        if self.ui.stackedWidget.currentIndex() == 0:
+        if self.ui.stw_option.currentIndex() == 0:
             if begin_date > end_date:
                 msg_box = ErrorInfoMessageBox("Дата начала превышает дату окончания периода")
                 msg_box.exec()
@@ -84,7 +84,7 @@ class FulfillmentOptionDialog(QDialog):
                 return
             self.load_inflow(begin_date, end_date)
             if self.ui.rb_planfulfillment.isChecked():
-                self.ui.stackedWidget.setCurrentIndex(1)
+                self.ui.stw_option.setCurrentIndex(1)
             else:
                 dlg: FulfillmentDialog = FulfillmentDialog(False, self.db_handler, self.sh, begin_date, end_date, self.get_inflow_data(), self.load_plan(begin_date, end_date), self)
                 if not dlg.load_failed:

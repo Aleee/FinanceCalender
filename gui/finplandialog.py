@@ -34,8 +34,8 @@ class FinPlanDialog(QDialog):
             self._load_failed = True
             return
 
-        self.ui.sb_year.setValue(year)
-        self.ui.sb_year.valueChanged.connect(self.on_year_changed)
+        self.ui.spb_year.setValue(year)
+        self.ui.spb_year.valueChanged.connect(self.on_year_changed)
 
         self.ui.tv_finplan.setModel(self.model)
         self.ui.tv_finplan.adjust_columns(self.sh)
@@ -76,9 +76,9 @@ class FinPlanDialog(QDialog):
             self.set_year_spinbox(self.year)
 
     def set_year_spinbox(self, year: int) -> None:
-        self.ui.sb_year.blockSignals(True)
-        self.ui.sb_year.setValue(year)
-        self.ui.sb_year.blockSignals(False)
+        self.ui.spb_year.blockSignals(True)
+        self.ui.spb_year.setValue(year)
+        self.ui.spb_year.blockSignals(False)
 
     def exec(self):
         if self._load_failed:

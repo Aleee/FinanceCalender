@@ -29,23 +29,23 @@ class Ui_ContractorDialog(object):
         ContractorDialog.setMinimumSize(QSize(420, 320))
         self.gridLayout = QGridLayout(ContractorDialog)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.lbl_steps = QLabel(ContractorDialog)
-        self.lbl_steps.setObjectName(u"lbl_steps")
-        self.lbl_steps.setTextFormat(Qt.TextFormat.RichText)
-        self.lbl_steps.setWordWrap(True)
+        self.la_steps = QLabel(ContractorDialog)
+        self.la_steps.setObjectName(u"la_steps")
+        self.la_steps.setTextFormat(Qt.TextFormat.RichText)
+        self.la_steps.setWordWrap(True)
 
-        self.gridLayout.addWidget(self.lbl_steps, 0, 0, 1, 1)
+        self.gridLayout.addWidget(self.la_steps, 0, 0, 1, 1)
 
         self.stw_main = QStackedWidget(ContractorDialog)
         self.stw_main.setObjectName(u"stw_main")
-        self.page = QWidget()
-        self.page.setObjectName(u"page")
-        self.gridLayout_2 = QGridLayout(self.page)
+        self.pg_contractors = QWidget()
+        self.pg_contractors.setObjectName(u"pg_contractors")
+        self.gridLayout_2 = QGridLayout(self.pg_contractors)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.gridLayout_2.setContentsMargins(-1, 0, -1, 0)
         self.verticalLayout_contractor_actions = QVBoxLayout()
         self.verticalLayout_contractor_actions.setObjectName(u"verticalLayout_contractor_actions")
-        self.tb_rename_contractor = QToolButton(self.page)
+        self.tb_rename_contractor = QToolButton(self.pg_contractors)
         self.tb_rename_contractor.setObjectName(u"tb_rename_contractor")
         icon = QIcon()
         icon.addFile(u":/icon-contractors/designer/icons/item_edit.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
@@ -57,7 +57,7 @@ class Ui_ContractorDialog(object):
 
         self.verticalLayout_contractor_actions.addWidget(self.tb_rename_contractor)
 
-        self.tb_archive_contractor = QToolButton(self.page)
+        self.tb_archive_contractor = QToolButton(self.pg_contractors)
         self.tb_archive_contractor.setObjectName(u"tb_archive_contractor")
         icon1 = QIcon()
         icon1.addFile(u":/icon-contractors/designer/icons/item_archive.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
@@ -69,7 +69,7 @@ class Ui_ContractorDialog(object):
 
         self.verticalLayout_contractor_actions.addWidget(self.tb_archive_contractor)
 
-        self.tb_history_contractor = QToolButton(self.page)
+        self.tb_history_contractor = QToolButton(self.pg_contractors)
         self.tb_history_contractor.setObjectName(u"tb_history_contractor")
         icon2 = QIcon()
         icon2.addFile(u":/icon-contractors/designer/icons/item_payments.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
@@ -88,31 +88,31 @@ class Ui_ContractorDialog(object):
 
         self.gridLayout_2.addLayout(self.verticalLayout_contractor_actions, 1, 1, 1, 1)
 
-        self.le_filter = QLineEdit(self.page)
+        self.le_filter = QLineEdit(self.pg_contractors)
         self.le_filter.setObjectName(u"le_filter")
         self.le_filter.setClearButtonEnabled(True)
 
         self.gridLayout_2.addWidget(self.le_filter, 0, 0, 1, 1)
 
-        self.lw_contractor = QListWidget(self.page)
+        self.lw_contractor = QListWidget(self.pg_contractors)
         self.lw_contractor.setObjectName(u"lw_contractor")
 
         self.gridLayout_2.addWidget(self.lw_contractor, 1, 0, 1, 1)
 
-        self.stw_main.addWidget(self.page)
-        self.page_2 = QWidget()
-        self.page_2.setObjectName(u"page_2")
-        self.gridLayout_3 = QGridLayout(self.page_2)
+        self.stw_main.addWidget(self.pg_contractors)
+        self.pg_contracts = QWidget()
+        self.pg_contracts.setObjectName(u"pg_contracts")
+        self.gridLayout_3 = QGridLayout(self.pg_contracts)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.gridLayout_3.setContentsMargins(-1, 0, -1, 0)
-        self.lw_contract = QListWidget(self.page_2)
+        self.lw_contract = QListWidget(self.pg_contracts)
         self.lw_contract.setObjectName(u"lw_contract")
 
         self.gridLayout_3.addWidget(self.lw_contract, 0, 0, 1, 1)
 
         self.verticalLayout_contract_actions = QVBoxLayout()
         self.verticalLayout_contract_actions.setObjectName(u"verticalLayout_contract_actions")
-        self.tb_rename_contract = QToolButton(self.page_2)
+        self.tb_rename_contract = QToolButton(self.pg_contracts)
         self.tb_rename_contract.setObjectName(u"tb_rename_contract")
         self.tb_rename_contract.setIcon(icon)
         self.tb_rename_contract.setMinimumSize(QSize(32, 32))
@@ -122,7 +122,7 @@ class Ui_ContractorDialog(object):
 
         self.verticalLayout_contract_actions.addWidget(self.tb_rename_contract)
 
-        self.tb_archive_contract = QToolButton(self.page_2)
+        self.tb_archive_contract = QToolButton(self.pg_contracts)
         self.tb_archive_contract.setObjectName(u"tb_archive_contract")
         self.tb_archive_contract.setIcon(icon1)
         self.tb_archive_contract.setMinimumSize(QSize(32, 32))
@@ -132,7 +132,7 @@ class Ui_ContractorDialog(object):
 
         self.verticalLayout_contract_actions.addWidget(self.tb_archive_contract)
 
-        self.tb_history_contract = QToolButton(self.page_2)
+        self.tb_history_contract = QToolButton(self.pg_contracts)
         self.tb_history_contract.setObjectName(u"tb_history_contract")
         self.tb_history_contract.setIcon(icon2)
         self.tb_history_contract.setMinimumSize(QSize(32, 32))
@@ -149,20 +149,20 @@ class Ui_ContractorDialog(object):
 
         self.gridLayout_3.addLayout(self.verticalLayout_contract_actions, 0, 1, 1, 1)
 
-        self.stw_main.addWidget(self.page_2)
-        self.page_3 = QWidget()
-        self.page_3.setObjectName(u"page_3")
-        self.gridLayout_4 = QGridLayout(self.page_3)
+        self.stw_main.addWidget(self.pg_contracts)
+        self.pg_documents = QWidget()
+        self.pg_documents.setObjectName(u"pg_documents")
+        self.gridLayout_4 = QGridLayout(self.pg_documents)
         self.gridLayout_4.setObjectName(u"gridLayout_4")
         self.gridLayout_4.setContentsMargins(-1, 0, -1, 0)
-        self.lw_document = QListWidget(self.page_3)
+        self.lw_document = QListWidget(self.pg_documents)
         self.lw_document.setObjectName(u"lw_document")
 
         self.gridLayout_4.addWidget(self.lw_document, 0, 0, 1, 1)
 
         self.verticalLayout_document_actions = QVBoxLayout()
         self.verticalLayout_document_actions.setObjectName(u"verticalLayout_document_actions")
-        self.tb_history_document = QToolButton(self.page_3)
+        self.tb_history_document = QToolButton(self.pg_documents)
         self.tb_history_document.setObjectName(u"tb_history_document")
         self.tb_history_document.setIcon(icon2)
         self.tb_history_document.setMinimumSize(QSize(32, 32))
@@ -179,7 +179,7 @@ class Ui_ContractorDialog(object):
 
         self.gridLayout_4.addLayout(self.verticalLayout_document_actions, 0, 1, 1, 1)
 
-        self.stw_main.addWidget(self.page_3)
+        self.stw_main.addWidget(self.pg_documents)
 
         self.gridLayout.addWidget(self.stw_main, 1, 0, 1, 1)
 
@@ -239,7 +239,7 @@ class Ui_ContractorDialog(object):
 
     def retranslateUi(self, ContractorDialog):
         ContractorDialog.setWindowTitle(QCoreApplication.translate("ContractorDialog", u"\u041a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u044b \u0438 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u044b", None))
-        self.lbl_steps.setText(QCoreApplication.translate("ContractorDialog", u"\u041a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442 \u2192 \u0414\u043e\u0433\u043e\u0432\u043e\u0440 \u2192 \u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442", None))
+        self.la_steps.setText(QCoreApplication.translate("ContractorDialog", u"\u041a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442 \u2192 \u0414\u043e\u0433\u043e\u0432\u043e\u0440 \u2192 \u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442", None))
 #if QT_CONFIG(tooltip)
         self.tb_rename_contractor.setToolTip(QCoreApplication.translate("ContractorDialog", u"\u041f\u0435\u0440\u0435\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u0442\u044c \u043a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u0430", None))
 #endif // QT_CONFIG(tooltip)

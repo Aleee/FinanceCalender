@@ -267,8 +267,8 @@ def test_document_dialog_history_button(hdb, tmp_path, monkeypatch):
 
     assert (opened[0].contractor_id, opened[0].contract_id, opened[0].document_id) == (
         contractor_id, contract_id, document_id)
-    assert opened[0].ui.lbl_scope.text() == "<b>К-1 от 10.01.2025</b> (Спецификация)"
-    assert opened[0].ui.lbl_subtitle.text() == "Альфа"
+    assert opened[0].ui.la_scope.text() == "<b>К-1 от 10.01.2025</b> (Спецификация)"
+    assert opened[0].ui.la_subtitle.text() == "Альфа"
 
 
 def test_document_dialog_monthly_fields(hdb, tmp_path):

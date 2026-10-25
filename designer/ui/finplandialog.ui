@@ -24,14 +24,14 @@
    <item row="3" column="0" colspan="2">
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QLabel" name="lbl_year">
+      <widget class="QLabel" name="la_year">
        <property name="text">
         <string>Год:</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QSpinBox" name="sb_year">
+      <widget class="QSpinBox" name="spb_year">
        <property name="minimumSize">
         <size>
          <width>80</width>

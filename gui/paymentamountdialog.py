@@ -42,10 +42,10 @@ class PaymentAmountDialog(QDialog):
         self.sign = -1 if info.total_amount < 0 else 1
         self.payment_sign = -1 if info.payment_sum < 0 else 1
 
-        self.ui.lbl_receiver.setText(info.receiver)
-        self.ui.lbl_name.setText(info.name)
-        self.ui.lbl_duedate.setText(f"{info.due_date:%d.%m.%Y}" if info.due_date else "не указан")
-        self.ui.lbl_paidbefore.setText(dec_strcommaspace(self.sign * info.paid_before))
+        self.ui.la_receiver.setText(info.receiver)
+        self.ui.la_name.setText(info.name)
+        self.ui.la_duedate.setText(f"{info.due_date:%d.%m.%Y}" if info.due_date else "не указан")
+        self.ui.la_paidbefore.setText(dec_strcommaspace(self.sign * info.paid_before))
         self.ui.de_paymentdate.setDate(info.payment_date)
         shown_sum = info.payment_sum if new_payment_sum is None else new_payment_sum
         self.ui.dsb_payment.setValue(float(abs(shown_sum)))
@@ -81,7 +81,7 @@ class PaymentAmountDialog(QDialog):
 
     def update_remain(self) -> None:
         remain = self.total_amount() - self.info.paid_before - self.payment_sum()
-        self.ui.lbl_remain.setText(dec_strcommaspace(self.sign * remain))
+        self.ui.la_remain.setText(dec_strcommaspace(self.sign * remain))
 
     def problem_text(self) -> str:
         if self.ui.dsb_payment.value() == 0:

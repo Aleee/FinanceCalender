@@ -35,7 +35,7 @@
     </widget>
    </item>
    <item row="2" column="0">
-    <widget class="QCheckBox" name="cb_highlight">
+    <widget class="QCheckBox" name="chb_highlight">
      <property name="toolTip">
       <string>Выделять строки, где факт превышает план более чем на 10%: расходы красным, поступления зелёным</string>
      </property>
@@ -94,7 +94,7 @@
  </customwidgets>
  <tabstops>
   <tabstop>tv_fulfillment</tabstop>
-  <tabstop>cb_highlight</tabstop>
+  <tabstop>chb_highlight</tabstop>
   <tabstop>pb_exportxls</tabstop>
   <tabstop>pb_exportpdf</tabstop>
   <tabstop>pb_close</tabstop>

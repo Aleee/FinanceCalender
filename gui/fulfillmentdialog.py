@@ -41,10 +41,10 @@ class FulfillmentDialog(QDialog):
         self.ui.tv_fulfillment.setup_rows()
         self.ui.tv_fulfillment.setup_columns()
 
-        self.ui.cb_highlight.setVisible(self.is_fulfillment_toshow)
-        self.ui.cb_highlight.setChecked(self.sh.fulfillment_highlight())
-        self.model.set_highlight_enabled(self.ui.cb_highlight.isChecked())
-        self.ui.cb_highlight.toggled.connect(self.toggle_highlight)
+        self.ui.chb_highlight.setVisible(self.is_fulfillment_toshow)
+        self.ui.chb_highlight.setChecked(self.sh.fulfillment_highlight())
+        self.model.set_highlight_enabled(self.ui.chb_highlight.isChecked())
+        self.ui.chb_highlight.toggled.connect(self.toggle_highlight)
 
         self.ui.pb_exportxls.clicked.connect(lambda: self.export(ExportFormat.XLSX))
         self.ui.pb_exportpdf.clicked.connect(lambda: self.export(ExportFormat.PDF))

@@ -43,11 +43,11 @@ class Ui_FulfillmentDialog(object):
 
         self.gridLayout.addWidget(self.pb_close, 2, 4, 1, 1)
 
-        self.cb_highlight = QCheckBox(FulfillmentDialog)
-        self.cb_highlight.setObjectName(u"cb_highlight")
-        self.cb_highlight.setChecked(True)
+        self.chb_highlight = QCheckBox(FulfillmentDialog)
+        self.chb_highlight.setObjectName(u"chb_highlight")
+        self.chb_highlight.setChecked(True)
 
-        self.gridLayout.addWidget(self.cb_highlight, 2, 0, 1, 1)
+        self.gridLayout.addWidget(self.chb_highlight, 2, 0, 1, 1)
 
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -62,8 +62,8 @@ class Ui_FulfillmentDialog(object):
 
         self.gridLayout.addItem(self.verticalSpacer, 1, 0, 1, 1)
 
-        QWidget.setTabOrder(self.tv_fulfillment, self.cb_highlight)
-        QWidget.setTabOrder(self.cb_highlight, self.pb_exportxls)
+        QWidget.setTabOrder(self.tv_fulfillment, self.chb_highlight)
+        QWidget.setTabOrder(self.chb_highlight, self.pb_exportxls)
         QWidget.setTabOrder(self.pb_exportxls, self.pb_exportpdf)
         QWidget.setTabOrder(self.pb_exportpdf, self.pb_close)
 
@@ -80,9 +80,9 @@ class Ui_FulfillmentDialog(object):
         self.pb_exportxls.setText(QCoreApplication.translate("FulfillmentDialog", u" \u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0432 XLS ", None))
         self.pb_close.setText(QCoreApplication.translate("FulfillmentDialog", u"\u0417\u0430\u043a\u0440\u044b\u0442\u044c", None))
 #if QT_CONFIG(tooltip)
-        self.cb_highlight.setToolTip(QCoreApplication.translate("FulfillmentDialog", u"\u0412\u044b\u0434\u0435\u043b\u044f\u0442\u044c \u0441\u0442\u0440\u043e\u043a\u0438, \u0433\u0434\u0435 \u0444\u0430\u043a\u0442 \u043f\u0440\u0435\u0432\u044b\u0448\u0430\u0435\u0442 \u043f\u043b\u0430\u043d \u0431\u043e\u043b\u0435\u0435 \u0447\u0435\u043c \u043d\u0430 10%: \u0440\u0430\u0441\u0445\u043e\u0434\u044b \u043a\u0440\u0430\u0441\u043d\u044b\u043c, \u043f\u043e\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u044f \u0437\u0435\u043b\u0451\u043d\u044b\u043c", None))
+        self.chb_highlight.setToolTip(QCoreApplication.translate("FulfillmentDialog", u"\u0412\u044b\u0434\u0435\u043b\u044f\u0442\u044c \u0441\u0442\u0440\u043e\u043a\u0438, \u0433\u0434\u0435 \u0444\u0430\u043a\u0442 \u043f\u0440\u0435\u0432\u044b\u0448\u0430\u0435\u0442 \u043f\u043b\u0430\u043d \u0431\u043e\u043b\u0435\u0435 \u0447\u0435\u043c \u043d\u0430 10%: \u0440\u0430\u0441\u0445\u043e\u0434\u044b \u043a\u0440\u0430\u0441\u043d\u044b\u043c, \u043f\u043e\u0441\u0442\u0443\u043f\u043b\u0435\u043d\u0438\u044f \u0437\u0435\u043b\u0451\u043d\u044b\u043c", None))
 #endif // QT_CONFIG(tooltip)
-        self.cb_highlight.setText(QCoreApplication.translate("FulfillmentDialog", u"\u041f\u043e\u0434\u0441\u0432\u0435\u0447\u0438\u0432\u0430\u0442\u044c \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d\u0438\u044f", None))
+        self.chb_highlight.setText(QCoreApplication.translate("FulfillmentDialog", u"\u041f\u043e\u0434\u0441\u0432\u0435\u0447\u0438\u0432\u0430\u0442\u044c \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d\u0438\u044f", None))
         self.pb_exportpdf.setText(QCoreApplication.translate("FulfillmentDialog", u" \u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0432 PDF ", None))
     # retranslateUi
 

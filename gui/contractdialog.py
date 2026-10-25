@@ -258,7 +258,7 @@ class ContractDocumentDialog(QDialog):
 
     def update_terms_widgets(self, *_) -> None:
         self.ui.fr_relative.setEnabled(self.ui.rb_relative.isChecked())
-        self.ui.widget_2.setEnabled(self.ui.chb_rel_additional.isChecked())
+        self.ui.wdg_rel_dayofmonth.setEnabled(self.ui.chb_rel_additional.isChecked())
         self.ui.fr_fixed.setEnabled(self.ui.rb_fixed.isChecked())
         self.ui.gb_monthly.setVisible(self.ui.rb_fixed.isChecked() or self.ui.rb_relative.isChecked())
         self.ui.wdg_monthly.setEnabled(self.ui.chb_monthly.isChecked())

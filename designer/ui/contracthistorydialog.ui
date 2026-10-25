@@ -24,7 +24,7 @@
     <number>8</number>
    </property>
    <item>
-    <widget class="QLabel" name="lbl_scope">
+    <widget class="QLabel" name="la_scope">
      <property name="font">
       <font>
        <pointsize>12</pointsize>
@@ -42,7 +42,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="lbl_subtitle">
+    <widget class="QLabel" name="la_subtitle">
      <property name="text">
       <string>Подзаголовок</string>
      </property>
@@ -168,7 +168,7 @@
           <number>8</number>
          </property>
          <item>
-          <widget class="QLabel" name="label_year">
+          <widget class="QLabel" name="la_year">
            <property name="text">
             <string>Год оплат:</string>
            </property>

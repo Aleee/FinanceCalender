@@ -24,7 +24,7 @@
       </widget>
      </item>
      <item row="1" column="0">
-      <widget class="QLabel" name="label_channel">
+      <widget class="QLabel" name="la_channel">
        <property name="text">
         <string>Способ обмена:</string>
        </property>
@@ -45,7 +45,7 @@
       </widget>
      </item>
      <item row="2" column="0">
-      <widget class="QLabel" name="label_token">
+      <widget class="QLabel" name="la_token">
        <property name="text">
         <string>Токен Яндекса:</string>
        </property>
@@ -59,7 +59,7 @@
       </widget>
      </item>
      <item row="3" column="0">
-      <widget class="QLabel" name="label_tokenexpires">
+      <widget class="QLabel" name="la_tokenexpires">
        <property name="text">
         <string>Токен действует до:</string>
        </property>
@@ -86,7 +86,7 @@
       </widget>
      </item>
      <item row="4" column="0">
-      <widget class="QLabel" name="label_diskfolder">
+      <widget class="QLabel" name="la_diskfolder">
        <property name="text">
         <string>Папка на Диске:</string>
        </property>
@@ -103,7 +103,7 @@
       </widget>
      </item>
      <item row="6" column="0">
-      <widget class="QLabel" name="label_folder">
+      <widget class="QLabel" name="la_folder">
        <property name="text">
         <string>Папка обмена:</string>
        </property>
@@ -124,7 +124,7 @@
       </layout>
      </item>
      <item row="7" column="0">
-      <widget class="QLabel" name="label_author">
+      <widget class="QLabel" name="la_author">
        <property name="text">
         <string>Имя пользователя:</string>
        </property>
@@ -134,7 +134,7 @@
       <widget class="QLineEdit" name="le_author"/>
      </item>
      <item row="8" column="0">
-      <widget class="QLabel" name="label_interval">
+      <widget class="QLabel" name="la_interval">
        <property name="text">
         <string>Проверять общую базу каждые:</string>
        </property>
@@ -154,7 +154,7 @@
       </widget>
      </item>
      <item row="9" column="0">
-      <widget class="QLabel" name="label_idle">
+      <widget class="QLabel" name="la_idle">
        <property name="text">
         <string>Отправлять изменения после бездействия:</string>
        </property>
@@ -177,7 +177,7 @@
       </widget>
      </item>
      <item row="10" column="0">
-      <widget class="QLabel" name="label_keepdays">
+      <widget class="QLabel" name="la_keepdays">
        <property name="text">
         <string>Хранить ежедневные копии общей базы:</string>
        </property>
@@ -197,7 +197,7 @@
       </widget>
      </item>
      <item row="11" column="0">
-      <widget class="QLabel" name="label_backupinterval">
+      <widget class="QLabel" name="la_backupinterval">
        <property name="text">
         <string>Копировать общую базу при отправке не чаще, чем раз в:</string>
        </property>

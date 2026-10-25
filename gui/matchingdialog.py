@@ -127,14 +127,14 @@ class MatchingDialog(QDialog):
         self.ui.le_searchstatement.textChanged.connect(partial(self.apply_search, self.ui.tw_statement))
         self.ui.le_searchcalendar.textChanged.connect(partial(self.apply_search, self.ui.tw_calendar))
 
-        self.ui.lb_summary.linkActivated.connect(self.show_resolved_tab)
+        self.ui.la_summary.linkActivated.connect(self.show_resolved_tab)
 
         for button in self.findChildren(QPushButton):
             button.setAutoDefault(False)
         self.set_data_available(False)
-        self.ui.lb_summary.setText(EMPTY_HINT)
+        self.ui.la_summary.setText(EMPTY_HINT)
         self.update_selection_state()
-        self.ui.lb_file.setMinimumWidth(50)
+        self.ui.la_file.setMinimumWidth(50)
 
         if is_viewer():
             self.ui.pb_create.hide()
@@ -164,11 +164,11 @@ class MatchingDialog(QDialog):
         period = self.match_result.period if self.match_result else None
         suffix = (f", период {period[0]:%d.%m.%Y} – {period[1]:%d.%m.%Y}" if period else "") + \
                  f", обновлено {self.refreshed_at:%H:%M}"
-        metrics = self.ui.lb_file.fontMetrics()
-        free = self.ui.lb_file.width() - metrics.horizontalAdvance(prefix + suffix) - 30
+        metrics = self.ui.la_file.fontMetrics()
+        free = self.ui.la_file.width() - metrics.horizontalAdvance(prefix + suffix) - 30
         name = metrics.elidedText(Path(self.csv_path).name, Qt.TextElideMode.ElideMiddle, max(free, 100))
-        self.ui.lb_file.setText(f"{prefix}<b>{html.escape(name)}</b>{suffix}")
-        self.ui.lb_file.setToolTip(self.csv_path)
+        self.ui.la_file.setText(f"{prefix}<b>{html.escape(name)}</b>{suffix}")
+        self.ui.la_file.setToolTip(self.csv_path)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -392,7 +392,7 @@ class MatchingDialog(QDialog):
         try:
             with self.fixed_headers(tables):
                 self.entries_by_key.clear()
-                self.ui.lb_summary.setText(result.format_summary())
+                self.ui.la_summary.setText(result.format_summary())
                 self.fill_proposals(result)
                 self.fill_entry_list(self.ui.tw_statement, result.unmatched_statement, COLOR_STATEMENT)
                 self.fill_entry_list(self.ui.tw_calendar, result.unmatched_calendar, COLOR_CALENDAR)
@@ -634,12 +634,12 @@ class MatchingDialog(QDialog):
 
         if statement_entries or calendar_entries:
             difference_color = COLOR_OK if difference == 0 else COLOR_WARNING
-            self.ui.lb_selection.setText(
+            self.ui.la_selection.setText(
                 f"Выбрано: в выписке <b>{len(statement_entries)}</b> на <b>{dec_html(statement_sum)}</b>, "
                 f"в календаре <b>{len(calendar_entries)}</b> на <b>{dec_html(calendar_sum)}</b>, "
                 f"разница <b style='color:{difference_color};'>{dec_html(difference)}</b>")
         else:
-            self.ui.lb_selection.clear()
+            self.ui.la_selection.clear()
 
         self.set_button_state(
             self.ui.pb_link, bool(statement_entries and calendar_entries),

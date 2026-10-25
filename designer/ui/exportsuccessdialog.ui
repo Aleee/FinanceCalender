@@ -18,7 +18,7 @@
     <enum>QLayout::SizeConstraint::SetMinimumSize</enum>
    </property>
    <item row="0" column="0" rowspan="2">
-    <widget class="QLabel" name="lbl_icon">
+    <widget class="QLabel" name="la_icon">
      <property name="alignment">
       <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
      </property>

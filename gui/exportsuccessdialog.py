@@ -21,7 +21,7 @@ class ExportSuccessDialog(QDialog):
         self.path = Path(path).resolve()
         self.system = platform.system()
 
-        self.ui.lbl_icon.setPixmap(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation).pixmap(32, 32))
+        self.ui.la_icon.setPixmap(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation).pixmap(32, 32))
         self.ui.le_path.setText(str(self.path))
         self.ui.pb_openfile.clicked.connect(self.open_file)
         self.ui.pb_opendir.clicked.connect(self.open_dir)

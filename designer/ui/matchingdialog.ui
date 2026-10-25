@@ -20,7 +20,7 @@
    <item>
     <layout class="QHBoxLayout" name="hl_file">
      <item>
-      <widget class="QLabel" name="lb_file">
+      <widget class="QLabel" name="la_file">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Preferred"/>
        </property>
@@ -52,7 +52,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QLabel" name="lb_summary">
+    <widget class="QLabel" name="la_summary">
      <property name="text">
       <string/>
      </property>
@@ -260,7 +260,7 @@
        <item>
         <layout class="QHBoxLayout" name="hl_actions">
          <item>
-          <widget class="QLabel" name="lb_selection">
+          <widget class="QLabel" name="la_selection">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Fixed"/>
            </property>

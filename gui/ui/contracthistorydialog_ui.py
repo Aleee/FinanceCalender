@@ -30,21 +30,21 @@ class Ui_ContractHistoryDialog(object):
         self.verticalLayout = QVBoxLayout(ContractHistoryDialog)
         self.verticalLayout.setSpacing(8)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.lbl_scope = QLabel(ContractHistoryDialog)
-        self.lbl_scope.setObjectName(u"lbl_scope")
+        self.la_scope = QLabel(ContractHistoryDialog)
+        self.la_scope.setObjectName(u"la_scope")
         font = QFont()
         font.setPointSize(12)
-        self.lbl_scope.setFont(font)
-        self.lbl_scope.setTextFormat(Qt.TextFormat.RichText)
-        self.lbl_scope.setWordWrap(True)
+        self.la_scope.setFont(font)
+        self.la_scope.setTextFormat(Qt.TextFormat.RichText)
+        self.la_scope.setWordWrap(True)
 
-        self.verticalLayout.addWidget(self.lbl_scope)
+        self.verticalLayout.addWidget(self.la_scope)
 
-        self.lbl_subtitle = QLabel(ContractHistoryDialog)
-        self.lbl_subtitle.setObjectName(u"lbl_subtitle")
-        self.lbl_subtitle.setWordWrap(True)
+        self.la_subtitle = QLabel(ContractHistoryDialog)
+        self.la_subtitle.setObjectName(u"la_subtitle")
+        self.la_subtitle.setWordWrap(True)
 
-        self.verticalLayout.addWidget(self.lbl_subtitle)
+        self.verticalLayout.addWidget(self.la_subtitle)
 
         self.line = QFrame(ContractHistoryDialog)
         self.line.setObjectName(u"line")
@@ -113,10 +113,10 @@ class Ui_ContractHistoryDialog(object):
         self.lay_payments_filter.setSpacing(8)
         self.lay_payments_filter.setObjectName(u"lay_payments_filter")
         self.lay_payments_filter.setContentsMargins(-1, -1, -1, 8)
-        self.label_year = QLabel(self.tab_payments)
-        self.label_year.setObjectName(u"label_year")
+        self.la_year = QLabel(self.tab_payments)
+        self.la_year.setObjectName(u"la_year")
 
-        self.lay_payments_filter.addWidget(self.label_year)
+        self.lay_payments_filter.addWidget(self.la_year)
 
         self.cmb_year = QComboBox(self.tab_payments)
         self.cmb_year.setObjectName(u"cmb_year")
@@ -192,11 +192,11 @@ class Ui_ContractHistoryDialog(object):
 
     def retranslateUi(self, ContractHistoryDialog):
         ContractHistoryDialog.setWindowTitle(QCoreApplication.translate("ContractHistoryDialog", u"\u041f\u043b\u0430\u0442\u0435\u0436\u0438 \u043f\u043e \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430\u043c", None))
-        self.lbl_scope.setText(QCoreApplication.translate("ContractHistoryDialog", u"\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a", None))
-        self.lbl_subtitle.setText(QCoreApplication.translate("ContractHistoryDialog", u"\u041f\u043e\u0434\u0437\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a", None))
+        self.la_scope.setText(QCoreApplication.translate("ContractHistoryDialog", u"\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a", None))
+        self.la_subtitle.setText(QCoreApplication.translate("ContractHistoryDialog", u"\u041f\u043e\u0434\u0437\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a", None))
         self.chb_only_unpaid.setText(QCoreApplication.translate("ContractHistoryDialog", u"\u0422\u043e\u043b\u044c\u043a\u043e \u043d\u0435\u043e\u043f\u043b\u0430\u0447\u0435\u043d\u043d\u044b\u0435", None))
         self.tw_history.setTabText(self.tw_history.indexOf(self.tab_obligations), QCoreApplication.translate("ContractHistoryDialog", u"\u041e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u0430", None))
-        self.label_year.setText(QCoreApplication.translate("ContractHistoryDialog", u"\u0413\u043e\u0434 \u043e\u043f\u043b\u0430\u0442:", None))
+        self.la_year.setText(QCoreApplication.translate("ContractHistoryDialog", u"\u0413\u043e\u0434 \u043e\u043f\u043b\u0430\u0442:", None))
         self.tw_history.setTabText(self.tw_history.indexOf(self.tab_payments), QCoreApplication.translate("ContractHistoryDialog", u"\u041e\u043f\u043b\u0430\u0442\u044b", None))
         self.pb_close.setText(QCoreApplication.translate("ContractHistoryDialog", u"\u0417\u0430\u043a\u0440\u044b\u0442\u044c", None))
     # retranslateUi

@@ -63,10 +63,10 @@ class ContractHistoryDialog(QDialog):
         self.obligations: list[ContractObligation] = []
         self.payments: list[ContractPayment] = []
 
-        self.ui.lbl_scope.setText(f"<b>{escape(title)}</b> {escape(title_note)}" if title_note
+        self.ui.la_scope.setText(f"<b>{escape(title)}</b> {escape(title_note)}" if title_note
                                   else f"<b>{escape(title)}</b>")
-        self.ui.lbl_subtitle.setText(subtitle)
-        self.ui.lbl_subtitle.setVisible(bool(subtitle))
+        self.ui.la_subtitle.setText(subtitle)
+        self.ui.la_subtitle.setVisible(bool(subtitle))
         self.setWindowTitle(f"Платежи: {title}")
         self.setup_table(self.ui.tbl_obligations, self.ui.tbl_obligations_total, self.OBLIGATION_HEADERS,
                          0, 2, Qt.SortOrder.AscendingOrder, 2)

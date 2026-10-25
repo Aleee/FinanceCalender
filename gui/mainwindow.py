@@ -382,7 +382,7 @@ class MainWindow(QMainWindow):
         self.search_timer.timeout.connect(self.update_filters_and_select)
         self.ui.le_search.textChanged.connect(lambda: self.search_timer.start())
         self.ui.pb_resetfilters.clicked.connect(self.reset_filters)
-        self.ui.scrollArea.verticalScrollBar().rangeChanged.connect(self.update_search_margin)
+        self.ui.sa_eventfilter.verticalScrollBar().rangeChanged.connect(self.update_search_margin)
 
         # Действия при переключении избранного
         self.ui.act_featured.triggered.connect(self.update_filters_and_select)
@@ -1160,7 +1160,7 @@ class MainWindow(QMainWindow):
                 or bool(self.ui.le_search.text()))
 
     def update_search_margin(self, _minimum: int, maximum: int) -> None:
-        scrollbar_width: int = self.ui.scrollArea.verticalScrollBar().sizeHint().width() if maximum > 0 else 0
+        scrollbar_width: int = self.ui.sa_eventfilter.verticalScrollBar().sizeHint().width() if maximum > 0 else 0
         right_margin: int = 9 + scrollbar_width
         self.ui.pb_resetfilters.setStyleSheet(
             "QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; "

@@ -70,7 +70,7 @@ def test_dialog_default_moves_total_with_payment(event_with_payments):
     assert dialog.ui.chb_changetotal.isChecked()
     dialog.ui.dsb_payment.setValue(250)
     assert dialog.total_amount() == Decimal("1050")
-    assert dialog.ui.lbl_remain.text() == "500,00"
+    assert dialog.ui.la_remain.text() == "500,00"
     assert not dialog.ui.dsb_total.isEnabled()
 
 
@@ -80,7 +80,7 @@ def test_dialog_unchecked_keeps_total(event_with_payments):
     dialog.ui.chb_changetotal.setChecked(False)
     dialog.ui.dsb_payment.setValue(250)
     assert dialog.total_amount() == Decimal("1000")
-    assert dialog.ui.lbl_remain.text() == "450,00"
+    assert dialog.ui.la_remain.text() == "450,00"
     assert dialog.ui.dsb_total.isEnabled()
     assert dialog.problem_text() == ""
 

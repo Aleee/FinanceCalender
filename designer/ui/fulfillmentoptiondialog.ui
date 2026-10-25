@@ -25,11 +25,11 @@
     </widget>
    </item>
    <item row="9" column="0" colspan="3">
-    <widget class="QStackedWidget" name="stackedWidget">
+    <widget class="QStackedWidget" name="stw_option">
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="page">
+     <widget class="QWidget" name="pg_period">
       <layout class="QGridLayout" name="gridLayout_2">
        <item row="8" column="0">
         <spacer name="verticalSpacer_2">
@@ -50,7 +50,7 @@
        <item row="7" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
-          <widget class="QWidget" name="widget_3" native="true">
+          <widget class="QWidget" name="wdg_indent_onemonth" native="true">
            <property name="minimumSize">
             <size>
              <width>30</width>
@@ -134,7 +134,7 @@
        <item row="6" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <item>
-          <widget class="QWidget" name="widget_2" native="true">
+          <widget class="QWidget" name="wdg_indent_severalmonths" native="true">
            <property name="minimumSize">
             <size>
              <width>30</width>
@@ -302,7 +302,7 @@
        <item row="4" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_5">
          <item>
-          <widget class="QWidget" name="widget" native="true">
+          <widget class="QWidget" name="wdg_indent_customperiod" native="true">
            <property name="minimumSize">
             <size>
              <width>30</width>
@@ -380,7 +380,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="page_2">
+     <widget class="QWidget" name="pg_nds">
       <layout class="QGridLayout" name="gridLayout_3">
        <property name="verticalSpacing">
         <number>4</number>

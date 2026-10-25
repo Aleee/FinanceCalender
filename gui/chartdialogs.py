@@ -39,7 +39,7 @@ class DebtChartDialog(QDialog):
         self.builder.load()
 
         placeholder_layout = QVBoxLayout()
-        self.ui.widget.setLayout(placeholder_layout)
+        self.ui.wdg_chart.setLayout(placeholder_layout)
 
         palette = self.palette()
         qt_window_color = palette.color(QPalette.ColorRole.Window)

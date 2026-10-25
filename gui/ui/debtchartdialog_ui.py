@@ -27,10 +27,10 @@ class Ui_DebtChartDialog(object):
         DebtChartDialog.resize(861, 462)
         self.gridLayout = QGridLayout(DebtChartDialog)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.widget = QWidget(DebtChartDialog)
-        self.widget.setObjectName(u"widget")
+        self.wdg_chart = QWidget(DebtChartDialog)
+        self.wdg_chart.setObjectName(u"wdg_chart")
 
-        self.gridLayout.addWidget(self.widget, 2, 4, 1, 1)
+        self.gridLayout.addWidget(self.wdg_chart, 2, 4, 1, 1)
 
         self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setObjectName(u"verticalLayout")

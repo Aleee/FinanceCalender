@@ -180,35 +180,35 @@ class Ui_ContractDialog(object):
 
         self.horizontalLayout_6.addWidget(self.chb_rel_additional)
 
-        self.widget_2 = QWidget(self.fr_relative)
-        self.widget_2.setObjectName(u"widget_2")
-        self.horizontalLayout_2 = QHBoxLayout(self.widget_2)
+        self.wdg_rel_dayofmonth = QWidget(self.fr_relative)
+        self.wdg_rel_dayofmonth.setObjectName(u"wdg_rel_dayofmonth")
+        self.horizontalLayout_2 = QHBoxLayout(self.wdg_rel_dayofmonth)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.spb_rel_dayofmonth = QSpinBox(self.widget_2)
+        self.spb_rel_dayofmonth = QSpinBox(self.wdg_rel_dayofmonth)
         self.spb_rel_dayofmonth.setObjectName(u"spb_rel_dayofmonth")
         self.spb_rel_dayofmonth.setMinimum(1)
         self.spb_rel_dayofmonth.setMaximum(31)
 
         self.horizontalLayout_2.addWidget(self.spb_rel_dayofmonth)
 
-        self.label_10 = QLabel(self.widget_2)
+        self.label_10 = QLabel(self.wdg_rel_dayofmonth)
         self.label_10.setObjectName(u"label_10")
 
         self.horizontalLayout_2.addWidget(self.label_10)
 
-        self.cmb_rel_month = QComboBox(self.widget_2)
+        self.cmb_rel_month = QComboBox(self.wdg_rel_dayofmonth)
         self.cmb_rel_month.setObjectName(u"cmb_rel_month")
 
         self.horizontalLayout_2.addWidget(self.cmb_rel_month)
 
-        self.label_12 = QLabel(self.widget_2)
+        self.label_12 = QLabel(self.wdg_rel_dayofmonth)
         self.label_12.setObjectName(u"label_12")
 
         self.horizontalLayout_2.addWidget(self.label_12)
 
 
-        self.horizontalLayout_6.addWidget(self.widget_2)
+        self.horizontalLayout_6.addWidget(self.wdg_rel_dayofmonth)
 
         self.horizontalSpacer_8 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -304,10 +304,10 @@ class Ui_ContractDialog(object):
 
         self.gridLayout_monthly.addItem(self.horizontalSpacer_5, 0, 3, 1, 1)
 
-        self.label_monthlyname = QLabel(self.wdg_monthly)
-        self.label_monthlyname.setObjectName(u"label_monthlyname")
+        self.la_monthlyname = QLabel(self.wdg_monthly)
+        self.la_monthlyname.setObjectName(u"la_monthlyname")
 
-        self.gridLayout_monthly.addWidget(self.label_monthlyname, 1, 0, 1, 1)
+        self.gridLayout_monthly.addWidget(self.la_monthlyname, 1, 0, 1, 1)
 
         self.le_monthlyname = QLineEdit(self.wdg_monthly)
         self.le_monthlyname.setObjectName(u"le_monthlyname")
@@ -346,7 +346,7 @@ class Ui_ContractDialog(object):
 
 #if QT_CONFIG(shortcut)
         self.label_15.setBuddy(self.dsb_monthlyamount)
-        self.label_monthlyname.setBuddy(self.le_monthlyname)
+        self.la_monthlyname.setBuddy(self.le_monthlyname)
 #endif // QT_CONFIG(shortcut)
         QWidget.setTabOrder(self.le_documentname, self.cmb_documenttype)
         QWidget.setTabOrder(self.cmb_documenttype, self.cmb_responsible)
@@ -416,7 +416,7 @@ class Ui_ContractDialog(object):
         self.chb_byinvoice.setToolTip(QCoreApplication.translate("ContractDialog", u"\u0415\u0441\u043b\u0438 \u0441\u0443\u043c\u043c\u0430 \u043a\u0430\u0436\u0434\u044b\u0439 \u043c\u0435\u0441\u044f\u0446 \u0440\u0430\u0437\u043d\u0430\u044f (\u0443\u043a\u0430\u0437\u0430\u043d\u0430 \u0432 \u0441\u0447\u0451\u0442\u0435 \u0438\u043b\u0438 \u0430\u043a\u0442\u0435), \u043e\u0442\u043c\u0435\u0442\u044c\u0442\u0435 \u044d\u0442\u043e\u0442 \u043f\u0443\u043d\u043a\u0442", None))
 #endif // QT_CONFIG(tooltip)
         self.chb_byinvoice.setText(QCoreApplication.translate("ContractDialog", u"\u041f\u043e \u0441\u0447\u0451\u0442\u0443", None))
-        self.label_monthlyname.setText(QCoreApplication.translate("ContractDialog", u"\u041d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u0435:", None))
+        self.la_monthlyname.setText(QCoreApplication.translate("ContractDialog", u"\u041d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u0435:", None))
 #if QT_CONFIG(tooltip)
         self.le_monthlyname.setToolTip(QCoreApplication.translate("ContractDialog", u"\u0415\u0441\u043b\u0438 \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d\u043e, \u043d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0430 \u0431\u0435\u0440\u0451\u0442\u0441\u044f \u043e\u0442\u0441\u044e\u0434\u0430, \u0430 \u043d\u0435 \u0438\u0437 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0445 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0439. \u041c\u043e\u0436\u043d\u043e \u043f\u0438\u0441\u0430\u0442\u044c {\u043c\u0435\u0441\u044f\u0446} \u0438 {\u0433\u043e\u0434} - \u043e\u043d\u0438 \u0437\u0430\u043c\u0435\u043d\u044f\u0442\u0441\u044f \u043d\u0430 \u043c\u0435\u0441\u044f\u0446 \u0438 \u0433\u043e\u0434 \u043f\u0435\u0440\u0438\u043e\u0434\u0430", None))
 #endif // QT_CONFIG(tooltip)

@@ -287,7 +287,7 @@ class ContractorDialog(QDialog):
                 steps.append(f"<b>{name}</b>")
             else:
                 steps.append(f"<span style='color: gray'>{escape(chosen[i]) if i < page else name}</span>")
-        self.ui.lbl_steps.setText(" → ".join(steps))
+        self.ui.la_steps.setText(" → ".join(steps))
 
         self.ui.pb_back.setVisible(page != StackwidgetPage.contractors)
         self.ui.chb_show_archived.setVisible(page != StackwidgetPage.documents)
