@@ -291,6 +291,7 @@ class Ui_ContractDialog(object):
         self.dsb_monthlyamount.setMinimumSize(QSize(120, 0))
         self.dsb_monthlyamount.setMaximumSize(QSize(120, 16777215))
         self.dsb_monthlyamount.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.dsb_monthlyamount.setProperty(u"showGroupSeparator", True)
         self.dsb_monthlyamount.setMaximum(99999999.000000000000000)
 
         self.gridLayout_monthly.addWidget(self.dsb_monthlyamount, 0, 1, 1, 1)

@@ -55,6 +55,7 @@ class Ui_CopyDocDialog(object):
         self.dsb_amount.setMinimumSize(QSize(120, 0))
         self.dsb_amount.setMaximumSize(QSize(120, 16777215))
         self.dsb_amount.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.dsb_amount.setProperty(u"showGroupSeparator", True)
         self.dsb_amount.setMaximum(99999999.000000000000000)
 
         self.horizontalLayout_4.addWidget(self.dsb_amount)

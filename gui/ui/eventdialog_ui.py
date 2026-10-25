@@ -101,6 +101,7 @@ class Ui_EventDialog(object):
         self.dsb_totalamount.setObjectName(u"dsb_totalamount")
         self.dsb_totalamount.setMinimumSize(QSize(110, 0))
         self.dsb_totalamount.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.dsb_totalamount.setProperty(u"showGroupSeparator", True)
         self.dsb_totalamount.setMaximum(99999999.000000000000000)
 
         self.formLayout.setWidget(4, QFormLayout.ItemRole.FieldRole, self.dsb_totalamount)
