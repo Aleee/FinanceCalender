@@ -1449,9 +1449,8 @@ class MainWindow(QMainWindow):
                                 parent=self).exec()
             return
         if self.manual_dialog is None:
-            self.manual_dialog = ManualDialog(self.settings_handler, owner or self)
-        else:
-            self.manual_dialog.set_owner(owner or self)
+            self.manual_dialog = ManualDialog(self.settings_handler)
+        self.manual_dialog.set_owner(owner or self)
         self.manual_dialog.show_manual(page)
 
     def open_fees_dialog(self, csv_path: str = "", statement_fee_totals: dict | None = None,
