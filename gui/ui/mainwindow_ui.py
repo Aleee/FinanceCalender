@@ -222,7 +222,7 @@ class Ui_MainWindow(object):
         self.sa_eventfilter.setStyleSheet(u"QPushButton {\n"
 "    border:none\n"
 "}\n"
-"QWidget#scrollAreaWidgetContents {background-color:white;}")
+"QWidget#wdg_eventfilter_contents {background-color:white;}")
         self.sa_eventfilter.setFrameShape(QFrame.Shape.NoFrame)
         self.sa_eventfilter.setLineWidth(1)
         self.sa_eventfilter.setWidgetResizable(True)
