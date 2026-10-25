@@ -50,6 +50,20 @@ def close(pr):
     pr.disable()
     pr.dump_stats('profile_results.pstat')
 
+def trim_log_file(path: str, max_bytes: int = 1024 * 1024, keep_bytes: int = 256 * 1024) -> None:
+    try:
+        if os.path.getsize(path) <= max_bytes:
+            return
+        with open(path, "rb") as file:
+            file.seek(-keep_bytes, os.SEEK_END)
+            tail = file.read()
+        tail = tail[tail.find(b"\n") + 1:]
+        with open(path, "wb") as file:
+            file.write(tail)
+    except OSError:
+        pass
+
+
 def install_error_window_hook() -> None:
     logging_hook = sys.excepthook
     is_window_shown: list[bool] = [False]
@@ -85,10 +99,14 @@ def main():
                              f"Проверьте права на запись в эту папку.")
         sys.exit(1)
     if sys.stderr is None or sys.stderr.name == '<stderr>':
-        sys.stderr = open(os.path.join(logs_folder, "sys_errors.log"), "a", encoding="utf-8", buffering=1)
+        errors_path = os.path.join(logs_folder, "sys_errors.log")
+        trim_log_file(errors_path)
+        sys.stderr = open(errors_path, "a", encoding="utf-8", buffering=1)
     if sys.stdout is None or sys.stdout.name == '<stdout>':
-        sys.stdout = open(os.path.join(logs_folder, "sys_output.log"), "a", encoding="utf-8", buffering=1)
-    log.init(os.path.join(logs_folder, "log.log"), level=log.DEBUG)
+        output_path = os.path.join(logs_folder, "sys_output.log")
+        trim_log_file(output_path)
+        sys.stdout = open(output_path, "a", encoding="utf-8", buffering=1)
+    log.init(os.path.join(logs_folder, "log.log"), to_console=False, level=log.DEBUG, max_kb=2048, max_files=2)
     install_error_window_hook()
 
     lock_file: QLockFile = QLockFile(os.path.join(data_dir(), ".lock"))
