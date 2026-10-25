@@ -39,7 +39,7 @@ class ResponsibleCategorySortModel(QSortFilterProxyModel):
 
     def lessThan(self, source_left, source_right, /):
         if not self.current_category:
-            return True
+            return False
         if source_left.data(Qt.ItemDataRole.UserRole) == 0:
             return True
         if source_right.data(Qt.ItemDataRole.UserRole) == 0:
