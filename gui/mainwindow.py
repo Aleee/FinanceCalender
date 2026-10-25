@@ -89,6 +89,7 @@ class MainWindow(QMainWindow):
         self.deleted_event: tuple[tuple, list[tuple]] | None = None
         self.sync_status_text: str = "не выполнялась"
         self.sync_progress: SyncProgressDialog | None = None
+        self.is_sync_running: bool = False
         self.sync_error: str = ""
         self.sync_network_failed: bool = False
         self.sync_cancelled: bool = False
@@ -809,6 +810,8 @@ class MainWindow(QMainWindow):
             progress.set_cancel_handler(http.request_cancel)
         if owns_progress:
             progress.start()
+        was_sync_running: bool = self.is_sync_running
+        self.is_sync_running = True
         try:
             action: SyncAction = step()
             progress.complete(owns_progress)
@@ -828,6 +831,7 @@ class MainWindow(QMainWindow):
             progress.fail()
             return None
         finally:
+            self.is_sync_running = was_sync_running
             set_stage_listener(None)
             if http is not None:
                 http.on_retry = None

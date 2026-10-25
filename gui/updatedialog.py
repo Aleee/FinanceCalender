@@ -47,8 +47,8 @@ class UpdateController(QObject):
         self.progress_dialog: Optional[QProgressDialog] = None
 
     def offer_update(self, info: UpdateInfo) -> None:
-        if QApplication.activeModalWidget() is not None:
-            log.i(f"Обновление {info.version} отложено: открыто модальное окно")
+        if QApplication.activeModalWidget() is not None or self.window.is_sync_running:
+            log.i(f"Обновление {info.version} отложено: открыто модальное окно или идет синхронизация")
             QTimer.singleShot(OFFER_RETRY_DELAY_MS, lambda: self.offer_update(info))
             return
         message_box = UpdateAvailableMessageBox(info, self.window)
