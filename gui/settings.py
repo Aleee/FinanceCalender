@@ -108,8 +108,11 @@ class SettingsHandler:
             self.mw.ui.trw_event.setColumnWidth(col, width)
         ## Геометрия окна
         if apply_geometry:
-            self.mw.setGeometry(QRect(self.settings.value("Mainwindow/pos", QPoint(50, 50)),
-                                      self.settings.value("Mainwindow/size", QSize(1300, 750))))
+            window_rect: QRect = QRect(self.settings.value("Mainwindow/pos", QPoint(50, 50)),
+                                       self.settings.value("Mainwindow/size", QSize(1300, 750)))
+            if not any(screen.availableGeometry().contains(window_rect.center()) for screen in QApplication.screens()):
+                window_rect.moveTopLeft(QPoint(50, 50))
+            self.mw.setGeometry(window_rect)
             window_state: int = str_int(self.settings.value("Mainwindow/fullscreen", 0))
             if window_state == 2:
                 self.mw.showFullScreen()
