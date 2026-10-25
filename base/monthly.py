@@ -103,11 +103,11 @@ class HiddenMonthly:
             self.settings.setValue(self.KEY, json.dumps(self.items))
 
 
-DAYS_TYPE_LETTERS = {DaysType.WORKING: "Р", DaysType.BANKING: "Б", DaysType.CALENDAR: "К"}
+DAYS_TYPE_UNITS = {DaysType.WORKING: "раб. дн.", DaysType.BANKING: "банк. дн.", DaysType.CALENDAR: "кал. дн."}
 
 
 def relative_term_text(days_count: int, days_type: DaysType | None) -> str:
-    return f"+{days_count}{DAYS_TYPE_LETTERS.get(days_type, '')}"
+    return f"+{days_count} {DAYS_TYPE_UNITS.get(days_type, 'дн.')}"
 
 
 def first_of_month(day: QDate) -> QDate:

@@ -258,7 +258,7 @@ def test_monthly_dialog_italic_amount_for_missing_with_fixed_amount(hdb, qapp):
     assert table.item(0, 2).text() == "310,00" and table.item(0, 2).font().italic()
 
 
-@pytest.mark.parametrize("days_type, text", [("WORKING", "+5Р"), ("BANKING", "+5Б"), ("CALENDAR", "+5К")])
+@pytest.mark.parametrize("days_type, text", [("WORKING", "+5 раб. дн."), ("BANKING", "+5 банк. дн."), ("CALENDAR", "+5 кал. дн.")])
 def test_monthly_dialog_relative_term_for_missing(hdb, qapp, days_type, text):
     _, _, document_id = add_chain(hdb.path, "Альфа", "1", "Акт связи")
     run(hdb.path, "UPDATE contractdocument SET monthly = 1 WHERE id = ?", document_id)
