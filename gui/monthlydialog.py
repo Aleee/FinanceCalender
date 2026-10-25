@@ -52,7 +52,7 @@ class StateRowDelegate(QStyledItemDelegate):
 class MonthlyDialog(QDialog):
 
     STATE_TEXT = {MonthlyState.MISSING: "не создан", MonthlyState.UNPAID: "создан, не оплачен", MonthlyState.PAID: "оплачен"}
-    STATE_COLOR = {MonthlyState.MISSING: "#c0392b", MonthlyState.UNPAID: "#b9770e", MonthlyState.PAID: "#1e8449"}
+    STATE_COLOR = {MonthlyState.MISSING: "#b03a2e", MonthlyState.UNPAID: "#8f5a00", MonthlyState.PAID: "#17693a"}
     ROW_COLOR = {MonthlyState.MISSING: "#f8e6e4", MonthlyState.UNPAID: "#faf2dc", MonthlyState.PAID: "#e4f1e7"}
     SELECTED_ROW_COLOR = {MonthlyState.MISSING: "#f2e9e8", MonthlyState.UNPAID: "#f4efe2", MonthlyState.PAID: "#eaf1ec"}
     OVERDUE_COLOR = "#d00000"

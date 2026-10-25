@@ -974,7 +974,7 @@ class Ui_settingsdialog(object):
         self.gridLayout_10.setVerticalSpacing(0)
         self.la_appdescr = QLabel(self.groupBox_16)
         self.la_appdescr.setObjectName(u"la_appdescr")
-        self.la_appdescr.setStyleSheet(u"color: #808080;")
+        self.la_appdescr.setStyleSheet(u"color: #666666;")
 
         self.gridLayout_10.addWidget(self.la_appdescr, 1, 0, 1, 2)
 

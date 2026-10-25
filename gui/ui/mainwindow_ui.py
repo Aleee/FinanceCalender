@@ -610,7 +610,7 @@ class Ui_MainWindow(object):
         self.gridLayout_9.setObjectName(u"gridLayout_9")
         self.la_emptyinfo = QLabel(self.empty)
         self.la_emptyinfo.setObjectName(u"la_emptyinfo")
-        self.la_emptyinfo.setStyleSheet(u"color: #808080;")
+        self.la_emptyinfo.setStyleSheet(u"color: #666666;")
         self.la_emptyinfo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.gridLayout_9.addWidget(self.la_emptyinfo, 0, 0, 1, 1)

@@ -918,7 +918,7 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
           <item row="0" column="0">
            <widget class="QLabel" name="la_emptyinfo">
             <property name="styleSheet">
-             <string notr="true">color: #808080;</string>
+             <string notr="true">color: #666666;</string>
             </property>
             <property name="text">
              <string>Выберите платеж в таблице, чтобы увидеть подробности</string>

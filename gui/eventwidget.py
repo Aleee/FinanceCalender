@@ -75,7 +75,7 @@ class EventWidget(QTreeView):
 
         self.setItemDelegate(EventItemDelegate())
 
-        star_delegate = BoolDelegate("★", "☆", "#ffcc00", "#857f67")
+        star_delegate = BoolDelegate("★", "☆", "#b07d00", "#6f6a55")
         self.setItemDelegateForColumn(Col.FEATURED, star_delegate)
         star_delegate.state_changed.connect(lambda: self.filter_conditions_changed.emit())
 

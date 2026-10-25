@@ -1628,7 +1628,7 @@
             <item row="1" column="0" colspan="2">
              <widget class="QLabel" name="la_appdescr">
               <property name="styleSheet">
-               <string notr="true">color: #808080;</string>
+               <string notr="true">color: #666666;</string>
               </property>
               <property name="text">
                <string>Учёт и планирование платежей</string>

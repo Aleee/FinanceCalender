@@ -66,12 +66,12 @@ from gui.exportdialog import ExportDialog
 
 class MainWindow(QMainWindow):
 
-    CONTRACT_NOTBOUND_TEXT = '<span style="color: #808080;">не привязан</span>'
+    CONTRACT_NOTBOUND_TEXT = '<span style="color: #666666;">не привязан</span>'
     SYNC_PROBLEM_STATUSES = (SYNC_STATUS_TEXT[SyncAction.CONFLICT], SYNC_STATUS_TEXT[SyncAction.FOREIGN_DB],
                              SYNC_STATUS_TEXT[SyncAction.CLIENT_OUTDATED], "токен недействителен", "ошибка")
     SYNC_SUCCESS_ACTIONS = (SyncAction.NOTHING, SyncAction.PULL, SyncAction.PUSH, SyncAction.MERGE)
     SYNC_PROBLEM_COLOR = QColor("#C62828")
-    SYNC_WARNING_COLOR = QColor("#B26A00")
+    SYNC_WARNING_COLOR = QColor("#9a5800")
     SYNC_OK_COLOR = QColor("#2E7D32")
 
     def __init__(self):
