@@ -1422,6 +1422,7 @@ class MainWindow(QMainWindow):
                                   self, cancel_by_default=True)
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
             event_id: int = self.current_data(Col.ID, LiabilityTableModel.qtValueRole)
+            deleted_row: int = curr_index.row()
             backup = self.db_handler.load_event_backup(event_id)
             deleted: bool = self.db_handler.run_in_transaction(
                 lambda: self.db_handler.delete_payments_by_event(event_id) and self.table_model.delete_event(event_id))
@@ -1434,10 +1435,23 @@ class MainWindow(QMainWindow):
             # Удаление строки не вызывает currentChanged
             self.on_currentevent_change()
             self.update_filters_and_select()
+            self.select_neighbor_event(deleted_row)
             if self.deleted_event:
                 self.ui.statusBar.showMessage("Платеж удален. Ctrl+Z - отменить удаление", 15000)
             return True
         return False
+
+    def select_neighbor_event(self, row: int) -> None:
+        row_count: int = self.table_model.rowCount()
+        for neighbor_row in (row, row - 1, *range(row + 1, row_count), *range(row - 2, -1, -1)):
+            if not 0 <= neighbor_row < row_count:
+                continue
+            index: QModelIndex = self.table_model.index(neighbor_row, 0)
+            if index.siblingAtColumn(Col.TYPE).data(LiabilityTableModel.dbValueRole) == RowType.LIABILITY:
+                self.ui.trw_event.selectionModel().setCurrentIndex(
+                    index, QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows)
+                self.ui.trw_event.scrollTo(index)
+                return
 
     def undo_delete_event(self) -> bool:
         if is_viewer() or self.deleted_event is None:
