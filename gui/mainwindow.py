@@ -1589,7 +1589,13 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event, /):
         self.save_note()
-        if not self.confirm_exit_with_sync():
+        try:
+            can_close: bool = self.confirm_exit_with_sync()
+        except Exception as e:
+            log.e(f"Сбой синхронизации при выходе: {e!r}")
+            can_close = YesNoMessagebox("Не удалось отправить изменения в общую базу из-за непредвиденной ошибки (подробности в логе). "
+                                        "Закрыть программу без отправки?", self).exec() == YesNoMessagebox.YES_RETURN_VALUE
+        if not can_close:
             event.ignore()
             return
         self.settings_handler.save_settings()
