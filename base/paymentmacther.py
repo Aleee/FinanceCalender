@@ -17,7 +17,7 @@ from base.dbhandler import DBHandler
 from base.feeparser import (CODE_COLUMNINDEX, DATE_COLUMNINDEX, DESCR_COLUMNINDEX, SUM_COLUMNINDEX,
                             RECEIVER_COLUMNINDEX, UNP_COLUMNINDEX, FEE_IN_TEXT_PATTERN, CSVParseError,
                             FeeKind, classify_fee, ensure_no_operations_left, open_statement, read_bank_unp,
-                            parse_date, parse_period)
+                            read_columns_to_parse, parse_date, parse_period)
 from base.formatting import (str_decimal, dec_html, dec_strcommaspace, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_OK,
                              COLOR_WARNING)
 from base.liability import LiabilityCategory
@@ -90,9 +90,7 @@ class StatementPayments:
 
 def extract_statement_payments(filename: str, dbh) -> StatementPayments:
 
-    columns_to_parse: list[int] = list(
-        map(int, dbh.get_setting("CSVparser/columnstoparse").split(","))
-    )
+    columns_to_parse: list[int] = read_columns_to_parse(dbh)
     # 1 и 9 - дефолты из gui/settingsdialog.py (DEF_ROW_PERIOD, DEF_ROW_TRANSACTIONSTART)
     row_period: int = str_int(dbh.get_setting("CSVparser/rowperiod"), 1) - 1
     row_transactions_start: int = str_int(dbh.get_setting("CSVparser/rowtransactionstart"), 9) - 1

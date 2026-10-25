@@ -167,6 +167,14 @@ def ensure_no_operations_left(reader, date_column: int, row_index: int) -> None:
             )
 
 
+def read_columns_to_parse(dbh: DBHandler) -> list[int]:
+    raw: str = dbh.get_setting("CSVparser/columnstoparse")
+    try:
+        return [int(x) for x in raw.split(",")]
+    except ValueError:
+        raise CSVParseError(f"Номера столбцов выписки в настройках заданы неверно: {raw!r}")
+
+
 def read_bank_unp(dbh: DBHandler) -> list[str]:
     return [x for x in dbh.get_setting("CSVparser/knownunp").split(",") if x]
 
@@ -199,9 +207,7 @@ def read_debit(content: list[str], columns_to_parse: list[int]) -> Decimal:
 
 def read_transaction_csv(filename: str, dbh: DBHandler) -> StatementParseResult:
 
-    columns_to_parse: list[int] = list(
-        map(int, dbh.get_setting("CSVparser/columnstoparse").split(","))
-    )
+    columns_to_parse: list[int] = read_columns_to_parse(dbh)
     bank_unp: list[str] = read_bank_unp(dbh)
     keyword_templates: set[str] = {
         sub.strip().lower()
