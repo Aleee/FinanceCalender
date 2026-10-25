@@ -7,6 +7,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QStyle
 
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
+from gui.manualdialog import add_help_shortcut
 from gui.ui.exportsuccessdialog_ui import Ui_ExportSuccessDialog
 
 
@@ -15,6 +16,7 @@ class ExportSuccessDialog(QDialog):
         super().__init__(parent)
         self.ui = Ui_ExportSuccessDialog()
         self.ui.setupUi(self)
+        add_help_shortcut(self, "11-export.html")
 
         self.path = Path(path).resolve()
         self.system = platform.system()

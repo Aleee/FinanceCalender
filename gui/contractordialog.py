@@ -21,6 +21,7 @@ from gui.ui.contractordialog_ui import Ui_ContractorDialog
 class ContractInputDialog(QDialog):
     def __init__(self, parent=None, title="Данные договора", number="", date: QDate | None = None):
         super().__init__(parent)
+        add_help_shortcut(self, "06-contractors.html")
         self.setWindowTitle(title)
         self.setMinimumWidth(300)
         main_layout = QFormLayout(self)
