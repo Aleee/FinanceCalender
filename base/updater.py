@@ -71,7 +71,7 @@ class UpdateInfo:
             info = cls(version=str(data["version"]), db_version=int(data["db_version"]), file=str(data["file"]),
                        sha256=str(data["sha256"]).lower(), notes=str(data.get("notes", "")))
         except (ValueError, KeyError, TypeError) as e:
-            raise UpdateError(f"Некорректный {VERSION_FILE}: {e!r}")
+            raise UpdateError(f"Некорректный {VERSION_FILE}: {e!r}") from e
         if os.path.basename(info.file) != info.file or not info.file:
             raise UpdateError(f"Недопустимое имя файла обновления: {info.file!r}")
         return info
@@ -105,7 +105,7 @@ def launch_updater() -> None:
                          cwd=update_dir(), close_fds=True, creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
     except OSError as e:
         log.x(f"Не удалось запустить {updater_path}: {e}")
-        raise UpdateError("Не удалось запустить установку обновления.")
+        raise UpdateError("Не удалось запустить установку обновления.") from e
 
 
 def create_manager(parent: QObject) -> QNetworkAccessManager:
@@ -135,7 +135,7 @@ def read_download_link(reply: QNetworkReply) -> str:
     try:
         return str(json.loads(bytes(reply.readAll()).decode("utf-8"))["href"])
     except (ValueError, KeyError, TypeError) as e:
-        raise UpdateError(f"Яндекс.Диск вернул неожиданный ответ: {e!r}")
+        raise UpdateError(f"Яндекс.Диск вернул неожиданный ответ: {e!r}") from e
 
 
 class UpdateChecker(QObject):
@@ -366,8 +366,8 @@ class UpdateDownloader(QObject):
             else:
                 with zipfile.ZipFile(self.zip_path()) as archive:
                     archive.extractall(new_dir())
-        except (zipfile.BadZipFile, subprocess.CalledProcessError):
-            raise UpdateError("Архив с обновлением повреждён.")
+        except (zipfile.BadZipFile, subprocess.CalledProcessError) as e:
+            raise UpdateError("Архив с обновлением повреждён.") from e
         for name in (APP_BUNDLE,) if mac else (APP_EXE, "_internal", "updater.exe"):
             if not os.path.exists(os.path.join(new_dir(), name)):
                 raise UpdateError(f"В архиве обновления нет {name}.")

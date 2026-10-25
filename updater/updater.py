@@ -104,10 +104,10 @@ def rollback(app_dir: Path, new_dir: Path, old_dir: Path, moved_old: list[str], 
             os.rename(app_dir / name, new_dir / name)
         for name in reversed(moved_old):
             os.rename(old_dir / name, app_dir / name)
-    except OSError:
+    except OSError as e:
         log.critical(f"Откат не удался. Старые файлы программы лежат в {old_dir}, их нужно вернуть в {app_dir} вручную",
                      exc_info=True)
-        raise UpdateError("Откат не удался")
+        raise UpdateError("Откат не удался") from e
     log.info("Откат выполнен, старая версия восстановлена")
 
 
@@ -139,7 +139,7 @@ def show_error(text: str) -> None:
     try:
         ctypes.windll.user32.MessageBoxW(None, text, "Платежный календарь", 0x10)
     except Exception:
-        pass
+        log.warning("Не удалось показать окно с ошибкой", exc_info=True)
 
 
 def run_update(pid: int, app_dir: Path, new_dir: Path, wait_timeout: float) -> int:

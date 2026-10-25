@@ -155,8 +155,8 @@ def parse_period(text: str) -> Optional[tuple[date, date]]:
 def parse_date(raw: str, row_index: int) -> date:
     try:
         return datetime.strptime(raw, "%d.%m.%Y").date()
-    except ValueError:
-        raise CSVParseError(f"Не удалось получить дату из строки {row_index}: {raw!r}")
+    except ValueError as e:
+        raise CSVParseError(f"Не удалось получить дату из строки {row_index}: {raw!r}") from e
 
 
 def ensure_no_operations_left(reader, date_column: int, row_index: int) -> None:
@@ -171,8 +171,8 @@ def read_columns_to_parse(dbh: DBHandler) -> list[int]:
     raw: str = dbh.get_setting("CSVparser/columnstoparse")
     try:
         return [int(x) for x in raw.split(",")]
-    except ValueError:
-        raise CSVParseError(f"Номера столбцов выписки в настройках заданы неверно: {raw!r}")
+    except ValueError as e:
+        raise CSVParseError(f"Номера столбцов выписки в настройках заданы неверно: {raw!r}") from e
 
 
 def read_bank_unp(dbh: DBHandler) -> list[str]:
@@ -229,8 +229,8 @@ def read_transaction_csv(filename: str, dbh: DBHandler) -> StatementParseResult:
             if row_index == row_period:
                 try:
                     period = parse_period(content[columns_to_parse[DATE_COLUMNINDEX]])
-                except IndexError:
-                    raise CSVParseError("Не удалось найти строку с периодом выписки (ROW_PERIOD)")
+                except IndexError as e:
+                    raise CSVParseError("Не удалось найти строку с периодом выписки (ROW_PERIOD)") from e
                 if period is None:
                     raise CSVParseError("В строке периода выписки не найдены даты")
                 continue

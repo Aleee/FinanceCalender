@@ -125,8 +125,8 @@ def extract_statement_payments(filename: str, dbh) -> StatementPayments:
             if row_index == row_period:
                 try:
                     period = parse_period(content[columns_to_parse[DATE_COLUMNINDEX]])
-                except IndexError:
-                    raise CSVParseError("Не удалось найти строку с периодом выписки (ROW_PERIOD)")
+                except IndexError as e:
+                    raise CSVParseError("Не удалось найти строку с периодом выписки (ROW_PERIOD)") from e
                 if period is None:
                     raise CSVParseError("В строке периода выписки не найдены даты")
                 continue
