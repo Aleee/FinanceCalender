@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime, date
 from typing import Optional
 
@@ -33,7 +34,8 @@ def str_date(string: Optional[str], python_date: bool = False) -> QDate | date:
                 raise ValueError(string)
             return result
     except (ValueError, TypeError):
-        log.e(f"Не удалось преобразовать строку ({string}) в дату (python_date = {int(python_date)})")
+        callers = " <- ".join(f"{f.f_code.co_name}:{f.f_lineno}" for f in (sys._getframe(1), sys._getframe(2)))
+        log.e(f"Не удалось преобразовать строку ({string}) в дату (python_date = {int(python_date)}), вызов: {callers}")
         if python_date:
             return date(2000, 1, 1)
         else:
