@@ -77,6 +77,7 @@ class UpdateController(QObject):
         self.progress_dialog.setAutoClose(False)
         self.progress_dialog.setAutoReset(False)
         self.progress_dialog.canceled.connect(self.downloader.cancel)
+        self.progress_dialog.canceled.connect(self.hide_progress_dialog)
         self.progress_dialog.show()
 
     def hide_progress_dialog(self) -> None:
