@@ -253,6 +253,7 @@ class MainWindow(QMainWindow):
             view_tooltip, bank_tooltip = "На контроле, заголовки и итоги разделов", "Сверка банковской выписки и учет комиссий"
             planfact_tooltip = "Исполнение финансового плана, финансовый план и графики"
         self.view_tooltip = view_tooltip
+        self.export_tooltip = self.ui.act_export.toolTip()
         tb_view = self.tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions, view_tooltip)
         tb_bank = self._make_toolbar_split_button(
             self.ui.act_matching, bank_actions, "Сверка", ":/icon-toolbar/designer/icons/matching.svg", bank_tooltip)
@@ -1212,7 +1213,10 @@ class MainWindow(QMainWindow):
         self.apply_filter_state(self.FILTER_DEFAULTS)
 
     def check_export_availability(self) -> None:
-        self.ui.act_export.setEnabled(self.table_model.stored_count > 0)
+        available: bool = self.table_model.stored_count > 0
+        self.ui.act_export.setEnabled(available)
+        self.ui.act_export.setToolTip(self.export_tooltip if available
+                                      else f"{self.export_tooltip}\nНет платежей для экспорта по текущим фильтрам")
 
     def save_note(self, index: QModelIndex | None = None) -> bool:
         if is_viewer():
