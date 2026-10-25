@@ -598,7 +598,7 @@ class Ui_EventDialog(object):
 #if QT_CONFIG(tooltip)
         self.de_incurrencedate.setToolTip(QCoreApplication.translate("EventDialog", u"\u0414\u0430\u0442\u0430 \u0432\u043e\u0437\u043d\u0438\u043a\u043d\u043e\u0432\u0435\u043d\u0438\u044f", None))
 #endif // QT_CONFIG(tooltip)
-        self.label_4.setText(QCoreApplication.translate("EventDialog", u"\u0421\u0440\u043e\u043a \u043e&\u043f\u043b\u0430\u0442\u044b:", None))
+        self.label_4.setText(QCoreApplication.translate("EventDialog", u"\u0421\u0440\u043e\u043a \u043e\u043f&\u043b\u0430\u0442\u044b:", None))
         self.label_5.setText(QCoreApplication.translate("EventDialog", u"&\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f:", None))
         self.label_11.setText(QCoreApplication.translate("EventDialog", u"\u041f\u043e\u0434\u043a\u0430\u0442\u0435&\u0433\u043e\u0440\u0438\u044f:", None))
         self.label_10.setText(QCoreApplication.translate("EventDialog", u"\u041d&\u0414\u0421:", None))
