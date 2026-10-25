@@ -1234,6 +1234,9 @@ class MainWindow(QMainWindow):
         amount: Decimal = Decimal(str(self.ui.dsb_paymentsum.value()))
 
         if amount == 0:
+            ErrorInfoMessageBox("Введите сумму оплаты, отличную от нуля", parent=self).exec()
+            self.ui.dsb_paymentsum.setFocus()
+            self.ui.dsb_paymentsum.selectAll()
             return False
         total = self.current_data(Col.TOTALAMOUNT, LiabilityTableModel.qtValueRole)
         remain = self.current_data(Col.REMAINAMOUNT, LiabilityTableModel.qtValueRole)
