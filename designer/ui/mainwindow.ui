@@ -1024,6 +1024,9 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
    <property name="text">
     <string>Заголовки разделов</string>
    </property>
+   <property name="toolTip">
+    <string>Показать или скрыть заголовки разделов в таблице</string>
+   </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
    </property>
@@ -1207,6 +1210,9 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
    <property name="text">
     <string>Исполнение финансового плана</string>
    </property>
+   <property name="toolTip">
+    <string>Исполнение финансового плана за выбранный период</string>
+   </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
    </property>
@@ -1267,6 +1273,9 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
    <property name="text">
     <string>Сверить выписку</string>
    </property>
+   <property name="toolTip">
+    <string>Сверить банковскую выписку (CSV) с платежным календарем</string>
+   </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
    </property>
@@ -1281,6 +1290,9 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
    </property>
    <property name="text">
     <string>Контрагенты и договоры</string>
+   </property>
+   <property name="toolTip">
+    <string>Контрагенты, договоры и документы договоров</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -1297,6 +1309,9 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
    <property name="text">
     <string>Перейти к договору</string>
    </property>
+   <property name="toolTip">
+    <string>Открыть документ договора, к которому привязан платеж</string>
+   </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
    </property>
@@ -1311,6 +1326,9 @@ QWidget#scrollAreaWidgetContents {background-color:white;}</string>
    </property>
    <property name="text">
     <string>История платежей</string>
+   </property>
+   <property name="toolTip">
+    <string>Все платежи по документу договора, к которому привязан платеж</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
