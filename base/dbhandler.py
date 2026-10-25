@@ -1145,6 +1145,12 @@ class DBHandler:
     def _event_value(value: Any) -> Any:
         return value.rstrip() if isinstance(value, str) else value
 
+    def _log_insert_error(self, table: str, query: QSqlQuery) -> None:
+        log.e(f"Не удалось добавить строку в таблицу {table}: {query.lastError().text()} "
+              f"[запрос: {query.lastQuery()}, значений: {len(query.boundValues())}, "
+              f"код: {query.lastError().nativeErrorCode()}, база открыта: {self.db.isOpen()}, "
+              f"в транзакции: {self.in_transaction}]")
+
     def insert_event(self, data: list) -> int | None:
         if len(data) != len(EVENT_COLUMN_NAMES):
             raise IndexError("В новую строку передано неверное количество данных")
@@ -1160,7 +1166,7 @@ class DBHandler:
             for value in values:
                 query.addBindValue(value)
             if not query.exec():
-                log.e(f"Не удалось добавить строку в таблицу event: {query.lastError().text()}")
+                self._log_insert_error("event", query)
                 return False
             new_ids.append(int(query.lastInsertId()))
             return True
@@ -1180,10 +1186,7 @@ class DBHandler:
             for value in data:
                 query.addBindValue(value)
             if not query.exec():
-                log.e(f"Не удалось добавить строку в таблицу payment: {query.lastError().text()} "
-                      f"[запрос: {query.lastQuery()}, значений: {len(query.boundValues())}, "
-                      f"код: {query.lastError().nativeErrorCode()}, база открыта: {self.db.isOpen()}, "
-                      f"в транзакции: {self.in_transaction}]")
+                self._log_insert_error("payment", query)
                 return False
             new_ids.append(int(query.lastInsertId()))
             return True
