@@ -822,9 +822,9 @@ class MainWindow(QMainWindow):
             self.sync_master_info = channel.last_master_info()
             return action
         except SyncError as e:
-            log.e(f"Синхронизация не выполнена: {e}")
-            self.sync_error = str(e)
             self.sync_cancelled = isinstance(e, SyncCancelledError)
+            (log.i if self.sync_cancelled else log.e)(f"Синхронизация не выполнена: {e}")
+            self.sync_error = str(e)
             self.sync_network_failed = isinstance(e, NetworkError)
             self.sync_info_unreadable = isinstance(e, MasterInfoError)
             self.sync_failure_text = failure_status_text(e)
