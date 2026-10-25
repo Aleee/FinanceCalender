@@ -1,6 +1,5 @@
 import os
 import sys
-import cProfile
 import lovely_logger as log
 import PySide6
 from PySide6.QtCore import QLockFile, Qt, QTranslator
@@ -20,7 +19,6 @@ from gui.updatedialog import UpdateController
 
 class App(QApplication):
 
-    # def __init__(self, pr):
     def __init__(self):
         super().__init__(sys.argv)
 
@@ -45,10 +43,6 @@ class App(QApplication):
         self.update_checker.check_finished.connect(
             lambda: self.window.set_update_status(self.update_checker.last_check_status))
         self.update_checker.check()
-
-def close(pr):
-    pr.disable()
-    pr.dump_stats('profile_results.pstat')
 
 def trim_log_file(path: str, max_bytes: int = 1024 * 1024, keep_bytes: int = 256 * 1024) -> None:
     try:
@@ -82,10 +76,6 @@ def install_error_window_hook() -> None:
 
 
 def main():
-    # pr = cProfile.Profile()
-    # pr.enable()
-
-    #TEMP
     if sys.platform == 'win32' and not getattr(sys, 'frozen', False):
         os.environ['PATH'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'openssl') + os.pathsep + \
                              os.environ['PATH']
@@ -114,9 +104,6 @@ def main():
         QApplication(sys.argv)
         QMessageBox.warning(None, "Платежный календарь", "Программа уже запущена. Закройте другое окно программы и повторите запуск.")
         sys.exit(1)
-
-    # application: App = App(pr)
-    # application.aboutToQuit.connect(lambda: close(pr))
 
     application: App = App()
 
