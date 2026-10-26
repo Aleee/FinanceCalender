@@ -1,6 +1,8 @@
 import sqlite3
 from pathlib import Path
 
+from base.migrations import CHANGELOG_DATA_TABLES, changelog_triggers
+
 EVENT_DDL = """
 CREATE TABLE "event" (
     "receiver"  TEXT,
@@ -88,6 +90,14 @@ OTHER_TABLES_DDL = [
 ]
 
 
+CHANGELOG_DDL = [
+    'CREATE TABLE changelog (id INTEGER PRIMARY KEY, changed_at TEXT NOT NULL, author TEXT, machine TEXT, '
+    'tablename TEXT NOT NULL, recordid INTEGER, action TEXT NOT NULL, field TEXT, oldvalue TEXT, newvalue TEXT)',
+    'CREATE INDEX idx_changelog_record ON changelog (tablename, recordid)',
+    'CREATE INDEX idx_changelog_time ON changelog (changed_at)',
+]
+
+
 def pre_v8_ddl(ddl: str) -> str:
     if ddl.startswith(('CREATE TABLE "contractor"', 'CREATE TABLE "contract" ')):
         return ddl.replace('"archived" INTEGER NOT NULL DEFAULT 0, ', '')
@@ -131,6 +141,13 @@ def create_db(path: Path, version: int, meta: dict[str, str] | None = None, lega
             con.execute(ddl)
         rows = {"db_version": str(version), **(meta or {})}
         con.executemany("INSERT INTO meta (key, value) VALUES (?, ?)", rows.items())
+        if version >= 11:
+            for ddl in CHANGELOG_DDL:
+                con.execute(ddl)
+            for table in CHANGELOG_DATA_TABLES:
+                columns = [row[1] for row in con.execute(f"PRAGMA table_info('{table}')")]
+                for trigger in changelog_triggers(table, columns):
+                    con.execute(trigger)
         con.commit()
     finally:
         con.close()

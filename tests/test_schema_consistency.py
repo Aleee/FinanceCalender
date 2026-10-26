@@ -38,3 +38,6 @@ def test_helper_schema_columns_match_migrated_fakedata(dbh, work_db_path, tmp_pa
     assert set(helper_tables) <= set(table_names(work_db_path))
     for table in helper_tables:
         assert table_columns(helper_path, table) == table_columns(work_db_path, table), table
+    assert "changelog" in helper_tables
+    log_triggers = "SELECT name, sql FROM sqlite_master WHERE type='trigger' AND name LIKE 'trg_%_log_%' ORDER BY name"
+    assert fetch_all(helper_path, log_triggers) == fetch_all(work_db_path, log_triggers)
