@@ -2,6 +2,7 @@ import platform
 import subprocess
 from pathlib import Path
 
+import lovely_logger as log
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QDialog, QStyle
@@ -43,6 +44,7 @@ class ExportSuccessDialog(QDialog):
             elif not QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.path.parent))):
                 raise OSError("нет приложения для открытия папки")
         except OSError as e:
-            ErrorInfoMessageBox(f"Не удалось открыть папку:\n{e}", parent=self).exec()
+            log.w(f"Не удалось открыть папку {self.path.parent}: {e}")
+            ErrorInfoMessageBox("Не удалось открыть папку с файлом (см. подробнее лог)", parent=self).exec()
             return
         self.accept()

@@ -74,10 +74,15 @@ class FeeDialog(QDialog):
 
         try:
             self.parse_result = read_transaction_csv(file_path, self.dbh)
-        except (CSVParseError, OSError, UnicodeDecodeError) as exc:
+        except CSVParseError as exc:
             self.parse_result = None
             log.w(f"Не удалось прочитать CSV-файл с комиссиями: {exc}")
             ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}").exec()
+            return
+        except (OSError, UnicodeDecodeError) as exc:
+            self.parse_result = None
+            log.w(f"Не удалось прочитать CSV-файл с комиссиями: {exc}")
+            ErrorInfoMessageBox("Не удалось прочитать CSV-файл. Проверьте, что файл не открыт в другой программе и это выписка банка (см. подробнее лог)").exec()
             return
 
         self.show_report()

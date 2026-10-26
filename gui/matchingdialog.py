@@ -301,7 +301,7 @@ class MatchingDialog(QDialog):
             csv_hash = hashlib.sha1(Path(file_path).read_bytes()).hexdigest()
         except OSError as exc:
             log.w(f"Не удалось прочитать CSV-файл выписки: {exc}")
-            ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}", parent=self).exec()
+            ErrorInfoMessageBox("Не удалось прочитать CSV-файл. Проверьте, что файл не открыт в другой программе и это выписка банка (см. подробнее лог)", parent=self).exec()
             return
 
         previous = self.csv_path, self.csv_hash, self.marks
@@ -352,7 +352,7 @@ class MatchingDialog(QDialog):
             return False
         except Exception as exc:
             log.x(f"Не удалось обработать CSV-файл: {exc}")
-            ErrorInfoMessageBox(f"Не удалось обработать CSV-файл: {exc}", parent=self).exec()
+            ErrorInfoMessageBox("Не удалось обработать CSV-файл (см. подробнее лог)", parent=self).exec()
             return False
         if result is None:
             ErrorInfoMessageBox("В процессе обработки CSV-файла произошла ошибка (см. лог)", parent=self).exec()
