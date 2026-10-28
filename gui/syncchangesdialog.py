@@ -1,4 +1,4 @@
-from PySide6.QtCore import QModelIndex, QSettings, QSortFilterProxyModel, Qt, Signal
+from PySide6.QtCore import QEvent, QModelIndex, QSettings, QSortFilterProxyModel, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel,
                                QLineEdit, QListWidget, QListWidgetItem, QTabWidget, QTableView, QTableWidget, QTableWidgetItem,
@@ -40,6 +40,7 @@ class DiffView(QWidget):
     TITLE_COLUMN, AMOUNT_COLUMN, DATE_COLUMN, CHANGES_COLUMN, AUTHOR_COLUMN, TIME_COLUMN = 2, 3, 4, 5, 6, 7
     CHANGES_WIDTH = 260
     ROW_HEIGHT = 26
+    MIN_TITLE_WIDTH = 200
     MIN_ENTRIES_FOR_FILTERS = 10
 
     def __init__(self, diff: DbDiff, openable: bool = False, parent: QWidget | None = None):
@@ -50,6 +51,8 @@ class DiffView(QWidget):
         self.cmb_table: QComboBox | None = None
         self.edt_search: QLineEdit | None = None
         self.lbl_status: QLabel | None = None
+        self.title_resized_by_user: bool = False
+        self.fitting_title: bool = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 6, 6, 6)
@@ -187,8 +190,10 @@ class DiffView(QWidget):
         header.setSortIndicatorShown(True)
         for column in range(len(self.COLUMNS)):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(self.TITLE_COLUMN, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(self.TITLE_COLUMN, QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(self.CHANGES_COLUMN, QHeaderView.ResizeMode.Interactive)
+        header.sectionResized.connect(self.on_section_resized)
+        table.viewport().installEventFilter(self)
         table.setColumnWidth(self.CHANGES_COLUMN, self.CHANGES_WIDTH)
         table.setColumnHidden(self.CHANGES_COLUMN, not any(entry.details for entry in self.entries))
         has_origins = any(entry.author or entry.changed_at for entry in self.entries)
@@ -199,6 +204,23 @@ class DiffView(QWidget):
             table.doubleClicked.connect(self.activate_index)
             table.activated.connect(self.activate_index)
         return table
+
+    def eventFilter(self, watched, event) -> bool:
+        if event.type() in (QEvent.Type.Resize, QEvent.Type.Show) and not self.title_resized_by_user:
+            self.fit_title_column()
+        return super().eventFilter(watched, event)
+
+    def fit_title_column(self) -> None:
+        header = self.table.horizontalHeader()
+        others = sum(header.sectionSize(column) for column in range(len(self.COLUMNS))
+                     if column != self.TITLE_COLUMN and not self.table.isColumnHidden(column))
+        self.fitting_title = True
+        self.table.setColumnWidth(self.TITLE_COLUMN, max(self.MIN_TITLE_WIDTH, self.table.viewport().width() - others))
+        self.fitting_title = False
+
+    def on_section_resized(self, column: int) -> None:
+        if column == self.TITLE_COLUMN and not self.fitting_title:
+            self.title_resized_by_user = True
 
     def activate_index(self, index: QModelIndex) -> None:
         entry: DiffEntry = index.siblingAtColumn(0).data(ENTRY_ROLE)
