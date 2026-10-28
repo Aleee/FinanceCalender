@@ -22,12 +22,12 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Финансовый план</h2></td></tr></table>
 <p>Плановые суммы вводятся по месяцам и статьям.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Финансовый план»" src="images/12-planfact/finplan.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 34. Окно «Финансовый план».</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 35. Окно «Финансовый план».</em></span></p>
 <ul>
 <li><strong>Год.</strong> Поле «Год» (2025–2099). «Сохранить» записывает только показанный год. При смене года и при «Отмена» с несохранёнными изменениями программа спрашивает подтверждение; согласие отбрасывает изменения.</li>
 </ul>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Запрос при смене года" src="images/12-planfact/finplan-year.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 35. Запрос при смене года: в 2026 году есть несохранённое изменение.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 36. Запрос при смене года: в 2026 году есть несохранённое изменение.</em></span></p>
 <ul>
 <li><strong>Что вводится.</strong> Только строки без вложенных строк; цветные строки (разделы и подразделы) считаются сами: «2. Поступление денежных средств» = 2.1 + 2.2 + 2.3, «3. Расходование денежных средств» = 3.1 + 3.2 + 3.3. Строки «1. Остаток средств на начало периода» и «4. Остаток средств на конец периода» вводятся вручную и ни в какие суммы не входят.</li>
 <li><strong>Значения.</strong> Суммы в рублях, можно с копейками (1000,50) и отрицательные, тысячи разделяются пробелом. Если введено не число, программа просит ввести число, ячейка не меняется.</li>
@@ -38,16 +38,16 @@ th { color: #1f3a5f; }
 <p>Отчёт сравнивает план с тем, что реально оплачено за период. Расходы берутся из внесённых оплат (<a href="04-payment.html">раздел 4</a>), поэтому перед отчётом внесите все оплаты периода, а комиссии банка — через «Учет комиссий» (<a href="10-fees.html">раздел 10</a>).</p>
 <h3 id="s4">Шаг 1. Что и за какой период</h3>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Выбор отчёта и периода" src="images/12-planfact/period.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 36. Выбор отчёта и периода.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 37. Выбор отчёта и периода.</em></span></p>
 <p>Вверху выбирается отчёт: «Исполнение финансового плана» или «Перечень затрат». Период — «За месяц», «За месяцы» или «За период»; начало и конец должны быть в одном году.</p>
 <h3 id="s5">Шаг 2. Сведения о поступлениях</h3>
 <p>Программа не знает остатка на счёте и поступлений: она ведёт только платежи. Поэтому после «Далее» вы вводите эти числа сами.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Сведения о поступлениях" src="images/12-planfact/inflow.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 37. Сведения о поступлениях.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 38. Сведения о поступлениях.</em></span></p>
 <p>Числа запоминаются для такого же периода (если введено хотя бы одно ненулевое значение) и подставляются при следующем открытии.</p>
 <h3 id="s6">Как читать отчёт</h3>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Отчёт «Исполнение финансового плана»" src="images/12-planfact/report.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 38. Отчёт за сентябрь. Развернуты строки «заработная плата с налогами» и «энергоносители».</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 39. Отчёт за сентябрь. Развернуты строки «заработная плата с налогами» и «энергоносители».</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -85,7 +85,7 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Графики</h2></td></tr></table>
 <p>«Графики» открывает окно «Построить график» с единственным вариантом «Динамика задолженности»: как менялась сумма неоплаченных платежей и какая её часть просрочена.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="График «Задолженность»" src="images/13-charts/debt.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 39. График задолженности за период с 15.08 по 14.10 по всем категориям.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 40. График задолженности за период с 15.08 по 14.10 по всем категориям.</em></span></p>
 <p><strong>Как считается.</strong></p>
 <ul>
 <li>Задолженность растёт на сумму платежа в <strong>дату возникновения</strong> и уменьшается на каждую оплату в день оплаты. Срок оплаты на общую задолженность не влияет.</li>

@@ -84,9 +84,9 @@ th { color: #1f3a5f; }
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">«Вид»</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Три выключателя: «На контроле» (только платежи со звёздочкой), «Заголовки разделов» и «Итого по разделам» (последние два включены по умолчанию)</td>
-<td style="border-bottom: 1px solid #d9e0e9;"></td>
-<td style="border-bottom: 1px solid #d9e0e9;"><a href="05-filters.html">Раздел 5</a></td>
+<td style="border-bottom: 1px solid #d9e0e9;">Переключатель «Таблица» / «Календарь», затем три выключателя: «На контроле» (только платежи со звёздочкой), «Заголовки разделов» и «Итого по разделам» (последние два включены по умолчанию). Пока включено «На контроле», кнопка подсвечена</td>
+<td style="border-bottom: 1px solid #d9e0e9;"><strong>Ctrl+T</strong> (таблица ↔ календарь)</td>
+<td style="border-bottom: 1px solid #d9e0e9;"><a href="05-filters.html">Раздел 5</a>; календарь — ниже</td>
 </tr>
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">«Настройки»</td>
@@ -291,7 +291,54 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <p>«Копировать платеж с новым основанием», «Перейти к договору» и «История платежей» доступны только для платежа, привязанного к документу договора; первая — не для возврата (<a href="03-event-dialog.html">раздел 3</a>).</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s14">Панель сведений</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s14">Календарь вместо таблицы</h2></td></tr></table>
+<p>Платежи можно показать на месячной сетке: «Вид» → «Календарь» (обратно — «Таблица»; переключение — <strong>Ctrl+T</strong>). Платежи те же, но разложены по сроку оплаты: сразу видно, в какие дни много платежей и где просрочки. Не путайте с настройками «Календарь» (праздники и переносы выходных, <a href="07-payment-terms.html">раздел 7</a>).</p>
+<p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Вид «Календарь»" src="images/03-main-window/calendar.png" /></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 10. Вид «Календарь»: 1 — месяц (по щелчку открывается список месяцев и соседних годов); 2 — просроченные платежи; 3 — выбранный день; 4 — платежи выбранного дня. Внизу панель сведений выбранного платежа.</em></span></p>
+<p>Что показывает ячейка дня:</p>
+<table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
+<thead>
+<tr>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">В ячейке</th>
+<th align="left" bgcolor="#e6ecf4" style="border-bottom: 2px solid #1f3a5f;">Что означает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Красная заливка, красная сумма</td>
+<td style="border-bottom: 1px solid #d9e0e9;">В этот день срок оплаты уже прошёл, а остаток есть: платежи просрочены</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Зелёная заливка и галочка</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Все платежи дня оплачены</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">Серая заливка</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нерабочий день по календарю программы (<a href="07-payment-terms.html">раздел 7</a>)</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Число на синем фоне</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сегодня</td>
+</tr>
+<tr>
+<td style="border-bottom: 1px solid #d9e0e9;">«3 пл.» или «1 из 3»</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Сколько платежей со сроком в этот день; «1 из 3» — не оплачен один из трёх</td>
+</tr>
+<tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Сумма внизу</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Остаток платежей дня; в полностью оплаченном дне — сумма платежей, а у возврата она отрицательная</td>
+</tr>
+</tbody>
+</table>
+<p>Справа — платежи выбранного дня: по остатку от большего к меньшему, оплаченные внизу серым. Платеж, выбранный в списке, показывается в панели сведений, а команды «Изменить», «Копия» и «Удалить» работают с ним, как в таблице; двойной щелчок или <strong>Enter</strong> открывает платеж на редактирование.</p>
+<ul>
+<li>«Просрочено: N на X» — сколько платежей просрочено и на какую сумму остатка. Щелчок переходит к следующему дню с просрочкой, после последнего — снова к первому.</li>
+<li>Месяц переключают стрелки и <strong>Ctrl+←</strong> / <strong>Ctrl+→</strong>, «Сегодня» возвращает к текущему дню.</li>
+</ul>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> В календаре не действуют фильтры «СРОК ОПЛАТЫ» и «ПЕРИОД»: их заголовки на боковой панели серые, а оплаченные платежи видны всегда (иначе сетка показывала бы только один срок). Остальные фильтры и поиск, а также «На контроле», работают. «Экспорт» в календаре недоступен: вернитесь в таблицу.</p>
+</td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s15">Панель сведений</h2></td></tr></table>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Панель сведений о выбранном платеже" src="images/03-main-window/info-panel.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 9. Панель сведений. 1 — сведения о платеже и заметки; 2 — история оплат; 3 — блок внесения оплаты.</em></span></p>
 <p>Панель состоит из трёх частей.</p>
@@ -333,7 +380,7 @@ th { color: #1f3a5f; }
 <p>Заметку можно писать прямо в панели; она сохраняется сама, когда вы переходите в другое поле или выбираете другой платеж (можно и сразу, <strong>Ctrl+S</strong>).</p>
 <p><strong>История оплат (2):</strong> оплаты платежа с датой и суммой.</p>
 <p><strong>Внесение оплаты (3):</strong> дата, сумма, кнопки «Оплатить», «Изменить» и «Удалить»; по умолчанию — сегодня и остаток платежа (<a href="04-payment.html">раздел 4</a>).</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s15">Строка состояния</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s16">Строка состояния</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -369,7 +416,7 @@ th { color: #1f3a5f; }
 </tbody>
 </table>
 <p>Слева на несколько секунд может появиться сообщение «Не удалось связаться с сервером синхронизации. Повторим попытку через … с (осталось попыток: …)»: программа повторит синхронизацию сама.</p>
-<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s16">Если что-то пошло не так</h2></td></tr></table>
+<table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s17">Если что-то пошло не так</h2></td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>

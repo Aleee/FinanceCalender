@@ -23,16 +23,16 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s2">Как это устроено</h2></td></tr></table>
 <p>У каждого устройства своя <strong>локальная копия</strong> базы. Это обычная база программы: с ней можно работать без сети. Кроме того, в <strong>хранилище</strong> (Яндекс.Диск или общая папка) лежит одна <strong>общая база</strong>. Программа сверяет локальную копию с общей базой и переносит изменения в нужную сторону.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Локальные копии и общая база" src="images/16-sync/scheme.svg" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 49. Каждое устройство работает со своей копией и обменивается изменениями через общую базу.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 50. Каждое устройство работает со своей копией и обменивается изменениями через общую базу.</em></span></p>
 <p>Изменения доходят до другого пользователя только через общую базу: пока вы их не «отправили», коллега их не увидит.</p>
 <p>Синхронизируется вся база: платежи, оплаты, контрагенты, договоры, финансовый план и исполнение плана, а также «Календарь», «Парсер выписки» и «Персонал» из окна «Настройки» (<a href="13-settings.html">раздел 13</a>). «Отображение», «Таблица», «Хранение» и настройки синхронизации на каждом устройстве свои.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Кнопка синхронизации</h2></td></tr></table>
 <p>Кнопка справа на панели инструментов показывает состояние и запускает синхронизацию. Стрелка справа от неё открывает меню: «Синхронизировать сейчас», «Отказаться от моих изменений…» и «Настройки синхронизации…».</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Состояния кнопки синхронизации" src="images/16-sync/button-states.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 50. Состояния кнопки синхронизации: «выключена», «данные актуальны», «есть неотправленные», «нет связи», «КОНФЛИКТ».</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 51. Состояния кнопки синхронизации: «выключена», «данные актуальны», «есть неотправленные», «нет связи», «КОНФЛИКТ».</em></span></p>
 <p>Если синхронизация выключена, нажатие на кнопку открывает окно настроек. В подсказке видны время последней проверки, дата и автор последней отправки, а при проблеме и её причина.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Меню кнопки синхронизации" src="images/16-sync/menu.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 51. Меню кнопки синхронизации. «Отказаться от моих изменений…» доступно, когда есть неотправленные изменения (см. «Отказ от своих изменений»).</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 52. Меню кнопки синхронизации. «Отказаться от моих изменений…» доступно, когда есть неотправленные изменения (см. «Отказ от своих изменений»).</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -129,13 +129,13 @@ th { color: #1f3a5f; }
 <p>Автоматическая синхронизация пропускается, пока открыто окно с вопросом или настройками либо идёт другая синхронизация; попытка повторится при следующей проверке.</p>
 <p>На время синхронизации появляется окно с этапами, а кнопка недоступна. Автоматическая проверка по таймеру и после паузы идёт тихо (в строке состояния «Идет синхронизация...»): окно появляется, только если проверка затянулась больше чем на 3 секунды или нужно скачать общую базу. При медленной сети программа может на несколько секунд перестать отзываться — дождитесь окончания.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно синхронизации" src="images/16-sync/progress.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 52. Окно синхронизации: этапы, полоса передачи базы и кнопка «Отмена».</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 53. Окно синхронизации: этапы, полоса передачи базы и кнопка «Отмена».</em></span></p>
 <p>Если этап затягивается, появляется кнопка «Отмена», а при передаче базы — полоса передачи. При сбое связи запрос повторяется сам, рядом с этапом пишется, например, «(попытка 2/4)».</p>
 <p><strong>«Отмена»</strong> (или <strong>Esc</strong>) прерывает синхронизацию без потери данных: локальная копия остаётся целой, в общей базе либо ничего не меняется, либо отправка уже завершена; на кнопке появляется «прервана». Пока записываются итоговые файлы общей базы (последний шаг отправки), «Отмена» неактивна.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Что делает программа при проверке</h2></td></tr></table>
 <p>Программа смотрит на два вопроса: изменил ли общую базу кто-то другой с момента вашей последней синхронизации и есть ли у вас неотправленные изменения. От ответов зависит, что произойдёт.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Что делает программа" src="images/16-sync/decision.svg" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 53. Четыре возможных исхода проверки.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 54. Четыре возможных исхода проверки.</em></span></p>
 <h3 id="s6">Ничего не изменилось</h3>
 <p>Ничего не происходит, на кнопке «данные актуальны».</p>
 <h3 id="s7">Менялись только ваши данные</h3>
@@ -157,7 +157,7 @@ th { color: #1f3a5f; }
 <li>оба добавили строку финансового плана или исполнения плана за один и тот же год и категорию (период), но значения разные. Если значения одинаковые, строка просто остаётся одна.</li>
 </ul>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Как объединяются изменения" src="images/16-sync/merge.svg" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 54. Ваши изменения переносятся на общую базу, уже содержащую изменения коллеги.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 55. Ваши изменения переносятся на общую базу, уже содержащую изменения коллеги.</em></span></p>
 <p>Что при этом происходит:</p>
 <ul>
 <li>ваши добавленные, изменённые и удалённые записи переносятся на общую базу, результат заменяет вашу локальную копию и отправляется в общую базу;</li>
@@ -210,7 +210,7 @@ th { color: #1f3a5f; }
 <h4 id="s11">Конфликт</h4>
 <p>Если автоматически объединить нельзя (пересеклись правки, либо вы меняли «Календарь», «Парсер выписки» или «Персонал»), кнопка становится красной «КОНФЛИКТ» и открывается окно «Конфликт синхронизации».</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Окно «Конфликт синхронизации»" src="images/16-sync/conflict-dialog.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 55. Окно «Конфликт синхронизации».</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 56. Окно «Конфликт синхронизации».</em></span></p>
 <p>В окне:</p>
 <ul>
 <li>вверху — когда и кем обновлена общая база и напоминание: <strong>перед любым выбором ваша версия сохраняется в <code>data\backup</code> как <code>conflict_…</code></strong>;</li>
@@ -219,7 +219,7 @@ th { color: #1f3a5f; }
 </ul>
 <p>Выбрать нужно одну из трёх кнопок:</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Три варианта решения конфликта" src="images/16-sync/conflict.svg" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 56. Что происходит при каждом выборе.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 57. Что происходит при каждом выборе.</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse: collapse; margin-top: 18px; margin-bottom: 18px;">
 <thead>
 <tr>
@@ -257,7 +257,7 @@ th { color: #1f3a5f; }
 <p>Сеть нужна только на время синхронизации: всё остальное время вы работаете со своей локальной копией.</p>
 <p>Если связи нет, кнопка показывает «нет связи». Программа автоматически повторит попытку (через 30 секунд, всего три попытки), сообщая об этом в строке состояния и в подсказке кнопки, затем продолжит проверки по обычному расписанию.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Работа дома и возвращение в офис" src="images/16-sync/offline.svg" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 57. Изменения, сделанные без сети, отправляются или объединяются, когда связь появилась.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 58. Изменения, сделанные без сети, отправляются или объединяются, когда связь появилась.</em></span></p>
 <p>Что делать, если вы работали дома без сети:</p>
 <ol>
 <li>Вносите и меняйте платежи и оплаты как обычно. Кнопка «есть неотправленные» или «нет связи» в этом случае нормальна.</li>

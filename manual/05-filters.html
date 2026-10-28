@@ -23,11 +23,12 @@ th { color: #1f3a5f; }
 <ul>
 <li><strong>Условия работают вместе.</strong> Платеж виден, только если подходит под все включённые фильтры и поиск сразу.</li>
 <li><strong>После запуска</strong> включён только «Все неоплаченные», поиск пуст: фильтры не запоминаются (запоминается только свёрнутость групп).</li>
+<li><strong>В календаре</strong> (<a href="02-main-window.html">раздел 2</a>) не действуют «СРОК ОПЛАТЫ» и «ПЕРИОД»: их группы на боковой панели серые, остальные условия работают.</li>
 <li><strong>Таблица, итоги и экспорт связаны.</strong> Итоги (<a href="02-main-window.html">раздел 2</a>) и экспорт (<a href="11-export.html">раздел 11</a>) учитывают только видимые платежи: перед выгрузкой проверьте фильтры.</li>
 </ul>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Боковая панель</h2></td></tr></table>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Боковая панель с пронумерованными выносками" src="images/06-filters/sidebar.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 14. Боковая панель после запуска. 1 — кнопка «Сбросить фильтры»; 2 — строка поиска; 3 — СРОК ОПЛАТЫ; 4 — ПЕРИОД (свёрнута); 5 — КАТЕГОРИЯ; 6 — ОТВЕТСТВЕННЫЙ; 7 — ОПЛАТА СЕГОДНЯ.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 15. Боковая панель после запуска. 1 — кнопка «Сбросить фильтры»; 2 — строка поиска; 3 — СРОК ОПЛАТЫ; 4 — ПЕРИОД (свёрнута); 5 — КАТЕГОРИЯ; 6 — ОТВЕТСТВЕННЫЙ; 7 — ОПЛАТА СЕГОДНЯ.</em></span></p>
 <h3 id="s4">Срок оплаты</h3>
 <p>«На этой неделе» — от сегодня до воскресенья включительно, «В этом месяце» — до конца месяца; просроченные платежи в них не входят. Пункты пересекаются: платеж со сроком сегодня попадёт в «Сегодня», «На этой неделе» и «В этом месяце».</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#2e9d4f"></td><td bgcolor="#ebf7ee" style="padding: 10px 16px 0px 16px;">
@@ -39,7 +40,7 @@ th { color: #1f3a5f; }
 <h3 id="s6">Период</h3>
 <p>Оставляет платежи, у которых выбранная дата попадает в диапазон. В списке выбирается дата: «Срок оплаты», «Дата возникновения» или «Дата последней оплаты»; поля «С» и «По» задают границы, обе включаются в период.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Группа «Период» с заполненными границами" src="images/06-filters/sidebar-period.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 15. Группа «ПЕРИОД» развёрнута, срок оплаты — октябрь 2026. 1 — название группы; 2 — границы периода; 3 — выбор даты.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 16. Группа «ПЕРИОД» развёрнута, срок оплаты — октябрь 2026. 1 — название группы; 2 — границы периода; 3 — выбор даты.</em></span></p>
 <ul>
 <li><strong>Пустая граница не ограничивает:</strong> можно задать только «С» или только «По». Очистить поле — крестик или <strong>Del</strong>.</li>
 <li><strong>Платежи без даты не показываются.</strong> Если задана хотя бы одна граница, платеж, у которого выбранной даты нет, из таблицы убирается (например, «Дата последней оплаты» у платежа, по которому не было оплат).</li>
@@ -56,13 +57,13 @@ th { color: #1f3a5f; }
 <h3 id="s11">Свёрнутые группы</h3>
 <p>Свёрнутая группа продолжает работать; если в ней включён фильтр, название красное.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Боковая панель с включёнными фильтрами" src="images/06-filters/sidebar-active.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 16. Включены фильтры: срок «Просроченные» (2), категория «Медоборудование» (группа свёрнута и подсвечена красным) и ответственный «Васильев Н.». 1 — «Сбросить фильтры» доступна; 2 — срок оплаты; 3 — свёрнутая группа с фильтром; 4 — ответственный.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 17. Включены фильтры: срок «Просроченные» (2), категория «Медоборудование» (группа свёрнута и подсвечена красным) и ответственный «Васильев Н.». 1 — «Сбросить фильтры» доступна; 2 — срок оплаты; 3 — свёрнутая группа с фильтром; 4 — ответственный.</em></span></p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s12">Пункт «На контроле»</h2></td></tr></table>
 <p>Пункт «На контроле» в меню «Вид» оставляет только платежи с жёлтой звёздочкой (<a href="02-main-window.html">раздел 2</a>) и работает вместе с остальными фильтрами.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s13">Поиск</h2></td></tr></table>
-<p>Быстрый переход в поле — <strong>Ctrl+F</strong>; <strong>Esc</strong> очищает поиск, <strong>Enter</strong> или <strong>↓</strong> переводят курсор в таблицу, оставляя найденное.</p>
+<p>Быстрый переход в поле — <strong>Ctrl+F</strong>; <strong>Esc</strong> очищает поиск, <strong>Enter</strong> или <strong>↓</strong> переводят курсор в таблицу (в календарь, если он включён), оставляя найденное.</p>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Поиск по слову «связ»" src="images/06-filters/search.png" /></p>
-<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 17. Поиск «связ»: в таблице остался один платеж (с итоговой строкой), а числа в боковой панели пересчитались.</em></span></p>
+<p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 18. Поиск «связ»: в таблице остался один платеж (с итоговой строкой), а числа в боковой панели пересчитались.</em></span></p>
 <ul>
 <li><strong>Что ищется.</strong> Текст ищется в столбцах «Получатель платежа», «Наименование (предмет) платежа» и «Основание платежа», а также среди сумм: «Сумма платежа», «Остаток платежа» и «Оплата сегодня». Заметки поиск не просматривает.</li>
 <li><strong>Часть слова и регистр.</strong> Искомый текст может быть частью слова, регистр не важен.</li>
@@ -118,11 +119,16 @@ th { color: #1f3a5f; }
 <td style="border-bottom: 1px solid #d9e0e9;">Сбросьте фильтры (<strong>Ctrl+R</strong>) или выберите платеж заново (<a href="02-main-window.html">раздел 2</a>)</td>
 </tr>
 <tr bgcolor="#f7f9fc">
+<td style="border-bottom: 1px solid #d9e0e9;">Группы «СРОК ОПЛАТЫ» и «ПЕРИОД» серые и не реагируют на щелчки</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Включён вид «Календарь»: он сам раскладывает платежи по срокам оплаты</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Переключитесь на «Таблицу» (<strong>Ctrl+T</strong>)</td>
+</tr>
+<tr>
 <td style="border-bottom: 1px solid #d9e0e9;">Кнопка «Сбросить фильтры» серая</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Ни один фильтр не включён</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Ничего делать не нужно</td>
 </tr>
-<tr>
+<tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">Платежей в таблице меньше, чем ожидали, хотя другие фильтры не заданы</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Задан период в свёрнутой группе «ПЕРИОД» (название красное); платежи без выбранной даты тоже не показываются</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Разверните группу и очистите поля или нажмите «Сбросить фильтры»</td>
