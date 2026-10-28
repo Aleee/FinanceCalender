@@ -19,7 +19,9 @@ class FilterListWidget(QtWidgets.QListWidget):
 
         # Цвет выделения в фокусе и без
         self.setStyleSheet("""QListWidget::item:selected {background-color: #dae8f5; color: black;}
-                    QListWidget::item:selected:!focus {background-color: #dae8f5; color: black;}""")
+                    QListWidget::item:selected:!focus {background-color: #dae8f5; color: black;}
+                    QListWidget:disabled {background-color: transparent;}
+                    QListWidget::item:selected:disabled {background-color: transparent; color: #9a9a9a;}""")
 
         # Присвоение имен и иконок
         for entry in self.ITEMS.values():

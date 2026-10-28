@@ -183,6 +183,9 @@ class LiabilityTableModel(QAbstractTableModel):
 
         self.change_layout(apply_filters)
 
+    def set_ignore_term_and_period(self, ignore: bool) -> None:
+        self.change_layout(lambda: self.store.set_ignore_term_and_period(ignore))
+
     def set_hidden_filter(self, exclude_hidden: bool) -> None:
         self.change_layout(lambda: self.store.set_hidden_filter(exclude_hidden))
 

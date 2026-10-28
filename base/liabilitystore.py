@@ -5,7 +5,7 @@ from PySide6.QtCore import QDate, Qt
 
 from base.date import str_date
 from base.formatting import dec_strcommaspace
-from base.liability import (CATEGORY_NAMES, Col, HeaderFooterSubtype, LiabilityCategory, LiabilityRow,
+from base.liability import (CATEGORY_NAMES, Col, FilterFlags, HeaderFooterSubtype, LiabilityCategory, LiabilityRow,
                             PAYMENTTYPE_NAMES, PeriodField, RowType, STORED_INDEX, TermCategory, calculate_filterflags, category_section,
                             is_top_level_category, matches_category, matches_details, matches_filters, matches_term,
                             paid_threshold)
@@ -45,6 +45,13 @@ class Totals(NamedTuple):
     today: dict[int, Decimal]
 
 
+class CalendarDay(NamedTuple):
+    event_ids: tuple[int, ...]
+    remain: Decimal
+    total: Decimal = Decimal(0)
+    unpaid: int = 0
+
+
 class LiabilityStore:
 
     TOTAL_CATEGORY = 9999
@@ -63,6 +70,7 @@ class LiabilityStore:
         self.responsible_names: dict[int, str] = {}
 
         self.term_filter: int = TermCategory.UNPAID
+        self.ignore_term_and_period: bool = False
         self.category_filter: int = 0
         self.header_filter: bool = False
         self.footer_filter: bool = False
@@ -216,6 +224,10 @@ class LiabilityStore:
         self.period_field_filter = period_field
         self.invalidate()
 
+    def set_ignore_term_and_period(self, ignore: bool) -> None:
+        self.ignore_term_and_period = ignore
+        self.invalidate()
+
     def set_hidden_filter(self, exclude_hidden: bool) -> None:
         self.exclude_hidden = exclude_hidden
         self.invalidate()
@@ -270,6 +282,53 @@ class LiabilityStore:
             self.build_visible()
         return self.totals_cache
 
+    def calendar_days(self) -> tuple[dict[QDate, CalendarDay], int]:
+        return self.group_by_due_date()
+
+    def overdue_days(self) -> dict[QDate, CalendarDay]:
+        return self.group_by_due_date(overdue_only=True)[0]
+
+    def group_by_due_date(self, overdue_only: bool = False) -> tuple[dict[QDate, CalendarDay], int]:
+        event_ids_by_date: dict[QDate, list[int]] = {}
+        undated = 0
+        for row in self.calendar_rows():
+            liability = self.liabilities[row.event_id]
+            if overdue_only and (FilterFlags.DUE not in liability.filter_flags or liability.remain <= 0):
+                continue
+            due_date = self.due_dates[row.event_id]
+            if not due_date.isValid():
+                undated += 1
+                continue
+            event_ids_by_date.setdefault(due_date, []).append(row.event_id)
+        days = {}
+        for due_date, event_ids in event_ids_by_date.items():
+            event_ids.sort(key=lambda event_id: self.liabilities[event_id].remain, reverse=True)
+            remain = sum((self.liabilities[event_id].remain for event_id in event_ids), Decimal(0))
+            total = sum((to_decimal(self.events[event_id][STORED_INDEX[Col.TOTALAMOUNT]]) for event_id in event_ids), Decimal(0))
+            unpaid = sum(1 for event_id in event_ids if self.liabilities[event_id].remain > 0)
+            days[due_date] = CalendarDay(tuple(event_ids), remain, total, unpaid)
+        return days, undated
+
+    def undated_event_ids(self) -> list[int]:
+        return [row.event_id for row in self.calendar_rows() if not self.due_dates[row.event_id].isValid()]
+
+    def calendar_rows(self) -> list[VisibleRow]:
+        rows: list[VisibleRow] = []
+        for event_id, liability in self.liabilities.items():
+            if self.exclude_hidden and liability.hidden:
+                continue
+            if not (matches_category(self.category_filter, liability)
+                    and matches_details(liability, self.search_filter, self.responsible_filter, self.paytoday_filter,
+                                        self.featured_filter)):
+                continue
+            values = self.events[event_id]
+            category = to_int(values[STORED_INDEX[Col.CATEGORY]])
+            if category:
+                rows.append(VisibleRow(RowType.LIABILITY, event_id, category, to_int(values[STORED_INDEX[Col.SUBCATEGORY]])))
+        rows.sort(key=self.sort_value, reverse=self.sort_order == Qt.SortOrder.DescendingOrder)
+        rows.sort(key=self.group_key)
+        return rows
+
     def build_visible(self) -> None:
         threshold = paid_threshold(self.current_date, self.paid_months_filter)
         accepted_ids: set[int] = set()
@@ -277,9 +336,15 @@ class LiabilityStore:
         for event_id, liability in self.liabilities.items():
             if self.exclude_hidden and liability.hidden:
                 continue
-            if not matches_filters(liability, self.term_filter, self.category_filter, self.search_filter,
-                                   self.responsible_filter, self.paytoday_filter, self.featured_filter, threshold,
-                                   self.date_from_filter, self.date_to_filter, self.period_field_filter):
+            if self.ignore_term_and_period:
+                accepted = matches_category(self.category_filter, liability) and matches_details(
+                    liability, self.search_filter, self.responsible_filter, self.paytoday_filter, self.featured_filter)
+            else:
+                accepted = matches_filters(liability, self.term_filter, self.category_filter, self.search_filter,
+                                           self.responsible_filter, self.paytoday_filter, self.featured_filter,
+                                           threshold, self.date_from_filter, self.date_to_filter,
+                                           self.period_field_filter)
+            if not accepted:
                 continue
             accepted_ids.add(event_id)
             group = category_section(liability.category)

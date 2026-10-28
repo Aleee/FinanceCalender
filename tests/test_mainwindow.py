@@ -1,9 +1,11 @@
 import hashlib
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
-from PySide6.QtCore import QDate, QEvent
+from PySide6.QtCore import QDate, QEvent, QRect, Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QMessageBox
 
 import base.edition as edition
@@ -14,7 +16,7 @@ from base.updater import UpdateChecker
 from base.version import DB_VERSION
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from tests.dbtools import create_db, fetch_all
-from tests.test_readpath import add_event, add_payment, day, run_sql
+from tests.test_readpath import TODAY, add_event, add_payment, day, run_sql
 
 
 @pytest.fixture
@@ -274,3 +276,240 @@ def test_backup_is_made_on_start(storage, make_window, tmp_path):
     add_event(storage)
     make_window()
     assert list((tmp_path / "data" / "backup").glob("*"))
+
+
+def test_calendar_is_a_second_view_next_to_the_table(storage, make_window):
+    window = make_window()
+
+    assert window.calendar_widget.parent() is window.ui.page_calendar
+    assert window.ui.stw_view.currentWidget() is window.ui.page_table
+    assert window.calendar_widget.store is window.table_model.store
+
+
+def test_view_menu_starts_with_exclusive_table_and_calendar(storage, make_window):
+    window = make_window()
+
+    actions = window.tb_view.menu().actions()
+    assert actions[:2] == [window.ui.act_view_table, window.ui.act_view_calendar]
+    assert actions[2].isSeparator()
+    assert window.ui.act_view_table.isChecked()
+
+    window.ui.act_view_calendar.trigger()
+    assert window.ui.act_view_calendar.isChecked()
+    assert not window.ui.act_view_table.isChecked()
+    assert window.ui.stw_view.currentWidget() is window.ui.page_calendar
+
+    window.ui.act_view_table.trigger()
+    assert window.ui.stw_view.currentWidget() is window.ui.page_table
+
+
+def test_calendar_view_disables_term_and_period_filters(storage, make_window):
+    window = make_window()
+    ui = window.ui
+
+    window.ui.act_view_calendar.trigger()
+    for switch_button, filter_widget in ((ui.spb_term, ui.lw_term), (ui.spb_period, ui.wdg_period)):
+        assert not filter_widget.isEnabled()
+        assert switch_button.inactive
+        assert "не действует" in filter_widget.toolTip()
+    assert ui.lw_category.isEnabled()
+    assert ui.cmb_responsiblefilter.isEnabled()
+
+    window.ui.act_view_table.trigger()
+    for switch_button, filter_widget in ((ui.spb_term, ui.lw_term), (ui.spb_period, ui.wdg_period)):
+        assert filter_widget.isEnabled()
+        assert not switch_button.inactive
+        assert filter_widget.toolTip() == ""
+
+
+def test_toggle_view_switches_between_table_and_calendar(storage, make_window):
+    window = make_window()
+
+    window.toggle_view()
+    assert window.ui.stw_view.currentWidget() is window.ui.page_calendar
+    assert window.ui.act_view_calendar.isChecked()
+    window.toggle_view()
+    assert window.ui.stw_view.currentWidget() is window.ui.page_table
+    assert window.ui.act_view_table.isChecked()
+
+
+def test_ctrl_t_switches_views(storage, make_window):
+    window = make_window()
+    window.show()
+    window.activateWindow()
+    assert QTest.qWaitForWindowActive(window)
+
+    QTest.keyClick(window, Qt.Key.Key_T, Qt.KeyboardModifier.ControlModifier)
+    assert window.ui.act_view_calendar.isChecked()
+    QTest.keyClick(window, Qt.Key.Key_T, Qt.KeyboardModifier.ControlModifier)
+    assert window.ui.act_view_table.isChecked()
+
+
+def test_calendar_minimum_height_is_limited_by_the_screen(storage, make_window, qapp):
+    window = make_window()
+    window.screen = lambda: SimpleNamespace(availableGeometry=lambda: QRect(0, 0, 1440, 700))
+    window.show()
+    qapp.processEvents()
+    table_minimum = window.minimumHeight()
+
+    window.ui.act_view_calendar.setChecked(True)
+
+    assert table_minimum < window.minimumHeight() <= 700
+
+
+def test_export_is_disabled_in_calendar_view(storage, make_window, qapp):
+    add_event(storage, receiver="ООО Альфа")
+    window = make_window()
+    window.show()
+    qapp.processEvents()
+    assert window.ui.act_export.isEnabled()
+
+    window.ui.act_view_calendar.setChecked(True)
+    qapp.processEvents()
+    assert not window.ui.act_export.isEnabled()
+    assert "только в виде таблицы" in window.ui.act_export.toolTip()
+
+    window.ui.act_view_table.setChecked(True)
+    qapp.processEvents()
+    assert window.ui.act_export.isEnabled()
+    assert "только в виде таблицы" not in window.ui.act_export.toolTip()
+
+
+def test_calendar_view_raises_the_minimum_window_height(storage, make_window, qapp):
+    window = make_window()
+    window.screen = lambda: SimpleNamespace(availableGeometry=lambda: QRect(0, 0, 1600, 900))
+    window.resize(1400, 900)
+    window.show()
+    qapp.processEvents()
+    table_minimum = window.minimumHeight()
+
+    window.ui.act_view_calendar.setChecked(True)
+    qapp.processEvents()
+    assert window.minimumHeight() > table_minimum
+
+    window.resize(1400, table_minimum)
+    qapp.processEvents()
+    calendar = window.calendar_widget
+    assert window.ui.stw_view.height() >= calendar.minimumSizeHint().height()
+    assert calendar.ui.tv_calendar.height() >= calendar.ui.tv_calendar.minimumHeight()
+
+    window.ui.act_view_table.setChecked(True)
+    assert window.minimumHeight() == table_minimum
+
+
+def test_bottom_panel_shrinks_first_and_grows_last(storage, make_window, qapp):
+    window = make_window()
+    window.resize(1400, 900)
+    window.show()
+    qapp.processEvents()
+    qapp.processEvents()
+    splitter = window.ui.spl_workarea
+    minimum = splitter.widget(1).minimumSizeHint().height()
+    splitter.setSizes([sum(splitter.sizes()) - 330, 330])
+    splitter.splitterMoved.emit(0, 1)
+    top, bottom = splitter.sizes()
+    assert bottom == 330 > minimum + 20
+
+    window.resize(1400, 900 - 20)
+    qapp.processEvents()
+    assert splitter.sizes() == [top, bottom - 20]
+
+    window.resize(1400, 900 - (bottom - minimum) - 50)
+    qapp.processEvents()
+    shrunk_top, shrunk_bottom = splitter.sizes()
+    assert shrunk_bottom == minimum
+    assert shrunk_top == top - 50
+
+    window.resize(1400, 900 - (bottom - minimum) - 20)
+    qapp.processEvents()
+    assert splitter.sizes() == [top - 20, minimum]
+
+    window.resize(1400, 900 - (bottom - minimum) - 10)
+    qapp.processEvents()
+    assert splitter.sizes() == [top - 10, minimum]
+
+    window.resize(1400, 900 - (bottom - minimum) + 10)
+    qapp.processEvents()
+    assert splitter.sizes() == [top, minimum + 10]
+
+    window.resize(1400, 900)
+    qapp.processEvents()
+    assert splitter.sizes() == [top, bottom]
+
+    window.resize(1400, 900 + 40)
+    qapp.processEvents()
+    assert splitter.sizes() == [top + 40, bottom]
+
+
+def test_switching_to_calendar_shows_the_selected_payment(storage, make_window):
+    add_event(storage, receiver="ООО Альфа", due=day(0))
+    far = add_event(storage, receiver="ООО Бета", due=day(40))
+    window = make_window()
+    window.select_event(far)
+
+    window.ui.act_view_calendar.trigger()
+
+    assert window.calendar_widget.current_event_id == far
+    assert window.calendar_widget.selected == TODAY.addDays(40)
+
+
+def test_choosing_a_payment_in_calendar_selects_it_in_the_table(storage, make_window):
+    first = add_event(storage, receiver="ООО Альфа", due=day(0))
+    second = add_event(storage, receiver="ООО Бета", due=day(1))
+    window = make_window()
+    window.ui.act_view_calendar.trigger()
+    calendar = window.calendar_widget
+
+    calendar.ui.tv_calendar.setCurrentIndex(calendar.model.index_of(TODAY.addDays(1)))
+
+    assert window.current_data(Col.ID) == second
+    calendar.ui.tv_calendar.setCurrentIndex(calendar.model.index_of(TODAY.addDays(0)))
+    assert window.current_data(Col.ID) == first
+
+
+def test_calendar_shows_in_the_panel_a_payment_hidden_from_the_table_by_term(storage, make_window):
+    open_id = add_event(storage, receiver="ООО Альфа", total="100.00", due=day(0))
+    paid_id = add_event(storage, receiver="ООО Бета", total="200.00", due=day(0))
+    add_payment(storage, paid_id, day(-1), "200.00")
+    window = make_window()
+    assert window.table_model.index_by_id(paid_id).isValid() is False
+    window.ui.act_view_calendar.trigger()
+    calendar = window.calendar_widget
+    events = calendar.ui.tbl_events
+    rows = {events.item(row, 0).text(): row for row in range(events.rowCount())}
+
+    events.selectRow(rows["ООО Бета"])
+    assert window.current_data(Col.ID) == paid_id
+
+    events.selectRow(rows["ООО Альфа"])
+    assert window.current_data(Col.ID) == open_id
+
+    window.ui.act_view_table.trigger()
+    assert not window.table_model.index_by_id(paid_id).isValid()
+    assert window.table_model.index_by_id(open_id).isValid()
+
+
+def test_calendar_follows_the_search_filter(storage, make_window):
+    first = add_event(storage, receiver="ООО Альфа", due=day(0))
+    add_event(storage, receiver="ООО Бета", due=day(0))
+    window = make_window()
+    window.ui.le_search.setText("альфа")
+    window.update_filters_and_select()
+
+    window.ui.act_view_calendar.trigger()
+    window.calendar_widget.reload()
+
+    table = window.calendar_widget.ui.tbl_events
+    assert [table.item(row, 0).data(Qt.ItemDataRole.UserRole) for row in range(table.rowCount())] == [first]
+
+
+def test_activating_in_calendar_opens_the_payment_card(storage, make_window, monkeypatch):
+    add_event(storage, receiver="ООО Альфа", due=day(0))
+    window = make_window()
+    window.ui.act_view_calendar.trigger()
+    opened = []
+    monkeypatch.setattr(window, "open_event_dialog", lambda **kwargs: opened.append(kwargs))
+
+    window.calendar_widget.open_current_event()
+
+    assert opened == [{"edit": True}]

@@ -121,7 +121,7 @@ class SettingsHandler:
         ## Положение разделителей
         for splitter, setting_key, default_sizes in (
                 (self.mw.ui.spl_main, "Mainwindow/splittermain", (200, 1100)),
-                (self.mw.ui.spl_workarea, "Mainwindow/splitterworkarea", (400, 320)),
+                (self.mw.ui.spl_workarea, "Mainwindow/splitterworkarea", (440, 280)),
         ):
             saved_state = self.settings.value(setting_key)
             if not (saved_state and splitter.restoreState(saved_state)):

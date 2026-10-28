@@ -7,13 +7,16 @@ class SwitchPushButton(QPushButton):
 
     DEFAULT_STYLE: str = "border-width: 0px; text-align: left; color: black;"
     HIDDENFILTER_STYLE: str = "border-width: 0px; text-align: left; color: #ff3d3d;"
+    INACTIVE_STYLE: str = "border-width: 0px; text-align: left; color: #9a9a9a;"
     DEFAULT_COLOR: str = "black"
     HIDDENFILTER_COLOR: str = "#ff3d3d"
+    INACTIVE_COLOR: str = "#9a9a9a"
     switch_status_changed = Signal(bool)
 
     def __init__(self, parent=None):
         super(SwitchPushButton, self).__init__(parent)
         self.switchstate: bool = True
+        self.inactive: bool = False
         self.label_off: str = ""
         self.label_on: str = ""
         self.arrow_color: str = self.DEFAULT_COLOR
@@ -34,7 +37,10 @@ class SwitchPushButton(QPushButton):
         self.switch_status_changed.emit(switch_state)
 
     def change_style_on_hiding_activefilter(self, switch_state: bool, filter_active: bool) -> None:
-        if not switch_state and filter_active:
+        if self.inactive:
+            self.setStyleSheet(self.INACTIVE_STYLE)
+            self.arrow_color = self.INACTIVE_COLOR
+        elif not switch_state and filter_active:
             self.setStyleSheet(self.HIDDENFILTER_STYLE)
             self.arrow_color = self.HIDDENFILTER_COLOR
         else:

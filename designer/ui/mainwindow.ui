@@ -454,14 +454,53 @@ QWidget#wdg_eventfilter_contents {background-color:white;}</string>
         </item>
        </layout>
       </widget>
-      <widget class="QSplitter" name="spl_workarea">
+      <widget class="BottomFirstSplitter" name="spl_workarea">
        <property name="orientation">
         <enum>Qt::Orientation::Vertical</enum>
        </property>
        <property name="childrenCollapsible">
         <bool>false</bool>
        </property>
-       <widget class="EventWidget" name="trw_event"/>
+       <widget class="QStackedWidget" name="stw_view">
+        <property name="currentIndex">
+         <number>0</number>
+        </property>
+        <widget class="QWidget" name="page_table">
+         <layout class="QVBoxLayout" name="verticalLayout_table">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="EventWidget" name="trw_event"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_calendar">
+         <layout class="QVBoxLayout" name="verticalLayout_calendar">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+         </layout>
+        </widget>
+       </widget>
        <widget class="QStackedWidget" name="stw_eventinfo">
         <property name="frameShape">
          <enum>QFrame::Shape::StyledPanel</enum>
@@ -707,7 +746,7 @@ QWidget#wdg_eventfilter_contents {background-color:white;}</string>
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>55</height>
+                   <height>40</height>
                   </size>
                  </property>
                  <property name="tabChangesFocus">
@@ -924,7 +963,7 @@ QWidget#wdg_eventfilter_contents {background-color:white;}</string>
              <string notr="true">color: #666666;</string>
             </property>
             <property name="text">
-             <string>Выберите платеж в таблице, чтобы увидеть подробности</string>
+             <string>Выберите платеж в таблице или календаре, чтобы увидеть подробности</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -1011,6 +1050,45 @@ QWidget#wdg_eventfilter_contents {background-color:white;}</string>
    </property>
    <property name="shortcut">
     <string>F1</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="act_view_table">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/icon-settings/designer/icons/table.svg</normaloff>:/icon-settings/designer/icons/table.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Таблица</string>
+   </property>
+   <property name="toolTip">
+    <string>Показать платежи таблицей</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="act_view_calendar">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/designer/icons/calendar.svg</normaloff>:/designer/icons/calendar.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Календарь</string>
+   </property>
+   <property name="toolTip">
+    <string>Показать платежи календарем по срокам оплаты (Ctrl+T переключает вид)</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
@@ -1354,6 +1432,11 @@ QWidget#wdg_eventfilter_contents {background-color:white;}</string>
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>BottomFirstSplitter</class>
+   <extends>QSplitter</extends>
+   <header>gui/commonwidgets/bottomfirstsplitter.h</header>
+  </customwidget>
   <customwidget>
    <class>OptionalDateEdit</class>
    <extends>QDateEdit</extends>

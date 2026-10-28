@@ -5,7 +5,7 @@ from typing import Any, Callable
 import lovely_logger as log
 
 from PySide6.QtCore import QEvent, QModelIndex, Qt, QDate, QItemSelectionModel, QDateTime, QTimer
-from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence, QPalette, QShortcut
+from PySide6.QtGui import QAction, QActionGroup, QColor, QIcon, QKeySequence, QPalette, QShortcut
 from PySide6.QtSql import QSqlTableModel
 from PySide6.QtWidgets import QApplication, QMainWindow, QDialog, QLabel, QMenu, QStyle, QWidget, QListView, QToolButton
 
@@ -24,6 +24,7 @@ from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, Sy
 from base.syncjournal import JOURNAL_EXIT, JOURNAL_MANUAL, JOURNAL_START, add_journal_entry
 from base.workcalendar import clear_calendar_cache
 from base.xlswriter import LiabilityXlsWriter
+from gui.calendarwidget import CalendarWidget
 from gui.changelogdialog import ChangeLogDialog
 from gui.chartchoicedialog import ChartChoiceDialog
 from gui.commonwidgets.common import is_selection_filteredout, StatusBarSeparator, run_dialog
@@ -194,6 +195,10 @@ class MainWindow(QMainWindow):
         self.ui.trw_event.hide_columns()
         self.ui.trw_event.span_columns()
 
+        self.calendar_widget = CalendarWidget(self.liability_store, self.db_handler, self)
+        self.ui.page_calendar.layout().addWidget(self.calendar_widget)
+        self.table_minimum_height: int = self.minimumHeight()
+
         # Модель таблицы платежей + прокси-модель над ней
         self.payment_model: PaymentHistoryTableModel = PaymentHistoryTableModel(self.db_handler, self)
         self.payment_model.setTable("payment")
@@ -244,17 +249,21 @@ class MainWindow(QMainWindow):
             view_actions: list[QAction] = [self.ui.act_toggleheaders, self.ui.act_togglefooters]
             bank_actions: list[QAction] = []
             planfact_actions: list[QAction] = [self.ui.act_finplan, self.ui.act_fulfillment]
-            view_tooltip, bank_tooltip = "Заголовки и итоги разделов", "Сверка банковской выписки с календарем"
+            view_tooltip, bank_tooltip = "Таблица или календарь, заголовки и итоги разделов", "Сверка банковской выписки с календарем"
             planfact_tooltip = "Исполнение финансового плана и финансовый план"
         else:
             view_actions = [self.ui.act_featured, self.ui.act_toggleheaders, self.ui.act_togglefooters]
             bank_actions = [self.ui.act_matching, self.ui.act_fees]
             planfact_actions = [self.ui.act_finplan, self.ui.act_fulfillment, self.ui.act_chart]
-            view_tooltip, bank_tooltip = "На контроле, заголовки и итоги разделов", "Сверка банковской выписки и учет комиссий"
+            view_tooltip, bank_tooltip = "Таблица или календарь, на контроле, заголовки и итоги разделов", "Сверка банковской выписки и учет комиссий"
             planfact_tooltip = "Исполнение финансового плана, финансовый план и графики"
+        view_group = QActionGroup(self)
+        view_group.addAction(self.ui.act_view_table)
+        view_group.addAction(self.ui.act_view_calendar)
+        view_menu_actions: list[QAction | None] = [self.ui.act_view_table, self.ui.act_view_calendar, None] + view_actions
         self.view_tooltip = view_tooltip
         self.export_tooltip = self.ui.act_export.toolTip()
-        tb_view = self.tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_actions, view_tooltip)
+        tb_view = self.tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_menu_actions, view_tooltip)
         tb_bank = self._make_toolbar_split_button(
             self.ui.act_matching, bank_actions, "Сверка", ":/icon-toolbar/designer/icons/matching.svg", bank_tooltip)
         tb_copy = None if is_viewer() else self._make_toolbar_split_button(self.ui.act_copy, copy_actions)
@@ -309,9 +318,12 @@ class MainWindow(QMainWindow):
             return button.style().pixelMetric(QStyle.PixelMetric.PM_MenuButtonIndicator, None, button)
         return 0
 
-    def _make_toolbar_dropdown(self, text: str, icon_path: str, actions: list[QAction], tooltip: str) -> QToolButton:
+    def _make_toolbar_dropdown(self, text: str, icon_path: str, actions: list[QAction | None], tooltip: str) -> QToolButton:
         menu = QMenu(self)
         for action in actions:
+            if action is None:
+                menu.addSeparator()
+                continue
             action.setIconVisibleInMenu(True)
             menu.addAction(action)
         button = QToolButton()
@@ -404,6 +416,13 @@ class MainWindow(QMainWindow):
         self.table_model.layoutChanged.connect(self.check_export_availability)
         # События при смене выбранного ивента
         self.ui.trw_event.selectionModel().currentChanged.connect(self.on_currentevent_change)
+        for signal in (self.table_model.modelReset, self.table_model.layoutChanged, self.table_model.dataChanged,
+                       self.table_model.rowsInserted, self.table_model.rowsRemoved):
+            signal.connect(self.calendar_widget.schedule_reload)
+        self.calendar_widget.eventSelected.connect(self.select_event)
+        self.calendar_widget.eventActivated.connect(self.ui.act_edit.trigger)
+        self.calendar_widget.eventCleared.connect(self.ui.trw_event.selectionModel().clear)
+        self.ui.act_view_calendar.toggled.connect(self.on_view_changed)
         self.ui.trw_event.activated.connect(lambda: self.ui.act_edit.trigger())
         # Сигналы таблицы платежей
         self.ui.tv_payment.selectionModel().selectionChanged.connect(self.check_payment_selection_visibility)
@@ -905,17 +924,18 @@ class MainWindow(QMainWindow):
         self.ui.act_changelog.setToolTip(f"{self.ui.act_changelog.text()} (Ctrl+Shift+H)")
         # Горячие клавиши, которым не соответствует кнопка тулбара
         for key, slot in (("Ctrl+F", self.ui.le_search.setFocus),
+                          ("Ctrl+T", self.toggle_view),
                           ("Ctrl+R", self.reset_filters),
                           ("Ctrl+S", self.save_note)):
             QShortcut(QKeySequence(key), self).activated.connect(slot)
         # Поиск: Esc очищает поле, Enter и стрелка вниз переводят в таблицу
         search_shortcuts = ((Qt.Key.Key_Escape, self.ui.le_search.clear),
-                            (Qt.Key.Key_Down, self.ui.trw_event.setFocus))
+                            (Qt.Key.Key_Down, self.focus_view))
         for key, slot in search_shortcuts:
             search_shortcut = QShortcut(QKeySequence(key), self.ui.le_search)
             search_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
             search_shortcut.activated.connect(slot)
-        self.ui.le_search.returnPressed.connect(self.ui.trw_event.setFocus)
+        self.ui.le_search.returnPressed.connect(self.focus_view)
         # Оплата с клавиатуры: Enter в полях даты и суммы, Del в истории оплат
         if not is_viewer():
             QShortcut(QKeySequence("Ctrl+Z"), self).activated.connect(self.undo_delete_event)
@@ -1020,6 +1040,8 @@ class MainWindow(QMainWindow):
             for act in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete):
                 act.setEnabled(False)
         self.ui.act_changelog.setEnabled(row_type == RowType.LIABILITY)
+        if self.ui.act_view_calendar.isChecked():
+            self.calendar_widget.select_event(self.current_data(Col.ID))
         if payment_type == PaymentType.REFUND:
             if not is_viewer():
                 self.ui.act_edit.setEnabled(False)
@@ -1030,6 +1052,48 @@ class MainWindow(QMainWindow):
             # Без выделения row_type is None - кнопку добавления платежа включаем только если выбрано обязательство
             self.ui.pb_addpayment.setEnabled(row_type == RowType.LIABILITY)
         self.update_eventinfo()
+
+    def toggle_view(self) -> None:
+        if self.ui.act_view_calendar.isChecked():
+            self.ui.act_view_table.setChecked(True)
+        else:
+            self.ui.act_view_calendar.setChecked(True)
+
+    def calendar_minimum_height(self) -> int:
+        frame_height: int = self.frameGeometry().height() - self.height()
+        available: int = self.screen().availableGeometry().height() - frame_height
+        return max(self.table_minimum_height, min(self.minimumSizeHint().height(), available))
+
+    def on_view_changed(self, calendar_shown: bool) -> None:
+        self.ui.stw_view.setCurrentWidget(self.ui.page_calendar if calendar_shown else self.ui.page_table)
+        self.update_calendar_ignored_filters(calendar_shown)
+        self.table_model.set_ignore_term_and_period(calendar_shown)
+        self.check_export_availability()
+        self.setMinimumHeight(self.calendar_minimum_height() if calendar_shown else self.table_minimum_height)
+        if calendar_shown:
+            event_id = self.current_data(Col.ID)
+            if event_id is None:
+                self.select_event(self.calendar_widget.current_event_id)
+            else:
+                self.calendar_widget.select_event(event_id)
+        self.focus_view()
+
+    def update_calendar_ignored_filters(self, calendar_shown: bool) -> None:
+        tooltip = "В режиме календаря не действует" if calendar_shown else ""
+        for switch_button, filter_widget, label, is_active in self.filter_sections:
+            if filter_widget not in (self.ui.lw_term, self.ui.wdg_period):
+                continue
+            switch_button.inactive = calendar_shown
+            switch_button.change_style_on_hiding_activefilter(switch_button.switch_state(), is_active())
+            filter_widget.setEnabled(not calendar_shown)
+            for widget in (switch_button, filter_widget):
+                widget.setToolTip(tooltip)
+
+    def focus_view(self) -> None:
+        if self.ui.act_view_calendar.isChecked():
+            self.calendar_widget.ui.tv_calendar.setFocus()
+        else:
+            self.ui.trw_event.setFocus()
 
     def update_eventinfo(self) -> bool:
         current_index: QModelIndex = self.get_current_event_index()
@@ -1220,10 +1284,16 @@ class MainWindow(QMainWindow):
         self.apply_filter_state(self.FILTER_DEFAULTS)
 
     def check_export_availability(self) -> None:
-        available: bool = self.table_model.stored_count > 0
+        calendar_shown: bool = self.ui.act_view_calendar.isChecked()
+        available: bool = self.table_model.stored_count > 0 and not calendar_shown
         self.ui.act_export.setEnabled(available)
-        self.ui.act_export.setToolTip(self.export_tooltip if available
-                                      else f"{self.export_tooltip}\nНет платежей для экспорта по текущим фильтрам")
+        if calendar_shown:
+            reason = "Экспорт доступен только в виде таблицы"
+        elif not available:
+            reason = "Нет платежей для экспорта по текущим фильтрам"
+        else:
+            reason = ""
+        self.ui.act_export.setToolTip(f"{self.export_tooltip}\n{reason}" if reason else self.export_tooltip)
 
     def save_note(self, index: QModelIndex | None = None) -> bool:
         if is_viewer():
