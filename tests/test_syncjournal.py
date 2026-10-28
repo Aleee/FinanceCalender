@@ -46,7 +46,7 @@ def test_synchronize_writes_result(tmp_path, dbh):
 
 def test_journal_uploaded_once_a_day(tmp_path, make_machine):
     channel = FolderChannel(tmp_path / "cloud")
-    uploaded = tmp_path / "cloud" / "journal" / f"PC-1-{install_id()}.jsonl"
+    uploaded = tmp_path / "cloud" / "journal" / journal_remote_name("PC-1")
     with make_machine("a") as dbh:
         synchronize(dbh, channel, PARAMS, journal_tag="start")
         assert uploaded.is_file()
@@ -101,6 +101,12 @@ def test_remote_name_is_stable_for_installation_and_differs_between_installation
     (tmp_path / "install_id.txt").unlink()
     assert journal_remote_name("PC-1") != first
     assert install_id() in journal_remote_name("PC-1")
+
+
+def test_remote_name_does_not_change_when_machine_name_changes(tmp_path):
+    first = journal_remote_name("PC-1")
+    assert journal_remote_name("PC-1.local") == first
+    assert journal_remote_name("") == first
 
 
 def test_entry_time_has_timezone_and_old_records_are_read(tmp_path):

@@ -4,6 +4,7 @@ import re
 import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from platform import node
 from typing import TYPE_CHECKING
 
 import lovely_logger as log
@@ -21,24 +22,29 @@ JOURNAL_MANUAL = "manual"
 JOURNAL_AUTO = "auto"
 
 
-def install_id() -> str:
+def load_install(machine: str) -> tuple[str, str]:
     path = Path(sync_install_id_path())
     try:
-        value = path.read_text(encoding="utf-8").strip()
-        if value:
-            return value
+        lines = path.read_text(encoding="utf-8").split()
     except OSError:
-        pass
-    value = uuid.uuid4().hex[:6]
-    try:
-        path.write_text(value, encoding="utf-8")
-    except OSError as e:
-        log.w(f"Не удалось сохранить идентификатор установки: {e}")
-    return value
+        lines = []
+    value = lines[0] if lines else uuid.uuid4().hex[:6]
+    label = lines[1] if len(lines) > 1 else re.sub(r"[^\w.-]", "_", machine)
+    if len(lines) < 2:
+        try:
+            path.write_text(f"{value}\n{label}", encoding="utf-8")
+        except OSError as e:
+            log.w(f"Не удалось сохранить идентификатор установки: {e}")
+    return value, label
+
+
+def install_id() -> str:
+    return load_install(node())[0]
 
 
 def journal_remote_name(machine: str) -> str:
-    return f"{re.sub(r'[^\w.-]', '_', machine)}-{install_id()}.jsonl"
+    value, label = load_install(machine)
+    return f"{label}-{value}.jsonl"
 
 
 def journal_upload_due() -> bool:
