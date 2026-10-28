@@ -145,8 +145,11 @@ def pull_message(info: MasterInfo | None) -> str:
     return text
 
 
+THEIR_CHANGES_TITLE = "Изменения другого пользователя"
+
+
 def pull_tabs(report: SyncReport) -> list[tuple[str, DbDiff | None]]:
-    return [("Изменения другого пользователя", report.their_changes)]
+    return [(THEIR_CHANGES_TITLE, report.their_changes)]
 
 
 def merge_tabs(report: SyncReport) -> list[tuple[str, DbDiff | None]]:

@@ -4,7 +4,7 @@ import shutil
 import pytest
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtSql import QSqlQuery
-from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit, QPlainTextEdit, QTreeWidget, QTreeWidgetItemIterator, QWidget
+from PySide6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit, QPlainTextEdit, QTableView, QWidget
 
 import base.edition as edition
 from base.date import date_str
@@ -23,12 +23,10 @@ from tests.test_sync_flow import (PARAMS, channel, connected, edit, machine_a, m
 
 def tree_texts(dialog) -> list[str]:
     result = []
-    for tree in dialog.findChildren(QTreeWidget):
-        iterator = QTreeWidgetItemIterator(tree)
-        while iterator.value():
-            item = iterator.value()
-            result.append(" | ".join(item.text(column) for column in range(item.columnCount())))
-            iterator += 1
+    for table in dialog.findChildren(QTableView):
+        model = table.model()
+        for row in range(model.rowCount()):
+            result.append(" | ".join(model.index(row, column).data() or "" for column in range(model.columnCount())))
     return result
 
 

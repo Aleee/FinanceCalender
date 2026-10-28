@@ -504,9 +504,25 @@ class DBHandler:
                        f'JOIN old."{table}" o ON {key_sql(table, "n")} = {key_sql(table, "o")} '
                        f'WHERE ({differs}){visible("n", "main")}{visible("o", "old")} ORDER BY {key_sql(table, "n")}')
         width = len(names)
-        return TableDiff([dict(zip(names, row)) for row in added],
-                         [dict(zip(names, row)) for row in removed],
-                         [(dict(zip(names, row[width:])), dict(zip(names, row[:width]))) for row in changed])
+        table_diff = TableDiff([dict(zip(names, row)) for row in added],
+                               [dict(zip(names, row)) for row in removed],
+                               [(dict(zip(names, row[width:])), dict(zip(names, row[:width]))) for row in changed])
+        if not table_diff.is_empty:
+            table_diff.origins = self._read_change_origins(connection, table, table_diff)
+        return table_diff
+
+    def _read_change_origins(self, connection: str, table: str, table_diff: TableDiff) -> dict[Any, tuple[str, str]]:
+        if table not in CHANGELOG_DATA_TABLES:
+            return {}
+        has_changelog = self._file_execute(connection, "SELECT 1 FROM main.sqlite_master WHERE type = 'table' AND name = ?", CHANGELOG_TABLE)
+        if not has_changelog:
+            return {}
+        key = table_key(table)
+        wanted = {row[key] for row in table_diff.added + table_diff.removed} | {new_row[key] for _, new_row in table_diff.changed}
+        rows = self._file_execute(
+            connection, f"SELECT recordid, changed_at, author FROM main.{CHANGELOG_TABLE} WHERE id IN "
+                        f"(SELECT MAX(id) FROM main.{CHANGELOG_TABLE} WHERE tablename = ? GROUP BY recordid)", table)
+        return {row[0]: (str(row[1] or ""), str(row[2] or "")) for row in rows if row[0] in wanted}
 
     def _read_other_tables_diff(self, connection: str) -> dict[str, tuple[int, int]]:
         tables = [row[0] for row in self._file_execute(

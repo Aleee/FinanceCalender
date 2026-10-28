@@ -79,6 +79,7 @@ class TableDiff:
     added: list[Row] = field(default_factory=list)
     removed: list[Row] = field(default_factory=list)
     changed: list[tuple[Row, Row]] = field(default_factory=list)
+    origins: dict[Any, tuple[str, str]] = field(default_factory=dict, compare=False)
 
     @property
     def is_empty(self) -> bool:
@@ -174,7 +175,12 @@ def describe_row(table: str, row: Row) -> str:
 
 def describe_other_table(table: str, counts: tuple[int, int]) -> str:
     only_new, only_old = counts
-    return f"{TABLE_TITLES.get(table, table).capitalize()}: новых или изменённых строк {only_new}, исчезнувших или прежних {only_old}"
+    title = TABLE_TITLES.get(table, table).capitalize()
+    if not only_old:
+        return f"{title}: добавлено строк — {only_new}"
+    if not only_new:
+        return f"{title}: удалено строк — {only_old}"
+    return f"{title}: строки изменены, добавлены или удалены (в новой версии отличаются {only_new}, в прежней — {only_old})"
 
 
 def changed_columns(old_row: Row, new_row: Row) -> list[str]:

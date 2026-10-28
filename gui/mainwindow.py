@@ -53,7 +53,7 @@ from gui.settingsdialog import SettingsDialog
 from gui.syncchangesdialog import SyncChangesDialog
 from gui.syncconflictdialog import SyncConflictDialog
 from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PLANNED_STAGES, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS,
-                             SYNC_STAGE_CHANGES_NOTICE, SYNC_STAGE_CONFLICT_RESOLUTION, SYNC_STATUS_TEXT, TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_tabs, connect_to_master,
+                             SYNC_STAGE_CHANGES_NOTICE, SYNC_STAGE_CONFLICT_RESOLUTION, SYNC_STATUS_TEXT, THEIR_CHANGES_TITLE, TOKEN_WARNING_DAYS, IdleSyncTimer, compare_with_master, conflict_tabs, connect_to_master,
                              create_master, create_sync_channel, create_sync_params, describe_master, discard_unsent_changes, failure_status_text,
                              master_age_days, merge_message, merge_tabs, merge_warning_lines, overwrite_master, pull_message,
                              pull_tabs, restore_master, take_master, token_days_left)
@@ -657,6 +657,7 @@ class MainWindow(QMainWindow):
         previous_status_text: str = self.sync_status_text
         report = SyncReport()
         action: SyncAction | None = None
+        event_to_show: int | None = None
         self.sync_progress = SyncProgressDialog(self, planned_stages=SYNC_PLANNED_STAGES, quiet=quiet)
         self.sync_progress.start()
         if quiet:
@@ -681,16 +682,22 @@ class MainWindow(QMainWindow):
             if quiet:
                 self.ui.statusBar.clearMessage()
             if is_changed_by_other:
+                settings = self.settings_handler.settings
                 if is_merged:
-                    changes_dlg = SyncChangesDialog(merge_message(report), merge_tabs(report), self, warnings=merge_warning_lines(report))
+                    changes_dlg = SyncChangesDialog(merge_message(report), merge_tabs(report), self, warnings=merge_warning_lines(report),
+                                                    settings=settings, openable_tabs=(THEIR_CHANGES_TITLE,))
                 else:
-                    changes_dlg = SyncChangesDialog(pull_message(report.master_info or self.sync_master_info), pull_tabs(report), self)
+                    changes_dlg = SyncChangesDialog(pull_message(report.master_info or self.sync_master_info), pull_tabs(report), self,
+                                                    settings=settings, openable_tabs=(THEIR_CHANGES_TITLE,))
                 self.sync_progress.show_stage_now(SYNC_STAGE_CHANGES_NOTICE)
                 run_dialog(changes_dlg)
+                event_to_show = changes_dlg.event_to_show
         finally:
             if quiet:
                 self.ui.statusBar.clearMessage()
             self._close_sync_progress(pause=pause_when_done and action is not None)
+        if event_to_show is not None:
+            self.reveal_event(event_to_show, self)
         if interactive:
             if action is None and not self.sync_cancelled:
                 ErrorInfoMessageBox(f"Не удалось выполнить синхронизацию: {self.sync_error}", parent=self).exec()

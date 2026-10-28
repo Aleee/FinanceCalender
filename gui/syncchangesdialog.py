@@ -1,74 +1,209 @@
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor
-from PySide6.QtWidgets import (QAbstractItemView, QDialog, QDialogButtonBox, QHeaderView, QLabel, QListWidget,
-                               QListWidgetItem, QTabWidget, QTableWidget, QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtCore import QModelIndex, QSettings, QSortFilterProxyModel, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QFont, QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel,
+                               QLineEdit, QListWidget, QListWidgetItem, QTabWidget, QTableView, QTableWidget, QTableWidgetItem,
+                               QVBoxLayout, QWidget)
 
 from gui.manualdialog import add_help_shortcut
+from base.diffview import ACTION_TITLES, ACTIONS, ADDED, CHANGED, REMOVED, SECTION_TITLES, DiffEntry, build_entries, format_time, summary_lines
 from base.formatting import COLOR_CALENDAR, COLOR_OK, COLOR_STATEMENT, COLOR_WARNING, COLOR_WARNING_BG
-from base.syncdiff import Conflict, DbDiff, TableDiff, describe_other_table, describe_row, field_changes
+from base.syncdiff import Conflict, DETAILED_TABLES, DbDiff, describe_other_table
+
+ENTRY_ROLE = Qt.ItemDataRole.UserRole
+SORT_ROLE = Qt.ItemDataRole.UserRole + 1
+ACTION_COLORS = {ADDED: COLOR_OK, CHANGED: COLOR_WARNING, REMOVED: COLOR_STATEMENT}
 
 
-class DiffTreeWidget(QTreeWidget):
-    TABLE_TITLES = (("contractor", "Контрагенты"), ("contract", "Договоры"), ("contractdocument", "Документы договоров"),
-                    ("contractpaymentterm", "Сроки оплаты документов"), ("contractsavedvalues", "Сохранённые значения документов"),
-                    ("event", "Платежи"), ("payment", "Оплаты"), ("finplan", "Финансовый план"),
-                    ("fulfillmentdata", "Данные об исполнении"))
-    EXPAND_ALL_LIMIT = 100
-
-    def __init__(self, diff: DbDiff, parent: QWidget | None = None):
+class DiffFilterProxy(QSortFilterProxyModel):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setHeaderLabels(["Запись", "Было", "Стало"])
-        self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.setUniformRowHeights(True)
-        header = self.header()
-        header.setStretchLastSection(False)
-        for column, width in enumerate((340, 180, 180)):
-            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Interactive)
-            self.setColumnWidth(column, width)
+        self.actions: set[str] = set(ACTIONS)
+        self.table: str = ""
+        self.text: str = ""
+        self.setSortRole(SORT_ROLE)
 
-        for table, title in self.TABLE_TITLES:
-            table_diff: TableDiff | None = diff.tables.get(table)
-            if table_diff is not None and not table_diff.is_empty:
-                self.add_table(table, title, table_diff)
-        for table, counts in diff.other_tables.items():
-            self.make_bold(QTreeWidgetItem(self, [describe_other_table(table, counts)]))
+    def set_filters(self, actions: set[str], table: str, text: str) -> None:
+        self.beginFilterChange()
+        self.actions, self.table, self.text = actions, table, text
+        self.endFilterChange()
 
-        if len(self.findItems("*", Qt.MatchFlag.MatchWildcard | Qt.MatchFlag.MatchRecursive)) <= self.EXPAND_ALL_LIMIT:
-            self.expandAll()
-        else:
-            self.expandToDepth(1)
+    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
+        entry: DiffEntry = self.sourceModel().index(source_row, 0, source_parent).data(ENTRY_ROLE)
+        return (entry.action in self.actions and (not self.table or self.table in entry.tables)
+                and self.text in entry.title.casefold())
+
+
+class DiffView(QWidget):
+    eventActivated = Signal(int)
+
+    COLUMNS = ("Действие", "Тип", "Запись", "Сумма", "Срок / дата", "Что изменилось", "Кто", "Когда")
+    TITLE_COLUMN, AMOUNT_COLUMN, DATE_COLUMN, CHANGES_COLUMN, AUTHOR_COLUMN, TIME_COLUMN = 2, 3, 4, 5, 6, 7
+    CHANGES_WIDTH = 260
+    ROW_HEIGHT = 26
+    MIN_ENTRIES_FOR_FILTERS = 10
+
+    def __init__(self, diff: DbDiff, openable: bool = False, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.entries: list[DiffEntry] = build_entries(diff)
+        self.openable: bool = openable
+        self.action_boxes: dict[str, QCheckBox] = {}
+        self.cmb_table: QComboBox | None = None
+        self.edt_search: QLineEdit | None = None
+        self.lbl_status: QLabel | None = None
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(6, 6, 6, 6)
+        if self.entries:
+            self.proxy = DiffFilterProxy(self)
+            self.proxy.setSourceModel(self.create_model())
+            layout.addWidget(self.create_summary())
+            if len(self.entries) >= self.MIN_ENTRIES_FOR_FILTERS:
+                layout.addWidget(self.create_filters())
+            self.table = self.create_table()
+            layout.addWidget(self.table, 1)
+            self.lbl_status = QLabel(self)
+            self.lbl_status.setStyleSheet("color: #555;")
+            layout.addWidget(self.lbl_status)
+            self.update_status()
+        if diff.other_tables:
+            lines = [f"•  {describe_other_table(table, counts)}" for table, counts in diff.other_tables.items()]
+            lbl_other = QLabel("Также изменились данные, которые здесь не раскрываются:\n" + "\n".join(lines), self)
+            lbl_other.setWordWrap(True)
+            lbl_other.setStyleSheet("color: #555;")
+            layout.addWidget(lbl_other)
+        if not self.entries:
+            layout.addStretch()
+
+    def create_summary(self) -> QLabel:
+        label = QLabel("\n".join(summary_lines(self.entries)), self)
+        font = label.font()
+        font.setBold(True)
+        label.setFont(font)
+        return label
+
+    def create_filters(self) -> QWidget:
+        bar = QWidget(self)
+        row = QHBoxLayout(bar)
+        row.setContentsMargins(0, 0, 0, 0)
+        for action in ACTIONS:
+            count = sum(1 for entry in self.entries if entry.action == action)
+            if not count:
+                continue
+            box = QCheckBox(f"{ACTION_TITLES[action]} ({count})", bar)
+            box.setChecked(True)
+            box.setStyleSheet(f"QCheckBox {{ color: {ACTION_COLORS[action]}; font-weight: bold; }}")
+            box.toggled.connect(self.apply_filters)
+            row.addWidget(box)
+            self.action_boxes[action] = box
+        tables = [(table, sum(1 for entry in self.entries if table in entry.tables)) for table in DETAILED_TABLES]
+        tables = [(table, count) for table, count in tables if count]
+        if len(tables) > 1:
+            self.cmb_table = QComboBox(bar)
+            self.cmb_table.addItem("Все разделы", "")
+            for table, count in tables:
+                self.cmb_table.addItem(f"{SECTION_TITLES[table]} ({count})", table)
+            self.cmb_table.currentIndexChanged.connect(self.apply_filters)
+            row.addWidget(self.cmb_table)
+        self.edt_search = QLineEdit(bar)
+        self.edt_search.setPlaceholderText("Поиск по записи")
+        self.edt_search.setClearButtonEnabled(True)
+        self.edt_search.textChanged.connect(self.apply_filters)
+        row.addWidget(self.edt_search, 1)
+        return bar
+
+    def apply_filters(self) -> None:
+        actions = {action for action, box in self.action_boxes.items() if box.isChecked()}
+        table = "" if self.cmb_table is None else self.cmb_table.currentData()
+        text = "" if self.edt_search is None else self.edt_search.text().strip().casefold()
+        self.proxy.set_filters(actions, table, text)
+        self.update_status()
+
+    def update_status(self) -> None:
+        text = f"Показано {self.proxy.rowCount()} из {len(self.entries)}."
+        if self.openable:
+            text += " Двойной щелчок по платежу или оплате — показать платеж в календаре."
+        self.lbl_status.setText(text)
+
+    def create_model(self) -> QStandardItemModel:
+        model = QStandardItemModel(0, len(self.COLUMNS), self)
+        model.setHorizontalHeaderLabels(list(self.COLUMNS))
+        for entry in self.entries:
+            model.appendRow(self.create_row(entry))
+        return model
+
+    def create_row(self, entry: DiffEntry) -> list[QStandardItem]:
+        table_order = DETAILED_TABLES.index(entry.table)
+        title_key = f"{entry.title.casefold()}\0{table_order}\0{ACTIONS.index(entry.action)}"
+        action_item = self.make_item(ACTION_TITLES[entry.action], f"{ACTIONS.index(entry.action)}\0{title_key}", entry,
+                                     color=ACTION_COLORS[entry.action], bold=True)
+        removed = entry.action == REMOVED
+        moment = "" if entry.changed_at is None else entry.changed_at.isoformat()
+        return [
+            action_item,
+            self.make_item(entry.kind, f"{table_order}\0{title_key}", entry),
+            self.make_item(entry.title, title_key, entry, tooltip=entry.title, strike=removed),
+            self.make_item(entry.amount_text, float(entry.amount or 0), entry, right=True, strike=removed,
+                           color=COLOR_WARNING if entry.amount_changed else None, bold=entry.amount_changed),
+            self.make_item(entry.date_text, entry.date_sort, entry, right=True, strike=removed,
+                           color=COLOR_WARNING if entry.date_changed else None, bold=entry.date_changed),
+            self.make_item(entry.details, entry.details.casefold(), entry, tooltip=entry.details_tooltip),
+            self.make_item(entry.author, entry.author.casefold(), entry),
+            self.make_item(format_time(entry.changed_at), moment, entry),
+        ]
 
     @staticmethod
-    def make_bold(item: QTreeWidgetItem) -> None:
-        font = item.font(0)
-        font.setBold(True)
-        item.setFont(0, font)
+    def make_item(text: str, sort_value: str | float, entry: DiffEntry, tooltip: str = "", color: str | None = None, bold: bool = False,
+                  strike: bool = False, right: bool = False) -> QStandardItem:
+        item = QStandardItem(text)
+        item.setEditable(False)
+        item.setData(entry, ENTRY_ROLE)
+        item.setData(sort_value, SORT_ROLE)
+        if tooltip:
+            item.setToolTip(tooltip)
+        if color is not None:
+            item.setForeground(QBrush(QColor(color)))
+        if bold or strike:
+            font = QFont()
+            font.setBold(bold)
+            font.setStrikeOut(strike)
+            item.setFont(font)
+        if right:
+            item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        return item
 
-    def add_table(self, table: str, title: str, table_diff: TableDiff) -> None:
-        table_item = QTreeWidgetItem(self, [title])
-        self.make_bold(table_item)
-        self.add_group(table_item, "Добавлено", COLOR_OK, [describe_row(table, row) for row in table_diff.added])
-        changed_items = self.add_group(table_item, "Изменено", COLOR_WARNING,
-                                       [describe_row(table, new_row) for _, new_row in table_diff.changed])
-        for item, (old_row, new_row) in zip(changed_items, table_diff.changed):
-            for field_title, old_value, new_value in field_changes(old_row, new_row):
-                change_item = QTreeWidgetItem(item, [field_title, old_value, new_value])
-                change_item.setForeground(1, QBrush(QColor(COLOR_STATEMENT)))
-                change_item.setForeground(2, QBrush(QColor(COLOR_OK)))
-                for column, text in enumerate((field_title, old_value, new_value)):
-                    change_item.setToolTip(column, text)
-        self.add_group(table_item, "Удалено", COLOR_STATEMENT, [describe_row(table, row) for row in table_diff.removed])
+    def create_table(self) -> QTableView:
+        table = QTableView(self)
+        table.setModel(self.proxy)
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        table.setAlternatingRowColors(True)
+        table.setWordWrap(False)
+        table.setTextElideMode(Qt.TextElideMode.ElideRight)
+        table.verticalHeader().hide()
+        table.verticalHeader().setDefaultSectionSize(self.ROW_HEIGHT)
+        table.setSortingEnabled(True)
+        header = table.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setSortIndicatorShown(True)
+        for column in range(len(self.COLUMNS)):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(self.TITLE_COLUMN, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(self.CHANGES_COLUMN, QHeaderView.ResizeMode.Interactive)
+        table.setColumnWidth(self.CHANGES_COLUMN, self.CHANGES_WIDTH)
+        table.setColumnHidden(self.CHANGES_COLUMN, not any(entry.details for entry in self.entries))
+        has_origins = any(entry.author or entry.changed_at for entry in self.entries)
+        table.setColumnHidden(self.AUTHOR_COLUMN, not has_origins)
+        table.setColumnHidden(self.TIME_COLUMN, not has_origins)
+        table.sortByColumn(self.TITLE_COLUMN, Qt.SortOrder.AscendingOrder)
+        if self.openable:
+            table.doubleClicked.connect(self.activate_index)
+            table.activated.connect(self.activate_index)
+        return table
 
-    def add_group(self, parent: QTreeWidgetItem, title: str, color: str, texts: list[str]) -> list[QTreeWidgetItem]:
-        if not texts:
-            return []
-        group_item = QTreeWidgetItem(parent, [f"{title} ({len(texts)})"])
-        group_item.setForeground(0, QBrush(QColor(color)))
-        self.make_bold(group_item)
-        items = [QTreeWidgetItem(group_item, [text]) for text in texts]
-        for item, text in zip(items, texts):
-            item.setToolTip(0, text)
-        return items
+    def activate_index(self, index: QModelIndex) -> None:
+        entry: DiffEntry = index.siblingAtColumn(0).data(ENTRY_ROLE)
+        if self.openable and entry.event_id is not None:
+            self.eventActivated.emit(int(entry.event_id))
 
 
 class ConflictTableWidget(QTableWidget):
@@ -114,12 +249,16 @@ class WarningListWidget(QListWidget):
 
 
 class SyncChangesDialog(QDialog):
+    GEOMETRY_KEY = "SyncChanges/geometry"
+
     def __init__(self, message: str, tabs: list[tuple[str, DbDiff | None]], parent: QWidget | None = None, info: str = "",
-                 conflicts: list[Conflict] | None = None, warnings: list[str] | None = None):
+                 conflicts: list[Conflict] | None = None, warnings: list[str] | None = None, settings: QSettings | None = None,
+                 openable_tabs: tuple[str, ...] = ()):
         super().__init__(parent)
         add_help_shortcut(self, "15-sync.html")
         self.setWindowTitle("Синхронизация")
-        self.resize(820, 560)
+        self.settings: QSettings | None = settings
+        self.event_to_show: int | None = None
 
         layout = QVBoxLayout(self)
         lbl_message = QLabel(message, self)
@@ -143,7 +282,9 @@ class SyncChangesDialog(QDialog):
         if shown_tabs:
             tab_widget = QTabWidget(self)
             for title, diff in shown_tabs:
-                tab_widget.addTab(DiffTreeWidget(diff, tab_widget), title)
+                view = DiffView(diff, title in openable_tabs, tab_widget)
+                view.eventActivated.connect(self.request_event)
+                tab_widget.addTab(view, title)
             layout.addWidget(tab_widget, 1)
         else:
             layout.addStretch()
@@ -151,6 +292,21 @@ class SyncChangesDialog(QDialog):
         self.button_box = QDialogButtonBox(self)
         self.create_buttons()
         layout.addWidget(self.button_box)
+
+        geometry = None if settings is None else settings.value(self.GEOMETRY_KEY)
+        if geometry:
+            self.restoreGeometry(geometry)
+        else:
+            self.resize(1100, 640)
+
+    def request_event(self, event_id: int) -> None:
+        self.event_to_show = event_id
+        self.accept()
+
+    def done(self, result: int) -> None:
+        if self.settings is not None:
+            self.settings.setValue(self.GEOMETRY_KEY, self.saveGeometry())
+        super().done(result)
 
     def section_label(self, text: str, color: str = COLOR_CALENDAR) -> QLabel:
         label = QLabel(text, self)

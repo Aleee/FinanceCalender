@@ -141,10 +141,10 @@ def test_merge_message_and_tabs():
     assert merge_warning_lines(report) == ["Возможный дубль платежа: ООО Ромашка — Аренда, 100,00, срок 15.10.2026"]
 
 
-def test_changes_dialog_shows_diff_tree_conflicts_and_warnings(qapp):
+def test_changes_dialog_shows_diff_table_conflicts_and_warnings(qapp):
     from PySide6.QtWidgets import QTabWidget
     from base.syncdiff import Conflict, DbDiff, TableDiff
-    from gui.syncchangesdialog import ConflictTableWidget, SyncChangesDialog, WarningListWidget
+    from gui.syncchangesdialog import ConflictTableWidget, DiffView, SyncChangesDialog, WarningListWidget
     diff = DbDiff({"event": TableDiff(added=[sample_event("5")], changed=[(sample_event("100"), sample_event("120.5"))],
                                       removed=[sample_event("7")])}, other_tables={"contractor": (1, 0)})
     conflict = Conflict("ООО Ромашка — Аренда", "Сумма", "60,00", "50,00")
@@ -152,14 +152,14 @@ def test_changes_dialog_shows_diff_tree_conflicts_and_warnings(qapp):
                                warnings=["первое", "второе"])
     tabs = dialog.findChild(QTabWidget)
     assert [tabs.tabText(index) for index in range(tabs.count())] == ["Чужие"]
-    tree = tabs.widget(0)
-    table_item = tree.topLevelItem(0)
-    assert table_item.text(0) == "Платежи" and tree.topLevelItem(1).text(0).startswith("Контрагенты:")
-    assert [table_item.child(index).text(0) for index in range(table_item.childCount())] == [
-        "Добавлено (1)", "Изменено (1)", "Удалено (1)"]
-    changed_item = table_item.child(1).child(0)
-    assert changed_item.text(0) == "ООО Ромашка — Аренда, 120,50, срок 15.10.2026"
-    assert [changed_item.child(0).text(column) for column in range(3)] == ["Сумма", "100,00", "120,50"]
+    view = tabs.widget(0)
+    assert isinstance(view, DiffView)
+    rows = [[view.proxy.index(row, column).data() for column in range(5)] for row in range(view.proxy.rowCount())]
+    assert rows == [["Добавлено", "Платеж", "ООО Ромашка — Аренда", "5,00", "15.10.2026"],
+                    ["Изменено", "Платеж", "ООО Ромашка — Аренда", "120,50", "15.10.2026"],
+                    ["Удалено", "Платеж", "ООО Ромашка — Аренда", "7,00", "15.10.2026"]]
+    assert view.proxy.index(1, DiffView.CHANGES_COLUMN).data() == "Сумма: 100,00 → 120,50"
+    assert view.findChildren(type(view.lbl_status))[-1].text().startswith("Также изменились")
     table = dialog.findChild(ConflictTableWidget)
     assert [table.item(0, column).text() for column in range(4)] == ["ООО Ромашка — Аренда", "Сумма", "60,00", "50,00"]
     assert dialog.findChild(WarningListWidget).count() == 2
