@@ -1,6 +1,7 @@
 import argparse
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 import zipfile
@@ -87,6 +88,8 @@ def main() -> None:
     zip_name = f"{app_name}-{APP_VERSION}.zip"
     zip_path = RELEASE_DIR / zip_name
     make_zip(zip_path, app_folder, updater_exe)
+    shutil.rmtree(app_folder)
+    shutil.rmtree(DIST / "updater", ignore_errors=True)
 
     version_info = {
         "version": APP_VERSION,
