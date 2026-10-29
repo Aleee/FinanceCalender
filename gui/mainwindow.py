@@ -1685,7 +1685,7 @@ class MainWindow(QMainWindow):
     def open_chart_dialog(self) -> None:
         if is_viewer():
             return
-        run_dialog(ChartChoiceDialog(self, self.settings_handler))
+        run_dialog(ChartChoiceDialog(self, self.settings_handler, self.open_event_view))
 
     def open_contractor_dialog(self) -> None:
         run_dialog(ContractorDialog(self.db_handler, self.settings_handler.settings, self.open_event_view, self))

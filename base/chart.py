@@ -1,14 +1,16 @@
 from PySide6 import QtCore
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QFont
-from PySide6.QtWidgets import QWidget, QVBoxLayout
+from PySide6.QtCore import QPoint, QPointF, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QKeyEvent
+from PySide6.QtWidgets import QLabel, QToolTip, QWidget, QVBoxLayout
 import pyqtgraph as pg
 
 from datetime import date, timedelta
 from decimal import Decimal
+from html import escape
 
 from base.discipline import BUCKET_NAMES, DelayBucket, DisciplineStats
-from base.formatting import dec_strcommaspace, int_strspace
+from base.expenses import StructureRow, change_share
+from base.formatting import dec_strcommaspace, float_strpercentage, float_strsignedpercentage, int_strspace
 
 class MoneyAxis(pg.AxisItem):
 
@@ -523,3 +525,361 @@ class MonthTrendWidget(QWidget):
         self.plot.setXRange(first - 0.5, last + 0.5, padding=0)
         self.plot.setYRange(0, 115, padding=0)
         self.plot.getAxis("left").setTicks([[(0, "0"), (50, "50"), (100, "100")]])
+
+
+class ScrollThroughPlot(pg.PlotWidget):
+
+    def wheelEvent(self, event) -> None:
+        event.ignore()
+
+
+class ExpenseBarAxis(MoneyAxis):
+
+    def tickValues(self, minVal, maxVal, size):
+        return super().tickValues(minVal, maxVal, size)[:2]
+
+
+class ExpenseBarWidget(QWidget):
+
+    rowClicked = Signal(int)
+    rowRevealed = Signal(int)
+
+    CURRENT_COLOR = "#2a78d6"
+    PREVIOUS_COLOR = "#a2a199"
+    OTHER_COLOR = "#7f7f7a"
+    TEXT_COLOR = "#2b2b2b"
+    GROWTH_COLOR = "#c0392b"
+    DROP_COLOR = "#1e8a4c"
+    DIMMED_ALPHA = 90
+    ROW_PIXELS = 26
+    COMPARE_ROW_PIXELS = 46
+    EXTRA_PIXELS = 70
+    PAGE_ROWS = 5
+
+    def __init__(self, bg_color, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self.hints: list[str] = []
+        self.cursor_row: int | None = None
+        self.cursor_shown = False
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        pg.setConfigOptions(
+            background=bg_color,
+            foreground=self.TEXT_COLOR
+        )
+
+        self.plot = ScrollThroughPlot(axisItems={"top": ExpenseBarAxis(orientation="top")})
+        self.plot.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.plot.getPlotItem().hideButtons()
+        self.plot.setMouseEnabled(x=False, y=False)
+        self.plot.setMenuEnabled(False)
+        self.plot.invertY(True)
+        self.plot.hideAxis("bottom")
+        self.plot.showAxis("top")
+        self.plot.showGrid(x=True, alpha=0.2)
+        self.plot.getAxis("left").setStyle(tickFont=QFont("Arial", 10))
+        self.plot.getAxis("top").setStyle(tickFont=QFont("Arial", 10))
+        layout.addWidget(self.plot)
+
+        self.cursor_item = pg.BarGraphItem(x0=[], x1=[], y=[], height=1.0, brush=QColor(0, 0, 0, 0),
+                                           pen=pg.mkPen(self.CURRENT_COLOR, width=2))
+
+        self.plot.scene().sigMouseClicked.connect(self.onMouseClicked)
+        self.plot.scene().sigMouseMoved.connect(self.onMouseMoved)
+
+    def rowAt(self, y: float) -> int | None:
+        index = round(y)
+        if abs(y - index) > 0.5 or not 0 <= index < len(self.hints):
+            return None
+        return index
+
+    @staticmethod
+    def barColor(color: str, index: int, selected: int | None) -> QColor:
+        bar_color = QColor(color)
+        if selected is not None and index != selected:
+            bar_color.setAlpha(ExpenseBarWidget.DIMMED_ALPHA)
+        return bar_color
+
+    def setRows(self, rows: list[StructureRow], labels: list[str], colors: list[str], compare: bool = False,
+                selected: int | None = None, details: list[str] | None = None) -> None:
+        self.plot.clear()
+        self.hints = []
+        count = len(rows)
+        if self.cursor_row is not None and self.cursor_row >= count:
+            self.cursor_row = None
+        self.setMinimumHeight(count * (self.COMPARE_ROW_PIXELS if compare else self.ROW_PIXELS) + self.EXTRA_PIXELS)
+
+        if not rows:
+            self.plot.getAxis("left").setTicks([[]])
+            self.plot.setXRange(0, 1, padding=0)
+            self.plot.setYRange(-0.6, 0.6, padding=0)
+            empty_label = pg.TextItem("Нет данных по выбранным условиям", color=self.TEXT_COLOR, anchor=(0.5, 0.5))
+            empty_label.setFont(QFont("Arial", 11))
+            empty_label.setPos(0.5, 0)
+            self.plot.addItem(empty_label)
+            return
+
+        bar_height = 0.36 if compare else 0.6
+        offset = 0.2 if compare else 0
+        lows, highs, ys, brushes, values = [], [], [], [], []
+        for index, row in enumerate(rows):
+            bars = [(float(row.amount), index - offset, self.barColor(colors[index], index, selected))]
+            if compare:
+                bars.append((float(row.previous), index + offset, QColor(self.PREVIOUS_COLOR)))
+            for value, y, brush in bars:
+                lows.append(min(value, 0))
+                highs.append(max(value, 0))
+                ys.append(y)
+                brushes.append(brush)
+                values.append(value)
+            self.hints.append(self.rowHint(row, labels[index], compare, details[index] if details else ""))
+        self.plot.addItem(pg.BarGraphItem(x0=lows, x1=highs, y=ys, height=bar_height, brushes=brushes, pen=pg.mkPen(None)))
+
+        for index, row in enumerate(rows):
+            text = f"{int_strspace(round(row.amount))} ({float_strpercentage(float(row.share))})"
+            change = change_share(row.amount, row.previous) if compare else None
+            self.addValueLabel(text, max(float(row.amount), 0), index - offset, change=change)
+            if compare and row.previous:
+                self.addValueLabel(int_strspace(round(row.previous)), max(float(row.previous), 0), index + offset, dimmed=True)
+
+        self.plot.getAxis("left").setTicks([list(enumerate(labels))])
+        self.plot.setXRange(min(min(values), 0) * 1.15, max(max(values), 1) * (1.55 if compare else 1.35), padding=0)
+        self.plot.setYRange(-0.6, count - 0.4, padding=0)
+        self.plot.addItem(self.cursor_item)
+        self.updateCursor()
+
+    def addValueLabel(self, text: str, x: float, y: float, dimmed: bool = False, change: Decimal | None = None) -> None:
+        if change is None:
+            label = pg.TextItem(text, color="#6b6b66" if dimmed else self.TEXT_COLOR, anchor=(0, 0.5))
+        else:
+            arrow, color = ("▲", self.GROWTH_COLOR) if change > 0 else ("▼", self.DROP_COLOR) if change < 0 else ("", self.TEXT_COLOR)
+            label = pg.TextItem(html=f"<span style='color:{self.TEXT_COLOR}'>{text}</span> "
+                                     f"<span style='color:{color}'>{arrow} {float_strsignedpercentage(float(change))}</span>",
+                                anchor=(0, 0.5))
+        label.setFont(QFont("Arial", 9 if dimmed else 10))
+        label.setPos(x, y)
+        self.plot.addItem(label)
+
+    @staticmethod
+    def rowHint(row: StructureRow, label: str, compare: bool, details: str = "") -> str:
+        hint = (f"{label}: {dec_strcommaspace(row.amount, add_rub=True)} ({float_strpercentage(float(row.share))}), "
+                f"платежей: {int_strspace(row.count)}")
+        if compare:
+            hint += f"\nПредыдущий период: {dec_strcommaspace(row.previous, add_rub=True)}"
+        if details:
+            hint += f"\n{details}"
+        return hint
+
+    def cursorRow(self, scene_pos) -> int | None:
+        view_box = self.plot.getViewBox()
+        if not view_box.sceneBoundingRect().contains(scene_pos):
+            return None
+        return self.rowAt(view_box.mapSceneToView(scene_pos).y())
+
+    def onMouseClicked(self, event) -> None:
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        index = self.cursorRow(event.scenePos())
+        if index is not None:
+            self.cursor_row = index
+            self.cursor_shown = False
+            self.setFocus()
+            self.rowClicked.emit(index)
+
+    def onMouseMoved(self, scene_pos) -> None:
+        index = self.cursorRow(scene_pos)
+        self.plot.setCursor(Qt.CursorShape.ArrowCursor if index is None else Qt.CursorShape.PointingHandCursor)
+        self.plot.setToolTip("" if index is None else self.hints[index])
+
+    def updateCursor(self) -> None:
+        if self.cursor_row is None or not self.cursor_shown or not self.hasFocus():
+            self.cursor_item.setOpts(x0=[], x1=[], y=[])
+            return
+        low, high = self.plot.getViewBox().viewRange()[0]
+        self.cursor_item.setOpts(x0=[low], x1=[high], y=[self.cursor_row], height=1.0)
+
+    def rowPixel(self, index: int) -> int:
+        scene_point = self.plot.getViewBox().mapViewToScene(QPointF(0, index))
+        return self.plot.mapTo(self, self.plot.mapFromScene(scene_point)).y()
+
+    def moveCursor(self, index: int) -> None:
+        self.cursor_row = index
+        self.cursor_shown = True
+        self.updateCursor()
+        self.rowRevealed.emit(self.rowPixel(index))
+        plot_point = self.plot.mapFromScene(self.plot.getViewBox().mapViewToScene(QPointF(0, index)))
+        QToolTip.showText(self.plot.mapToGlobal(QPoint(60, plot_point.y())), self.hints[index], self.plot)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        count = len(self.hints)
+        key = event.key()
+        steps = {Qt.Key.Key_Up: -1, Qt.Key.Key_Down: 1, Qt.Key.Key_PageUp: -self.PAGE_ROWS, Qt.Key.Key_PageDown: self.PAGE_ROWS}
+        if not count or key not in (*steps, Qt.Key.Key_Home, Qt.Key.Key_End, Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            super().keyPressEvent(event)
+            return
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            if self.cursor_row is not None:
+                self.rowClicked.emit(self.cursor_row)
+        elif self.cursor_row is None or key == Qt.Key.Key_Home:
+            self.moveCursor(0)
+        elif key == Qt.Key.Key_End:
+            self.moveCursor(count - 1)
+        else:
+            self.moveCursor(min(max(self.cursor_row + steps[key], 0), count - 1))
+
+    def focusInEvent(self, event) -> None:
+        super().focusInEvent(event)
+        self.updateCursor()
+
+    def focusOutEvent(self, event) -> None:
+        super().focusOutEvent(event)
+        self.updateCursor()
+
+
+class ExpenseMonthsWidget(QWidget):
+
+    OTHER_COLOR = ExpenseBarWidget.OTHER_COLOR
+    TEXT_COLOR = "#2b2b2b"
+    MUTED_COLOR = "#9a9a94"
+    MAX_TICKS = 18
+    BAR_WIDTH = 0.7
+    LEGEND_HINT = "Щелчок по названию скрывает или показывает категорию на графике"
+
+    def __init__(self, bg_color, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self.bg_color = bg_color
+        self.months: list[tuple[int, str]] = []
+        self.series: list[tuple[str, str, dict[int, Decimal]]] = []
+        self.hidden: set[str] = set()
+        self.segments: list[list[tuple[str, float, float, float]]] = []
+        self.nets: list[float] = []
+        self.hover: tuple[int, str | None] | None = None
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        pg.setConfigOptions(
+            background=bg_color,
+            foreground=self.TEXT_COLOR
+        )
+
+        self.plot = pg.PlotWidget(axisItems={"left": MoneyAxis(orientation="left")})
+        self.plot.getPlotItem().hideButtons()
+        self.plot.setMouseEnabled(x=False, y=False)
+        self.plot.setMenuEnabled(False)
+        self.plot.showGrid(y=True, alpha=0.2)
+        self.plot.getAxis("left").setStyle(tickFont=QFont("Arial", 9))
+        self.plot.getAxis("bottom").setStyle(tickFont=QFont("Arial", 9))
+        layout.addWidget(self.plot)
+
+        self.highlight = pg.BarGraphItem(x=[], y0=[], y1=[], width=self.BAR_WIDTH, brush=QColor(0, 0, 0, 0),
+                                         pen=pg.mkPen(self.TEXT_COLOR, width=2))
+
+        self.legend = QLabel()
+        self.legend.setWordWrap(True)
+        self.legend.setToolTip(self.LEGEND_HINT)
+        self.legend.linkActivated.connect(self.toggleSeries)
+        layout.addWidget(self.legend)
+
+        self.plot.scene().sigMouseMoved.connect(self.onMouseMoved)
+
+    def setSeries(self, months: list[tuple[int, str]], series: list[tuple[str, str, dict[int, Decimal]]]) -> None:
+        self.months = months
+        self.series = [item for item in series if any(item[2].values())]
+        self.redraw()
+
+    def toggleSeries(self, link: str) -> None:
+        name = self.series[int(link)][0]
+        self.hidden ^= {name}
+        self.redraw()
+
+    def legendHtml(self) -> str:
+        if len(self.series) < 2:
+            return ""
+        parts = []
+        for position, (name, color, _) in enumerate(self.series):
+            hidden = name in self.hidden
+            text = f"<s>{escape(name)}</s>" if hidden else escape(name)
+            parts.append(f"<a href='{position}' style='color:{self.MUTED_COLOR if hidden else self.TEXT_COLOR}; text-decoration:none'>"
+                         f"<span style='color:{self.MUTED_COLOR if hidden else color}'>■</span> {text}</a>")
+        return " &nbsp; ".join(parts)
+
+    def redraw(self) -> None:
+        self.plot.clear()
+        self.segments = []
+        self.nets = []
+        self.hover = None
+        self.plot.setToolTip("")
+        self.legend.setText(self.legendHtml())
+        if not self.months or not self.series:
+            self.plot.getAxis("bottom").setTicks([[]])
+            return
+
+        months = self.months
+        count = len(months)
+        positive, negative = [0.0] * count, [0.0] * count
+        self.segments = [[] for _ in range(count)]
+        for name, color, values in self.series:
+            if name in self.hidden:
+                continue
+            xs, bottoms, tops = [], [], []
+            for index, (month, _) in enumerate(months):
+                value = float(values.get(month, 0))
+                if not value:
+                    continue
+                bases = positive if value > 0 else negative
+                xs.append(index)
+                bottoms.append(bases[index])
+                bases[index] += value
+                tops.append(bases[index])
+                self.segments[index].append((name, min(bottoms[-1], tops[-1]), max(bottoms[-1], tops[-1]), value))
+            if xs:
+                self.plot.addItem(pg.BarGraphItem(x=xs, y0=bottoms, y1=tops, width=self.BAR_WIDTH, brush=color,
+                                                  pen=pg.mkPen(self.bg_color, width=1)))
+
+        self.nets = [positive[index] + negative[index] for index in range(count)]
+        if count <= self.MAX_TICKS:
+            for index in range(count):
+                if positive[index] or negative[index]:
+                    label = pg.TextItem(int_strspace(round(self.nets[index])), color=self.TEXT_COLOR, anchor=(0.5, 1))
+                    label.setFont(QFont("Arial", 9))
+                    label.setPos(index, positive[index])
+                    self.plot.addItem(label)
+        self.plot.addItem(self.highlight)
+        self.highlight.setOpts(x=[], y0=[], y1=[])
+
+        step = -(-count // self.MAX_TICKS)
+        self.plot.getAxis("bottom").setTicks([[(index, months[index][1]) for index in range(0, count, step)]])
+        self.plot.setXRange(-0.6, count - 0.4, padding=0)
+        self.plot.setYRange(min(min(negative), 0) * 1.1, max(max(positive), 1) * 1.3, padding=0)
+
+    def tooltipText(self, index: int, hovered: str | None) -> str:
+        lines = [self.months[index][1], f"Итого: {int_strspace(round(self.nets[index]))}"]
+        for name, _, _, value in reversed(self.segments[index]):
+            lines.append(f"{'▶ ' if name == hovered else ''}{name}: {int_strspace(round(value))}")
+        return "\n".join(lines)
+
+    def onMouseMoved(self, scene_pos) -> None:
+        view_box = self.plot.getViewBox()
+        index = segment = None
+        if self.segments and view_box.sceneBoundingRect().contains(scene_pos):
+            point = view_box.mapSceneToView(scene_pos)
+            if 0 <= round(point.x()) < len(self.segments) and abs(point.x() - round(point.x())) <= 0.5:
+                index = round(point.x())
+                if abs(point.x() - index) <= self.BAR_WIDTH / 2:
+                    segment = next((item for item in self.segments[index] if item[1] <= point.y() <= item[2]), None)
+        hover = None if index is None else (index, None if segment is None else segment[0])
+        if hover == self.hover:
+            return
+        self.hover = hover
+        if index is None:
+            self.plot.setToolTip("")
+        else:
+            self.plot.setToolTip(self.tooltipText(index, hover[1]))
+        if segment is None:
+            self.highlight.setOpts(x=[], y0=[], y1=[])
+        else:
+            self.highlight.setOpts(x=[index], y0=[segment[1]], y1=[segment[2]])

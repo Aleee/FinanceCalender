@@ -663,12 +663,14 @@ class ExportSheet:
 
 class DisciplineXlsWriter(BaseXlsWriter):
     DATE_FORMAT = "dd.mm.yyyy"
+    FILE_PREFIX = "ПлатежнаяДисциплина"
+    SETTINGS_KEY = "Export/disciplinelastpath"
 
     def __init__(self, settings_handler: SettingsHandler):
-        super().__init__(settings_handler, settings_key="Export/disciplinelastpath")
+        super().__init__(settings_handler, settings_key=self.SETTINGS_KEY)
 
     def write(self, sheets: list[ExportSheet], begin_date: QDate, end_date: QDate, parent=None) -> bool:
-        base_name = f"ПлатежнаяДисциплина_{date_purestr(begin_date, short=True)}_{date_purestr(end_date, short=True)}"
+        base_name = f"{self.FILE_PREFIX}_{date_purestr(begin_date, short=True)}_{date_purestr(end_date, short=True)}"
         default_xls_filename = self._default_file_path(f"{base_name}.xlsx")
         default_pdf_filename = self._default_file_path(f"{base_name}.pdf")
 
@@ -718,3 +720,8 @@ class DisciplineXlsWriter(BaseXlsWriter):
                 worksheet.autofilter(0, 0, len(sheet.rows), len(sheet.headers) - 1)
 
         self._close_workbook(workbook, worksheet)
+
+
+class ExpensesXlsWriter(DisciplineXlsWriter):
+    FILE_PREFIX = "СтруктураРасходов"
+    SETTINGS_KEY = "Export/expenseslastpath"

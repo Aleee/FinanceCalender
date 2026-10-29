@@ -35,6 +35,10 @@ def float_strpercentage(fl: float) -> str:
     return f"{fl:.1%}".replace(".", ",")
 
 
+def float_strsignedpercentage(fl: float) -> str:
+    return f"{fl:+.1%}".replace(".", ",")
+
+
 def float_strcomma(value: float | Decimal, digits: int = 1) -> str:
     return f"{value:.{digits}f}".replace(".", ",")
 

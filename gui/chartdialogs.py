@@ -21,14 +21,10 @@ class DebtChartDialog(QDialog):
         self.start_date: QDate = start_date
         self.end_date: QDate = end_date
 
-        # Подписи берутся из CategoryFilterListWidget.ITEMS по номеру позиции,
-        # поэтому порядок категорий здесь и в ITEMS должен совпадать
-        assert len(LiabilityCategory) == len(CategoryFilterListWidget.ITEMS)
-
         for index, category in enumerate([member.value for member in LiabilityCategory]):
             if index == 0:
                 continue
-            new_item = QListWidgetItem(CategoryFilterListWidget.ITEMS[index][0])
+            new_item = QListWidgetItem(CategoryFilterListWidget.ITEMS[category][0])
             new_item.setData(Qt.ItemDataRole.UserRole, category)
             self.ui.lw_categories.addItem(new_item)
 
