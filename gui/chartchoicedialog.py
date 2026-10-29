@@ -5,13 +5,15 @@ from gui.manualdialog import add_help_shortcut
 from base.date import first_date_of_month
 from gui.chartdialogs import DebtChartDialog
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
+from gui.disciplinedialog import DisciplineDialog
 from gui.ui.chartchoice_ui import Ui_ChartChoiceDialog
 
 
 class ChartChoiceDialog(QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, settings_handler=None):
         super(ChartChoiceDialog, self).__init__(parent)
+        self.settings_handler = settings_handler
         self.ui = Ui_ChartChoiceDialog()
         self.ui.setupUi(self)
         add_help_shortcut(self, "12-planfact.html")
@@ -32,5 +34,9 @@ class ChartChoiceDialog(QDialog):
         if self.ui.rb_chart1.isChecked():
             self.debtchart_dialog = DebtChartDialog(start_date, end_date, self)
             self.debtchart_dialog.exec()
+            self.accept()
+        elif self.ui.rb_chart2.isChecked():
+            self.discipline_dialog = DisciplineDialog(start_date, end_date, self, self.settings_handler)
+            self.discipline_dialog.exec()
             self.accept()
 

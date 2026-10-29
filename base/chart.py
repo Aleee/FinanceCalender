@@ -1,10 +1,14 @@
 from PySide6 import QtCore
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 import pyqtgraph as pg
 
 from datetime import date, timedelta
+from decimal import Decimal
 
-from base.formatting import dec_strcommaspace
+from base.discipline import BUCKET_NAMES, DelayBucket, DisciplineStats
+from base.formatting import dec_strcommaspace, int_strspace
 
 class MoneyAxis(pg.AxisItem):
 
@@ -332,3 +336,190 @@ class DebtChartWidget(QWidget):
         self.vLine.hide()
         self.activePoint.hide()
         self.overduePoint.hide()
+
+
+class WholeNumberAxis(MoneyAxis):
+
+    LABEL_GAP = 8
+
+    def _updateWidth(self) -> None:
+        super()._updateWidth()
+        if self.isVisible() and self.fixedWidth is None and self.label.isVisible():
+            width = self.maximumWidth() + self.LABEL_GAP
+            self.setMaximumWidth(width)
+            self.setMinimumWidth(width)
+
+    def tickValues(self, minVal: float, maxVal: float, size: float) -> list:
+        levels = super().tickValues(minVal, maxVal, size)
+        return [(spacing, [value for value in values if float(value).is_integer()])
+                for spacing, values in levels if spacing >= 1]
+
+
+class DelayChartWidget(QWidget):
+
+    bucketClicked = Signal(int)
+
+    COLORS = ("#66BB6A", "#FDD835", "#F57C00", "#B71C1C", "#757575")
+    OVERDUE_INDEX = len(DelayBucket)
+    COLUMN_NAMES = (*BUCKET_NAMES.values(), "Не оплачено (просрочено)")
+    TEXT_COLOR = "#2b2b2b"
+    DIMMED_ALPHA = 90
+    TINT_ALPHA = 70
+
+    def __init__(self, bg_color, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        self.heights: list[float] = []
+        self.hints: list[str] = []
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        pg.setConfigOptions(
+            background=bg_color,
+            foreground=self.TEXT_COLOR
+        )
+
+        self.plot = pg.PlotWidget(axisItems={"left": WholeNumberAxis(orientation="left")})
+        self.plot.getPlotItem().hideButtons()
+        self.plot.setMouseEnabled(x=False, y=False)
+        self.plot.setMenuEnabled(False)
+        self.plot.showGrid(y=True, alpha=0.2)
+        self.plot.getAxis("left").setStyle(tickFont=QFont("Arial", 10))
+        self.plot.getAxis("bottom").setStyle(tickFont=QFont("Arial", 10))
+        self.plot.setTitle("Платежи по задержке оплаты", size="10pt")
+        layout.addWidget(self.plot)
+
+        self.plot.scene().sigMouseClicked.connect(self.onMouseClicked)
+        self.plot.scene().sigMouseMoved.connect(self.onMouseMoved)
+
+    @classmethod
+    def tint(cls, index: int) -> QColor:
+        color = QColor(cls.COLORS[index])
+        color.setAlpha(cls.TINT_ALPHA)
+        return color
+
+    def columnAt(self, x: float) -> int | None:
+        index = round(x)
+        if abs(x - index) > 0.5 or not 0 <= index < len(self.heights) or self.heights[index] <= 0:
+            return None
+        return index
+
+    def setStats(self, stats: DisciplineStats, overdue_count: int = 0, overdue_amount: Decimal = Decimal(0),
+                 by_amount: bool = False, selected: DelayBucket | None = None) -> None:
+        self.plot.clear()
+        self.heights = []
+        self.hints = []
+        self.plot.setLabel("left", "Сумма, руб." if by_amount else "Кол-во платежей")
+
+        if not stats.count and not overdue_count:
+            self.plot.getAxis("bottom").setTicks([[]])
+            self.plot.setXRange(-0.6, self.OVERDUE_INDEX + 0.6, padding=0)
+            self.plot.setYRange(0, 1, padding=0)
+            empty_label = pg.TextItem("Нет данных по выбранным условиям", color=self.TEXT_COLOR, anchor=(0.5, 0.5))
+            empty_label.setFont(QFont("Arial", 11))
+            empty_label.setPos(self.OVERDUE_INDEX / 2, 0.5)
+            self.plot.addItem(empty_label)
+            return
+
+        total = float(stats.amount) if by_amount else stats.count
+        values = [float(stats.bucket_amounts[bucket]) if by_amount else stats.buckets[bucket] for bucket in DelayBucket]
+        values.append(float(overdue_amount) if by_amount else overdue_count)
+        self.heights = values
+
+        brushes = []
+        for index, color in enumerate(self.COLORS):
+            fill = QColor(color)
+            if selected is not None and index != selected:
+                fill.setAlpha(self.DIMMED_ALPHA)
+            brushes.append(fill)
+        self.plot.addItem(pg.BarGraphItem(x=list(range(len(values))), height=values, width=0.6,
+                                          brushes=brushes, pen=pg.mkPen(self.TEXT_COLOR)))
+
+        for index, value in enumerate(values):
+            count = overdue_count if index == self.OVERDUE_INDEX else stats.buckets[DelayBucket(index)]
+            amount = overdue_amount if index == self.OVERDUE_INDEX else stats.bucket_amounts[DelayBucket(index)]
+            self.hints.append(f"{self.COLUMN_NAMES[index]}: {int_strspace(count)} шт. на {dec_strcommaspace(amount, add_rub=True)}")
+            if value <= 0:
+                continue
+            text = f"{value:,.0f}".replace(",", " ") if by_amount else int_strspace(int(value))
+            if index != self.OVERDUE_INDEX and total:
+                text += f" ({value / total:.0%})"
+            label = pg.TextItem(text, color=self.TEXT_COLOR, anchor=(0.5, 1))
+            label.setFont(QFont("Arial", 10))
+            label.setPos(index, value)
+            self.plot.addItem(label)
+
+        self.plot.addItem(pg.InfiniteLine(pos=self.OVERDUE_INDEX - 0.5, angle=90, pen=pg.mkPen("#999", style=Qt.PenStyle.DashLine)))
+        self.plot.getAxis("bottom").setTicks([list(enumerate(self.COLUMN_NAMES))])
+        self.plot.setXRange(-0.6, self.OVERDUE_INDEX + 0.6, padding=0)
+        self.plot.setYRange(0, max(max(values), 1) * 1.2, padding=0)
+
+    def cursorColumn(self, scene_pos) -> int | None:
+        view_box = self.plot.getViewBox()
+        if not view_box.sceneBoundingRect().contains(scene_pos):
+            return None
+        return self.columnAt(view_box.mapSceneToView(scene_pos).x())
+
+    def onMouseClicked(self, event) -> None:
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+        index = self.cursorColumn(event.scenePos())
+        if index is not None:
+            self.bucketClicked.emit(index)
+
+    def onMouseMoved(self, scene_pos) -> None:
+        index = self.cursorColumn(scene_pos)
+        self.plot.setCursor(Qt.CursorShape.ArrowCursor if index is None else Qt.CursorShape.PointingHandCursor)
+        self.plot.setToolTip("" if index is None else self.hints[index])
+
+
+class MonthTrendWidget(QWidget):
+
+    LINE_COLOR = "#1E88E5"
+    TEXT_COLOR = "#2b2b2b"
+    MAX_TICKS = 18
+
+    def __init__(self, bg_color, parent: QWidget | None = None):
+        super().__init__(parent)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        pg.setConfigOptions(
+            background=bg_color,
+            foreground=self.TEXT_COLOR
+        )
+
+        self.plot = pg.PlotWidget(axisItems={"left": WholeNumberAxis(orientation="left")})
+        self.plot.getPlotItem().hideButtons()
+        self.plot.setMouseEnabled(x=False, y=False)
+        self.plot.setMenuEnabled(False)
+        self.plot.showGrid(y=True, alpha=0.2)
+        self.plot.getAxis("left").setStyle(tickFont=QFont("Arial", 9))
+        self.plot.getAxis("bottom").setStyle(tickFont=QFont("Arial", 9))
+        self.plot.setLabel("left", "В срок, %")
+        layout.addWidget(self.plot)
+
+    def setMonths(self, months: list[tuple[int, str, float]]) -> None:
+        self.plot.clear()
+        if not months:
+            self.plot.getAxis("bottom").setTicks([[]])
+            return
+
+        first, last = months[0][0], months[-1][0]
+        shares = dict.fromkeys(range(first, last + 1), float("nan"))
+        for position, _, share in months:
+            shares[position] = share * 100
+        self.plot.addItem(pg.PlotDataItem(list(shares), list(shares.values()), connect="finite",
+                                          pen=pg.mkPen(self.LINE_COLOR, width=2), symbol="o", symbolSize=7,
+                                          symbolBrush=self.LINE_COLOR, symbolPen=pg.mkPen("w")))
+        for position, _, share in months:
+            label = pg.TextItem(f"{share:.0%}", color=self.TEXT_COLOR, anchor=(0.5, 1.4))
+            label.setFont(QFont("Arial", 9))
+            label.setPos(position, share * 100)
+            self.plot.addItem(label)
+
+        step = -(-len(months) // self.MAX_TICKS)
+        self.plot.getAxis("bottom").setTicks([[(position, name) for position, name, _ in months[::step]]])
+        self.plot.setXRange(first - 0.5, last + 0.5, padding=0)
+        self.plot.setYRange(0, 115, padding=0)
+        self.plot.getAxis("left").setTicks([[(0, "0"), (50, "50"), (100, "100")]])

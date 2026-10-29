@@ -23,7 +23,7 @@ class Ui_ChartChoiceDialog(object):
     def setupUi(self, ChartChoiceDialog):
         if not ChartChoiceDialog.objectName():
             ChartChoiceDialog.setObjectName(u"ChartChoiceDialog")
-        ChartChoiceDialog.resize(400, 172)
+        ChartChoiceDialog.resize(400, 195)
         self.gridLayout = QGridLayout(ChartChoiceDialog)
         self.gridLayout.setObjectName(u"gridLayout")
         self.label = QLabel(ChartChoiceDialog)
@@ -54,7 +54,7 @@ class Ui_ChartChoiceDialog(object):
         self.horizontalLayout.addWidget(self.pb_continue)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout, 6, 0, 1, 4)
+        self.gridLayout.addLayout(self.horizontalLayout, 7, 0, 1, 4)
 
         self.horizontalSpacer_3 = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
@@ -62,7 +62,7 @@ class Ui_ChartChoiceDialog(object):
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout.addItem(self.verticalSpacer, 4, 0, 1, 1)
+        self.gridLayout.addItem(self.verticalSpacer, 5, 0, 1, 1)
 
         self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -73,7 +73,7 @@ class Ui_ChartChoiceDialog(object):
         self.line_2.setFrameShape(QFrame.Shape.HLine)
         self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.gridLayout.addWidget(self.line_2, 5, 0, 1, 4)
+        self.gridLayout.addWidget(self.line_2, 6, 0, 1, 4)
 
         self.label_2 = QLabel(ChartChoiceDialog)
         self.label_2.setObjectName(u"label_2")
@@ -93,6 +93,11 @@ class Ui_ChartChoiceDialog(object):
 
         self.gridLayout.addWidget(self.rb_chart1, 3, 0, 1, 3)
 
+        self.rb_chart2 = QRadioButton(ChartChoiceDialog)
+        self.rb_chart2.setObjectName(u"rb_chart2")
+
+        self.gridLayout.addWidget(self.rb_chart2, 4, 0, 1, 3)
+
         self.de_start = QDateEdit(ChartChoiceDialog)
         self.de_start.setObjectName(u"de_start")
         self.de_start.setCalendarPopup(True)
@@ -101,7 +106,8 @@ class Ui_ChartChoiceDialog(object):
 
         QWidget.setTabOrder(self.de_start, self.de_end)
         QWidget.setTabOrder(self.de_end, self.rb_chart1)
-        QWidget.setTabOrder(self.rb_chart1, self.pb_cancel)
+        QWidget.setTabOrder(self.rb_chart1, self.rb_chart2)
+        QWidget.setTabOrder(self.rb_chart2, self.pb_cancel)
         QWidget.setTabOrder(self.pb_cancel, self.pb_continue)
 
         self.retranslateUi(ChartChoiceDialog)
@@ -113,11 +119,12 @@ class Ui_ChartChoiceDialog(object):
     # setupUi
 
     def retranslateUi(self, ChartChoiceDialog):
-        ChartChoiceDialog.setWindowTitle(QCoreApplication.translate("ChartChoiceDialog", u"\u041f\u043e\u0441\u0442\u0440\u043e\u0438\u0442\u044c \u0433\u0440\u0430\u0444\u0438\u043a", None))
+        ChartChoiceDialog.setWindowTitle(QCoreApplication.translate("ChartChoiceDialog", u"\u041f\u043e\u0441\u0442\u0440\u043e\u0438\u0442\u044c \u0433\u0440\u0430\u0444\u0438\u043a \u0438\u043b\u0438 \u043e\u0442\u0447\u0435\u0442", None))
         self.label.setText(QCoreApplication.translate("ChartChoiceDialog", u"\u041d\u0430\u0447\u0430\u043b\u043e \u043f\u0435\u0440\u0438\u043e\u0434\u0430:", None))
         self.pb_cancel.setText(QCoreApplication.translate("ChartChoiceDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
         self.pb_continue.setText(QCoreApplication.translate("ChartChoiceDialog", u" \u041f\u043e\u0441\u0442\u0440\u043e\u0438\u0442\u044c ", None))
         self.label_2.setText(QCoreApplication.translate("ChartChoiceDialog", u"\u041a\u043e\u043d\u0435\u0446 \u043f\u0435\u0440\u0438\u043e\u0434\u0430:", None))
         self.rb_chart1.setText(QCoreApplication.translate("ChartChoiceDialog", u"\u0414\u0438\u043d\u0430\u043c\u0438\u043a\u0430 \u0437\u0430\u0434\u043e\u043b\u0436\u0435\u043d\u043d\u043e\u0441\u0442\u0438", None))
+        self.rb_chart2.setText(QCoreApplication.translate("ChartChoiceDialog", u"\u041f\u043b\u0430\u0442\u0435\u0436\u043d\u0430\u044f \u0434\u0438\u0441\u0446\u0438\u043f\u043b\u0438\u043d\u0430", None))
     # retranslateUi
 

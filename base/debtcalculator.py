@@ -24,6 +24,8 @@ class Event:
     created: date
     due: date
     payments: list[Payment] = field(default_factory=list)
+    name: str = ""
+    receiver: str = ""
 
 
 @dataclass(slots=True)
@@ -45,7 +47,8 @@ class DebtRepository:
         events: dict[int, Event] = {}
 
         query: QSqlQuery = QSqlQuery()
-        if not query.exec("SELECT id, category, totalamount, createdate, duedate FROM event WHERE type = 2 AND paymenttype <> 3"):
+        if not query.exec("SELECT id, category, totalamount, createdate, duedate, name, receiver "
+                          "FROM event WHERE type = 2 AND paymenttype <> 3"):
             log.e(f"Не удалось загрузить события для графика долга: {query.lastError().text()}")
         while query.next():
             try:
@@ -55,6 +58,8 @@ class DebtRepository:
                     amount=Decimal(query.value(2)),
                     created=date.fromisoformat(query.value(3)),
                     due=date.fromisoformat(query.value(4)),
+                    name=query.value(5) if isinstance(query.value(5), str) else "",
+                    receiver=query.value(6) if isinstance(query.value(6), str) else "",
                 )
             except (ArithmeticError, ValueError, TypeError) as error:
                 log.x(f"Не удалось разобрать событие id={query.value(0)} для графика долга: {error}")

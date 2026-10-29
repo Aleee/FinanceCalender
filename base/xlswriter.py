@@ -8,6 +8,9 @@ import tempfile
 import lovely_logger as log
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from datetime import date, datetime, time
+from decimal import Decimal
 from enum import IntEnum, auto
 from pathlib import Path
 from typing import Optional
@@ -643,3 +646,75 @@ class FulfilmentXlsWriter(BaseXlsWriter):
             return False
 
         return self._finalize_export(export_format, temp_xlsx_path, temp_pdf_path, file_path)
+
+
+# =============================================================================
+# DisciplineXlsWriter
+# =============================================================================
+
+@dataclass
+class ExportSheet:
+    name: str
+    headers: list[str]
+    rows: list[list]
+    formats: list[Optional[str]]
+    widths: list[float]
+
+
+class DisciplineXlsWriter(BaseXlsWriter):
+    DATE_FORMAT = "dd.mm.yyyy"
+
+    def __init__(self, settings_handler: SettingsHandler):
+        super().__init__(settings_handler, settings_key="Export/disciplinelastpath")
+
+    def write(self, sheets: list[ExportSheet], begin_date: QDate, end_date: QDate, parent=None) -> bool:
+        base_name = f"ПлатежнаяДисциплина_{date_purestr(begin_date, short=True)}_{date_purestr(end_date, short=True)}"
+        default_xls_filename = self._default_file_path(f"{base_name}.xlsx")
+        default_pdf_filename = self._default_file_path(f"{base_name}.pdf")
+
+        temp_xlsx_path, temp_pdf_path = self._make_temp_paths()
+        self.write_workbook(sheets, temp_xlsx_path)
+
+        file_path = self._ask_save_path(parent, ExportFormat.XLSX, default_xls_filename, default_pdf_filename)
+        if not file_path:
+            self._remove_temp_files(temp_xlsx_path, temp_pdf_path)
+            return False
+
+        return self._finalize_export(ExportFormat.XLSX, temp_xlsx_path, temp_pdf_path, file_path)
+
+    def write_workbook(self, sheets: list[ExportSheet], path: str) -> None:
+        workbook: Workbook = Workbook(path, {"strings_to_formulas": False, "strings_to_urls": False})
+        base_format: dict = {"border": 1, "border_color": self.BORDER_COLOR, "valign": "vcenter"}
+        header_format: Format = workbook.add_format(base_format | {"bold": True, "text_wrap": True, "align": "center",
+                                                                    "bg_color": "#E9ECEF"})
+        cell_formats: dict[Optional[str], Format] = {}
+
+        def cell_format(number_format: Optional[str]) -> Format:
+            if number_format not in cell_formats:
+                extra = {} if number_format is None else {"num_format": self.DATE_FORMAT if number_format == "date" else number_format}
+                cell_formats[number_format] = workbook.add_format(base_format | extra)
+            return cell_formats[number_format]
+
+        worksheet: Optional[Worksheet] = None
+        for sheet in sheets:
+            worksheet = workbook.add_worksheet(sheet.name)
+            for column, (header, width) in enumerate(zip(sheet.headers, sheet.widths)):
+                worksheet.set_column(column, column, width)
+                worksheet.write(0, column, header, header_format)
+            worksheet.set_row(0, 34)
+            for row_number, row in enumerate(sheet.rows, start=1):
+                for column, value in enumerate(row):
+                    current_format = cell_format(sheet.formats[column])
+                    if value is None or value == "":
+                        worksheet.write_blank(row_number, column, None, current_format)
+                    elif isinstance(value, date):
+                        worksheet.write_datetime(row_number, column, datetime.combine(value, time()), current_format)
+                    elif isinstance(value, (int, float, Decimal)):
+                        worksheet.write_number(row_number, column, float(value), current_format)
+                    else:
+                        worksheet.write_string(row_number, column, str(value), current_format)
+            worksheet.freeze_panes(1, 0)
+            if sheet.rows:
+                worksheet.autofilter(0, 0, len(sheet.rows), len(sheet.headers) - 1)
+
+        self._close_workbook(workbook, worksheet)

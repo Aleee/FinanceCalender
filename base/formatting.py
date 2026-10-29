@@ -35,6 +35,10 @@ def float_strpercentage(fl: float) -> str:
     return f"{fl:.1%}".replace(".", ",")
 
 
+def float_strcomma(value: float | Decimal, digits: int = 1) -> str:
+    return f"{value:.{digits}f}".replace(".", ",")
+
+
 def str_rubstr(string: str) -> str:
     return string + " руб."
 
