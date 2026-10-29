@@ -54,7 +54,7 @@ def check_pushed() -> str:
     return branch
 
 
-def build_mac(branch: str, intel: bool, notes: str) -> None:
+def start_mac(branch: str, intel: bool, notes: str) -> str:
     started = time.time()
     run("gh", "workflow", "run", WORKFLOW, "--ref", branch, "-f", f"intel={str(intel).lower()}",
         "-f", f"notes={notes}")
@@ -70,6 +70,10 @@ def build_mac(branch: str, intel: bool, notes: str) -> None:
             break
     if run_id is None:
         sys.exit("Запуск workflow не появился в списке за 2.5 минуты")
+    return run_id
+
+
+def finish_mac(run_id: str) -> None:
     run("gh", "run", "watch", run_id, "--exit-status")
     shutil.rmtree(MAC_DIR, ignore_errors=True)
     run("gh", "run", "download", run_id, "--dir", str(MAC_DIR))
@@ -101,6 +105,11 @@ def main() -> None:
         step("Тесты")
         run(sys.executable, "-m", "pytest")
 
+    mac_run_id = None
+    if mac_branch is not None:
+        step("Запуск сборки для macOS (GitHub Actions)")
+        mac_run_id = start_mac(mac_branch, args.mac_intel, args.notes)
+
     if not args.mac_only:
         step("Руководство")
         if not build_manual():
@@ -113,9 +122,9 @@ def main() -> None:
             step("Сборка версии для просмотра (Windows)")
             run(sys.executable, "tools/build_release.py", "--viewer", "--notes", args.notes)
 
-    if mac_branch is not None:
-        step("Сборка для macOS (GitHub Actions)")
-        build_mac(mac_branch, args.mac_intel, args.notes)
+    if mac_run_id is not None:
+        step("Ожидание сборки для macOS (GitHub Actions)")
+        finish_mac(mac_run_id)
 
     step("Готово")
     if not args.mac_only:
