@@ -75,11 +75,11 @@ class FulfillmentOptionDialog(QDialog):
         begin_date, end_date = self.get_period_data()
         if self.ui.stw_option.currentIndex() == 0:
             if begin_date > end_date:
-                msg_box = ErrorInfoMessageBox("Дата начала превышает дату окончания периода")
+                msg_box = ErrorInfoMessageBox("Дата начала превышает дату окончания периода", parent=self)
                 msg_box.exec()
                 return
             if begin_date.year() != end_date.year():
-                msg_box = ErrorInfoMessageBox("Начало и конец периода должны быть в пределах одного года")
+                msg_box = ErrorInfoMessageBox("Начало и конец периода должны быть в пределах одного года", parent=self)
                 msg_box.exec()
                 return
             self.load_inflow(begin_date, end_date)

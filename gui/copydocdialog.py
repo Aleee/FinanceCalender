@@ -204,7 +204,7 @@ class CopyDocDialog(QDialog):
         elif descr.casefold() in {existing.strip().casefold() for existing in self.descriptions}:
             text += "Платеж с таким основанием по этому документу уже есть. "
         if text:
-            msg = YesNoMessagebox(f"{text}Вы уверены, что хотите продолжить?")
+            msg = YesNoMessagebox(f"{text}Вы уверены, что хотите продолжить?", self)
             if msg.exec() == YesNoMessagebox.NO_RETURN_VALUE:
                 return False
         return True

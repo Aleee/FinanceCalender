@@ -30,7 +30,7 @@ class ChartChoiceDialog(QDialog):
         start_date = self.ui.de_start.date()
         end_date = self.ui.de_end.date()
         if start_date > end_date:
-            ErrorInfoMessageBox("Дата начала превышает дату окончания периода").exec()
+            ErrorInfoMessageBox("Дата начала превышает дату окончания периода", parent=self).exec()
             return
 
         if self.ui.rb_chart1.isChecked():

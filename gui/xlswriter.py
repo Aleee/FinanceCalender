@@ -237,7 +237,7 @@ class BaseXlsWriter:
             file_path += suffix
 
         if Path(file_path).exists() and YesNoMessagebox(
-            "Файл с таким именем уже существует. Уверены, что хотите его перезаписать?"
+            "Файл с таким именем уже существует. Уверены, что хотите его перезаписать?", view
         ).exec() != YesNoMessagebox.YES_RETURN_VALUE:
             return ""
 
@@ -252,7 +252,7 @@ class BaseXlsWriter:
                 log.w(f"Не удалось удалить временный файл {temp_path}: {e}")
 
     def _finalize_export(self, export_format: ExportFormat, temp_xlsx_path: str,
-                          temp_pdf_path: str, file_path: str) -> bool:
+                          temp_pdf_path: str, file_path: str, parent=None) -> bool:
         success = False
         try:
             if export_format == ExportFormat.XLSX:
@@ -262,7 +262,7 @@ class BaseXlsWriter:
                 converter = get_pdf_converter()
                 if converter is None:
                     ErrorInfoMessageBox(
-                        "Для экспорта в PDF требуется установленный Microsoft Excel"
+                        "Для экспорта в PDF требуется установленный Microsoft Excel", parent=parent
                     ).exec()
                     return False
                 QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
@@ -273,13 +273,13 @@ class BaseXlsWriter:
                 shutil.copy2(temp_pdf_path, file_path)
                 success = True
         except PdfConversionError as e:
-            ErrorInfoMessageBox(str(e)).exec()
+            ErrorInfoMessageBox(str(e), parent=parent).exec()
             log.x(f"Ошибка при конвертации в PDF: {e}")
         except Exception as e:
             log.x(f"Ошибка в процессе экспорта: {e}")
             ErrorInfoMessageBox(
                 "Во время записи, переноса или удаления файлов произошла ошибка (см. подробности в логе)",
-                details=str(e)
+                parent=parent, details=str(e)
             ).exec()
         finally:
             self._remove_temp_files(temp_xlsx_path, temp_pdf_path)
@@ -513,7 +513,7 @@ class LiabilityXlsWriter(BaseXlsWriter):
             self._remove_temp_files(temp_xlsx_path, temp_pdf_path)
             return False
 
-        return self._finalize_export(export_format, temp_xlsx_path, temp_pdf_path, file_path)
+        return self._finalize_export(export_format, temp_xlsx_path, temp_pdf_path, file_path, self.view)
 
 
 # =============================================================================
@@ -645,7 +645,7 @@ class FulfilmentXlsWriter(BaseXlsWriter):
             self._remove_temp_files(temp_xlsx_path, temp_pdf_path)
             return False
 
-        return self._finalize_export(export_format, temp_xlsx_path, temp_pdf_path, file_path)
+        return self._finalize_export(export_format, temp_xlsx_path, temp_pdf_path, file_path, self.view)
 
 
 # =============================================================================
@@ -682,7 +682,7 @@ class DisciplineXlsWriter(BaseXlsWriter):
             self._remove_temp_files(temp_xlsx_path, temp_pdf_path)
             return False
 
-        return self._finalize_export(ExportFormat.XLSX, temp_xlsx_path, temp_pdf_path, file_path)
+        return self._finalize_export(ExportFormat.XLSX, temp_xlsx_path, temp_pdf_path, file_path, parent)
 
     def write_workbook(self, sheets: list[ExportSheet], path: str) -> None:
         workbook: Workbook = Workbook(path, {"strings_to_formulas": False, "strings_to_urls": False})

@@ -55,7 +55,7 @@ class FinPlanDialog(QDialog):
         values = self.db_handler.load_finplan_from_db(year, self.model.FINPLAN_STRUCTURE)
         if not values:
             log.e(f"Не удалось загрузить данные финансового плана (выбранный год - {year})")
-            msg_box = ErrorInfoMessageBox("Не удалось загрузить данные финансового плана из базы данных")
+            msg_box = ErrorInfoMessageBox("Не удалось загрузить данные финансового плана из базы данных", parent=self)
             msg_box.exec()
             return False
         self.model.load_values(values)
@@ -68,7 +68,7 @@ class FinPlanDialog(QDialog):
 
     def on_year_changed(self, year: int) -> None:
         if self.has_changes():
-            msg_box = YesNoMessagebox("Изменения за текущий год не сохранены. Перейти к другому году без сохранения?")
+            msg_box = YesNoMessagebox("Изменения за текущий год не сохранены. Перейти к другому году без сохранения?", self)
             if msg_box.exec() != YesNoMessagebox.YES_RETURN_VALUE:
                 self.set_year_spinbox(self.year)
                 return
@@ -107,7 +107,7 @@ class FinPlanDialog(QDialog):
 
     def show_invalid_input(self) -> None:
         self._invalid_input_count = 0
-        ErrorInfoMessageBox("Введите число, например 1000 или 1000,50").exec()
+        ErrorInfoMessageBox("Введите число, например 1000 или 1000,50", parent=self).exec()
 
     def paste(self):
         selected_indexes = self.ui.tv_finplan.selectionModel().selectedIndexes()
@@ -139,7 +139,7 @@ class FinPlanDialog(QDialog):
             QDialog.accept(self)
             return
         if not self.db_handler.save_finplan_to_db(self.year, self.model.values):
-            msg_box = ErrorInfoMessageBox("К сожалению, данные не удалось сохранить (см. подробности в логе)")
+            msg_box = ErrorInfoMessageBox("К сожалению, данные не удалось сохранить (см. подробности в логе)", parent=self)
             msg_box.exec()
             return
         QDialog.accept(self)
@@ -148,6 +148,6 @@ class FinPlanDialog(QDialog):
         if not self.has_changes():
             QDialog.reject(self)
             return
-        msg_box = YesNoMessagebox("Вы уверены, что хотите выйти без сохранения изменений?")
+        msg_box = YesNoMessagebox("Вы уверены, что хотите выйти без сохранения изменений?", self)
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
             QDialog.reject(self)

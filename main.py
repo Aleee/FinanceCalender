@@ -7,7 +7,6 @@ from PySide6.QtNetwork import QNetworkProxyFactory
 
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from base.edition import is_viewer
 from base.paths import data_dir, logs_dir
 from base.updater import UpdateChecker
 from base.version import APP_VERSION
@@ -100,7 +99,7 @@ def main():
     install_error_window_hook()
 
     lock_file: QLockFile = QLockFile(os.path.join(data_dir(), ".lock"))
-    if not is_viewer() and not lock_file.tryLock(0):
+    if not lock_file.tryLock(0):
         QApplication(sys.argv)
         QMessageBox.warning(None, "Платежный календарь", "Программа уже запущена. Закройте другое окно программы и повторите запуск.")
         sys.exit(1)

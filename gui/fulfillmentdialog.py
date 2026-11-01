@@ -29,7 +29,7 @@ class FulfillmentDialog(QDialog):
 
         values = self.db_handler.load_fulfillmentpayments_from_db(self.begin_date, self.end_date)
         if values is None:
-            msg_box = ErrorInfoMessageBox("Не удалось загрузить данные о платежах из базы данных (подробнее см. лог)")
+            msg_box = ErrorInfoMessageBox("Не удалось загрузить данные о платежах из базы данных (подробнее см. лог)", parent=self)
             msg_box.exec()
             self.reject()
             self.load_failed = True

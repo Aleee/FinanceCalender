@@ -77,12 +77,12 @@ class FeeDialog(QDialog):
         except CSVParseError as exc:
             self.parse_result = None
             log.w(f"Не удалось прочитать CSV-файл с комиссиями: {exc}")
-            ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}").exec()
+            ErrorInfoMessageBox(f"Не удалось прочитать CSV-файл: {exc}", parent=self).exec()
             return
         except (OSError, UnicodeDecodeError) as exc:
             self.parse_result = None
             log.w(f"Не удалось прочитать CSV-файл с комиссиями: {exc}")
-            ErrorInfoMessageBox("Не удалось прочитать CSV-файл. Проверьте, что файл не открыт в другой программе и это выписка банка (см. подробнее лог)").exec()
+            ErrorInfoMessageBox("Не удалось прочитать CSV-файл. Проверьте, что файл не открыт в другой программе и это выписка банка (см. подробнее лог)", parent=self).exec()
             return
 
         self.show_report()
@@ -254,7 +254,7 @@ class FeeDialog(QDialog):
         if not self.dbh.run_in_transaction(create_all):
             self.table_model.reload()
             ErrorInfoMessageBox("При создании записей о комиссиях произошла ошибка (подробнее см. лог). "
-                                "Изменения отменены, ни одна запись не создана.").exec()
+                                "Изменения отменены, ни одна запись не создана.", parent=self).exec()
             return False
 
         show_status_message(self, f"Комиссии добавлены в календарь: {created_count}")
@@ -292,7 +292,7 @@ class FeeDialog(QDialog):
                     QDate(fee_date.year, fee_date.month, fee_date.day), int(liability_category)
                 )
                 if check_result is None:
-                    ErrorInfoMessageBox("Не удалось выполнить запрос к базе данных (см. подробности в логе)").exec()
+                    ErrorInfoMessageBox("Не удалось выполнить запрос к базе данных (см. подробности в логе)", parent=self).exec()
                     return None
                 if not check_result.is_nan():
                     already_paid.append((fee_date, liability_category, check_result))
