@@ -43,3 +43,4 @@ profile_results.pstat
 /tempmatching/run_app.py
 /tempmatching/smoke.py
 /tempmatching/statement_feb2026.csv
+/*.csv
