@@ -341,7 +341,7 @@ class EventDialog(QDialog):
 
         if self.edit_mode:
             self.setWindowTitle("Редактирование платежа")
-            self.ui.pb_accept.setText("Применить")
+            self.ui.pb_accept.setText("Сохранить")
             # Сохранение значений, которые не будут напрямую редактироваться
             self.non_editable_values["id"] = self.index.siblingAtColumn(Col.ID).data(LiabilityTableModel.qtValueRole)
             self.non_editable_values["paidamount"] = (self.index.siblingAtColumn(Col.TOTALAMOUNT).data(LiabilityTableModel.qtValueRole)

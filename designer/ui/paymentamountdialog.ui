@@ -301,7 +301,7 @@
      <item>
       <widget class="QPushButton" name="pb_accept">
        <property name="text">
-        <string>Применить</string>
+        <string>Сохранить</string>
        </property>
        <property name="default">
         <bool>true</bool>

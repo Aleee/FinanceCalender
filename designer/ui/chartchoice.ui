@@ -53,7 +53,7 @@
      <item>
       <widget class="QPushButton" name="pb_continue">
        <property name="text">
-        <string> Построить </string>
+        <string> Открыть </string>
        </property>
        <property name="default">
         <bool>true</bool>

@@ -212,7 +212,7 @@
         <string>Открыть документ договора, по которому создаётся платеж</string>
        </property>
        <property name="text">
-        <string>Перейти к документу...</string>
+        <string>Перейти к документу…</string>
        </property>
        <property name="autoDefault">
         <bool>false</bool>

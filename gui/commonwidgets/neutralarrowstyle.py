@@ -1,5 +1,5 @@
 from PySide6.QtCore import QRect
-from PySide6.QtWidgets import QApplication, QProxyStyle, QStyle, QStyleOption, QToolButton
+from PySide6.QtWidgets import QApplication, QDialogButtonBox, QProxyStyle, QStyle, QStyleOption, QToolButton
 
 
 class NeutralArrowStyle(QProxyStyle):
@@ -11,6 +11,11 @@ class NeutralArrowStyle(QProxyStyle):
 
     def __init__(self):
         super().__init__("fusion")
+
+    def styleHint(self, hint, option=None, widget=None, returnData=None):
+        if hint == QStyle.StyleHint.SH_DialogButtonLayout:
+            return QDialogButtonBox.ButtonLayout.MacLayout.value
+        return super().styleHint(hint, option, widget, returnData)
 
     def pixelMetric(self, metric, option=None, widget=None):
         if metric == QStyle.PixelMetric.PM_MenuButtonIndicator and widget is not None:

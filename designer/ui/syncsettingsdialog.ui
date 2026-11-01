@@ -244,19 +244,19 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="pb_ok">
+      <widget class="QPushButton" name="pb_cancel">
        <property name="text">
-        <string>ОК</string>
-       </property>
-       <property name="default">
-        <bool>true</bool>
+        <string>Отмена</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pb_cancel">
+      <widget class="QPushButton" name="pb_ok">
        <property name="text">
-        <string>Отмена</string>
+        <string>Сохранить</string>
+       </property>
+       <property name="default">
+        <bool>true</bool>
        </property>
       </widget>
      </item>

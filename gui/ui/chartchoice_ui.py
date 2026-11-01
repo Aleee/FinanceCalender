@@ -128,7 +128,7 @@ class Ui_ChartChoiceDialog(object):
         ChartChoiceDialog.setWindowTitle(QCoreApplication.translate("ChartChoiceDialog", u"\u041f\u043e\u0441\u0442\u0440\u043e\u0438\u0442\u044c \u0433\u0440\u0430\u0444\u0438\u043a \u0438\u043b\u0438 \u043e\u0442\u0447\u0435\u0442", None))
         self.label.setText(QCoreApplication.translate("ChartChoiceDialog", u"\u041d\u0430\u0447\u0430\u043b\u043e \u043f\u0435\u0440\u0438\u043e\u0434\u0430:", None))
         self.pb_cancel.setText(QCoreApplication.translate("ChartChoiceDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
-        self.pb_continue.setText(QCoreApplication.translate("ChartChoiceDialog", u" \u041f\u043e\u0441\u0442\u0440\u043e\u0438\u0442\u044c ", None))
+        self.pb_continue.setText(QCoreApplication.translate("ChartChoiceDialog", u" \u041e\u0442\u043a\u0440\u044b\u0442\u044c ", None))
         self.label_2.setText(QCoreApplication.translate("ChartChoiceDialog", u"\u041a\u043e\u043d\u0435\u0446 \u043f\u0435\u0440\u0438\u043e\u0434\u0430:", None))
         self.rb_chart1.setText(QCoreApplication.translate("ChartChoiceDialog", u"\u0414\u0438\u043d\u0430\u043c\u0438\u043a\u0430 \u0437\u0430\u0434\u043e\u043b\u0436\u0435\u043d\u043d\u043e\u0441\u0442\u0438", None))
         self.rb_chart2.setText(QCoreApplication.translate("ChartChoiceDialog", u"\u041f\u043b\u0430\u0442\u0435\u0436\u043d\u0430\u044f \u0434\u0438\u0441\u0446\u0438\u043f\u043b\u0438\u043d\u0430", None))

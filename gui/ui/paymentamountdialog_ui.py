@@ -241,6 +241,6 @@ class Ui_PaymentAmountDialog(object):
 #endif // QT_CONFIG(tooltip)
         self.pb_deletepayment.setText(QCoreApplication.translate("PaymentAmountDialog", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043e\u043f\u043b\u0430\u0442\u0443", None))
         self.pb_cancel.setText(QCoreApplication.translate("PaymentAmountDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
-        self.pb_accept.setText(QCoreApplication.translate("PaymentAmountDialog", u"\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c", None))
+        self.pb_accept.setText(QCoreApplication.translate("PaymentAmountDialog", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c", None))
     # retranslateUi
 

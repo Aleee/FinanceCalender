@@ -138,15 +138,15 @@ class Ui_ExportDialog(object):
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
 
-        self.pb_export = QPushButton(ExportDialog)
-        self.pb_export.setObjectName(u"pb_export")
-
-        self.horizontalLayout.addWidget(self.pb_export)
-
         self.pb_cancel = QPushButton(ExportDialog)
         self.pb_cancel.setObjectName(u"pb_cancel")
 
         self.horizontalLayout.addWidget(self.pb_cancel)
+
+        self.pb_export = QPushButton(ExportDialog)
+        self.pb_export.setObjectName(u"pb_export")
+
+        self.horizontalLayout.addWidget(self.pb_export)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -185,7 +185,7 @@ class Ui_ExportDialog(object):
         self.rb_hidden_sumonly.setToolTip(QCoreApplication.translate("ExportDialog", u"\u0421\u0442\u0440\u043e\u043a\u0438 \u0441\u043a\u0440\u044b\u0442\u044b\u0445 \u043f\u043b\u0430\u0442\u0435\u0436\u0435\u0439 \u043f\u043e\u043f\u0430\u0434\u0443\u0442 \u0432 \u0444\u0430\u0439\u043b \u0431\u0435\u0437 \u0442\u0435\u043a\u0441\u0442\u0430 \u2014 \u0442\u043e\u043b\u044c\u043a\u043e \u0441 \u0441\u0443\u043c\u043c\u0430\u043c\u0438", None))
 #endif // QT_CONFIG(tooltip)
         self.rb_hidden_sumonly.setText(QCoreApplication.translate("ExportDialog", u"\u0412\u043a\u043b\u044e\u0447\u0430\u0442\u044c \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u0443\u043c\u043c\u044b", None))
-        self.pb_export.setText(QCoreApplication.translate("ExportDialog", u"\u042d\u043a\u0441\u043f\u043e\u0440\u0442\u2026", None))
         self.pb_cancel.setText(QCoreApplication.translate("ExportDialog", u"\u041e\u0442\u043c\u0435\u043d\u0430", None))
+        self.pb_export.setText(QCoreApplication.translate("ExportDialog", u"\u042d\u043a\u0441\u043f\u043e\u0440\u0442\u2026", None))
     # retranslateUi
 

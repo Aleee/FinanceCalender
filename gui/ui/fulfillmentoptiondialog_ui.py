@@ -387,7 +387,7 @@ class Ui_FulfillmentOptionDialog(object):
 
     def retranslateUi(self, FulfillmentOptionDialog):
         FulfillmentOptionDialog.setWindowTitle(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0418\u0441\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0435 \u0444\u0438\u043d\u0430\u043d\u0441\u043e\u0432\u043e\u0433\u043e \u043f\u043b\u0430\u043d\u0430", None))
-        self.pb_continue.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0414\u0430\u043b\u0435\u0435", None))
+        self.pb_continue.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
         self.label_4.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u043f\u043e", None))
         self.label_3.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0441", None))
         self.rb_customperiod.setText(QCoreApplication.translate("FulfillmentOptionDialog", u"\u0417\u0430 \u043f\u0435\u0440\u0438\u043e\u0434:", None))

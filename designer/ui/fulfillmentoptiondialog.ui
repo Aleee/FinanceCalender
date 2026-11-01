@@ -20,7 +20,7 @@
    <item row="16" column="2">
     <widget class="QPushButton" name="pb_continue">
      <property name="text">
-      <string>Далее</string>
+      <string>Открыть</string>
      </property>
     </widget>
    </item>

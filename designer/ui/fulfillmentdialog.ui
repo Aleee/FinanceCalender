@@ -17,7 +17,7 @@
    <item row="2" column="2">
     <widget class="QPushButton" name="pb_exportxls">
      <property name="text">
-      <string> Экспорт в XLS </string>
+      <string> Экспорт в Excel </string>
      </property>
     </widget>
    </item>

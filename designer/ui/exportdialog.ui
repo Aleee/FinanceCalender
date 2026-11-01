@@ -197,19 +197,19 @@
       </spacer>
      </item>
      <item>
+      <widget class="QPushButton" name="pb_cancel">
+       <property name="text">
+        <string>Отмена</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="pb_export">
        <property name="text">
         <string>Экспорт…</string>
        </property>
        <property name="default">
         <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pb_cancel">
-       <property name="text">
-        <string>Отмена</string>
        </property>
       </widget>
      </item>
