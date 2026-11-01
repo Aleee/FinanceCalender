@@ -6,20 +6,20 @@ from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import (QDateEdit, QDialog, QHeaderView, QListWidgetItem, QSizePolicy, QTableWidget,
                                QTableWidgetItem, QVBoxLayout, QWidget)
 
-from gui.chart import ExpenseBarWidget, ExpenseMonthsWidget
 from base.date import MONTHS_RU
 from base.expenses import (ExpensePayment, ExpenseRepository, ExpenseStats, StructureRow, build_structure, change_share,
                            collect_stats, filter_payments, in_period, month_index, month_range, monthly_average,
                            peak_month, previous_period, rank_categories, share_of, stack_months, total_stats)
 from base.formatting import dec_strcommaspace, float_strpercentage, float_strsignedpercentage, int_strspace
 from base.liability import CATEGORY_NAMES, LiabilityCategory, category_section
-from gui.xlswriter import ExpensesXlsWriter, ExportSheet
+from gui.chart import ExpenseBarWidget, ExpenseMonthsWidget
 from gui.disciplinedialog import DisciplineDialog, NumberItem
 from gui.exportsuccessdialog import ExportSuccessDialog
 from gui.filterwidget import CategoryFilterListWidget
 from gui.manualdialog import add_help_shortcut
 from gui.settings import SettingsHandler
 from gui.ui.expensesdialog_ui import Ui_ExpensesDialog
+from gui.xlswriter import ExpensesXlsWriter, ExportSheet
 
 
 class ChangeItem(NumberItem):
