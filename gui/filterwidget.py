@@ -36,18 +36,20 @@ class FilterListWidget(QtWidgets.QListWidget):
         required_height: int = item_height * total_items + frame_width
         self.setFixedHeight(required_height)
 
+    @staticmethod
+    def stats_key(key: int) -> int:
+        return key
+
     @QtCore.Slot(object)
     def update_labels(self, stats: dict) -> None:
-        if len(stats) != len(self.ITEMS):
-            log.e("Длина словаря, переданная функции, не соответствует количеству элементов в списке")
-            raise IndexError
-        stats_as_list = list(stats.values())
-        items_as_list = list(self.ITEMS.values())
-        for row in range(self.count()):
+        for row, (key, (title, _icon, bold)) in enumerate(self.ITEMS.items()):
+            if self.stats_key(key) not in stats:
+                log.e(f"Для пункта фильтра «{title}» не передано количество платежей")
+                raise KeyError(key)
             item = self.item(row)
-            item.setText(items_as_list[row][0] + f" ({stats_as_list[row]})")
+            item.setText(f"{title} ({stats[self.stats_key(key)]})")
             font = QFont()
-            font.setBold(items_as_list[row][2])
+            font.setBold(bold)
             item.setFont(font)
 
 
@@ -97,6 +99,10 @@ class CategoryFilterListWidget(FilterListWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+    @staticmethod
+    def stats_key(key: int) -> int:
+        return LiabilityCategory.TOP_CURRENT if key == 0 else key
 
     def current_category(self) -> int:
         row = self.currentRow()
