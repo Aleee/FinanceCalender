@@ -304,6 +304,32 @@ def test_document_dialog_monthly_fields(hdb, tmp_path):
     assert reopened.collect_data().monthly_amount is None
 
 
+def test_document_dialog_reports_failed_save(hdb, tmp_path, monkeypatch):
+    contractor_id, contract_id, document_id = add_chain(hdb.path, "Альфа", "К-1", "Акт")
+    run(hdb.path, "INSERT INTO contractdocumenttype (id, name) VALUES (1, 'Акт')")
+    run(hdb.path, "UPDATE contractdocument SET document_type = 1 WHERE id = ?", document_id)
+    run(hdb.path, "INSERT INTO contractpaymentterm (document_id, payment_type, month_day, month_type) VALUES (?, 'FIXED', 25, 'NEXT')",
+        document_id)
+    settings = QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat)
+    info = ContractInfo(contractor_id, "Альфа", contract_id, "К-1", QDate(2025, 1, 10))
+    shown: list[str] = []
+    monkeypatch.setattr("gui.contractdialog.ErrorInfoMessageBox",
+                        lambda text, *args, **kwargs: type("Box", (), {"exec": lambda self: shown.append(text)})())
+
+    dlg = ContractDocumentDialog(hdb, settings, document_id, info)
+    dlg.ui.le_documentname.setText("Акт переименованный")
+    run(hdb.path, "DROP TABLE contractpaymentterm")
+    dlg.on_save()
+
+    assert shown == ["Не удалось сохранить документ в базе данных (подробности см. в логе)"]
+    assert dlg.result() == 0
+    con = sqlite3.connect(hdb.path)
+    try:
+        assert con.execute("SELECT document_name FROM contractdocument WHERE id = ?", (document_id,)).fetchone() == ("Акт",)
+    finally:
+        con.close()
+
+
 def test_document_dialog_monthly_not_for_prepayment(hdb, tmp_path):
     contractor_id, contract_id, document_id = add_chain(hdb.path, "Альфа", "К-1", "Акт")
     run(hdb.path, "INSERT INTO contractpaymentterm (document_id, payment_type, month_day, month_type) VALUES (?, 'FIXED', 25, 'NEXT')",

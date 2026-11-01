@@ -251,6 +251,7 @@ class ContractDocumentDialog(QDialog):
             return
         new_id = self.dbh.save_document_data(data)
         if new_id is None:
+            ErrorInfoMessageBox("Не удалось сохранить документ в базе данных (подробности см. в логе)", parent=self).exec()
             return
         self.document_id = new_id
         self.accept()

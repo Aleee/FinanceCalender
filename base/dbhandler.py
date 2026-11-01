@@ -32,7 +32,6 @@ from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
 from base.contracthistory import ContractObligation, ContractPayment
 from base.monthly import MonthlyEntry, MonthlyEvent, relative_term_text
-from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.finplanmodel import FinPlanTableModel
 
 
@@ -1617,8 +1616,6 @@ class DBHandler:
 
         if not self.db.transaction():
             log.e(f"Не удалось начать транзакцию: {self.db.lastError().text()}")
-            msg_box = ErrorInfoMessageBox("Не удалось установить связь с базой данных")
-            msg_box.exec()
             return None
 
         position_id = data.position_id if data.position_id else None
@@ -1699,8 +1696,7 @@ class DBHandler:
 
         if not self.db.commit():
             log.e(f"Не удалось завершить транзакцию: {self.db.lastError().text()}")
-            msg_box = ErrorInfoMessageBox("Не удалось установить связь с базой данных")
-            msg_box.exec()
+            self.db.rollback()
             return None
         return data.document_id
 
