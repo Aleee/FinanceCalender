@@ -768,13 +768,13 @@ class DBHandler:
         while query.next():
             results_available = True
             category: int = int(query.value(1))
-            try:
-                plan_values = [query.value(2), query.value(3), query.value(4), query.value(5), query.value(6), query.value(7), query.value(8), query.value(9),
-                               query.value(10), query.value(11), query.value(12), query.value(13)]
-                values[category] = [None if x == "" else x for x in plan_values]
-            except KeyError:
-                log.w(f"В словаре финансового плана не найдена категория {category}, полученная из базы данных")
+            if category not in values:
+                if category not in finplan_structure:
+                    log.w(f"В словаре финансового плана не найдена категория {category}, полученная из базы данных")
                 continue
+            plan_values = [query.value(2), query.value(3), query.value(4), query.value(5), query.value(6), query.value(7), query.value(8), query.value(9),
+                           query.value(10), query.value(11), query.value(12), query.value(13)]
+            values[category] = [None if x == "" else x for x in plan_values]
         # На случай, если данные по указанному году ранее не задавались
         if not results_available:
             for key in values.keys():
