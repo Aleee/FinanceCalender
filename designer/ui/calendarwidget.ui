@@ -77,9 +77,6 @@
          <property name="toolTip">
           <string>Выбрать месяц и год</string>
          </property>
-         <property name="styleSheet">
-          <string notr="true">QPushButton { font-size: 12pt; font-weight: bold; } QPushButton:hover { background: #e9ecef; }</string>
-         </property>
          <property name="cursor">
           <cursorShape>PointingHandCursor</cursorShape>
          </property>
@@ -144,9 +141,6 @@
          <property name="toolTip">
           <string>Перейти ко дню с просроченными платежами (повторное нажатие — к следующему такому дню)</string>
          </property>
-         <property name="styleSheet">
-          <string notr="true">QPushButton { color: #d00000; font-weight: bold; background: #fbeeec; border: 1px solid #d00000; border-radius: 3px; padding: 3px 10px; } QPushButton:hover { background: #f6d9d6; }</string>
-         </property>
          <property name="cursor">
           <cursorShape>PointingHandCursor</cursorShape>
          </property>
@@ -172,9 +166,6 @@
         <widget class="QPushButton" name="pb_undated">
          <property name="toolTip">
           <string>Платежи без срока оплаты в календаре не показаны. Нажмите, чтобы выбрать платеж из списка</string>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">QPushButton { color: #855a00; font-weight: bold; } QPushButton:hover { text-decoration: underline; }</string>
          </property>
          <property name="cursor">
           <cursorShape>PointingHandCursor</cursorShape>

@@ -19,8 +19,8 @@ from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
 from base.edition import is_viewer
 from base.feeparser import CSVParseError
-from base.formatting import (NBSP, dec_html, dec_strcommaspace, records_word, COLOR_STATEMENT, COLOR_CALENDAR,
-                             COLOR_HEADER_BG, COLOR_OK, COLOR_WARNING)
+from base.colors import COLOR_CALENDAR, COLOR_HEADER_BG, COLOR_OK, COLOR_STATEMENT, COLOR_WARNING
+from base.formatting import NBSP, dec_html, dec_strcommaspace, records_word
 from base.payment import PaymentEntry
 from base.paymentmacther import (reconcile_statement_with_calendar, ReconciliationMarks, ReconciliationResult,
                                  ProbablePair, RegroupedPayments, ManualLink)

@@ -1627,9 +1627,6 @@
             </property>
             <item row="1" column="0" colspan="2">
              <widget class="QLabel" name="la_appdescr">
-              <property name="styleSheet">
-               <string notr="true">color: #666666;</string>
-              </property>
               <property name="text">
                <string>Учёт и планирование платежей</string>
               </property>
@@ -1637,9 +1634,6 @@
             </item>
             <item row="3" column="0">
              <widget class="QLabel" name="la_buildnumber">
-              <property name="styleSheet">
-               <string notr="true">background-color: #e8f0f8; color: #2c5c8a; border: 1px solid #c5d6e8; border-radius: 10px; padding: 2px 10px; font-weight: 600;</string>
-              </property>
               <property name="text">
                <string>&lt;ver&gt;</string>
               </property>
@@ -1650,9 +1644,6 @@
             </item>
             <item row="3" column="1">
              <widget class="QLabel" name="la_dbnumber">
-              <property name="styleSheet">
-               <string notr="true">background-color: #e8f0f8; color: #2c5c8a; border: 1px solid #c5d6e8; border-radius: 10px; padding: 2px 10px; font-weight: 600;</string>
-              </property>
               <property name="text">
                <string>&lt;db ver&gt;</string>
               </property>
@@ -1663,9 +1654,6 @@
             </item>
             <item row="0" column="0" colspan="2">
              <widget class="QLabel" name="la_appname">
-              <property name="styleSheet">
-               <string notr="true">font-size: 14pt; font-weight: 700; color: #2c5c8a;</string>
-              </property>
               <property name="text">
                <string>Платежный календарь</string>
               </property>

@@ -11,7 +11,6 @@ from gui.fulfilmentmodel import FulfilmentModel
 
 class EventItemDelegate(QStyledItemDelegate):
 
-    FINALFOOTER_BACK_COLOR: QColor = QColor("#D2DABE")
     BORDER_WIDTH: int = 1
 
     def __init__(self, parent=None):

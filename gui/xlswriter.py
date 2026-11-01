@@ -26,13 +26,13 @@ from PySide6.QtGui import QFont, QFontMetricsF, QTextDocument
 from PySide6.QtWidgets import QApplication, QTableView, QFileDialog, QTreeView
 
 from base.casting import str_bool
+from base.colors import COLOR_EXPORT_BORDER, COLOR_HEADER_BG, COLOR_TABLE_FINAL_FOOTER_BG
 from base.date import date_purestr, date_displstr
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.liabilitytablemodel import LiabilityTableModel, RowFormatting
 from base.liability import Col, FilterFlags, RowType, HeaderFooterSubtype
 from base.paths import export_dir
 from gui.settings import SettingsHandler
-from gui.commonwidgets.itemdelegate import EventItemDelegate
 from xlsxwriter import Workbook
 from xlsxwriter.format import Format
 from xlsxwriter.worksheet import Worksheet
@@ -169,7 +169,7 @@ def get_pdf_converter() -> Optional[BasePdfConverter]:
 
 class BaseXlsWriter:
 
-    BORDER_COLOR: str = "#D0D0D0"
+    BORDER_COLOR: str = COLOR_EXPORT_BORDER
     HEADER_ROWS_NUMBER: int = 4
     BASELINE_FONT_SIZE: float = 11.0
     COLUMN_PADDING_PX: float = 5.0
@@ -421,7 +421,7 @@ class LiabilityXlsWriter(BaseXlsWriter):
         f_footer_sub: Format = workbook.add_format({"font_size": 14, "bold": True, "font_color": f"{row_formatting.footer_subsection_forecolor}",
                                                      "bg_color": f"{row_formatting.footer_subsection_backcolor}", "border": 1, "border_color": self.BORDER_COLOR,
                                                      "num_format": "# ##0.00"})
-        f_footer_final: Format = workbook.add_format({"font_size": 14, "bold": True, "bg_color": f"{EventItemDelegate.FINALFOOTER_BACK_COLOR.name()}",
+        f_footer_final: Format = workbook.add_format({"font_size": 14, "bold": True, "bg_color": COLOR_TABLE_FINAL_FOOTER_BG,
                                                        "border": 1, "border_color": self.BORDER_COLOR, "top_color": "#000000", "num_format": "# ##0.00"})
         ###############
 
@@ -697,7 +697,7 @@ class DisciplineXlsWriter(BaseXlsWriter):
         workbook: Workbook = Workbook(path, {"strings_to_formulas": False, "strings_to_urls": False})
         base_format: dict = {"border": 1, "border_color": self.BORDER_COLOR, "valign": "vcenter"}
         header_format: Format = workbook.add_format(base_format | {"bold": True, "text_wrap": True, "align": "center",
-                                                                    "bg_color": "#E9ECEF"})
+                                                                    "bg_color": COLOR_HEADER_BG})
         cell_formats: dict[Optional[str], Format] = {}
 
         def cell_format(number_format: Optional[str]) -> Format:

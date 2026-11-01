@@ -98,7 +98,6 @@ class Ui_MonthlyDialog(object):
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.la_empty = QLabel(self.page_empty)
         self.la_empty.setObjectName(u"la_empty")
-        self.la_empty.setStyleSheet(u"color: gray;")
         self.la_empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.la_empty.setWordWrap(True)
 

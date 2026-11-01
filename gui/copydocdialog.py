@@ -11,6 +11,7 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QDialog, QPlainTextEdit
 
 from gui.manualdialog import add_help_shortcut
+from base.colors import COLOR_MUTED, COLOR_WARNING
 from base.contract import DocumentTitle, PaymentDueType
 from base.date import date_str, date_displstr, MONTHS_RU
 from base.dbhandler import DBHandler
@@ -48,6 +49,8 @@ class CopyDocDialog(QDialog):
         self.ui = Ui_CopyDocDialog()
         self.ui.setupUi(self)
         add_help_shortcut(self, "03-event-dialog.html")
+        for label in (self.ui.la_amounthint, self.ui.la_duedatehint):
+            label.setStyleSheet(f"QLabel {{ color: {COLOR_MUTED}; }}")
 
         self.model = final_proxy_model
         self.dbh = db_handler
@@ -137,7 +140,7 @@ class CopyDocDialog(QDialog):
     def update_due_date_info(self) -> None:
         due_date: QDate = self.ui.de_duedate.date()
         self.ui.la_weekday.setText(f"({WEEKDAY_ABBR[due_date.dayOfWeek()]})")
-        self.ui.la_weekday.setStyleSheet("color: #c0392b;" if due_date.dayOfWeek() >= 6 else "")
+        self.ui.la_weekday.setStyleSheet(f"color: {COLOR_WARNING};" if due_date.dayOfWeek() >= 6 else "")
         if self.terms is None:
             hint = "Укажите вручную"
         elif self.calculated_due_date is None:

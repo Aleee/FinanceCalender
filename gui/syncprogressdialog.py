@@ -7,6 +7,7 @@ from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel, QLayout, QProgressBar, QPushButton, QStackedWidget,
                                QVBoxLayout, QWidget)
 
+from base.colors import COLOR_ACCENT, COLOR_ACCENT_BG, COLOR_DANGER, COLOR_DISABLED, COLOR_HEADER_BG, COLOR_OK, COLOR_SELECTION
 from base.sync import STAGE_CONNECT, STAGE_DOWNLOAD
 
 STAGE_RECONNECT = "Переподключение к общей базе"
@@ -56,7 +57,7 @@ class SpinnerWidget(QWidget):
 class CheckMarkWidget(QWidget):
     SIZE = 14
     LINE_WIDTH = 2
-    COLOR = QColor("#2e9e4f")
+    COLOR = QColor(COLOR_OK)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -75,7 +76,7 @@ class CheckMarkWidget(QWidget):
 class CrossMarkWidget(QWidget):
     SIZE = 14
     LINE_WIDTH = 2
-    COLOR = QColor("#d32f2f")
+    COLOR = QColor(COLOR_DANGER)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -121,8 +122,8 @@ class StageRow(QWidget):
         self.bar.setRange(0, 100)
         self.bar.setTextVisible(False)
         self.bar.setFixedHeight(3)
-        self.bar.setStyleSheet("QProgressBar { border: none; border-radius: 1px; background-color: #e3e8ee; }"
-                               "QProgressBar::chunk { border-radius: 1px; background-color: #2c5c8a; }")
+        self.bar.setStyleSheet(f"QProgressBar {{ border: none; border-radius: 1px; background-color: {COLOR_HEADER_BG}; }}"
+                               f"QProgressBar::chunk {{ border-radius: 1px; background-color: {COLOR_ACCENT}; }}")
         self.bar.setVisible(False)
 
         row_layout = QHBoxLayout()
@@ -199,10 +200,10 @@ class SyncProgressDialog(QDialog):
         self.btn_cancel.setAutoDefault(False)
         self.btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_cancel.setFlat(True)
-        self.btn_cancel.setStyleSheet("QPushButton { border: none; border-radius: 4px; padding: 2px 8px; color: #2c5c8a; font-weight: 600; }"
-                                      "QPushButton:hover { background-color: #e8f0f8; }"
-                                      "QPushButton:pressed { background-color: #d5e3f2; }"
-                                      "QPushButton:disabled { color: #b0b0b0; background-color: transparent; }")
+        self.btn_cancel.setStyleSheet(f"QPushButton {{ border: none; border-radius: 4px; padding: 2px 8px; color: {COLOR_ACCENT}; font-weight: 600; }}"
+                                      f"QPushButton:hover {{ background-color: {COLOR_ACCENT_BG}; }}"
+                                      f"QPushButton:pressed {{ background-color: {COLOR_SELECTION}; }}"
+                                      f"QPushButton:disabled {{ color: {COLOR_DISABLED}; background-color: transparent; }}")
         retain_policy = self.btn_cancel.sizePolicy()
         retain_policy.setRetainSizeWhenHidden(True)
         self.btn_cancel.setSizePolicy(retain_policy)

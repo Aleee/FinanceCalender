@@ -13,7 +13,8 @@ from gui.manualdialog import add_help_shortcut
 from base.date import date_str, date_displstr
 from base.dbhandler import DBHandler
 from base.feeparser import CSVParseError, DailyFees, FeeCategoryResult, StatementParseResult, read_transaction_csv
-from base.formatting import dec_strcommaspace, dec_html, COLOR_HEADER_BG, COLOR_WARNING, COLOR_WARNING_BG
+from base.colors import COLOR_BORDER, COLOR_HEADER_BG, COLOR_WARNING, COLOR_WARNING_BG
+from base.formatting import dec_strcommaspace, dec_html
 from base.liability import LiabilityCategory, RowType
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox, show_status_message
 from gui.liabilitytablemodel import LiabilityTableModel
@@ -159,7 +160,7 @@ class FeeDialog(QDialog):
             lines.append(FeeDialog._render_unknown_unp_warning(len(fees.unknown_unp), in_table=True))
 
         lines.append("<table width='100%' cellspacing='0' cellpadding='4' border='1' "
-                     "style='border-collapse:collapse; border-color:#c8c8c8; margin-top:8px;'>")
+                     f"style='border-collapse:collapse; border-color:{COLOR_BORDER}; margin-top:8px;'>")
         lines.append(
             f"<tr bgcolor='{COLOR_HEADER_BG}'><th>№</th><th>Сумма</th>"
             f"<th width='30%'>Наименование</th><th width='50%'>Назначение</th></tr>"

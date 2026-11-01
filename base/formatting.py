@@ -2,14 +2,6 @@ from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 
-COLOR_STATEMENT: str = "#b03a2e"
-COLOR_CALENDAR: str = "#1f5fa8"
-COLOR_OK: str = "#2e7d32"
-COLOR_HEADER_BG: str = "#e9ecef"
-COLOR_WARNING: str = "#9a6700"
-COLOR_WARNING_BG: str = "#fff4cc"
-COLOR_PAIR_BG: str = "#fffbea"
-
 NBSP: str = "\u00a0"
 
 

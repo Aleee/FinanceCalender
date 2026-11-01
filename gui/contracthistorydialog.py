@@ -6,6 +6,7 @@ from PySide6.QtCore import QDate, QEvent, Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QPalette
 from PySide6.QtWidgets import QDialog, QHeaderView, QTableWidget, QTableWidgetItem, QWidget
 
+from base.colors import COLOR_DANGER, COLOR_DANGER_BG, COLOR_OK_BG
 from base.contracthistory import ContractObligation, ContractPayment, payment_years, payments_for_year
 from base.date import date_displstr
 from base.dbhandler import DBHandler
@@ -17,8 +18,8 @@ from gui.ui.contracthistorydialog_ui import Ui_ContractHistoryDialog
 ALL_YEARS = 0
 SORT_ROLE = Qt.ItemDataRole.UserRole + 1
 CONTRACT_COLUMN_WIDTH = 260
-PAID_BACKCOLOR = QColor("#f0f8f0")
-OVERDUE_BACKCOLOR = QColor("#fdf1f1")
+PAID_BACKCOLOR = QColor(COLOR_OK_BG)
+OVERDUE_BACKCOLOR = QColor(COLOR_DANGER_BG)
 ALTERNATE_BACKCOLOR = QColor("#f2f6fa")
 
 
@@ -152,7 +153,7 @@ class ContractHistoryDialog(QDialog):
         if background is not None:
             item.setBackground(QBrush(background))
         if overdue:
-            item.setForeground(QBrush(Qt.GlobalColor.red))
+            item.setForeground(QBrush(QColor(COLOR_DANGER)))
             item.setToolTip("Просрочено")
         return item
 
@@ -179,7 +180,7 @@ class ContractHistoryDialog(QDialog):
             item.setBackground(background)
             item.setFlags(Qt.ItemFlag.ItemIsEnabled)
             if red and column in amounts:
-                item.setForeground(QBrush(Qt.GlobalColor.red))
+                item.setForeground(QBrush(QColor(COLOR_DANGER)))
             if column in amounts:
                 item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             total_table.setItem(row, column, item)

@@ -61,11 +61,6 @@
           <property name="toolTip">
            <string>Сбросить все фильтры (Ctrl+R)</string>
           </property>
-          <property name="styleSheet">
-           <string notr="true">QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; margin: 9px 9px 0px 9px;}
-QPushButton:hover {background-color: #e8eef4;}
-QPushButton:disabled {color: #6e6e6e;}</string>
-          </property>
           <property name="text">
            <string>Сбросить фильтры</string>
           </property>
@@ -90,9 +85,6 @@ QPushButton:disabled {color: #6e6e6e;}</string>
             <widget class="QLineEdit" name="le_search">
              <property name="toolTip">
               <string>Поиск по наименованию (предмету) и основанию платежа (Ctrl+F)</string>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">border: 1px solid #cbcbcb;</string>
              </property>
              <property name="placeholderText">
               <string>Поиск (Ctrl+F)</string>
@@ -959,9 +951,6 @@ QWidget#wdg_eventfilter_contents {background-color:white;}</string>
          <layout class="QGridLayout" name="gridLayout_9">
           <item row="0" column="0">
            <widget class="QLabel" name="la_emptyinfo">
-            <property name="styleSheet">
-             <string notr="true">color: #666666;</string>
-            </property>
             <property name="text">
              <string>Выберите платеж в таблице или календаре, чтобы увидеть подробности</string>
             </property>

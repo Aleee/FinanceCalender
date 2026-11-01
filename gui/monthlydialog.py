@@ -5,6 +5,7 @@ from PySide6.QtCore import QDate, QModelIndex, QSettings, Qt
 from PySide6.QtGui import QBrush, QColor, QPen, QStandardItemModel
 from PySide6.QtWidgets import QDialog, QHeaderView, QPushButton, QStyle, QStyledItemDelegate, QTableWidgetItem, QWidget
 
+from base.colors import COLOR_DANGER, COLOR_DANGER_BG, COLOR_MUTED, COLOR_OK, COLOR_OK_BG, COLOR_WARNING, COLOR_WARNING_BG
 from base.date import MONTHS_RU, date_displstr
 from base.contract import DocumentTitle
 from base.dbhandler import DBHandler
@@ -52,10 +53,10 @@ class StateRowDelegate(QStyledItemDelegate):
 class MonthlyDialog(QDialog):
 
     STATE_TEXT = {MonthlyState.MISSING: "не создан", MonthlyState.UNPAID: "создан, не оплачен", MonthlyState.PAID: "оплачен"}
-    STATE_COLOR = {MonthlyState.MISSING: "#b03a2e", MonthlyState.UNPAID: "#8f5a00", MonthlyState.PAID: "#17693a"}
-    ROW_COLOR = {MonthlyState.MISSING: "#f8e6e4", MonthlyState.UNPAID: "#faf2dc", MonthlyState.PAID: "#e4f1e7"}
+    STATE_COLOR = {MonthlyState.MISSING: COLOR_DANGER, MonthlyState.UNPAID: COLOR_WARNING, MonthlyState.PAID: COLOR_OK}
+    ROW_COLOR = {MonthlyState.MISSING: COLOR_DANGER_BG, MonthlyState.UNPAID: COLOR_WARNING_BG, MonthlyState.PAID: COLOR_OK_BG}
     SELECTED_ROW_COLOR = {MonthlyState.MISSING: "#f2e9e8", MonthlyState.UNPAID: "#f4efe2", MonthlyState.PAID: "#eaf1ec"}
-    OVERDUE_COLOR = "#d00000"
+    OVERDUE_COLOR = COLOR_DANGER
     HEADERS = ("Контрагент", "Договор и документ", "Сумма", "Срок оплаты", "Статус")
     EMPTY_TEXT = ("Нет документов с отметкой ежемесячного платежа.\nВключите её в карточке документа "
                   "(Договоры → документ), и он появится в этом списке.")
@@ -71,6 +72,7 @@ class MonthlyDialog(QDialog):
         self.ui = Ui_MonthlyDialog()
         self.ui.setupUi(self)
         add_help_shortcut(self, "08-monthly.html")
+        self.ui.la_empty.setStyleSheet(f"color: {COLOR_MUTED};")
 
         self.dbh = db_handler
         self.create_event = create_event

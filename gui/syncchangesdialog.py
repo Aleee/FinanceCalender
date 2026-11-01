@@ -6,12 +6,12 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
 
 from gui.manualdialog import add_help_shortcut
 from base.diffview import ACTION_TITLES, ACTIONS, ADDED, CHANGED, REMOVED, SECTION_TITLES, DiffEntry, build_entries, format_time, summary_lines
-from base.formatting import COLOR_CALENDAR, COLOR_OK, COLOR_STATEMENT, COLOR_WARNING, COLOR_WARNING_BG
+from base.colors import COLOR_ACCENT, COLOR_DANGER, COLOR_MUTED, COLOR_OK, COLOR_WARNING, COLOR_WARNING_BG
 from base.syncdiff import Conflict, DETAILED_TABLES, DbDiff, describe_other_table
 
 ENTRY_ROLE = Qt.ItemDataRole.UserRole
 SORT_ROLE = Qt.ItemDataRole.UserRole + 1
-ACTION_COLORS = {ADDED: COLOR_OK, CHANGED: COLOR_WARNING, REMOVED: COLOR_STATEMENT}
+ACTION_COLORS = {ADDED: COLOR_OK, CHANGED: COLOR_WARNING, REMOVED: COLOR_DANGER}
 
 
 class DiffFilterProxy(QSortFilterProxyModel):
@@ -65,14 +65,14 @@ class DiffView(QWidget):
             self.table = self.create_table()
             layout.addWidget(self.table, 1)
             self.lbl_status = QLabel(self)
-            self.lbl_status.setStyleSheet("color: #555;")
+            self.lbl_status.setStyleSheet(f"color: {COLOR_MUTED};")
             layout.addWidget(self.lbl_status)
             self.update_status()
         if diff.other_tables:
             lines = [f"•  {describe_other_table(table, counts)}" for table, counts in diff.other_tables.items()]
             lbl_other = QLabel("Также изменились данные, которые здесь не раскрываются:\n" + "\n".join(lines), self)
             lbl_other.setWordWrap(True)
-            lbl_other.setStyleSheet("color: #555;")
+            lbl_other.setStyleSheet(f"color: {COLOR_MUTED};")
             layout.addWidget(lbl_other)
         if not self.entries:
             layout.addStretch()
@@ -294,7 +294,7 @@ class SyncChangesDialog(QDialog):
             lbl_info.setWordWrap(True)
             layout.addWidget(lbl_info)
         if conflicts:
-            layout.addWidget(self.section_label(f"Автоматически объединить не удалось ({len(conflicts)}):", COLOR_STATEMENT))
+            layout.addWidget(self.section_label(f"Автоматически объединить не удалось ({len(conflicts)}):", COLOR_DANGER))
             layout.addWidget(ConflictTableWidget(conflicts, self))
         if warnings:
             layout.addWidget(self.section_label(f"Проверьте после объединения ({len(warnings)}):", COLOR_WARNING))
@@ -330,7 +330,7 @@ class SyncChangesDialog(QDialog):
             self.settings.setValue(self.GEOMETRY_KEY, self.saveGeometry())
         super().done(result)
 
-    def section_label(self, text: str, color: str = COLOR_CALENDAR) -> QLabel:
+    def section_label(self, text: str, color: str = COLOR_ACCENT) -> QLabel:
         label = QLabel(text, self)
         font = label.font()
         font.setBold(True)

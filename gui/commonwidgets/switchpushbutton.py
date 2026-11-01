@@ -2,15 +2,17 @@ from PySide6.QtCore import QEvent, QPointF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap, QPolygonF
 from PySide6.QtWidgets import QPushButton
 
+from base.colors import COLOR_DANGER, COLOR_DISABLED
+
 
 class SwitchPushButton(QPushButton):
 
     DEFAULT_STYLE: str = "border-width: 0px; text-align: left; color: black;"
-    HIDDENFILTER_STYLE: str = "border-width: 0px; text-align: left; color: #ff3d3d;"
-    INACTIVE_STYLE: str = "border-width: 0px; text-align: left; color: #9a9a9a;"
+    HIDDENFILTER_STYLE: str = f"border-width: 0px; text-align: left; color: {COLOR_DANGER};"
+    INACTIVE_STYLE: str = f"border-width: 0px; text-align: left; color: {COLOR_DISABLED};"
     DEFAULT_COLOR: str = "black"
-    HIDDENFILTER_COLOR: str = "#ff3d3d"
-    INACTIVE_COLOR: str = "#9a9a9a"
+    HIDDENFILTER_COLOR: str = COLOR_DANGER
+    INACTIVE_COLOR: str = COLOR_DISABLED
     switch_status_changed = Signal(bool)
 
     def __init__(self, parent=None):

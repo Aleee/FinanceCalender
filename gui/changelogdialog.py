@@ -5,10 +5,10 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
                                QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from base.changelog import DELETE, EVENT_TABLE, INSERT, PAYMENT_TABLE, ChangeOperation
-from base.formatting import COLOR_OK, COLOR_STATEMENT, COLOR_WARNING
+from base.colors import COLOR_DANGER, COLOR_MUTED, COLOR_OK, COLOR_WARNING
 from gui.manualdialog import add_help_shortcut
 
-ACTION_COLORS = {INSERT: COLOR_OK, DELETE: COLOR_STATEMENT}
+ACTION_COLORS = {INSERT: COLOR_OK, DELETE: COLOR_DANGER}
 TIME_FORMAT = "%d.%m.%Y %H:%M:%S"
 
 
@@ -38,7 +38,7 @@ class ChangeLogTree(QTreeWidget):
                 item.setFont(column, font)
             for title, old_value, new_value in operation.fields:
                 field_item = QTreeWidgetItem(item, ["", "", title, old_value, new_value])
-                field_item.setForeground(3, QBrush(QColor(COLOR_STATEMENT)))
+                field_item.setForeground(3, QBrush(QColor(COLOR_DANGER)))
                 field_item.setForeground(4, QBrush(QColor(COLOR_OK)))
                 for column, text in ((2, title), (3, old_value), (4, new_value)):
                     field_item.setToolTip(column, text)
@@ -61,7 +61,7 @@ class ChangeLogDialog(QDialog):
             self.cmb_scope.addItem(text, table)
         self.tree = ChangeLogTree(self)
         self.la_empty = QLabel("Записей нет", self)
-        self.la_empty.setStyleSheet("color: gray;")
+        self.la_empty.setStyleSheet(f"color: {COLOR_MUTED};")
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, self)
         buttons.rejected.connect(self.reject)
 

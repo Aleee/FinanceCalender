@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel, QLine
                                QStackedWidget, QStyle, QStyledItemDelegate, QStyleOptionViewItem, QTextBrowser, QTextEdit,
                                QToolButton, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
+from base.colors import COLOR_DANGER, COLOR_SEARCH_HIGHLIGHT, COLOR_TEXT
 from base.edition import is_viewer
 from base.paths import manual_dir
 from gui.settings import SettingsHandler
@@ -85,7 +86,7 @@ class ManualBrowser(QTextBrowser):
         self.document().setDefaultFont(page_font)
         palette: QPalette = self.palette()
         palette.setColor(QPalette.ColorRole.Base, QColor("#ffffff"))
-        palette.setColor(QPalette.ColorRole.Text, QColor("#222222"))
+        palette.setColor(QPalette.ColorRole.Text, QColor(COLOR_TEXT))
         for role in (QPalette.ColorRole.Highlight, QPalette.ColorRole.HighlightedText):
             palette.setColor(QPalette.ColorGroup.Inactive, role, palette.color(QPalette.ColorGroup.Active, role))
         self.setPalette(palette)
@@ -128,7 +129,7 @@ class ManualBrowser(QTextBrowser):
         selections: list[QTextEdit.ExtraSelection] = []
         if query:
             highlight = QTextCharFormat()
-            highlight.setBackground(QColor("#ffe58a"))
+            highlight.setBackground(QColor(COLOR_SEARCH_HIGHLIGHT))
             for position, text in read_blocks(self.document()):
                 for offset in match_offsets(text, query):
                     selection = QTextEdit.ExtraSelection()
@@ -229,7 +230,7 @@ class ManualDialog(QDialog):
         self.le_find.setClearButtonEnabled(True)
         self.le_find.setFixedWidth(240)
         self.la_notfound = QLabel("Ничего не найдено", self)
-        self.la_notfound.setStyleSheet("color: #C62828;")
+        self.la_notfound.setStyleSheet(f"color: {COLOR_DANGER};")
         self.la_notfound.setVisible(False)
         self.tb_findprev = QToolButton(self)
         self.tb_findprev.setArrowType(Qt.ArrowType.UpArrow)
@@ -403,7 +404,7 @@ class ManualDialog(QDialog):
                     start: int = max(0, offsets[0] - 40)
                     end: int = offsets[0] + len(query)
                     snippet: str = (f'{"…" if start else ""}{html.escape(text[start:offsets[0]])}'
-                                    f'<span style="background-color: #ffe58a;"><b>{html.escape(text[offsets[0]:end])}</b></span>'
+                                    f'<span style="background-color: {COLOR_SEARCH_HIGHLIGHT};"><b>{html.escape(text[offsets[0]:end])}</b></span>'
                                     f'{html.escape(text[end:end + 70])}{"…" if end + 70 < len(text) else ""}')
                     item = QListWidgetItem(self.lw_results)
                     item.setData(SearchResultDelegate.HTML_ROLE, f"<b>{html.escape(self.chapter_items[file].text(0))}</b><br>{snippet}")

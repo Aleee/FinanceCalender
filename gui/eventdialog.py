@@ -9,6 +9,7 @@ from decimal import Decimal
 
 from gui.manualdialog import add_help_shortcut
 from base.casting import str_bool
+from base.colors import COLOR_DANGER
 from base.date import date_str, MONTHS_RU
 from base.dbhandler import DBHandler
 from gui.liabilitytablemodel import LiabilityTableModel
@@ -32,7 +33,7 @@ class InvalidFrame(QFrame):
         super().__init__(widget.parentWidget())
         self.widget = widget
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.setStyleSheet("border: 1px solid #cc0000; background: transparent;")
+        self.setStyleSheet(f"border: 1px solid {COLOR_DANGER}; background: transparent;")
         widget.installEventFilter(self)
         self.follow_widget()
 

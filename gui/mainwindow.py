@@ -16,6 +16,8 @@ from base.contract import ContractInfo, DocumentTitle
 from base.date import date_displstr, date_str
 from base.edition import is_viewer
 from base.dbhandler import DBHandler
+from base.colors import (COLOR_ACCENT_BG, COLOR_ACCENT_BORDER, COLOR_BORDER, COLOR_DANGER, COLOR_MUTED, COLOR_OK, COLOR_SELECTION,
+                         COLOR_SUBTLE_BG, COLOR_WARNING)
 from base.formatting import dec_strcommaspace
 from base.monthly import MonthlyEntry, build_monthly_template
 from base.payment import PaymentField
@@ -67,13 +69,13 @@ from gui.xlswriter import LiabilityXlsWriter
 
 class MainWindow(QMainWindow):
 
-    CONTRACT_NOTBOUND_TEXT = '<span style="color: #666666;">не привязан</span>'
+    CONTRACT_NOTBOUND_TEXT = f'<span style="color: {COLOR_MUTED};">не привязан</span>'
     SYNC_PROBLEM_STATUSES = (SYNC_STATUS_TEXT[SyncAction.CONFLICT], SYNC_STATUS_TEXT[SyncAction.FOREIGN_DB],
                              SYNC_STATUS_TEXT[SyncAction.CLIENT_OUTDATED], "токен недействителен", "ошибка")
     SYNC_SUCCESS_ACTIONS = (SyncAction.NOTHING, SyncAction.PULL, SyncAction.PUSH, SyncAction.MERGE)
-    SYNC_PROBLEM_COLOR = QColor("#C62828")
-    SYNC_WARNING_COLOR = QColor("#9a5800")
-    SYNC_OK_COLOR = QColor("#2E7D32")
+    SYNC_PROBLEM_COLOR = QColor(COLOR_DANGER)
+    SYNC_WARNING_COLOR = QColor(COLOR_WARNING)
+    SYNC_OK_COLOR = QColor(COLOR_OK)
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -933,6 +935,9 @@ class MainWindow(QMainWindow):
 
     def _init_widget_cosmetics(self) -> None:
         self.ui.tv_payment.set_columns_visibility()
+        self.update_search_margin(0, 0)
+        self.ui.la_emptyinfo.setStyleSheet(f"color: {COLOR_MUTED};")
+        self.ui.le_search.setStyleSheet(f"border: 1px solid {COLOR_BORDER};")
         # При изменении размера окна свободное место достаётся таблице, а не боковой панели и не инфопанели
         self.ui.spl_main.setStretchFactor(0, 0)
         self.ui.spl_main.setStretchFactor(1, 1)
@@ -1254,7 +1259,7 @@ class MainWindow(QMainWindow):
     def update_view_button_state(self) -> None:
         featured: bool = self.ui.act_featured.isChecked()
         font_style: str = f"font-size: {FontSize.LARGE - 1}pt;"
-        highlight: str = "background-color: #d6e6f7; border: 1px solid #7aa7d6; border-radius: 3px;"
+        highlight: str = f"background-color: {COLOR_SELECTION}; border: 1px solid {COLOR_ACCENT_BORDER}; border-radius: 3px;"
         self.tb_view.setStyleSheet(f"QToolButton {{ {font_style} {highlight if featured else ''} }}")
         self.tb_view.setToolTip(f"{self.view_tooltip}\nВключён фильтр: На контроле" if featured else self.view_tooltip)
 
@@ -1268,10 +1273,10 @@ class MainWindow(QMainWindow):
         scrollbar_width: int = self.ui.sa_eventfilter.verticalScrollBar().sizeHint().width() if maximum > 0 else 0
         right_margin: int = 9 + scrollbar_width
         self.ui.pb_resetfilters.setStyleSheet(
-            "QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; "
+            f"QPushButton {{border: 1px solid {COLOR_BORDER}; padding: 3px; background-color: {COLOR_SUBTLE_BG}; "
             f"margin: 9px {right_margin}px 0px 9px;}}\n"
-            "QPushButton:hover {background-color: #e8eef4;}\n"
-            "QPushButton:disabled {color: #6e6e6e;}")
+            f"QPushButton:hover {{background-color: {COLOR_ACCENT_BG};}}\n"
+            f"QPushButton:disabled {{color: {COLOR_MUTED};}}")
         self.ui.horizontalLayout_search.setContentsMargins(9, 3, right_margin, 3)
 
     FILTER_DEFAULTS: tuple = (0, 0, 0, False, "", False, None, None, 0)

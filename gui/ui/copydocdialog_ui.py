@@ -62,7 +62,6 @@ class Ui_CopyDocDialog(object):
 
         self.la_amounthint = QLabel(CopyDocDialog)
         self.la_amounthint.setObjectName(u"la_amounthint")
-        self.la_amounthint.setStyleSheet(u"QLabel { color: gray; }")
 
         self.horizontalLayout_4.addWidget(self.la_amounthint)
 
@@ -143,7 +142,6 @@ class Ui_CopyDocDialog(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.la_duedatehint.sizePolicy().hasHeightForWidth())
         self.la_duedatehint.setSizePolicy(sizePolicy)
-        self.la_duedatehint.setStyleSheet(u"QLabel { color: gray; }")
         self.la_duedatehint.setTextFormat(Qt.TextFormat.RichText)
         self.la_duedatehint.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
         self.la_duedatehint.setWordWrap(False)

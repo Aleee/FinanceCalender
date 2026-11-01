@@ -3,11 +3,12 @@ from html import escape
 from typing import Callable
 
 from PySide6.QtCore import QDate, QSettings
-from PySide6.QtGui import Qt, QIcon, QBrush
+from PySide6.QtGui import Qt, QIcon, QBrush, QColor
 from PySide6.QtWidgets import QDialog, QListWidgetItem, QInputDialog, QFormLayout, QLineEdit, QDialogButtonBox, \
     QDateEdit, QListWidget, QMenu, QWidget
 
 from gui.manualdialog import add_help_shortcut
+from base.colors import COLOR_DISABLED, COLOR_MUTED
 from base.contract import ContractInfo
 from base.date import str_date, date_displstr, date_str
 from base.dbhandler import DBHandler
@@ -197,7 +198,7 @@ class ContractorDialog(QDialog):
         font = item.font()
         font.setItalic(archived)
         item.setFont(font)
-        item.setData(Qt.ItemDataRole.ForegroundRole, QBrush(Qt.GlobalColor.gray) if archived else None)
+        item.setData(Qt.ItemDataRole.ForegroundRole, QBrush(QColor(COLOR_DISABLED)) if archived else None)
 
     def show_context_menu(self, list_widget: QListWidget, pos, rename: tuple[str, Callable], archive: Callable) -> None:
         item = list_widget.itemAt(pos)
@@ -286,7 +287,7 @@ class ContractorDialog(QDialog):
             if i == page:
                 steps.append(f"<b>{name}</b>")
             else:
-                steps.append(f"<span style='color: gray'>{escape(chosen[i]) if i < page else name}</span>")
+                steps.append(f"<span style='color: {COLOR_MUTED}'>{escape(chosen[i]) if i < page else name}</span>")
         self.ui.la_steps.setText(" → ".join(steps))
 
         self.ui.pb_back.setVisible(page != StackwidgetPage.contractors)

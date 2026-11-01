@@ -3,6 +3,7 @@ import lovely_logger as log
 from PySide6 import QtWidgets, QtCore
 from PySide6.QtGui import QIcon, QFont
 
+from base.colors import COLOR_DISABLED, COLOR_SELECTION
 from base.liability import LiabilityCategory, TermCategory
 
 
@@ -18,10 +19,10 @@ class FilterListWidget(QtWidgets.QListWidget):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         # Цвет выделения в фокусе и без
-        self.setStyleSheet("""QListWidget::item:selected {background-color: #dae8f5; color: black;}
-                    QListWidget::item:selected:!focus {background-color: #dae8f5; color: black;}
-                    QListWidget:disabled {background-color: transparent;}
-                    QListWidget::item:selected:disabled {background-color: transparent; color: #9a9a9a;}""")
+        self.setStyleSheet(f"""QListWidget::item:selected {{background-color: {COLOR_SELECTION}; color: black;}}
+                    QListWidget::item:selected:!focus {{background-color: {COLOR_SELECTION}; color: black;}}
+                    QListWidget:disabled {{background-color: transparent;}}
+                    QListWidget::item:selected:disabled {{background-color: transparent; color: {COLOR_DISABLED};}}""")
 
         # Присвоение имен и иконок
         for entry in self.ITEMS.values():

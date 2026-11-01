@@ -11,6 +11,7 @@ from PySide6.QtCore import Qt, QSize, QRegularExpression, QModelIndex, QDate, QU
 from gui.manualdialog import add_help_shortcut, open_manual
 from base.backup import restore_backup
 from base.casting import str_bool, str_int
+from base.colors import COLOR_ACCENT, COLOR_ACCENT_BG, COLOR_ACCENT_BORDER_LIGHT, COLOR_BORDER, COLOR_DANGER, COLOR_MUTED
 from base.dbhandler import DBHandler
 from base.edition import is_viewer
 from base.paths import logs_dir
@@ -147,6 +148,12 @@ class SettingsDialog(QDialog):
         self.prepare_updatesection()
         app = QApplication.instance()
         self.ui.la_buildnumber.setText(f"Сборка {app.app_version}")
+        badge_style: str = (f"background-color: {COLOR_ACCENT_BG}; color: {COLOR_ACCENT}; border: 1px solid {COLOR_ACCENT_BORDER_LIGHT}; "
+                            "border-radius: 10px; padding: 2px 10px; font-weight: 600;")
+        self.ui.la_buildnumber.setStyleSheet(badge_style)
+        self.ui.la_dbnumber.setStyleSheet(badge_style)
+        self.ui.la_appname.setStyleSheet(f"font-size: 14pt; font-weight: 700; color: {COLOR_ACCENT};")
+        self.ui.la_appdescr.setStyleSheet(f"color: {COLOR_MUTED};")
         db_version = self.db_handler.get_db_version()
         self.ui.la_dbnumber.setText("База данных v" + ("?" if db_version is None else str(db_version)))
 
@@ -611,7 +618,7 @@ class SettingsDialog(QDialog):
         widget.setFocus()
 
     def highlight_invalid_input(self, le_widget: QLineEdit) -> None:
-        le_widget.setStyleSheet("" if le_widget.hasAcceptableInput() else "border: 1px solid #cc0000;")
+        le_widget.setStyleSheet("" if le_widget.hasAcceptableInput() else f"border: 1px solid {COLOR_DANGER};")
 
     def add_delete_shortcut(self, widget: QWidget, handler) -> None:
         if is_viewer():
@@ -659,7 +666,7 @@ class SettingsDialog(QDialog):
                 label.setText(f"{term_titles[label]} <span style='{text_style}'>100,00</span>")
                 text_style = "color: black; font-weight: normal;"
             label.setStyleSheet(f"background-color: {pb_background.get_color() or 'white'}; {text_style} "
-                                "border: 1px solid #c0c0c0; padding: 2px 8px;")
+                                f"border: 1px solid {COLOR_BORDER}; padding: 2px 8px;")
         # Qt не пересчитывает раскладку скрытой страницы до её первого показа
         self.ui.grp_format_view.layout().activate()
 

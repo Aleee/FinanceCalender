@@ -5,6 +5,7 @@ from PySide6.QtCore import QDate, QItemSelectionModel, QModelIndex, Qt
 from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QDialog, QHeaderView, QListWidgetItem, QTableWidget, QTableWidgetItem, QVBoxLayout
 
+from base.colors import COLOR_BORDER, COLOR_MUTED
 from base.date import MONTHS_RU
 from base.debtcalculator import DebtRepository
 from base.discipline import (BUCKET_NAMES, ClosedPayment, DelayBucket, DisciplineStats, OverduePayment, collect_stats,
@@ -134,9 +135,9 @@ class DisciplineDialog(QDialog):
     def setup_kpi_tiles(self) -> None:
         for number in range(1, 5):
             frame = getattr(self.ui, f"fr_kpi{number}")
-            frame.setStyleSheet(f"QFrame#{frame.objectName()} {{background: palette(base); border: 1px solid #c8c8c8; "
+            frame.setStyleSheet(f"QFrame#{frame.objectName()} {{background: palette(base); border: 1px solid {COLOR_BORDER}; "
                                 f"border-radius: 4px;}}")
-            getattr(self.ui, f"lb_kpi{number}_caption").setStyleSheet("color: #555555;")
+            getattr(self.ui, f"lb_kpi{number}_caption").setStyleSheet(f"color: {COLOR_MUTED};")
 
     def setup_charts(self) -> None:
         background = self.palette().color(QPalette.ColorRole.Window)

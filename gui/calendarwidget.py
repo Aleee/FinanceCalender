@@ -7,7 +7,9 @@ from PySide6.QtWidgets import QHeaderView, QLabel, QMenu, QStyle, QStyledItemDel
 
 from base.date import MONTHS_RU, first_date_of_month
 from base.dbhandler import DBHandler
-from base.formatting import COLOR_CALENDAR, dec_strcommaspace
+from base.colors import (COLOR_ACCENT, COLOR_DANGER, COLOR_DANGER_BG, COLOR_DANGER_BG_HOVER, COLOR_HEADER_BG, COLOR_MUTED, COLOR_OK,
+                         COLOR_OK_BG, COLOR_SELECTION, COLOR_SUBTLE_BG, COLOR_TEXT, COLOR_WARNING)
+from base.formatting import dec_strcommaspace
 from base.liability import Col, FilterFlags, STORED_INDEX
 from base.liabilitystore import CalendarDay, LiabilityStore
 from base.workcalendar import WEEKDAY_ABBR, is_working_day
@@ -140,13 +142,13 @@ class DayCellDelegate(QStyledItemDelegate):
 
     PADDING = 3
     NUMBER_SIZE_EXTRA = 1
-    BACKCOLOR = {DayStatus.OVERDUE: QColor("#fbeeec"), DayStatus.PAID: QColor("#e4f1e7")}
-    AMOUNT_COLOR = {DayStatus.OPEN: QColor("#202124"), DayStatus.OVERDUE: QColor("#d00000"),
-                    DayStatus.PAID: QColor("#276a2b"), DayStatus.REFUND: QColor("#202124")}
+    BACKCOLOR = {DayStatus.OVERDUE: QColor(COLOR_DANGER_BG), DayStatus.PAID: QColor(COLOR_OK_BG)}
+    AMOUNT_COLOR = {DayStatus.OPEN: QColor(COLOR_TEXT), DayStatus.OVERDUE: QColor(COLOR_DANGER),
+                    DayStatus.PAID: QColor(COLOR_OK), DayStatus.REFUND: QColor(COLOR_TEXT)}
     ICON_SIZE = 11
     HOVER_COLOR = QColor(0, 0, 0, 20)
-    NON_WORKING_BACKCOLOR = QColor("#f1f2f4")
-    MUTED_TEXT_COLOR = QColor("#5f6368")
+    NON_WORKING_BACKCOLOR = QColor(COLOR_SUBTLE_BG)
+    MUTED_TEXT_COLOR = QColor(COLOR_MUTED)
 
     def sizeHint(self, option, index) -> QSize:
         return QSize(100, 70)
@@ -198,7 +200,7 @@ class DayCellDelegate(QStyledItemDelegate):
         number_rect = QRect(inner.left(), inner.top(), metrics.horizontalAdvance(number) + 6, metrics.height())
         if is_today:
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(COLOR_CALENDAR))
+            painter.setBrush(QColor(COLOR_ACCENT))
             painter.drawRoundedRect(number_rect, 3, 3)
             painter.setPen(QColor("#ffffff"))
         else:
@@ -230,7 +232,7 @@ class DayCellDelegate(QStyledItemDelegate):
 
         if option.state & QStyle.StateFlag.State_Selected:
             painter.save()
-            painter.setPen(QPen(QColor(COLOR_CALENDAR), 2))
+            painter.setPen(QPen(QColor(COLOR_ACCENT), 2))
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRect(rect.adjusted(1, 1, -1, -1))
             painter.restore()
@@ -238,7 +240,7 @@ class DayCellDelegate(QStyledItemDelegate):
 
 class EventRowDelegate(QStyledItemDelegate):
 
-    SELECTION_COLOR = QColor("#dae8f5")
+    SELECTION_COLOR = QColor(COLOR_SELECTION)
 
     def initStyleOption(self, option, index) -> None:
         super().initStyleOption(option, index)
@@ -253,9 +255,9 @@ class CalendarWidget(QWidget):
 
     EVENT_HEADERS = ("Получатель", "Остаток", "Название")
     REMAIN_COLUMN = 1
-    OVERDUE_REMAIN_COLOR = QColor("#d00000")
+    OVERDUE_REMAIN_COLOR = QColor(COLOR_DANGER)
     UNDATED_MENU_LIMIT = 30
-    PAID_ROW_COLOR = QColor("#5f6368")
+    PAID_ROW_COLOR = QColor(COLOR_MUTED)
 
     eventSelected = Signal(int)
     eventActivated = Signal()
@@ -296,13 +298,21 @@ class CalendarWidget(QWidget):
         events.setWordWrap(False)
         self.empty_label = QLabel("В этот день платежей нет", events.viewport())
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.empty_label.setStyleSheet("color: #5f6368;")
+        self.empty_label.setStyleSheet(f"color: {COLOR_MUTED};")
         self.empty_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         events.viewport().installEventFilter(self)
         events_header = events.horizontalHeader()
         events_header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         events_header.setSectionResizeMode(self.REMAIN_COLUMN, QHeaderView.ResizeMode.ResizeToContents)
         events_header.setHighlightSections(False)
+
+        self.ui.pb_month.setStyleSheet(f"QPushButton {{ font-size: 12pt; font-weight: bold; }} "
+                                       f"QPushButton:hover {{ background: {COLOR_HEADER_BG}; }}")
+        self.ui.pb_overdue.setStyleSheet(f"QPushButton {{ color: {COLOR_DANGER}; font-weight: bold; background: {COLOR_DANGER_BG}; "
+                                         f"border: 1px solid {COLOR_DANGER}; border-radius: 3px; padding: 3px 10px; }} "
+                                         f"QPushButton:hover {{ background: {COLOR_DANGER_BG_HOVER}; }}")
+        self.ui.pb_undated.setStyleSheet(f"QPushButton {{ color: {COLOR_WARNING}; font-weight: bold; }} "
+                                         "QPushButton:hover { text-decoration: underline; }")
 
         self.ui.spl_calendar.setStretchFactor(0, 3)
         self.ui.spl_calendar.setStretchFactor(1, 2)

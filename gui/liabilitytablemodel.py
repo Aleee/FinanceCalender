@@ -5,6 +5,9 @@ from typing import Any, Callable
 from PySide6.QtCore import QAbstractTableModel, QDate, QModelIndex, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QIcon, QPixmap
 
+from base.colors import (COLOR_TABLE_DUE_TEXT, COLOR_TABLE_FINAL_FOOTER_BG, COLOR_TABLE_GRID, COLOR_TABLE_SECTION_FOOTER_BG,
+                         COLOR_TABLE_SECTION_HEADER_BG, COLOR_TABLE_SELECTION, COLOR_TABLE_SUBSECTION_FOOTER_BG,
+                         COLOR_TABLE_SUBSECTION_HEADER_BG)
 from base.contract import DocumentTitle
 from base.date import date_displstr, str_date
 from base.formatting import dec_strcommaspace
@@ -18,22 +21,22 @@ from gui.commonwidgets.common import RowStyle
 class RowFormatting:
     due_textbold: bool = False
     today_textbold: bool = True
-    due_forecolor: str = "#aa0000"
+    due_forecolor: str = COLOR_TABLE_DUE_TEXT
     today_forecolor: str = "black"
     due_backcolor: str = "white"
     today_backcolor: str = "white"
 
     header_textbold: bool = False
     header_section_forecolor: str = "black"
-    header_section_backcolor: str = "#ccdce3"
+    header_section_backcolor: str = COLOR_TABLE_SECTION_HEADER_BG
     header_subsection_forecolor: str = "black"
-    header_subsection_backcolor: str = "#e4e0d9"
+    header_subsection_backcolor: str = COLOR_TABLE_SUBSECTION_HEADER_BG
 
     footer_textbold: bool = False
     footer_section_forecolor: str = "black"
-    footer_section_backcolor: str = "#decbc9"
+    footer_section_backcolor: str = COLOR_TABLE_SECTION_FOOTER_BG
     footer_subsection_forecolor: str = "black"
-    footer_subsection_backcolor: str = "#e9dcdb"
+    footer_subsection_backcolor: str = COLOR_TABLE_SUBSECTION_FOOTER_BG
 
     vertical_grid: bool = True
 
@@ -86,8 +89,8 @@ class LiabilityTableModel(QAbstractTableModel):
     decimalValueRole = Qt.ItemDataRole.UserRole + 4
     styleRole = Qt.ItemDataRole.UserRole + 20
 
-    VERTICAL_GRID_COLOR: QColor = QColor("#EEEEEE")
-    FINALFOOTER_BACK_COLOR: QColor = QColor("#D2DABE")
+    VERTICAL_GRID_COLOR: QColor = QColor(COLOR_TABLE_GRID)
+    FINALFOOTER_BACK_COLOR: QColor = QColor(COLOR_TABLE_FINAL_FOOTER_BG)
     DARKER_RATIO: int = 110
 
     def __init__(self, store: LiabilityStore, paid_load_months: int | None = None, parent=None):
@@ -440,7 +443,7 @@ class LiabilityTableModel(QAbstractTableModel):
         style = RowStyle(vertical_grid_color=self.VERTICAL_GRID_COLOR)
 
         if row.row_type == RowType.LIABILITY:
-            style.highlight_color = QColor("#CDE8FF")
+            style.highlight_color = QColor(COLOR_TABLE_SELECTION)
             filter_flags: FilterFlags = self.store.row_by_id(row.event_id).filter_flags
             due_fore = QColor(row_formatting.due_forecolor)
             today_fore = QColor(row_formatting.today_forecolor)

@@ -17,8 +17,8 @@ from base.feeparser import (CODE_COLUMNINDEX, DATE_COLUMNINDEX, DESCR_COLUMNINDE
                             RECEIVER_COLUMNINDEX, UNP_COLUMNINDEX, FEE_IN_TEXT_PATTERN, CSVParseError,
                             FeeKind, classify_fee, ensure_no_operations_left, open_statement, read_bank_unp,
                             read_columns_to_parse, parse_date, parse_period)
-from base.formatting import (str_decimal, dec_html, dec_strcommaspace, COLOR_STATEMENT, COLOR_CALENDAR, COLOR_OK,
-                             COLOR_WARNING)
+from base.colors import COLOR_CALENDAR, COLOR_OK, COLOR_STATEMENT, COLOR_WARNING
+from base.formatting import str_decimal, dec_html, dec_strcommaspace
 from base.liability import LiabilityCategory
 from base.payment import PaymentEntry
 

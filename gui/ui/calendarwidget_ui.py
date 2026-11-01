@@ -49,7 +49,6 @@ class Ui_CalendarWidget(object):
         self.pb_month = QPushButton(self.wdg_nav)
         self.pb_month.setObjectName(u"pb_month")
         self.pb_month.setMinimumSize(QSize(170, 28))
-        self.pb_month.setStyleSheet(u"QPushButton { font-size: 12pt; font-weight: bold; } QPushButton:hover { background: #e9ecef; }")
         self.pb_month.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.pb_month.setFlat(True)
 
@@ -74,7 +73,6 @@ class Ui_CalendarWidget(object):
 
         self.pb_overdue = QPushButton(self.wdg_nav)
         self.pb_overdue.setObjectName(u"pb_overdue")
-        self.pb_overdue.setStyleSheet(u"QPushButton { color: #d00000; font-weight: bold; background: #fbeeec; border: 1px solid #d00000; border-radius: 3px; padding: 3px 10px; } QPushButton:hover { background: #f6d9d6; }")
         self.pb_overdue.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         self.horizontalLayout.addWidget(self.pb_overdue)
@@ -85,7 +83,6 @@ class Ui_CalendarWidget(object):
 
         self.pb_undated = QPushButton(self.wdg_nav)
         self.pb_undated.setObjectName(u"pb_undated")
-        self.pb_undated.setStyleSheet(u"QPushButton { color: #855a00; font-weight: bold; } QPushButton:hover { text-decoration: underline; }")
         self.pb_undated.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.pb_undated.setFlat(True)
 

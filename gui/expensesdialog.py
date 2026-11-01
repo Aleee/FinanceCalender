@@ -6,6 +6,7 @@ from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import (QDateEdit, QDialog, QHeaderView, QListWidgetItem, QSizePolicy, QTableWidget,
                                QTableWidgetItem, QVBoxLayout, QWidget)
 
+from base.colors import COLOR_BORDER, COLOR_MUTED
 from base.date import MONTHS_RU
 from base.expenses import (ExpensePayment, ExpenseRepository, ExpenseStats, StructureRow, build_structure, change_share,
                            collect_stats, filter_payments, in_period, month_index, month_range, monthly_average,
@@ -58,7 +59,7 @@ class ExpensesDialog(QDialog):
     TOP_COLORS = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#4a3aa7")
     TOTAL_COLOR = "#4f6d8f"
     STACK_LIMIT = 4
-    MUTED_STYLE = "color: #555555;"
+    MUTED_STYLE = f"color: {COLOR_MUTED};"
     SECTION_HEADERS = {LiabilityCategory.TOP_CURRENT: "Текущая деятельность", LiabilityCategory.TOP_FINANCES: "Финансы и инвестиции"}
     SCREEN_MARGIN = 40
     CHART_SIZES = [420, 300]
@@ -184,7 +185,7 @@ class ExpensesDialog(QDialog):
     def setup_kpi_tiles(self) -> None:
         for number in range(1, 5):
             frame = getattr(self.ui, f"fr_kpi{number}")
-            frame.setStyleSheet(f"QFrame#{frame.objectName()} {{background: palette(base); border: 1px solid #c8c8c8; "
+            frame.setStyleSheet(f"QFrame#{frame.objectName()} {{background: palette(base); border: 1px solid {COLOR_BORDER}; "
                                 f"border-radius: 4px;}}")
             value_label = getattr(self.ui, f"lb_kpi{number}_value")
             value_label.setWordWrap(False)

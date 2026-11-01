@@ -212,9 +212,6 @@ class Ui_MainWindow(object):
         self.gridLayout_2.setContentsMargins(0, 0, 0, 0)
         self.pb_resetfilters = QPushButton(self.wdg_eventfilter)
         self.pb_resetfilters.setObjectName(u"pb_resetfilters")
-        self.pb_resetfilters.setStyleSheet(u"QPushButton {border: 1px solid #cbcbcb; padding: 3px; background-color: #f4f4f4; margin: 9px 9px 0px 9px;}\n"
-"QPushButton:hover {background-color: #e8eef4;}\n"
-"QPushButton:disabled {color: #6e6e6e;}")
 
         self.gridLayout_2.addWidget(self.pb_resetfilters, 0, 0, 1, 1)
 
@@ -225,7 +222,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_search.setContentsMargins(9, 3, 9, 3)
         self.le_search = QLineEdit(self.wdg_search)
         self.le_search.setObjectName(u"le_search")
-        self.le_search.setStyleSheet(u"border: 1px solid #cbcbcb;")
         self.le_search.setClearButtonEnabled(True)
 
         self.horizontalLayout_search.addWidget(self.le_search)
@@ -644,7 +640,6 @@ class Ui_MainWindow(object):
         self.gridLayout_9.setObjectName(u"gridLayout_9")
         self.la_emptyinfo = QLabel(self.empty)
         self.la_emptyinfo.setObjectName(u"la_emptyinfo")
-        self.la_emptyinfo.setStyleSheet(u"color: #666666;")
         self.la_emptyinfo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.gridLayout_9.addWidget(self.la_emptyinfo, 0, 0, 1, 1)

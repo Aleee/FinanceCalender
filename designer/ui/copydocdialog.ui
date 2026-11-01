@@ -78,9 +78,6 @@
        </item>
        <item>
         <widget class="QLabel" name="la_amounthint">
-         <property name="styleSheet">
-          <string notr="true">QLabel { color: gray; }</string>
-         </property>
         </widget>
        </item>
        <item>
@@ -235,9 +232,6 @@
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">QLabel { color: gray; }</string>
          </property>
          <property name="textFormat">
           <enum>Qt::TextFormat::RichText</enum>

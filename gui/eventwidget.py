@@ -5,6 +5,7 @@ from PySide6.QtGui import QPainter, QColor, QShortcut, QKeySequence
 from gui.commonwidgets.eventfilter import TooltipFilter
 from gui.commonwidgets.itemdelegate import EventItemDelegate
 from gui.liabilitytablemodel import LiabilityTableModel
+from base.colors import COLOR_BORDER, COLOR_FEATURED, COLOR_FEATURED_OFF, COLOR_MUTED
 from base.edition import is_viewer
 from base.liability import Col
 from gui.booldelegate import BoolDelegate
@@ -15,7 +16,7 @@ class EventWidget(QTreeView):
     filter_conditions_changed = Signal()
 
     EMPTY_TABLE_TEXT = "Нет платежей, подходящих под условия фильтрации и поиска"
-    EMPTY_TABLE_COLOR = "#666666"
+    EMPTY_TABLE_COLOR = COLOR_MUTED
 
     DEFAULT_COLUMN_WIDTH = {
         Col.RECEIVER: 140,
@@ -75,11 +76,11 @@ class EventWidget(QTreeView):
 
         self.setItemDelegate(EventItemDelegate())
 
-        star_delegate = BoolDelegate("★", "☆", "#b07d00", "#6f6a55")
+        star_delegate = BoolDelegate("★", "☆", COLOR_FEATURED, COLOR_FEATURED_OFF)
         self.setItemDelegateForColumn(Col.FEATURED, star_delegate)
         star_delegate.state_changed.connect(lambda: self.filter_conditions_changed.emit())
 
-        hidden_delegate = BoolDelegate("🔒", "·", "", "#c8c8c8")
+        hidden_delegate = BoolDelegate("🔒", "·", "", COLOR_BORDER)
         self.setItemDelegateForColumn(Col.HIDDEN, hidden_delegate)
         hidden_delegate.state_changed.connect(lambda: self.filter_conditions_changed.emit())
 

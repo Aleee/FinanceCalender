@@ -153,9 +153,6 @@
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
         <widget class="QLabel" name="la_empty">
-         <property name="styleSheet">
-          <string notr="true">color: gray;</string>
-         </property>
          <property name="text">
           <string>Пусто</string>
          </property>

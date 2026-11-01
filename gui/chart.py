@@ -8,6 +8,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from html import escape
 
+from base.colors import COLOR_BORDER, COLOR_CHART_BLUE, COLOR_CHART_PURPLE, COLOR_CHART_RED, COLOR_DANGER, COLOR_OK, COLOR_TEXT
 from base.discipline import BUCKET_NAMES, DelayBucket, DisciplineStats
 from base.expenses import StructureRow, change_share
 from base.formatting import dec_strcommaspace, float_strpercentage, float_strsignedpercentage, int_strspace
@@ -58,7 +59,7 @@ class DebtChartWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         pg.setConfigOptions(
             background=bg_color,
-            foreground='#2b2b2b'
+            foreground=COLOR_TEXT
         )
 
         self.right_axis = pg.AxisItem("right")
@@ -125,26 +126,30 @@ class DebtChartWidget(QWidget):
         self.plot.scene().installEventFilter(self)
 
         self.totalCurve = pg.PlotCurveItem(
-            pen=pg.mkPen("#2979FF", width=3)
+            pen=pg.mkPen(COLOR_CHART_BLUE, width=3)
         )
         self.totalCurve.setFillLevel(0)
-        self.totalCurve.setBrush(pg.mkBrush(41, 121, 255, 70))
+        total_fill = QColor(COLOR_CHART_BLUE)
+        total_fill.setAlpha(70)
+        self.totalCurve.setBrush(pg.mkBrush(total_fill))
 
         self.overdueCurve = pg.PlotCurveItem(
-            pen=pg.mkPen("#E53935", width=3)
+            pen=pg.mkPen(COLOR_CHART_RED, width=3)
         )
         self.overdueCurve.setFillLevel(0)
-        self.overdueCurve.setBrush(pg.mkBrush(229, 57, 53, 90))
+        overdue_fill = QColor(COLOR_CHART_RED)
+        overdue_fill.setAlpha(90)
+        self.overdueCurve.setBrush(pg.mkBrush(overdue_fill))
 
         self.totalSmoothCurve = pg.PlotCurveItem(
-            pen=pg.mkPen('#1f77b4', width=2, style=QtCore.Qt.DashLine)
+            pen=pg.mkPen(COLOR_CHART_BLUE, width=2, style=QtCore.Qt.DashLine)
         )
         self.overdueSmoothCurve = pg.PlotCurveItem(
-            pen=pg.mkPen('#d62728', width=2, style=QtCore.Qt.DashLine)
+            pen=pg.mkPen(COLOR_CHART_RED, width=2, style=QtCore.Qt.DashLine)
         )
 
         self.shareCurve = pg.PlotCurveItem(
-            pen=pg.mkPen('#800080', width=2)
+            pen=pg.mkPen(COLOR_CHART_PURPLE, width=2)
         )
 
         self.plot.addItem(self.totalCurve)
@@ -251,11 +256,11 @@ class DebtChartWidget(QWidget):
         self.tooltip.setHtml(f"""
         <div style="
             background: #ffffff;
-            border: 1px solid #d0d0d0;
+            border: 1px solid {COLOR_BORDER};
             padding: 8px 10px;
             border-radius: 6px;
 
-            color: #1a1a1a;
+            color: {COLOR_TEXT};
             font-size: 10pt;
 
             /* читаемость */
@@ -265,8 +270,8 @@ class DebtChartWidget(QWidget):
             <div style="font-weight: 700; font-size: 11pt; margin-bottom: 3px;">
                 {item.day:%d.%m.%Y}</div>
             <div>Общая: <b>{total}</b></div>
-            <div style="color:#b00020;">Просрочка: <b>{overdue}</b></div>
-            <div style="color:#800080;">Доля: <b>{(item.overdue / item.total) if item.total else 0:.1%}</b></div>
+            <div style="color:{COLOR_CHART_RED};">Просрочка: <b>{overdue}</b></div>
+            <div style="color:{COLOR_CHART_PURPLE};">Доля: <b>{(item.overdue / item.total) if item.total else 0:.1%}</b></div>
         </div>
         """)
 
@@ -364,7 +369,7 @@ class DelayChartWidget(QWidget):
     COLORS = ("#66BB6A", "#FDD835", "#F57C00", "#B71C1C", "#757575")
     OVERDUE_INDEX = len(DelayBucket)
     COLUMN_NAMES = (*BUCKET_NAMES.values(), "Не оплачено (просрочено)")
-    TEXT_COLOR = "#2b2b2b"
+    TEXT_COLOR = COLOR_TEXT
     DIMMED_ALPHA = 90
     TINT_ALPHA = 70
 
@@ -477,8 +482,8 @@ class DelayChartWidget(QWidget):
 
 class MonthTrendWidget(QWidget):
 
-    LINE_COLOR = "#1E88E5"
-    TEXT_COLOR = "#2b2b2b"
+    LINE_COLOR = COLOR_CHART_BLUE
+    TEXT_COLOR = COLOR_TEXT
     MAX_TICKS = 18
 
     def __init__(self, bg_color, parent: QWidget | None = None):
@@ -544,12 +549,12 @@ class ExpenseBarWidget(QWidget):
     rowClicked = Signal(int)
     rowRevealed = Signal(int)
 
-    CURRENT_COLOR = "#2a78d6"
+    CURRENT_COLOR = COLOR_CHART_BLUE
     PREVIOUS_COLOR = "#a2a199"
     OTHER_COLOR = "#7f7f7a"
-    TEXT_COLOR = "#2b2b2b"
-    GROWTH_COLOR = "#c0392b"
-    DROP_COLOR = "#1e8a4c"
+    TEXT_COLOR = COLOR_TEXT
+    GROWTH_COLOR = COLOR_DANGER
+    DROP_COLOR = COLOR_OK
     DIMMED_ALPHA = 90
     ROW_PIXELS = 26
     COMPARE_ROW_PIXELS = 46
@@ -742,7 +747,7 @@ class ExpenseBarWidget(QWidget):
 class ExpenseMonthsWidget(QWidget):
 
     OTHER_COLOR = ExpenseBarWidget.OTHER_COLOR
-    TEXT_COLOR = "#2b2b2b"
+    TEXT_COLOR = COLOR_TEXT
     MUTED_COLOR = "#9a9a94"
     MAX_TICKS = 18
     BAR_WIDTH = 0.7

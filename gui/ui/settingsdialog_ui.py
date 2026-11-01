@@ -974,27 +974,23 @@ class Ui_settingsdialog(object):
         self.gridLayout_10.setVerticalSpacing(0)
         self.la_appdescr = QLabel(self.grp_about)
         self.la_appdescr.setObjectName(u"la_appdescr")
-        self.la_appdescr.setStyleSheet(u"color: #666666;")
 
         self.gridLayout_10.addWidget(self.la_appdescr, 1, 0, 1, 2)
 
         self.la_buildnumber = QLabel(self.grp_about)
         self.la_buildnumber.setObjectName(u"la_buildnumber")
-        self.la_buildnumber.setStyleSheet(u"background-color: #e8f0f8; color: #2c5c8a; border: 1px solid #c5d6e8; border-radius: 10px; padding: 2px 10px; font-weight: 600;")
         self.la_buildnumber.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
         self.gridLayout_10.addWidget(self.la_buildnumber, 3, 0, 1, 1)
 
         self.la_dbnumber = QLabel(self.grp_about)
         self.la_dbnumber.setObjectName(u"la_dbnumber")
-        self.la_dbnumber.setStyleSheet(u"background-color: #e8f0f8; color: #2c5c8a; border: 1px solid #c5d6e8; border-radius: 10px; padding: 2px 10px; font-weight: 600;")
         self.la_dbnumber.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse|Qt.TextInteractionFlag.TextSelectableByMouse)
 
         self.gridLayout_10.addWidget(self.la_dbnumber, 3, 1, 1, 1)
 
         self.la_appname = QLabel(self.grp_about)
         self.la_appname.setObjectName(u"la_appname")
-        self.la_appname.setStyleSheet(u"font-size: 14pt; font-weight: 700; color: #2c5c8a;")
         self.la_appname.setAlignment(Qt.AlignmentFlag.AlignBottom|Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft)
 
         self.gridLayout_10.addWidget(self.la_appname, 0, 0, 1, 2)
