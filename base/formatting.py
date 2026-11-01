@@ -6,7 +6,7 @@ NBSP: str = "\u00a0"
 
 
 def dec_strcommaspace(dec: Decimal, add_rub: bool = False, separator: str = NBSP) -> str:
-    return f"{dec:,.2f}".replace(",", separator).replace(".", ",") + (" руб." if add_rub else "")
+    return f"{dec:,.2f}".replace(",", separator).replace(".", ",") + (f"{separator}руб." if add_rub else "")
 
 
 def records_word(count: int) -> str:
@@ -18,7 +18,7 @@ def records_word(count: int) -> str:
 
 
 def dec_html(dec: Decimal) -> str:
-    return dec_strcommaspace(dec, add_rub=True).replace(" ", "&nbsp;").replace("&nbsp;руб.", " руб.")
+    return dec_strcommaspace(dec, add_rub=True)
 
 
 def int_strspace(integer: int) -> str:

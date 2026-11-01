@@ -1,21 +1,48 @@
 from PySide6 import QtCore
 from PySide6.QtCore import QPoint, QPointF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QKeyEvent
-from PySide6.QtWidgets import QLabel, QToolTip, QWidget, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QLabel, QToolTip, QWidget, QVBoxLayout
 import pyqtgraph as pg
 
 from datetime import date, timedelta
 from decimal import Decimal
 from html import escape
 
-from base.colors import COLOR_BORDER, COLOR_CHART_BLUE, COLOR_CHART_PURPLE, COLOR_CHART_RED, COLOR_DANGER, COLOR_OK, COLOR_TEXT
+from base.colors import COLOR_BORDER, COLOR_CHART_BLUE, COLOR_CHART_PURPLE, COLOR_CHART_RED, COLOR_DANGER, COLOR_MUTED, COLOR_OK, COLOR_TEXT
 from base.discipline import BUCKET_NAMES, DelayBucket, DisciplineStats
 from base.expenses import StructureRow, change_share
-from base.formatting import dec_strcommaspace, float_strpercentage, float_strsignedpercentage, int_strspace
+from base.formatting import NBSP, dec_strcommaspace, float_strpercentage, float_strsignedpercentage, int_strspace
+
+AXIS_LABEL_STYLE = {"font-size": "10pt"}
+
+
+def chart_font(size: int) -> QFont:
+    font = QFont(QApplication.font())
+    font.setPointSize(size)
+    return font
+
 
 class MoneyAxis(pg.AxisItem):
 
+    MILLION = 1_000_000
+    LABEL_GAP = 8
+
+    def _updateWidth(self) -> None:
+        super()._updateWidth()
+        if self.isVisible() and self.fixedWidth is None and self.label.isVisible():
+            width = self.maximumWidth() + self.LABEL_GAP
+            self.setMaximumWidth(width)
+            self.setMinimumWidth(width)
+
+    @classmethod
+    def million_text(cls, value: float) -> str:
+        if not value:
+            return "0"
+        return f"{value / cls.MILLION:.2f}".rstrip("0").rstrip(".").replace(".", ",") + f"{NBSP}млн"
+
     def tickStrings(self, values: list[float], scale: float, spacing: float) -> list[str]:
+        if values and max(abs(v) for v in values) >= self.MILLION:
+            return [self.million_text(v) for v in values]
         result = []
 
         for v in values:
@@ -46,6 +73,16 @@ class DateAxis(pg.AxisItem):
 
 class DebtChartWidget(QWidget):
 
+    LEGEND_ITEMS = ((COLOR_CHART_BLUE, "■", "Общая задолженность"),
+                    (COLOR_CHART_RED, "■", "Просрочка"),
+                    (COLOR_CHART_PURPLE, "■", "Доля просрочки, % (правая ось)"),
+                    (COLOR_MUTED, "┄", "пунктиром показаны сглаженные значения"))
+
+    @classmethod
+    def legend_html(cls) -> str:
+        return " &nbsp; ".join(f"<span style='color:{color}'>{mark}</span>{NBSP}{text.replace(' ', NBSP)}"
+                               for color, mark, text in cls.LEGEND_ITEMS)
+
     def __init__(self, bg_color, parent: QWidget | None = None):
         super().__init__(parent)
 
@@ -63,7 +100,7 @@ class DebtChartWidget(QWidget):
         )
 
         self.right_axis = pg.AxisItem("right")
-        self.right_axis.setLabel("% просрочки")
+        self.right_axis.setLabel("% просрочки", **AXIS_LABEL_STYLE)
 
         self.plot = pg.PlotWidget(
             axisItems={
@@ -78,7 +115,12 @@ class DebtChartWidget(QWidget):
         vb = self.plot.getViewBox()
         vb.setLimits(yMin=0)
 
+        self.plot.setLabel("left", "Задолженность, руб.", **AXIS_LABEL_STYLE)
         layout.addWidget(self.plot)
+        legend = QLabel(self.legend_html())
+        legend.setWordWrap(True)
+        legend.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(legend)
 
         self.right_vb = pg.ViewBox()
         self.right_axis.linkToView(self.right_vb)
@@ -118,8 +160,8 @@ class DebtChartWidget(QWidget):
 
         self.plot.showGrid(x=True, y=True, alpha=0.2)
 
-        self.plot.getAxis("left").setStyle(tickFont=pg.QtGui.QFont("Arial", 11))
-        self.plot.getAxis("bottom").setStyle(tickFont=pg.QtGui.QFont("Arial", 10))
+        self.plot.getAxis("left").setStyle(tickFont=chart_font(11))
+        self.plot.getAxis("bottom").setStyle(tickFont=chart_font(10))
 
 
         self.plot.scene().sigMouseMoved.connect(self.onMouseMoved)
@@ -347,15 +389,6 @@ class DebtChartWidget(QWidget):
 
 class WholeNumberAxis(MoneyAxis):
 
-    LABEL_GAP = 8
-
-    def _updateWidth(self) -> None:
-        super()._updateWidth()
-        if self.isVisible() and self.fixedWidth is None and self.label.isVisible():
-            width = self.maximumWidth() + self.LABEL_GAP
-            self.setMaximumWidth(width)
-            self.setMinimumWidth(width)
-
     def tickValues(self, minVal: float, maxVal: float, size: float) -> list:
         levels = super().tickValues(minVal, maxVal, size)
         return [(spacing, [value for value in values if float(value).is_integer()])
@@ -391,9 +424,9 @@ class DelayChartWidget(QWidget):
         self.plot.setMouseEnabled(x=False, y=False)
         self.plot.setMenuEnabled(False)
         self.plot.showGrid(y=True, alpha=0.2)
-        self.plot.getAxis("left").setStyle(tickFont=QFont("Arial", 10))
-        self.plot.getAxis("bottom").setStyle(tickFont=QFont("Arial", 10))
-        self.plot.setTitle("Платежи по задержке оплаты", size="10pt")
+        self.plot.getAxis("left").setStyle(tickFont=chart_font(10))
+        self.plot.getAxis("bottom").setStyle(tickFont=chart_font(10))
+        self.plot.setTitle("Платежи по задержке оплаты", color=self.TEXT_COLOR, size="11pt", bold=True)
         layout.addWidget(self.plot)
 
         self.plot.scene().sigMouseClicked.connect(self.onMouseClicked)
@@ -416,14 +449,14 @@ class DelayChartWidget(QWidget):
         self.plot.clear()
         self.heights = []
         self.hints = []
-        self.plot.setLabel("left", "Сумма, руб." if by_amount else "Кол-во платежей")
+        self.plot.setLabel("left", "Сумма, руб." if by_amount else "Кол-во платежей", **AXIS_LABEL_STYLE)
 
         if not stats.count and not overdue_count:
             self.plot.getAxis("bottom").setTicks([[]])
             self.plot.setXRange(-0.6, self.OVERDUE_INDEX + 0.6, padding=0)
             self.plot.setYRange(0, 1, padding=0)
             empty_label = pg.TextItem("Нет данных по выбранным условиям", color=self.TEXT_COLOR, anchor=(0.5, 0.5))
-            empty_label.setFont(QFont("Arial", 11))
+            empty_label.setFont(chart_font(11))
             empty_label.setPos(self.OVERDUE_INDEX / 2, 0.5)
             self.plot.addItem(empty_label)
             return
@@ -452,7 +485,7 @@ class DelayChartWidget(QWidget):
             if index != self.OVERDUE_INDEX and total:
                 text += f" ({value / total:.0%})"
             label = pg.TextItem(text, color=self.TEXT_COLOR, anchor=(0.5, 1))
-            label.setFont(QFont("Arial", 10))
+            label.setFont(chart_font(10))
             label.setPos(index, value)
             self.plot.addItem(label)
 
@@ -501,9 +534,9 @@ class MonthTrendWidget(QWidget):
         self.plot.setMouseEnabled(x=False, y=False)
         self.plot.setMenuEnabled(False)
         self.plot.showGrid(y=True, alpha=0.2)
-        self.plot.getAxis("left").setStyle(tickFont=QFont("Arial", 9))
-        self.plot.getAxis("bottom").setStyle(tickFont=QFont("Arial", 9))
-        self.plot.setLabel("left", "В срок, %")
+        self.plot.getAxis("left").setStyle(tickFont=chart_font(9))
+        self.plot.getAxis("bottom").setStyle(tickFont=chart_font(9))
+        self.plot.setLabel("left", "В срок, %", **AXIS_LABEL_STYLE)
         layout.addWidget(self.plot)
 
     def setMonths(self, months: list[tuple[int, str, float]]) -> None:
@@ -521,7 +554,7 @@ class MonthTrendWidget(QWidget):
                                           symbolBrush=self.LINE_COLOR, symbolPen=pg.mkPen("w")))
         for position, _, share in months:
             label = pg.TextItem(f"{share:.0%}", color=self.TEXT_COLOR, anchor=(0.5, 1.4))
-            label.setFont(QFont("Arial", 9))
+            label.setFont(chart_font(9))
             label.setPos(position, share * 100)
             self.plot.addItem(label)
 
@@ -585,8 +618,8 @@ class ExpenseBarWidget(QWidget):
         self.plot.hideAxis("bottom")
         self.plot.showAxis("top")
         self.plot.showGrid(x=True, alpha=0.2)
-        self.plot.getAxis("left").setStyle(tickFont=QFont("Arial", 10))
-        self.plot.getAxis("top").setStyle(tickFont=QFont("Arial", 10))
+        self.plot.getAxis("left").setStyle(tickFont=chart_font(10))
+        self.plot.getAxis("top").setStyle(tickFont=chart_font(10))
         layout.addWidget(self.plot)
 
         self.cursor_item = pg.BarGraphItem(x0=[], x1=[], y=[], height=1.0, brush=QColor(0, 0, 0, 0),
@@ -622,7 +655,7 @@ class ExpenseBarWidget(QWidget):
             self.plot.setXRange(0, 1, padding=0)
             self.plot.setYRange(-0.6, 0.6, padding=0)
             empty_label = pg.TextItem("Нет данных по выбранным условиям", color=self.TEXT_COLOR, anchor=(0.5, 0.5))
-            empty_label.setFont(QFont("Arial", 11))
+            empty_label.setFont(chart_font(11))
             empty_label.setPos(0.5, 0)
             self.plot.addItem(empty_label)
             return
@@ -664,7 +697,7 @@ class ExpenseBarWidget(QWidget):
             label = pg.TextItem(html=f"<span style='color:{self.TEXT_COLOR}'>{text}</span> "
                                      f"<span style='color:{color}'>{arrow} {float_strsignedpercentage(float(change))}</span>",
                                 anchor=(0, 0.5))
-        label.setFont(QFont("Arial", 9 if dimmed else 10))
+        label.setFont(chart_font(9 if dimmed else 10))
         label.setPos(x, y)
         self.plot.addItem(label)
 
@@ -776,8 +809,8 @@ class ExpenseMonthsWidget(QWidget):
         self.plot.setMouseEnabled(x=False, y=False)
         self.plot.setMenuEnabled(False)
         self.plot.showGrid(y=True, alpha=0.2)
-        self.plot.getAxis("left").setStyle(tickFont=QFont("Arial", 9))
-        self.plot.getAxis("bottom").setStyle(tickFont=QFont("Arial", 9))
+        self.plot.getAxis("left").setStyle(tickFont=chart_font(9))
+        self.plot.getAxis("bottom").setStyle(tickFont=chart_font(9))
         layout.addWidget(self.plot)
 
         self.highlight = pg.BarGraphItem(x=[], y0=[], y1=[], width=self.BAR_WIDTH, brush=QColor(0, 0, 0, 0),
@@ -850,7 +883,7 @@ class ExpenseMonthsWidget(QWidget):
             for index in range(count):
                 if positive[index] or negative[index]:
                     label = pg.TextItem(int_strspace(round(self.nets[index])), color=self.TEXT_COLOR, anchor=(0.5, 1))
-                    label.setFont(QFont("Arial", 9))
+                    label.setFont(chart_font(9))
                     label.setPos(index, positive[index])
                     self.plot.addItem(label)
         self.plot.addItem(self.highlight)
