@@ -72,9 +72,6 @@ class PaymentHistoryTableModel(QSqlTableModel):
         self.setFilter(f"eventid = {self.current_event_id}")
         self.select()
 
-    def reset_filter(self):
-        self.setFilter("")
-
     def append_row(self, data: list) -> bool:
         if len(data) != len(PaymentCol) - 1:
             log.e("Набор передаваемых в append_row данных должен охватывать все атрибуты класса-хранителя за исключением id")

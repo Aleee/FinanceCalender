@@ -638,10 +638,6 @@ class ReconciliationResult:
         return sum(2 * len(d.probable_pairs) + sum(len(g.statement) + len(g.calendar) for g in d.groups)
                    for d in self.discrepancies)
 
-    @property
-    def has_discrepancies(self) -> bool:
-        return bool(self.discrepancies)
-
     def format_summary(self) -> str:
         statement_hidden = sum(1 for e in self.hidden_entries if e.from_statement)
         difference = self.only_in_statement_sum - self.only_in_calendar_sum

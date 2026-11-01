@@ -1031,9 +1031,6 @@ class MainWindow(QMainWindow):
         ErrorInfoMessageBox("Не удалось сохранить изменения (подробности см. в логе)", parent=self).exec()
         return False
 
-    def set_data_to_current_event(self, column: Col, value: Any) -> bool:
-        return self.set_data_to_event(self.get_current_event_index(), column, value)
-
     def check_event_selection_visibility(self) -> None:
         filtered_out = not bool(self.ui.trw_event.currentIndex().isValid())
         self.actions_on_selection_visibility_changed(filtered_out)

@@ -43,10 +43,6 @@ def float_strcomma(value: float | Decimal, digits: int = 1) -> str:
     return f"{value:.{digits}f}".replace(".", ",")
 
 
-def str_rubstr(string: str) -> str:
-    return string + " руб."
-
-
 def str_decimal(raw: str) -> Optional[Decimal]:
     try:
         value = Decimal(raw.replace(" ", "").replace("\u00a0", "").replace("\u202f", "").replace(",", "."))

@@ -71,9 +71,6 @@ class ContractSelector(QObject):
 
         self.reload()
 
-    def selected_document_id(self) -> int | None:
-        return self.doc_id
-
     def reload(self, include_contractor_id: int | None = None):
         cmb = self.cmb_contractor
         cmb.blockSignals(True)
