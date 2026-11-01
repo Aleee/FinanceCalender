@@ -1,4 +1,6 @@
+import filecmp
 import os
+import re
 import shutil
 import time
 from pathlib import Path
@@ -16,6 +18,7 @@ if TYPE_CHECKING:
     from gui.settings import SettingsHandler
 
 BACKUP_FILE_PREFIXES = ("backup_",)
+BACKUP_NAME_RE = re.compile(r"backup_\d{8}-\d{6}\.db")
 SERVICE_COPY_PREFIXES = ("conflict_", "discarded_", "db_corrupt_", "before_sync_", "before_restore_")
 SERVICE_COPY_KEEP_DAYS = 90
 RENAME_ATTEMPTS = 5
@@ -35,7 +38,19 @@ def save_backup(sh: "SettingsHandler", dbh: DBHandler) -> QDateTime:
         return QDateTime()
     if not dbh.copy_db_file(str(backup_filepath)):
         return QDateTime()
+    remove_if_same_as_previous(backup_filepath)
     return QDateTime.currentDateTime()
+
+
+def remove_if_same_as_previous(backup_filepath: Path) -> None:
+    previous: list[Path] = sorted(path for path in backup_filepath.parent.iterdir()
+                                  if BACKUP_NAME_RE.fullmatch(path.name) and path != backup_filepath)
+    if not previous or not filecmp.cmp(previous[-1], backup_filepath, shallow=False):
+        return
+    try:
+        backup_filepath.unlink()
+    except OSError as e:
+        log.w(f"Не удалось удалить копию {backup_filepath.name}, совпадающую с {previous[-1].name}: {e}")
 
 
 def cleanup_period_days(sh: "SettingsHandler") -> int | None:

@@ -210,6 +210,22 @@ def test_backup_is_consistent_copy_made_by_vacuum(dbh, work_db_path, backup_fold
     assert not list(backup_folder.glob("*.db-journal"))
 
 
+def test_backup_identical_to_previous_is_not_kept(dbh, work_db_path, backup_folder):
+    create_db(work_db_path, dbh.DB_VERSION)
+    assert dbh.migrate_db()
+    dbh.open_db_connection()
+    assert save_backup(FakeSettings(backup_folder), dbh).isValid()
+    [first] = backup_folder.glob("backup_*.db")
+    first.rename(backup_folder / "backup_20000101-000000.db")
+    (backup_folder / "backup_pretrim_20000101.db").write_bytes(b"other")
+    assert save_backup(FakeSettings(backup_folder), dbh).isValid()
+    assert sorted(path.name for path in backup_folder.glob("backup_*.db")) == ["backup_20000101-000000.db",
+                                                                              "backup_pretrim_20000101.db"]
+    dbh.set_setting("marker", "changed")
+    assert save_backup(FakeSettings(backup_folder), dbh).isValid()
+    assert len(list(backup_folder.glob("backup_2*.db"))) == 2
+
+
 def test_backup_to_missing_folder_is_reported(dbh, work_db_path, backup_folder):
     create_db(work_db_path, dbh.DB_VERSION)
     dbh.open_db_connection()
