@@ -519,6 +519,12 @@ def fetch_master(dbh: "DBHandler", channel: SyncChannel) -> None:
                 Path(migrated_path).unlink(missing_ok=True)
 
 
+def ensure_local_unchanged(dbh: "DBHandler", local: LocalState) -> None:
+    current = dbh.read_file_settings(dbh.local_db_path(), ("change_counter",))
+    if current is None or current["change_counter"] != str(local.change_counter):
+        raise SyncError("Во время загрузки общей базы данные были изменены, синхронизация будет повторена")
+
+
 def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncAction, ...] = (SyncAction.PULL,),
                 master: MasterInfo | None = None, report: SyncReport | None = None) -> None:
     local = read_local_state(dbh)
@@ -543,9 +549,7 @@ def pull_master(dbh: "DBHandler", channel: SyncChannel, allowed: tuple[SyncActio
             if not is_viewer() and not dbh.copy_db_file(str(local_copy)):
                 raise SyncError("Не удалось сохранить локальную копию перед заменой")
             if not is_viewer():
-                current = dbh.read_file_settings(dbh.local_db_path(), ("change_counter",))
-                if current is None or current["change_counter"] != str(local.change_counter):
-                    raise SyncError("Во время загрузки общей базы данные были изменены, синхронизация будет повторена")
+                ensure_local_unchanged(dbh, local)
             if report is not None and action == SyncAction.PULL:
                 report.their_changes = dbh.read_db_diff(dbh.local_db_path(), str(new_file))
                 report.master_info = master
@@ -626,6 +630,7 @@ def merge_into_master(dbh: "DBHandler", channel: SyncChannel, master: MasterInfo
         changed_events = [new_row["id"] for _, new_row in my_changes.tables["event"].changed]
         changed_payments = [new_row["id"] for _, new_row in my_changes.tables["payment"].changed]
         warnings = dbh.find_merge_warnings(str(merged), added, added["event"] + changed_events, added["payment"] + changed_payments)
+        ensure_local_unchanged(dbh, local)
         save_conflict_copy(dbh)
         if not replace_db_file(dbh, str(merged)):
             raise SyncError("Не удалось заменить локальную копию объединённой базой (подробности см. в логе)")

@@ -79,7 +79,7 @@ def create_sync_params(settings_handler: SettingsHandler) -> SyncParams:
                       settings_handler.sync_backup_interval_minutes())
 
 
-def failure_status_text(error: SyncError) -> str:
+def failure_status_text(error: Exception) -> str:
     if isinstance(error, SyncCancelledError):
         return "прервана"
     if isinstance(error, NetworkError):

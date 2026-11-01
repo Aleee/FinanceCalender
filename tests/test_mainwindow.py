@@ -124,6 +124,34 @@ def test_window_in_viewer_mode_does_not_change_files(storage, make_window, tmp_p
     assert sorted(path.name for path in (tmp_path / "data" / "backup").glob("*")) == backups_before
 
 
+def test_sync_does_not_start_while_another_is_running(storage, make_window, monkeypatch, answer):
+    window = make_window()
+    monkeypatch.setattr(mainwindowmod, "synchronize", lambda *args, **kwargs: pytest.fail("вложенная синхронизация"))
+    window.settings_handler.sync_enabled = lambda: True
+    window.is_sync_running = True
+    try:
+        window.run_sync()
+        window.auto_sync()
+        window.discard_local_changes()
+        assert not window.close()
+        assert answer == []
+    finally:
+        window.is_sync_running = False
+        del window.settings_handler.sync_enabled
+
+
+def test_unexpected_error_in_sync_step_is_reported_as_failure(storage, make_window):
+    window = make_window()
+
+    def broken_step():
+        raise RuntimeError("сбой диска")
+
+    assert window._run_sync_step(SimpleNamespace(), broken_step) is None
+    assert "сбой диска" in window.sync_error
+    assert window.sync_failure_text == "ошибка"
+    assert not window.is_sync_running and window.tb_sync.isEnabled()
+
+
 def test_new_payment_is_written_and_remain_is_updated(storage, make_window):
     event_id = add_event(storage, total="1000.00")
     window = make_window()

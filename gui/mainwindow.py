@@ -655,9 +655,12 @@ class MainWindow(QMainWindow):
             self.sync_channel_settings = current_settings
         return self.sync_channel
 
+    def is_sync_busy(self) -> bool:
+        return self.is_sync_running or self.sync_progress is not None
+
     def auto_sync(self, retries_left: int = SYNC_RETRY_ATTEMPTS, is_first: bool = False, quiet: bool = True) -> None:
         if (not self.settings_handler.sync_enabled() or not self.tb_sync.isEnabled()
-                or self.sync_progress is not None or QApplication.activeModalWidget() is not None):
+                or self.is_sync_busy() or QApplication.activeModalWidget() is not None):
             return
         self.run_sync(interactive=False, pause_when_done=is_first, quiet=quiet and not is_first,
                       journal_tag=JOURNAL_START if is_first else None)
@@ -673,7 +676,7 @@ class MainWindow(QMainWindow):
 
     def run_sync(self, interactive: bool = True, pause_when_done: bool = True, quiet: bool = False,
                  journal_tag: str | None = None) -> None:
-        if not self.settings_handler.sync_enabled():
+        if not self.settings_handler.sync_enabled() or self.is_sync_busy():
             return
         self.save_note()
         channel = self.get_sync_channel()
@@ -794,6 +797,8 @@ class MainWindow(QMainWindow):
         return action
 
     def discard_local_changes(self) -> None:
+        if self.is_sync_busy():
+            return
         if YesNoMessagebox("Все ваши изменения, не отправленные в общую базу, будут отменены, а вместо них загрузится общая база.\n\n"
                            "Текущая локальная копия сохранится в папке резервных копий. Продолжить?",
                            self).exec() != YesNoMessagebox.YES_RETURN_VALUE:
@@ -874,10 +879,14 @@ class MainWindow(QMainWindow):
             self.sync_info_unreadable = False
             self.sync_master_info = channel.last_master_info()
             return action
-        except SyncError as e:
+        except Exception as e:
             self.sync_cancelled = isinstance(e, SyncCancelledError)
-            (log.i if self.sync_cancelled else log.e)(f"Синхронизация не выполнена: {e}")
-            self.sync_error = str(e)
+            if isinstance(e, SyncError):
+                (log.i if self.sync_cancelled else log.e)(f"Синхронизация не выполнена: {e}")
+                self.sync_error = str(e)
+            else:
+                log.x(f"Синхронизация не выполнена из-за непредвиденной ошибки: {e!r}")
+                self.sync_error = f"непредвиденная ошибка (подробности см. в логе): {e}"
             self.sync_network_failed = isinstance(e, NetworkError)
             self.sync_info_unreadable = isinstance(e, MasterInfoError)
             self.sync_failure_text = failure_status_text(e)
@@ -1725,6 +1734,10 @@ class MainWindow(QMainWindow):
         return True
 
     def closeEvent(self, event, /):
+        if self.is_sync_busy():
+            event.ignore()
+            self.ui.statusBar.showMessage("Идет синхронизация. Дождитесь её окончания и закройте программу снова", 10000)
+            return
         self.save_note()
         try:
             can_close: bool = self.confirm_exit_with_sync()

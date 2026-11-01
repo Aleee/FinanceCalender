@@ -607,6 +607,19 @@ def test_merge_adds_new_events_and_payments_with_new_ids(connected, channel, bac
     assert rows(machine_a, "SELECT id, eventid, sum FROM payment ORDER BY id") == rows(machine_b, "SELECT id, eventid, sum FROM payment ORDER BY id")
 
 
+def test_edit_during_merge_download_is_not_lost(connected, channel):
+    machine_a, machine_b = connected
+    add_event(machine_a, 1, "От первого")
+    add_event(machine_b, 1, "От второго")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        with pytest.raises(SyncError):
+            synchronize(dbh, EditsDuringDownload(channel.folder, dbh), PARAMS, merge=True)
+        assert dbh.get_setting("marker") == "typed during download"
+    assert rows(machine_b, "SELECT name FROM event ORDER BY id") == [("От второго",)]
+
+
 def test_merge_payments_to_existing_event_and_overpayment_warning(shared_event, channel):
     machine_a, machine_b = shared_event
     add_payment(machine_a, 1, 1, "8.00")
