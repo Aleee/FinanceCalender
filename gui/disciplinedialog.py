@@ -5,14 +5,14 @@ from PySide6.QtCore import QDate, QItemSelectionModel, QModelIndex, Qt
 from PySide6.QtGui import QColor, QFont, QPalette
 from PySide6.QtWidgets import QDialog, QHeaderView, QListWidgetItem, QTableWidget, QTableWidgetItem, QVBoxLayout
 
-from base.chart import DelayChartWidget, MonthTrendWidget
+from gui.chart import DelayChartWidget, MonthTrendWidget
 from base.date import MONTHS_RU
 from base.debtcalculator import DebtRepository
 from base.discipline import (BUCKET_NAMES, ClosedPayment, DelayBucket, DisciplineStats, OverduePayment, collect_stats,
                              filter_events, find_closed, find_overdue, total_stats)
 from base.formatting import dec_strcommaspace, float_strcomma, float_strpercentage, int_strspace
 from base.liability import CATEGORY_NAMES, LiabilityCategory, category_section
-from base.xlswriter import DisciplineXlsWriter, ExportSheet
+from gui.xlswriter import DisciplineXlsWriter, ExportSheet
 from gui.exportsuccessdialog import ExportSuccessDialog
 from gui.filterwidget import CategoryFilterListWidget
 from gui.manualdialog import add_help_shortcut

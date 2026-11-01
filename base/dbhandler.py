@@ -18,6 +18,7 @@ import lovely_logger as log
 from base.changelog import ChangeRecord
 from base.date import str_date, date_str
 from base.edition import is_viewer
+from base.finplan import stored_amount, to_amount
 from base.formatting import str_decimal
 from base.liability import EVENT_COLUMN_NAMES, RowType
 from base.migrations import (MIGRATIONS, MigrationError, INCREASE_CHANGE_COUNTER, SERVICE_META_KEYS, CHANGELOG_TABLE,
@@ -32,7 +33,6 @@ from base.version import DB_VERSION as _DB_VERSION
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, DocumentTitle, SavedContractValues
 from base.contracthistory import ContractObligation, ContractPayment
 from base.monthly import MonthlyEntry, MonthlyEvent, relative_term_text
-from gui.finplanmodel import FinPlanTableModel
 
 
 class DBHandler:
@@ -781,27 +781,25 @@ class DBHandler:
                 values[key] = [0] * 12
         return values
 
-    def save_finplan_to_db(self, year: int, finplan_structure: dict, finplanmodel: FinPlanTableModel):
+    def save_finplan_to_db(self, year: int, values: dict[int, list[Decimal | None]]):
         if not self.is_db_connected():
             log.w("Отсутствует соединение с базой данных")
             return False
-        return self.run_in_transaction(lambda: self._write_finplan(year, finplan_structure, finplanmodel))
+        return self.run_in_transaction(lambda: self._write_finplan(year, values))
 
-    def _write_finplan(self, year: int, finplan_structure: dict, finplanmodel: FinPlanTableModel) -> bool:
+    def _write_finplan(self, year: int, values: dict[int, list[Decimal | None]]) -> bool:
         query = QSqlQuery()
         query.prepare("DELETE FROM finplan WHERE year = ?")
         query.addBindValue(year)
         if not query.exec():
             log.e(f"Ошибка SQL при попытке удалить данные из таблицы finplan: {query.lastError().text()}")
             return False
-        for category in finplan_structure.keys():
+        for category, month_values in values.items():
             query.prepare("INSERT INTO finplan VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
             query.addBindValue(year)
             query.addBindValue(category)
-            for month in range(1, 13):
-                value = finplanmodel.index(finplanmodel.categories.index(category), month).data(FinPlanTableModel.internalValueRole)
-                value = None if value == "" else value
-                query.addBindValue(value)
+            for value in month_values:
+                query.addBindValue(stored_amount(value))
             if not query.exec():
                 log.e(f"Ошибка SQL при попытке внести данные в таблицу finplan: {query.lastError().text()}")
                 return False
@@ -833,7 +831,7 @@ class DBHandler:
         values: dict = {}
         while query.next():
             category = int(query.value(0))
-            plan_values = [FinPlanTableModel.to_amount(query.value(n)) for n in range(start_month, end_month + 1)]
+            plan_values = [to_amount(query.value(n)) for n in range(start_month, end_month + 1)]
             if all(x is None for x in plan_values):
                 values[category] = None
             else:

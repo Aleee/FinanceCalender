@@ -23,7 +23,7 @@ from base.sync import (MasterInfo, MasterInfoError, NetworkError, SyncAction, Sy
                        SyncReport, read_local_state, set_stage_listener, synchronize)
 from base.syncjournal import JOURNAL_EXIT, JOURNAL_MANUAL, JOURNAL_START, add_journal_entry
 from base.workcalendar import clear_calendar_cache
-from base.xlswriter import LiabilityXlsWriter
+from gui.xlswriter import LiabilityXlsWriter
 from gui.calendarwidget import CalendarWidget
 from gui.changelogdialog import ChangeLogDialog
 from gui.chartchoicedialog import ChartChoiceDialog

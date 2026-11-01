@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QDialog, QButtonGroup, QCheckBox
 
 from base.edition import is_viewer
 from gui.manualdialog import add_help_shortcut
-from base.xlswriter import LiabilityXlsWriter, ExportFormat, HiddenDisplayMode, get_pdf_converter
+from gui.xlswriter import LiabilityXlsWriter, ExportFormat, HiddenDisplayMode, get_pdf_converter
 from base.liability import Col
 from gui.exportsuccessdialog import ExportSuccessDialog
 from gui.ui.exportdialog_ui import Ui_ExportDialog

@@ -3,7 +3,7 @@ from PySide6.QtGui import QPalette
 from PySide6.QtWidgets import QDialog, QListWidgetItem, QVBoxLayout
 
 from gui.manualdialog import add_help_shortcut
-from base.chart import DebtChartWidget
+from gui.chart import DebtChartWidget
 from base.debtcalculator import DebtRepository, DebtTimelineBuilder
 from base.liability import LiabilityCategory
 from gui.filterwidget import CategoryFilterListWidget

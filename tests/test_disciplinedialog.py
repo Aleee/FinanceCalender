@@ -3,7 +3,7 @@ from datetime import date
 
 from PySide6.QtCore import QDate, Qt
 
-from base.chart import DelayChartWidget
+from gui.chart import DelayChartWidget
 from base.discipline import DelayBucket
 from base.liability import CATEGORY_NAMES, LiabilityCategory
 from gui.disciplinedialog import DisciplineDialog, NumberItem

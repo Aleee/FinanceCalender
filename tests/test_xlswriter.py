@@ -3,7 +3,7 @@ import zipfile
 import pytest
 
 from base.liability import Col
-from base.xlswriter import ExportFormat, HiddenDisplayMode, LiabilityXlsWriter
+from gui.xlswriter import ExportFormat, HiddenDisplayMode, LiabilityXlsWriter
 from tests.conftest import FakeSettingsHandler
 from tests.test_readpath import add_event, db_file, models, open_models  # noqa: F401
 

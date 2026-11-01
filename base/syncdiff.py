@@ -2,9 +2,10 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from base.date import MONTHS_RU
+from base.finplan import FINPLAN_STRUCTURE
 from base.formatting import dec_strcommaspace, str_decimal
 from base.liability import CATEGORY_NAMES, PAYMENTTYPE_NAMES
-from gui.finplanmodel import FinPlanTableModel
 
 Row = dict[str, Any]
 
@@ -33,8 +34,8 @@ TABLE_DERIVED_COLUMNS = {
 }
 DERIVED_COLUMNS = tuple({column for columns in TABLE_DERIVED_COLUMNS.values() for column in columns})
 NAME_COLUMNS = {"responsible": "responsible_name", "contractor_id": "contractor_name"}
-MONTH_COLUMNS = {f"m{number}": name.lower() for number, name in enumerate(FinPlanTableModel.HORIZONTAL_HEADER_LABELS[1:], 1)}
-CATEGORY_COLUMNS = {str(category): definition.title for category, definition in FinPlanTableModel.FINPLAN_STRUCTURE.items()}
+MONTH_COLUMNS = {f"m{number}": name.lower() for number, name in enumerate(MONTHS_RU, 1)}
+CATEGORY_COLUMNS = {str(category): definition.title for category, definition in FINPLAN_STRUCTURE.items()}
 AMOUNT_COLUMNS = ("totalamount", "sum", "paid", "monthlyamount", *MONTH_COLUMNS, *CATEGORY_COLUMNS)
 BOOL_COLUMNS = ("featured", "hidden", "has_calendar_condition", "archived", "monthly")
 VALUE_NAMES = {"category": CATEGORY_NAMES, "paymenttype": PAYMENTTYPE_NAMES}
@@ -163,7 +164,7 @@ def describe_row(table: str, row: Row) -> str:
     if table in ("contractpaymentterm", "contractsavedvalues"):
         return f"{ROW_TITLES[table]}: {describe_document(row, row['document_title'])}"
     if table == "finplan":
-        definition = FinPlanTableModel.FINPLAN_STRUCTURE.get(row["category"])
+        definition = FINPLAN_STRUCTURE.get(row["category"])
         category = row["category"] if definition is None else f"{definition.row_label} {definition.title}"
         return f"Финплан {row['year']}: {category}"
     if table == "fulfillmentdata":

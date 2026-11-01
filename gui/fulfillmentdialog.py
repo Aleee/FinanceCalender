@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QDialog
 
 from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
-from base.xlswriter import FulfilmentXlsWriter, ExportFormat
+from gui.xlswriter import FulfilmentXlsWriter, ExportFormat
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.exportsuccessdialog import ExportSuccessDialog
 from gui.fulfilmentmodel import FulfilmentModel

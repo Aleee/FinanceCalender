@@ -7,9 +7,9 @@ import pytest
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QFileDialog
 
-import base.xlswriter as xlsmod
+import gui.xlswriter as xlsmod
 from base.liability import Col, LiabilityCategory
-from base.xlswriter import (ExportFormat, FulfilmentXlsWriter, HiddenDisplayMode, LiabilityXlsWriter,
+from gui.xlswriter import (ExportFormat, FulfilmentXlsWriter, HiddenDisplayMode, LiabilityXlsWriter,
                             PdfConversionError)
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox, YesNoMessagebox
 from gui.fulfilmentmodel import FulfilmentModel

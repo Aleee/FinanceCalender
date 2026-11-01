@@ -138,7 +138,7 @@ class FinPlanDialog(QDialog):
         if not self.has_changes():
             QDialog.accept(self)
             return
-        if not self.db_handler.save_finplan_to_db(self.year, self.model.FINPLAN_STRUCTURE, self.model):
+        if not self.db_handler.save_finplan_to_db(self.year, self.model.values):
             msg_box = ErrorInfoMessageBox("К сожалению, данные не удалось сохранить (см. подробности в логе)")
             msg_box.exec()
             return

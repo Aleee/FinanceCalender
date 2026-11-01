@@ -4,10 +4,10 @@ from decimal import Decimal
 
 from PySide6.QtGui import QColor
 
-from base.chart import DelayChartWidget, MonthTrendWidget, WholeNumberAxis
+from gui.chart import DelayChartWidget, MonthTrendWidget, WholeNumberAxis
 from base.discipline import DelayBucket, DisciplineStats, ClosedPayment
 from base.debtcalculator import Event, Payment
-from base.xlswriter import DisciplineXlsWriter, ExportSheet
+from gui.xlswriter import DisciplineXlsWriter, ExportSheet
 from tests.conftest import FakeSettingsHandler
 
 

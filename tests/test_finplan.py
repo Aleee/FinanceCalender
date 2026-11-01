@@ -73,7 +73,7 @@ def test_finplan_round_trip_through_database(dbh, work_db_path):
         model.setData(cell(model, SALARY, 1), "1000", EDIT)
         model.setData(cell(model, SALARY, 2), "1000,55", EDIT)
         model.setData(cell(model, SALARY, 3), "0,1", EDIT)
-        assert dbh.save_finplan_to_db(2030, model.FINPLAN_STRUCTURE, model)
+        assert dbh.save_finplan_to_db(2030, model.values)
         loaded = dbh.load_finplan_from_db(2030, model.FINPLAN_STRUCTURE)
         assert loaded[SALARY][:4] == [1000, 1000.55, 0.1, None]
         plan = dbh.load_fulfillmentplanvalues_from_db(2030, 1, 3)

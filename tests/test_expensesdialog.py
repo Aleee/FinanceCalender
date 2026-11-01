@@ -5,7 +5,7 @@ from decimal import Decimal
 from PySide6.QtCore import QDate, QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QColor, QKeyEvent, QWheelEvent
 
-from base.chart import ExpenseBarWidget, ExpenseMonthsWidget
+from gui.chart import ExpenseBarWidget, ExpenseMonthsWidget
 from base.expenses import StructureRow
 from gui.expensesdialog import ChangeItem, ExpensesDialog
 from tests.test_debtcalculator import debt_db, insert_event, insert_payment  # noqa: F401

@@ -2,6 +2,8 @@ import os
 import shutil
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
+
 import lovely_logger as log
 from PySide6.QtCore import QDateTime, QDate
 from PySide6.QtSql import QSqlDatabase
@@ -9,7 +11,9 @@ from PySide6.QtSql import QSqlDatabase
 from base.dbhandler import DBHandler
 from base.lockinfo import lock_holders
 from base.paths import db_path, backup_dir
-from gui.settings import SettingsHandler
+
+if TYPE_CHECKING:
+    from gui.settings import SettingsHandler
 
 BACKUP_FILE_PREFIXES = ("backup_", "before_sync_", "before_restore_")
 SERVICE_COPY_PREFIXES = ("conflict_", "discarded_", "db_corrupt_", "before_sync_", "before_restore_")
@@ -18,7 +22,7 @@ RENAME_ATTEMPTS = 5
 RENAME_PAUSE_SECONDS = 0.5
 
 
-def save_backup(sh: SettingsHandler, dbh: DBHandler) -> QDateTime:
+def save_backup(sh: "SettingsHandler", dbh: DBHandler) -> QDateTime:
     backup_path: str = sh.backup_path()
     if not Path(backup_path).is_dir():
         log.e(f"Путь для резервного копирования не указан или неверен: {backup_path}")
@@ -34,7 +38,7 @@ def save_backup(sh: SettingsHandler, dbh: DBHandler) -> QDateTime:
     return QDateTime.currentDateTime()
 
 
-def clean_backup_folder(sh: SettingsHandler) -> bool:
+def clean_backup_folder(sh: "SettingsHandler") -> bool:
     backup_foldername: str = sh.backup_path()
     if not Path(backup_foldername).is_dir():
         log.e("Не удалось очистить папку с резервными копиями: путь не указан или не существует")
