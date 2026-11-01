@@ -52,6 +52,7 @@ from gui.recoverydialog import RecoveryDialog
 from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import FontSize, SettingsHandler
 from gui.settingsdialog import SettingsDialog
+from gui.shortcuts import add_mac_keys, delete_keys, help_keys, localize_shortcut_hints, native_text
 from gui.syncchangesdialog import SyncChangesDialog
 from gui.syncconflictdialog import SyncConflictDialog
 from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PLANNED_STAGES, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS,
@@ -126,9 +127,15 @@ class MainWindow(QMainWindow):
         # Косметика
         self._init_widget_cosmetics()
 
+        self.ui.act_delete.setShortcuts(delete_keys())
+        self.ui.act_help.setShortcuts(help_keys())
+        add_mac_keys(self.ui.act_edit, "Ctrl+Return")
+
         # Ограничения версии для просмотра
         if is_viewer():
             self._apply_viewer_restrictions()
+
+        localize_shortcut_hints(self)
 
         # Резервное копирование
         self.make_backup()
@@ -503,6 +510,7 @@ class MainWindow(QMainWindow):
         self.act_sync_changes = QAction("Показать полученные изменения...", self)
         self.act_sync_changes.setEnabled(False)
         self.act_sync_now.setShortcut(QKeySequence("F5"))
+        add_mac_keys(self.act_sync_now, "Ctrl+Shift+R")
         self.addAction(self.act_sync_now)
         sync_menu = QMenu(self)
         sync_menu.addAction(self.act_sync_now)
@@ -981,9 +989,10 @@ class MainWindow(QMainWindow):
             QShortcut(QKeySequence("Ctrl+Z"), self).activated.connect(self.undo_delete_event)
             self.ui.dsb_paymentsum.lineEdit().returnPressed.connect(self.ui.pb_addpayment.click)
             self.ui.de_paymentdate.lineEdit().returnPressed.connect(self.ui.pb_addpayment.click)
-            delete_payment_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Delete), self.ui.tv_payment)
-            delete_payment_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-            delete_payment_shortcut.activated.connect(self.ui.pb_deletepayment.click)
+            for key in delete_keys():
+                delete_payment_shortcut = QShortcut(key, self.ui.tv_payment)
+                delete_payment_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+                delete_payment_shortcut.activated.connect(self.ui.pb_deletepayment.click)
         # Начальное состояние: в таблице ничего не выбрано
         for element in (self.ui.act_copy, self.ui.act_edit, self.ui.act_delete,
                         self.ui.pb_addpayment, self.ui.pb_editpayment, self.ui.pb_deletepayment):
@@ -1535,7 +1544,7 @@ class MainWindow(QMainWindow):
             self.warn_selection_lost()
             return False
         msg_box = YesNoMessagebox("Платеж будет удален вместе с историей его оплат. "
-                                  "Отменить удаление можно сочетанием Ctrl+Z, пока вы не удалите другой платеж "
+                                  f"Отменить удаление можно сочетанием {native_text('Ctrl+Z')}, пока вы не удалите другой платеж "
                                   "или не закроете программу. Продолжить?",
                                   self, cancel_by_default=True)
         if msg_box.exec() == YesNoMessagebox.YES_RETURN_VALUE:
@@ -1555,7 +1564,7 @@ class MainWindow(QMainWindow):
             self.update_filters_and_select()
             self.select_neighbor_event(deleted_row)
             if self.deleted_event:
-                self.ui.statusBar.showMessage("Платеж удален. Ctrl+Z - отменить удаление", 15000)
+                self.ui.statusBar.showMessage(f"Платеж удален. {native_text('Ctrl+Z')} - отменить удаление", 15000)
             return True
         return False
 

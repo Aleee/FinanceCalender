@@ -13,6 +13,7 @@ from base.colors import COLOR_DANGER, COLOR_SEARCH_HIGHLIGHT, COLOR_TEXT
 from base.edition import is_viewer
 from base.paths import manual_dir
 from gui.settings import SettingsHandler
+from gui.shortcuts import help_keys
 
 
 def normalize_text(text: str) -> str:
@@ -500,4 +501,5 @@ def open_manual(owner: QWidget, page: str = "") -> None:
 def add_help_shortcut(dialog: QDialog, page: str) -> None:
     if is_viewer():
         return
-    QShortcut(QKeySequence("F1"), dialog, lambda: open_manual(dialog, page))
+    for key in help_keys():
+        QShortcut(key, dialog, lambda: open_manual(dialog, page))

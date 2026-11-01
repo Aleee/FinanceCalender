@@ -15,6 +15,7 @@ from base.monthly import HiddenMonthly, MonthlyEntry, MonthlyState, MonthlyTempl
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.liabilitytablemodel import LiabilityTableModel
 from gui.manualdialog import add_help_shortcut
+from gui.shortcuts import localize_shortcut_hints
 from gui.ui.monthlydialog_ui import Ui_MonthlyDialog
 
 
@@ -72,6 +73,7 @@ class MonthlyDialog(QDialog):
         self.ui = Ui_MonthlyDialog()
         self.ui.setupUi(self)
         add_help_shortcut(self, "08-monthly.html")
+        localize_shortcut_hints(self)
         self.ui.la_empty.setStyleSheet(f"color: {COLOR_MUTED};")
 
         self.dbh = db_handler

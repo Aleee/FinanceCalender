@@ -5,6 +5,7 @@ from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QDialog, QButtonGroup, QLayout, QDialogButtonBox, QWidget
 
 from gui.manualdialog import add_help_shortcut
+from gui.shortcuts import localize_shortcut_hints
 from base.dbhandler import DBHandler
 from base.edition import is_viewer
 from base.contract import PaymentDueType, DaysType, MonthType, ContractDocumentData, ContractInfo
@@ -33,6 +34,7 @@ class ContractDocumentDialog(QDialog):
         self.ui = Ui_ContractDialog()
         self.ui.setupUi(self)
         add_help_shortcut(self, "06-contractors.html")
+        localize_shortcut_hints(self)
         self.layout().setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
 
         self.dbh = dbh
