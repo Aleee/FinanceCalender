@@ -51,8 +51,8 @@ def test_liability_cells_in_every_role(db_file, open_models):
     due, created = models.table.index_by_id(event_id, Col.DUEDATE), models.table.index_by_id(event_id, Col.INCURRENCEDATE)
 
     assert [cell(models, event_id, column) for column in (Col.RECEIVER, Col.NAME, Col.DESCR)] == ["ООО Ромашка", "Аренда", "Договор 1"]
-    assert cell(models, event_id, Col.REMAINAMOUNT) == "1 034,00"
-    assert cell(models, event_id, Col.TOTALAMOUNT) == "1 234,50"
+    assert cell(models, event_id, Col.REMAINAMOUNT) == "1\u00a0034,00"
+    assert cell(models, event_id, Col.TOTALAMOUNT) == "1\u00a0234,50"
     assert cell(models, event_id, Col.TODAYSHARE) == "200,50"
     assert cell(models, event_id, Col.PAYMENTTYPE) == "По факту"
     assert cell(models, event_id, Col.RESPONSIBLE) == "Петров"
@@ -93,8 +93,8 @@ def test_service_rows_cells(db_file, open_models):
     assert all(cell(models, ids["header"], column) == "" for column in range(len(Col)) if column != Col.RECEIVER)
 
     assert cell(models, ids["footer"], Col.RECEIVER) == "Всего по 1.1. "
-    assert cell(models, ids["footer"], Col.TOTALAMOUNT) == "1 234,50"
-    assert cell(models, ids["footer"], Col.REMAINAMOUNT) == "1 034,00"
+    assert cell(models, ids["footer"], Col.TOTALAMOUNT) == "1\u00a0234,50"
+    assert cell(models, ids["footer"], Col.REMAINAMOUNT) == "1\u00a0034,00"
     assert cell(models, ids["footer"], Col.TODAYSHARE) == "200,50"
     assert cell(models, ids["footer"], Col.NAME) == ""
     assert [cell(models, ids["footer"], column, DECIMAL) for column in (Col.TOTALAMOUNT, Col.REMAINAMOUNT, Col.TODAYSHARE)] == \
@@ -102,7 +102,7 @@ def test_service_rows_cells(db_file, open_models):
 
     assert [cell(models, ids["final"], column, DECIMAL) for column in (Col.TOTALAMOUNT, Col.REMAINAMOUNT, Col.TODAYSHARE)] == \
            [Decimal("1234.50"), Decimal("1034.00"), Decimal("200.50")]
-    assert cell(models, ids["final"], Col.TOTALAMOUNT) == "1 234,50"
+    assert cell(models, ids["final"], Col.TOTALAMOUNT) == "1\u00a0234,50"
     assert cell(models, ids["final"], Col.NAME) == ""
 
     for key in ("header", "footer", "final"):
@@ -143,12 +143,18 @@ def test_row_styles_follow_formatting_and_filters(db_file, open_models):
     assert models.table.set_row_formatting(formatting)
     models.apply()
 
-    def style(event_id: int):
-        return cell(models, event_id, Col.NAME, STYLE)
+    def style(event_id: int, column: int = Col.NAME):
+        return cell(models, event_id, column, STYLE)
 
-    assert style(due).text_color.name() == "#112233" and style(due).background_brush.color().name() == "#ffeeee"
-    assert style(due).font_bold is True
-    assert style(today).text_color.name() == "#445566" and style(today).font_bold is True
+    for column in LiabilityTableModel.TERM_STYLE_COLUMNS:
+        assert style(due, column).text_color.name() == "#112233" and style(due, column).background_brush.color().name() == "#ffeeee"
+        assert style(due, column).font_bold is True
+        assert style(today, column).text_color.name() == "#445566" and style(today, column).font_bold is True
+    assert style(due).text_color is None and style(due).font_bold is None
+    assert style(due).background_brush.color().name() == "#ffeeee"
+    assert cell(models, due, Col.NAME, Qt.ItemDataRole.FontRole) is None
+    assert cell(models, due, Col.DUEDATE, Qt.ItemDataRole.FontRole).bold()
+    assert style(today).text_color is None and style(today).font_bold is None
     assert style(future).background_brush.color().name() == "#ffffff" and style(future).font_bold is None
     assert style(future).highlight_color.name() == "#cde8ff"
     assert style(top_header).text_color.name() == "#010101" and style(top_header).background_brush.color().name() == "#020202"
@@ -159,7 +165,7 @@ def test_row_styles_follow_formatting_and_filters(db_file, open_models):
     assert style(final).font_bold is True
 
     models.apply(TermCategory.DUE)
-    assert style(due).font_bold is None and style(due).text_color is None
+    assert style(due, Col.DUEDATE).font_bold is None and style(due, Col.DUEDATE).text_color is None
     models.apply(TermCategory.UNPAID, paid_today=True)
     assert models.table.rowCount() == 0
 

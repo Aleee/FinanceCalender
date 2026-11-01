@@ -50,8 +50,8 @@ def test_display_always_shows_kopecks(qapp):
     model = FinPlanTableModel()
     model.setData(cell(model, SALARY, 1), "1500000", EDIT)
     model.setData(cell(model, SALARY, 2), "1500000,5", EDIT)
-    assert model.data(cell(model, SALARY, 1), Qt.ItemDataRole.DisplayRole) == "1 500 000,00"
-    assert model.data(cell(model, SALARY, 2), Qt.ItemDataRole.DisplayRole) == "1 500 000,50"
+    assert model.data(cell(model, SALARY, 1), Qt.ItemDataRole.DisplayRole) == "1\u00a0500\u00a0000,00"
+    assert model.data(cell(model, SALARY, 2), Qt.ItemDataRole.DisplayRole) == "1\u00a0500\u00a0000,50"
     assert model.data(cell(model, SALARY, 2), EDIT) == "1500000,50"
     assert model.data(cell(model, SALARY, 1), FinPlanTableModel.internalValueRole) == 1500000
     assert model.data(cell(model, SALARY, 2), FinPlanTableModel.internalValueRole) == 1500000.5

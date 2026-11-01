@@ -4,7 +4,7 @@ from typing import Any, NamedTuple, TYPE_CHECKING
 from PySide6.QtCore import QDate, Qt
 
 from base.date import str_date
-from base.formatting import dec_strcommaspace
+from base.formatting import NBSP, dec_strcommaspace
 from base.liability import (CATEGORY_NAMES, Col, FilterFlags, HeaderFooterSubtype, LiabilityCategory, LiabilityRow,
                             PAYMENTTYPE_NAMES, PeriodField, RowType, STORED_INDEX, TermCategory, calculate_filterflags, category_section,
                             is_top_level_category, matches_category, matches_details, matches_filters, matches_term,
@@ -183,7 +183,7 @@ class LiabilityStore:
     def amount_search_text(amount: Decimal) -> str:
         if amount == 0:
             return ""
-        shown = dec_strcommaspace(amount)
+        shown = dec_strcommaspace(amount, separator=" ")
         compact = shown.replace(" ", "")
         return f"{shown}\n{compact}\n{compact.replace(',', '.')}"
 
@@ -214,7 +214,7 @@ class LiabilityStore:
                     date_to: QDate | None = None, period_field: PeriodField = PeriodField.DUEDATE) -> None:
         self.term_filter = term
         self.category_filter = category
-        self.search_filter = search.strip().lower()
+        self.search_filter = search.replace(NBSP, " ").strip().lower()
         self.responsible_filter = responsible
         self.paytoday_filter = paid_today
         self.paid_months_filter = paid_months_toshow

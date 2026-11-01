@@ -163,7 +163,7 @@ def test_widget_shows_payments_of_selected_day(models, qapp):
     assert {widget.ui.tbl_events.item(row, 0).text() for row in range(2)} == {"Альфа", "Бета"}
     assert "1" in widget.ui.pb_undated.text()
     row = next(row for row in range(2) if widget.ui.tbl_events.item(row, 0).text() == "Альфа")
-    assert widget.ui.tbl_events.item(row, 1).text() == "1 000,00"
+    assert widget.ui.tbl_events.item(row, 1).text() == "1\u00a0000,00"
     assert widget.ui.tbl_events.item(row, 0).data(Qt.ItemDataRole.UserRole) == first
 
 

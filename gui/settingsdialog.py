@@ -5,7 +5,7 @@ from typing import Optional
 from PySide6 import QtGui
 from PySide6.QtGui import QPalette, QRegularExpressionValidator, QShortcut, QKeySequence, QDesktopServices
 from PySide6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QLineEdit, QFileDialog, QButtonGroup, QWidget, \
-    QInputDialog, QPushButton, QApplication
+    QInputDialog, QPushButton, QApplication, QLabel
 from PySide6.QtCore import Qt, QSize, QRegularExpression, QModelIndex, QDate, QUrl
 
 from gui.manualdialog import add_help_shortcut, open_manual
@@ -651,10 +651,14 @@ class SettingsDialog(QDialog):
             (self.ui.la_preview_header, self.ui.pb_backgroundsectionheader, self.ui.pb_foregroundsectionheader, self.ui.chb_formatboldheader),
             (self.ui.la_preview_footer, self.ui.pb_backgroundsectionfooter, self.ui.pb_foregroundsectionfooter, self.ui.chb_formatboldfooter),
         )
+        term_titles: dict[QLabel, str] = {self.ui.la_preview_due: "Просрочен", self.ui.la_preview_today: "Сегодня"}
         for label, pb_background, pb_foreground, chb_bold in previews:
-            label.setStyleSheet(f"background-color: {pb_background.get_color() or 'white'}; "
-                                f"color: {pb_foreground.get_color() or 'black'}; "
-                                f"font-weight: {'bold' if chb_bold.isChecked() else 'normal'}; "
+            text_style: str = (f"color: {pb_foreground.get_color() or 'black'}; "
+                               f"font-weight: {'bold' if chb_bold.isChecked() else 'normal'};")
+            if label in term_titles:
+                label.setText(f"{term_titles[label]} <span style='{text_style}'>100,00</span>")
+                text_style = "color: black; font-weight: normal;"
+            label.setStyleSheet(f"background-color: {pb_background.get_color() or 'white'}; {text_style} "
                                 "border: 1px solid #c0c0c0; padding: 2px 8px;")
         # Qt не пересчитывает раскладку скрытой страницы до её первого показа
         self.ui.grp_format_view.layout().activate()

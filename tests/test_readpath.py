@@ -12,7 +12,7 @@ from base.liability import (CATEGORY_NAMES, Col, FilterFlags, HeaderFooterSubtyp
 from base.liabilitystore import LiabilityStore, VisibleRow
 from base.version import DB_VERSION
 from gui.eventwidget import EventWidget
-from base.formatting import dec_strcommaspace
+from base.formatting import NBSP, dec_strcommaspace
 from gui.liabilitytablemodel import LiabilityTableModel, RowFormatting
 from tests.dbtools import create_db
 
@@ -379,6 +379,15 @@ def test_search_covers_name_descr_and_receiver_without_crossing_fields(db_file, 
     assert models.visible() == []
 
 
+@pytest.mark.parametrize("text", ["1 234,50", "1234,50", "1234.50", f"1{NBSP}234,50"])
+def test_search_by_amount_accepts_any_thousands_separator(db_file, open_models, text):
+    add_event(db_file, total="100.00")
+    wanted = add_event(db_file, total="1234.50")
+    models = open_models(db_file)
+    models.apply(search=text)
+    assert models.visible() == [wanted]
+
+
 def test_search_changes_term_and_category_counts(db_file, open_models):
     due = add_event(db_file, category=1101, due=day(-1), receiver="ООО Ромашка")
     add_event(db_file, category=1102, due=day(-1), receiver="ИП Иванов")
@@ -743,7 +752,7 @@ def test_incremental_updates_match_full_reload(db_file, open_models):
     assert 20 not in store.events and changed in store.liabilities
 
 
-def row_font_bold(models: Models, event_id: int, column: int = Col.RECEIVER) -> bool | None:
+def row_font_bold(models: Models, event_id: int, column: int = Col.DUEDATE) -> bool | None:
     font = models.table.index_by_id(event_id, column).data(Qt.ItemDataRole.FontRole)
     return None if font is None else font.bold()
 
@@ -761,6 +770,7 @@ def test_row_fonts_follow_formatting_and_term(db_file, open_models):
     models.apply()
     assert [row_font_bold(models, event_id) for event_id in (due, today, future, header, footer, final_footer)] == \
            [True, True, None, True, True, True]
+    assert [row_font_bold(models, event_id, Col.RECEIVER) for event_id in (due, today, header)] == [None, None, True]
 
     models.table.set_row_formatting(RowFormatting(due_textbold=False, today_textbold=True, header_textbold=False, footer_textbold=False))
     models.apply()

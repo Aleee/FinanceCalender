@@ -104,7 +104,7 @@ def test_changed_contract_and_document_fields(dbh, old_db, new_db):
 
 
 def test_format_value_uses_readable_names():
-    assert format_value("1156.9", "sum") == "1 156,90"
+    assert format_value("1156.9", "sum") == "1\u00a0156,90"
     assert format_value(1101, "category") == "1.1. Заработная плата с налогами на з/п"
     assert format_value(2, "paymenttype") == "Предоплата"
     assert (format_value(0, "hidden"), format_value(1, "featured")) == ("нет", "да")

@@ -10,9 +10,11 @@ COLOR_WARNING: str = "#9a6700"
 COLOR_WARNING_BG: str = "#fff4cc"
 COLOR_PAIR_BG: str = "#fffbea"
 
+NBSP: str = "\u00a0"
 
-def dec_strcommaspace(dec: Decimal, add_rub: bool = False) -> str:
-    return f"{dec:,.2f}".replace(",", " ").replace(".", ",") + (" руб." if add_rub else "")
+
+def dec_strcommaspace(dec: Decimal, add_rub: bool = False, separator: str = NBSP) -> str:
+    return f"{dec:,.2f}".replace(",", separator).replace(".", ",") + (" руб." if add_rub else "")
 
 
 def records_word(count: int) -> str:

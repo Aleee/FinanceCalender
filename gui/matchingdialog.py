@@ -19,7 +19,7 @@ from gui.manualdialog import add_help_shortcut
 from base.dbhandler import DBHandler
 from base.edition import is_viewer
 from base.feeparser import CSVParseError
-from base.formatting import (dec_html, dec_strcommaspace, records_word, COLOR_STATEMENT, COLOR_CALENDAR,
+from base.formatting import (NBSP, dec_html, dec_strcommaspace, records_word, COLOR_STATEMENT, COLOR_CALENDAR,
                              COLOR_HEADER_BG, COLOR_OK, COLOR_WARNING)
 from base.payment import PaymentEntry
 from base.paymentmacther import (reconcile_statement_with_calendar, ReconciliationMarks, ReconciliationResult,
@@ -603,11 +603,11 @@ class MatchingDialog(QDialog):
     @staticmethod
     def search_text(entry: PaymentEntry) -> str:
         plain = f"{entry.amount:.2f}"
-        return " ".join((entry.fee_date.strftime("%d.%m.%Y"), dec_strcommaspace(entry.amount), plain,
+        return " ".join((entry.fee_date.strftime("%d.%m.%Y"), dec_strcommaspace(entry.amount, separator=" "), plain,
                          plain.replace(".", ","), entry.descr)).lower()
 
     def apply_search(self, table: QTableWidget, text: str):
-        query = text.strip().lower()
+        query = text.replace(NBSP, " ").strip().lower()
         for row in range(table.rowCount()):
             entry = self.entries_by_key[table.item(row, 0).data(KEY_ROLE)]
             matches = query in self.search_text(entry)

@@ -66,7 +66,7 @@ class DailyFees:
         self.amounts.append(amount)
 
     def as_comment(self) -> str:
-        amounts_str = ", ".join(dec_strcommaspace(a, add_rub=True) for a in self.amounts)
+        amounts_str = ", ".join(dec_strcommaspace(a, add_rub=True, separator=" ") for a in self.amounts)
         return f"Всего комиссий: {self.count} (в том числе на суммы: {amounts_str})"
 
 

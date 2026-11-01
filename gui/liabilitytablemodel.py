@@ -75,6 +75,7 @@ class LiabilityTableModel(QAbstractTableModel):
 
     NON_LIABILITY_VALUES = {Col.TODAYSHARE: "0.0", Col.LASTPAYMENTDATE: "", Col.FILTERFLAGS: int(FilterFlags.NONE)}
     TOTAL_COLUMNS = (Col.TOTALAMOUNT, Col.REMAINAMOUNT, Col.TODAYSHARE)
+    TERM_STYLE_COLUMNS = (Col.DUEDATE, Col.REMAINAMOUNT)
     INT_COLUMNS = (Col.ID, Col.TYPE, Col.CONTRACTDOCUMENTID, Col.CATEGORY, Col.SUBCATEGORY, Col.PAYMENTTYPE, Col.NDS,
                    Col.FEATURED, Col.RESPONSIBLE)
 
@@ -97,7 +98,7 @@ class LiabilityTableModel(QAbstractTableModel):
         self.paid_load_months: int | None = paid_load_months
         self.rows: list[VisibleRow] = []
         self.stored_count: int = 0
-        self.style_cache: dict[int, RowStyle] = {}
+        self.style_cache: dict[tuple[int, bool], RowStyle] = {}
         self.fonts: dict[bool, QFont] = {}
         self._personal_dict: dict = {}
         self.paid_mode: bool = False
@@ -314,11 +315,11 @@ class LiabilityTableModel(QAbstractTableModel):
         elif role == Qt.ItemDataRole.FontRole:
             if row.row_type in (RowType.FOOTER, RowType.FINALFOOTER) and column in self.TOTAL_COLUMNS:
                 return self.font(True)
-            font_bold = self.row_style(row).font_bold
+            font_bold = self.row_style(row, column).font_bold
             return None if font_bold is None else self.font(font_bold)
 
         elif role == self.styleRole:
-            return self.row_style(row)
+            return self.row_style(row, column)
 
         elif role == self.decimalValueRole:
             if row.row_type in (RowType.FOOTER, RowType.FINALFOOTER) and column in self.TOTAL_COLUMNS:
@@ -426,14 +427,15 @@ class LiabilityTableModel(QAbstractTableModel):
                     return "Н/Д"
         return self.stored_value(row, column)
 
-    def row_style(self, row: VisibleRow) -> RowStyle:
-        style = self.style_cache.get(row.event_id)
+    def row_style(self, row: VisibleRow, column: int) -> RowStyle:
+        is_term_cell: bool = row.row_type != RowType.LIABILITY or column in self.TERM_STYLE_COLUMNS
+        style = self.style_cache.get((row.event_id, is_term_cell))
         if style is None:
-            style = self.compute_style(row)
-            self.style_cache[row.event_id] = style
+            style = self.compute_style(row, is_term_cell)
+            self.style_cache[(row.event_id, is_term_cell)] = style
         return style
 
-    def compute_style(self, row: VisibleRow) -> RowStyle:
+    def compute_style(self, row: VisibleRow, is_term_cell: bool) -> RowStyle:
         row_formatting = self.row_formatting
         style = RowStyle(vertical_grid_color=self.VERTICAL_GRID_COLOR)
 
@@ -467,6 +469,10 @@ class LiabilityTableModel(QAbstractTableModel):
             else:
                 style.highlighted_text_color = QColor("black")
                 style.background_brush = QBrush(QColor("#FFFFFF"))
+            if not is_term_cell:
+                style.text_color = None
+                style.highlighted_text_color = QColor("black")
+                style.font_bold = None
 
         elif row.row_type == RowType.HEADER:
             if row.subtype in (HeaderFooterSubtype.TOPLEVELNOEVENTS, HeaderFooterSubtype.TOPLEVELWITHEVENTS):

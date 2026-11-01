@@ -402,6 +402,13 @@ class LiabilityXlsWriter(BaseXlsWriter):
         f_event_today: Format = workbook.add_format({"font_size": 14, "bold": row_formatting.today_textbold, 'text_wrap': True, "valign": "vcenter",
                                                       "font_color": f"{row_formatting.today_forecolor}", "bg_color": f"{row_formatting.today_backcolor}",
                                                       "border": 1, "border_color": self.BORDER_COLOR, "num_format": "# ##0.00"})
+        f_event_due_plain: Format = workbook.add_format({"font_size": 14, "bold": False, 'text_wrap': True, "valign": "vcenter",
+                                                          "bg_color": f"{row_formatting.due_backcolor}",
+                                                          "border": 1, "border_color": self.BORDER_COLOR, "num_format": "# ##0.00"})
+        f_event_today_plain: Format = workbook.add_format({"font_size": 14, "bold": False, 'text_wrap': True, "valign": "vcenter",
+                                                            "bg_color": f"{row_formatting.today_backcolor}",
+                                                            "border": 1, "border_color": self.BORDER_COLOR, "num_format": "# ##0.00"})
+        plain_formats: dict[Format, Format] = {f_event_due: f_event_due_plain, f_event_today: f_event_today_plain}
         f_header_top: Format = workbook.add_format({"font_size": 16, "bold": False, "font_color": f"{row_formatting.header_section_forecolor}",
                                                      "bg_color": f"{row_formatting.header_section_backcolor}", "border": 1, "border_color": self.BORDER_COLOR,
                                                      "top_color": "#000000", "align": "center", "num_format": "# ##0.00"})
@@ -468,6 +475,8 @@ class LiabilityXlsWriter(BaseXlsWriter):
                         worksheet.merge_range(row + self.HEADER_ROWS_NUMBER, 0, row + self.HEADER_ROWS_NUMBER, len(columns_to_export) - 1,
                                                self.model.index(row, 0, QModelIndex()).data(Qt.ItemDataRole.DisplayRole), row_format)
                     else:
+                        cell_format: Format = (row_format if col in LiabilityTableModel.TERM_STYLE_COLUMNS
+                                               else plain_formats.get(row_format, row_format))
                         if col in self.decimalcolumns_numbers:
                             if row_type in (RowType.FOOTER, RowType.FINALFOOTER):
                                 value = self.model.index(row, col, QModelIndex()).data(self.model.decimalValueRole)
@@ -475,13 +484,13 @@ class LiabilityXlsWriter(BaseXlsWriter):
                                 value = self.model.index(row, col, QModelIndex()).data(LiabilityTableModel.qtValueRole)
                             if value == 0 and col == Col.TODAYSHARE:
                                 value = ""
-                            worksheet.write(row + self.HEADER_ROWS_NUMBER, col, value, row_format)
+                            worksheet.write(row + self.HEADER_ROWS_NUMBER, col, value, cell_format)
                         else:
                             if show_hidden == HiddenDisplayMode.SUMONLY and self.model.index(row, Col.HIDDEN).data(LiabilityTableModel.qtValueRole) == 1:
                                 value = ""
                             else:
                                 value = self.model.index(row, col, QModelIndex()).data(Qt.ItemDataRole.DisplayRole)
-                            worksheet.write(row + self.HEADER_ROWS_NUMBER, col, value, row_format)
+                            worksheet.write(row + self.HEADER_ROWS_NUMBER, col, value, cell_format)
 
                 ### Минимальная высота строки по содержимому ###
                 if row_type == RowType.HEADER:
