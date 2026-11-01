@@ -1062,19 +1062,30 @@ class DBHandler:
 
         def action() -> bool:
             query = QSqlQuery()
-            query.prepare("UPDATE payment SET paymentdate = ?, sum = ? WHERE id = ?")
-            query.addBindValue(date_str(new_payment_date))
-            query.addBindValue(str(new_payment_sum))
+            query.prepare("SELECT payment.paymentdate, payment.sum, payment.eventid, event.totalamount "
+                          "FROM payment JOIN event ON event.id = payment.eventid WHERE payment.id = ?")
             query.addBindValue(payment_id)
-            if not query.exec() or query.numRowsAffected() != 1:
-                log.e(f"Не удалось изменить оплату {payment_id}: {query.lastError().text()}")
+            if not query.exec() or not query.next():
+                log.e(f"Не удалось прочитать оплату {payment_id} перед изменением: {query.lastError().text()}")
                 return False
-            query.prepare("UPDATE event SET totalamount = ? WHERE id = (SELECT eventid FROM payment WHERE id = ?)")
-            query.addBindValue(str(new_total_amount))
-            query.addBindValue(payment_id)
-            if not query.exec() or query.numRowsAffected() != 1:
-                log.e(f"Не удалось изменить общую сумму платежа для оплаты {payment_id}: {query.lastError().text()}")
-                return False
+            stored_date, stored_sum, event_id, stored_total = (query.value(column) for column in range(4))
+            new_date = date_str(new_payment_date)
+            sum_changed = str_decimal(str(stored_sum)) != new_payment_sum
+            if stored_date != new_date or sum_changed:
+                query.prepare("UPDATE payment SET paymentdate = ?, sum = ? WHERE id = ?")
+                query.addBindValue(new_date)
+                query.addBindValue(str(new_payment_sum) if sum_changed else stored_sum)
+                query.addBindValue(payment_id)
+                if not query.exec() or query.numRowsAffected() != 1:
+                    log.e(f"Не удалось изменить оплату {payment_id}: {query.lastError().text()}")
+                    return False
+            if str_decimal(str(stored_total)) != new_total_amount:
+                query.prepare("UPDATE event SET totalamount = ? WHERE id = ?")
+                query.addBindValue(str(new_total_amount))
+                query.addBindValue(event_id)
+                if not query.exec() or query.numRowsAffected() != 1:
+                    log.e(f"Не удалось изменить общую сумму платежа для оплаты {payment_id}: {query.lastError().text()}")
+                    return False
             return True
 
         return self.run_in_transaction(action)

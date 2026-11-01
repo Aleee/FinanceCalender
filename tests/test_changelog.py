@@ -102,6 +102,17 @@ def test_payment_changes_are_logged(dbh, current_db, event_id):
     assert log_rows(current_db)[-1][:3] == ("payment", payment_id, "delete")
 
 
+def test_payment_date_change_keeps_equal_amounts(dbh, current_db, event_id):
+    payment_id = dbh.insert_payment([event_id, "2026-10-10", "30.00", "2026-10-10"])
+    execute(current_db, f"DELETE FROM {CHANGELOG_TABLE}")
+    assert dbh.update_payment(payment_id, date(2026, 10, 11), Decimal("30.0"), Decimal("100.0"))
+    assert log_rows(current_db) == [("payment", payment_id, "update", "paymentdate", "2026-10-10", "2026-10-11")]
+    assert fetch_all(current_db, f"SELECT sum FROM payment WHERE id = {payment_id}") == [("30.00",)]
+    assert fetch_all(current_db, f"SELECT totalamount FROM event WHERE id = {event_id}") == [("100.00",)]
+    assert dbh.update_payment(payment_id, date(2026, 10, 11), Decimal("30"), Decimal("100"))
+    assert len(log_rows(current_db)) == 1
+
+
 def test_records_carry_author_and_machine(current_db, event_id):
     assert fetch_all(current_db, f"SELECT author, machine FROM {CHANGELOG_TABLE}") == [("tester", node())]
 
