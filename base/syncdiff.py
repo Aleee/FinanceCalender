@@ -10,8 +10,8 @@ from base.liability import CATEGORY_NAMES, PAYMENTTYPE_NAMES
 Row = dict[str, Any]
 
 DETAILED_TABLES = ("contractor", "contract", "contractdocument", "contractpaymentterm", "contractsavedvalues", "event", "payment",
-                   "finplan", "fulfillmentdata")
-KEY_COLUMNS = {"finplan": ("year", "category"), "fulfillmentdata": ("startdate", "enddate")}
+                   "finplan", "fulfillmentdata", "meta")
+KEY_COLUMNS = {"finplan": ("year", "category"), "fulfillmentdata": ("startdate", "enddate"), "meta": ("key",)}
 TABLE_KEYS = {"contractpaymentterm": "document_id", "contractsavedvalues": "contractdocumentid", **dict.fromkeys(KEY_COLUMNS, "rowkey")}
 REFERENCES = {
     "contract": {"contractor_id": "contractor"},
@@ -31,6 +31,7 @@ TABLE_DERIVED_COLUMNS = {
     "payment": ("event_title",),
     "finplan": ("rowkey",),
     "fulfillmentdata": ("rowkey",),
+    "meta": ("rowkey",),
 }
 DERIVED_COLUMNS = tuple({column for columns in TABLE_DERIVED_COLUMNS.values() for column in columns})
 NAME_COLUMNS = {"responsible": "responsible_name", "contractor_id": "contractor_name"}
@@ -41,7 +42,7 @@ BOOL_COLUMNS = ("featured", "hidden", "has_calendar_condition", "archived", "mon
 VALUE_NAMES = {"category": CATEGORY_NAMES, "paymenttype": PAYMENTTYPE_NAMES}
 ROW_TITLES = {"contractor": "Контрагент", "contract": "Договор", "contractdocument": "Документ", "contractpaymentterm": "Сроки оплаты",
               "contractsavedvalues": "Сохранённые значения", "event": "Платеж", "payment": "Оплата", "finplan": "Финплан",
-              "fulfillmentdata": "Исполнение"}
+              "fulfillmentdata": "Исполнение", "meta": "Настройка"}
 MAX_VALUE_LENGTH = 60
 
 COLUMN_TITLES: dict[str, str] = {
@@ -52,7 +53,7 @@ COLUMN_TITLES: dict[str, str] = {
     "eventid": "платеж", "contractor_id": "контрагент", "contract_id": "договор", "date": "дата", "document_type": "тип документа",
     "document_name": "название документа", "description": "описание", "position_id": "должность", "payment_type": "вид срока оплаты",
     "days_count": "количество дней", "days_type": "вид дней", "has_calendar_condition": "календарное условие",
-    "month_day": "число месяца", "month_type": "вид месяца", "archived": "архив", "monthly": "ежемесячный платеж", "monthlyamount": "постоянная сумма", "monthlyname": "наименование ежемесячного платежа", "year": "год", "startdate": "начало периода", "enddate": "конец периода",
+    "month_day": "число месяца", "month_type": "вид месяца", "archived": "архив", "monthly": "ежемесячный платеж", "monthlyamount": "постоянная сумма", "monthlyname": "наименование ежемесячного платежа", "year": "год", "value": "значение", "startdate": "начало периода", "enddate": "конец периода",
     **MONTH_COLUMNS, **CATEGORY_COLUMNS,
 }
 
@@ -169,6 +170,8 @@ def describe_row(table: str, row: Row) -> str:
         return f"Финплан {row['year']}: {category}"
     if table == "fulfillmentdata":
         return f"Исполнение за {format_value(row['startdate'])} — {format_value(row['enddate'])}"
+    if table == "meta":
+        return f"Настройка: {row['key']}"
     if table == "event":
         return f"{format_value(row['receiver'])} — {format_value(row['name'])}, {format_value(row['totalamount'], 'totalamount')}, срок {format_value(row['duedate'])}"
     return f"{format_value(row.get('event_title'))}: {format_value(row['sum'], 'sum')} от {format_value(row['paymentdate'])}"

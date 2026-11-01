@@ -11,7 +11,8 @@ ACTIONS = (ADDED, CHANGED, REMOVED)
 ACTION_TITLES = {ADDED: "Добавлено", CHANGED: "Изменено", REMOVED: "Удалено"}
 SECTION_TITLES = {"contractor": "Контрагенты", "contract": "Договоры", "contractdocument": "Документы договоров",
                   "contractpaymentterm": "Сроки оплаты документов", "contractsavedvalues": "Сохранённые значения документов",
-                  "event": "Платежи", "payment": "Оплаты", "finplan": "Финансовый план", "fulfillmentdata": "Данные об исполнении"}
+                  "event": "Платежи", "payment": "Оплаты", "finplan": "Финансовый план", "fulfillmentdata": "Данные об исполнении",
+                  "meta": "Настройки"}
 AMOUNT_COLUMNS = {"event": "totalamount", "payment": "sum"}
 DATE_COLUMNS = {"event": "duedate", "payment": "paymentdate"}
 SUMMED_TABLES = tuple(AMOUNT_COLUMNS)

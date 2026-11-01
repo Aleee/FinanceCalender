@@ -1100,6 +1100,50 @@ def test_merge_fulfillmentdata_of_different_periods(connected, channel):
     assert rows(machine_b, "SELECT startdate, \"10000\" FROM fulfillmentdata ORDER BY startdate") == [("2026-06-01", 10), ("2026-07-01", 20)]
 
 
+META_ROWS = "SELECT key, value FROM meta WHERE key LIKE 'Calendar/%' ORDER BY key"
+HOLIDAYS_2027 = "INSERT INTO meta (key, value) VALUES ('Calendar/2027/holidays', '{0}')"
+
+
+def test_merge_my_setting_when_other_changed_events(shared_event, channel):
+    machine_a, machine_b = shared_event
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, NEW_EVENT_2, HOLIDAYS_2027.format("2027-01-01"), report)
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, META_ROWS) == [("Calendar/2027/holidays", "2027-01-01")]
+    assert rows(machine_b, "SELECT name FROM event ORDER BY id") == [("Общее",), ("Другое",)]
+    with machine_a as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    assert rows(machine_a, META_ROWS) == rows(machine_b, META_ROWS)
+
+
+def test_merge_setting_edit_and_delete_of_different_keys(shared_event, channel):
+    machine_a, machine_b = shared_event
+    run_sql(machine_a, HOLIDAYS_2027.format("a") + "; INSERT INTO meta (key, value) VALUES ('Calendar/2028/holidays', 'b')")
+    with machine_a as dbh:
+        push_master(dbh, channel, PARAMS)
+    with machine_b as dbh:
+        assert synchronize(dbh, channel, PARAMS) == SyncAction.PULL
+    action = sync_both(machine_a, machine_b, channel, "UPDATE meta SET value = 'a2' WHERE key = 'Calendar/2027/holidays'",
+                       "DELETE FROM meta WHERE key = 'Calendar/2028/holidays'")
+    assert action == SyncAction.MERGE
+    assert rows(machine_b, META_ROWS) == [("Calendar/2027/holidays", "a2")]
+
+
+def test_conflict_when_same_setting_added_differently(shared_event, channel):
+    machine_a, machine_b = shared_event
+    report = syncmod.SyncReport()
+    action = sync_both(machine_a, machine_b, channel, HOLIDAYS_2027.format("1"), HOLIDAYS_2027.format("2"), report)
+    assert action == SyncAction.CONFLICT
+    assert [(c.title, c.topic, c.mine, c.theirs) for c in report.conflicts] == [
+        ("Настройка: Calendar/2027/holidays", "Значение", "2", "1")]
+
+
+def test_merge_same_setting_added_identically(shared_event, channel):
+    machine_a, machine_b = shared_event
+    assert sync_both(machine_a, machine_b, channel, HOLIDAYS_2027.format("1"), HOLIDAYS_2027.format("1")) == SyncAction.MERGE
+    assert rows(machine_b, META_ROWS) == [("Calendar/2027/holidays", "1")]
+
+
 def test_restore_master_info_for_folder_channel(connected, channel):
     _, machine_b = connected
     channel.master_info_path.write_text("broken", encoding="utf-8")

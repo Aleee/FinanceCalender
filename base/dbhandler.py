@@ -484,6 +484,8 @@ class DBHandler:
             return self._file_execute(connection, sql)
 
         def visible(alias: str, schema: str) -> str:
+            if table == "meta":
+                return f' AND {alias}."key" NOT IN ({", ".join(f"'{key}'" for key in SERVICE_META_KEYS)})'
             if not is_viewer():
                 return ""
             if table == "event":

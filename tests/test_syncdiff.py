@@ -151,7 +151,9 @@ def test_other_tables_counted_and_service_meta_ignored(dbh, old_db, new_db):
     con.execute("INSERT INTO meta (key, value) VALUES ('Calendar/2028/holidays', '1')")
     con.commit()
     con.close()
-    assert dbh.read_db_diff(str(old_db), str(new_db)).other_tables["meta"] == (1, 0)
+    diff = dbh.read_db_diff(str(old_db), str(new_db))
+    assert "meta" not in diff.other_tables
+    assert [row["key"] for row in diff.tables["meta"].added] == ["Calendar/2028/holidays"]
 
 
 def test_missing_columns_in_old_file_are_ignored(dbh, old_db, new_db):
