@@ -699,7 +699,8 @@ class MainWindow(QMainWindow):
                 action = self._restore_master_info_and_sync(channel, params, report)
             is_changed_by_other: bool = action in (SyncAction.PULL, SyncAction.MERGE)
             is_merged: bool = action == SyncAction.MERGE
-            if interactive or action == SyncAction.CONFLICT:
+            is_new_conflict: bool = action == SyncAction.CONFLICT and previous_status_text != SYNC_STATUS_TEXT[SyncAction.CONFLICT]
+            if interactive or is_new_conflict:
                 resolved_action = self._resolve_sync_action(action, channel, params, report)
                 if resolved_action != action:
                     self.set_last_sync_changes(None)
