@@ -108,8 +108,9 @@ def test_token_days_left(settings_handler):
 def test_cleanup_removes_old_backups_and_keeps_conflict_migration_and_foreign_files(settings_handler, backup_folder):
     old = (datetime.now() - timedelta(days=60)).strftime("%Y%m%d-%H%M%S")
     fresh = datetime.now().strftime("%Y%m%d-%H%M%S")
-    old_names = [f"backup_{old}.db", f"before_sync_{old}-123456.db"]
-    kept_names = [f"backup_{fresh}.db", f"before_sync_{fresh}-123456.db", f"conflict_{old}-123456.db", f"discarded_{old}-123456.db",
+    old_names = [f"backup_{old}.db"]
+    kept_names = [f"backup_{fresh}.db", f"before_sync_{old}-123456.db", f"before_sync_{fresh}-123456.db",
+                  f"conflict_{old}-123456.db", f"discarded_{old}-123456.db",
                   "before_migration_v4.db", "notes.txt", "before_sync_notadate.db"]
     for name in old_names + kept_names:
         (backup_folder / name).write_bytes(b"x")

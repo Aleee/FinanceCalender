@@ -15,7 +15,7 @@ from base.paths import db_path, backup_dir
 if TYPE_CHECKING:
     from gui.settings import SettingsHandler
 
-BACKUP_FILE_PREFIXES = ("backup_", "before_sync_", "before_restore_")
+BACKUP_FILE_PREFIXES = ("backup_",)
 SERVICE_COPY_PREFIXES = ("conflict_", "discarded_", "db_corrupt_", "before_sync_", "before_restore_")
 SERVICE_COPY_KEEP_DAYS = 90
 RENAME_ATTEMPTS = 5
@@ -38,14 +38,20 @@ def save_backup(sh: "SettingsHandler", dbh: DBHandler) -> QDateTime:
     return QDateTime.currentDateTime()
 
 
+def cleanup_period_days(sh: "SettingsHandler") -> int | None:
+    try:
+        return int(sh.settings.value("Backup/cleanupperiod", 30))
+    except (ValueError, TypeError):
+        return None
+
+
 def clean_backup_folder(sh: "SettingsHandler") -> bool:
     backup_foldername: str = sh.backup_path()
     if not Path(backup_foldername).is_dir():
         log.e("Не удалось очистить папку с резервными копиями: путь не указан или не существует")
         return False
-    try:
-        cleanup_period: int = int(sh.settings.value("Backup/cleanupperiod", 30))
-    except (ValueError, TypeError):
+    cleanup_period: int | None = cleanup_period_days(sh)
+    if cleanup_period is None:
         log.e("Не удалось очистить папку с резервными копиями: не удалось получить настройки хранения")
         return False
     minimum_date: QDate = QDate.currentDate().addDays(-cleanup_period)
@@ -67,8 +73,9 @@ def clean_backup_folder(sh: "SettingsHandler") -> bool:
     return True
 
 
-def clean_service_copies() -> bool:
-    minimum_date: QDate = QDate.currentDate().addDays(-SERVICE_COPY_KEEP_DAYS)
+def clean_service_copies(sh: "SettingsHandler") -> bool:
+    keep_days: int = max(SERVICE_COPY_KEEP_DAYS, cleanup_period_days(sh) or 0)
+    minimum_date: QDate = QDate.currentDate().addDays(-keep_days)
     folder: Path = Path(backup_dir())
     if not folder.is_dir():
         return True

@@ -1006,7 +1006,7 @@ class MainWindow(QMainWindow):
             return
         # Очистка папки с резервными копиями
         cleanup_ok: bool = clean_backup_folder(self.settings_handler)
-        cleanup_ok = clean_service_copies() and cleanup_ok
+        cleanup_ok = clean_service_copies(self.settings_handler) and cleanup_ok
         if not cleanup_ok:
             error_msg = ErrorInfoMessageBox("Не удалось очистить папку с резервными копиями (см. подробности в логе)", parent=self)
             error_msg.exec()
