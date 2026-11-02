@@ -1,9 +1,10 @@
 import os
+import sqlite3
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QEvent, QSettings
+from PySide6.QtWidgets import QApplication, QDialog, QMainWindow
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -81,3 +82,35 @@ def patch_sync_journal_path(tmp_path: Path, monkeypatch):
 def patch_sync_base_path(tmp_path: Path, monkeypatch):
     (tmp_path / "sync").mkdir()
     monkeypatch.setattr(syncmod, "sync_base_path", lambda: str(tmp_path / "sync" / "base.db"))
+
+
+@pytest.fixture(autouse=True)
+def close_leaked_widgets():
+    yield
+    app = QApplication.instance()
+    if app is None:
+        return
+    app.processEvents()
+    for widget in app.topLevelWidgets():
+        is_own = isinstance(widget, (QDialog, QMainWindow)) or type(widget).__module__.startswith("gui.")
+        if is_own and widget.parent() is None:
+            widget.close()
+            widget.deleteLater()
+    app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+_original_connect = sqlite3.connect
+
+
+def _connect_without_fsync(*args, **kwargs):
+    connection = _original_connect(*args, **kwargs)
+    try:
+        connection.execute("PRAGMA synchronous = OFF")
+    except sqlite3.DatabaseError:
+        pass
+    return connection
+
+
+@pytest.fixture(autouse=True)
+def fast_sqlite(monkeypatch):
+    monkeypatch.setattr(sqlite3, "connect", _connect_without_fsync)

@@ -6,7 +6,7 @@ import pytest
 from base.liability import Col
 import gui.paymentamountdialog as paymentamountdialog
 from gui.paymentamountdialog import PaymentAmountDialog, delete_payment_confirmed
-from tests.test_audit_fixes import query_all
+from tests.dbtools import fetch_all
 from tests.test_readpath import add_event, add_payment, day, db_file, models, open_models  # noqa: F401
 
 
@@ -39,29 +39,29 @@ def test_read_payment_info_missing_payment(event_with_payments):
 def test_update_payment_changes_both(event_with_payments):
     dbh, path, event_id, _, second = event_with_payments
     assert dbh.update_payment(second, date.today(), Decimal("250.00"), Decimal("1050.00"))
-    assert Decimal(query_all(path, "SELECT sum FROM payment WHERE id = ?", second)[0][0]) == Decimal("250.00")
-    assert Decimal(query_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1050.00")
+    assert Decimal(fetch_all(path, "SELECT sum FROM payment WHERE id = ?", second)[0][0]) == Decimal("250.00")
+    assert Decimal(fetch_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1050.00")
 
 
 def test_update_payment_only_payment(event_with_payments):
     dbh, path, event_id, _, second = event_with_payments
     assert dbh.update_payment(second, date.today(), Decimal("250.00"), Decimal("1000.00"))
-    assert Decimal(query_all(path, "SELECT sum FROM payment WHERE id = ?", second)[0][0]) == Decimal("250.00")
-    assert Decimal(query_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1000.00")
+    assert Decimal(fetch_all(path, "SELECT sum FROM payment WHERE id = ?", second)[0][0]) == Decimal("250.00")
+    assert Decimal(fetch_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1000.00")
 
 
 def test_update_payment_changes_date_only(event_with_payments):
     dbh, path, event_id, _, second = event_with_payments
     new_date = date.today() - timedelta(days=3)
     assert dbh.update_payment(second, new_date, Decimal("200.00"), Decimal("1000.00"))
-    assert query_all(path, "SELECT paymentdate FROM payment WHERE id = ?", second)[0][0] == new_date.isoformat()
+    assert fetch_all(path, "SELECT paymentdate FROM payment WHERE id = ?", second)[0][0] == new_date.isoformat()
     assert dbh.read_payment_info(second).payment_date == new_date
 
 
 def test_update_payment_missing_payment_changes_nothing(event_with_payments):
     dbh, path, event_id, *_ = event_with_payments
     assert not dbh.update_payment(9999, date.today(), Decimal("1.00"), Decimal("5.00"))
-    assert Decimal(query_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1000.00")
+    assert Decimal(fetch_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1000.00")
 
 
 def test_dialog_default_moves_total_with_payment(event_with_payments):
@@ -193,7 +193,7 @@ def fake_boxes(monkeypatch):
 
 
 def payment_ids(path, event_id):
-    return [row[0] for row in query_all(path, "SELECT id FROM payment WHERE eventid = ? ORDER BY id", event_id)]
+    return [row[0] for row in fetch_all(path, "SELECT id FROM payment WHERE eventid = ? ORDER BY id", event_id)]
 
 
 def test_delete_payment_confirmed_removes_payment(event_with_payments, fake_boxes):
@@ -201,7 +201,7 @@ def test_delete_payment_confirmed_removes_payment(event_with_payments, fake_boxe
     assert delete_payment_confirmed(dbh, dbh.read_payment_info(second), None)
     assert payment_ids(path, event_id) == [first]
     assert fake_boxes.shown[0].startswith("Удалить оплату ")
-    assert Decimal(query_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1000.00")
+    assert Decimal(fetch_all(path, "SELECT totalamount FROM event WHERE id = ?", event_id)[0][0]) == Decimal("1000.00")
 
 
 def test_delete_payment_confirmed_cancel_keeps_payment(event_with_payments, fake_boxes):

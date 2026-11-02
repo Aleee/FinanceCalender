@@ -2,13 +2,44 @@ import zipfile
 from datetime import date
 from decimal import Decimal
 
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QColor
 
-from gui.chart import DelayChartWidget, MonthTrendWidget, WholeNumberAxis
-from base.discipline import DelayBucket, DisciplineStats, ClosedPayment
-from base.debtcalculator import Event, Payment
+from base.debtcalculator import Event
+from base.discipline import ClosedPayment, DelayBucket, DisciplineStats
+from base.liability import LiabilityCategory
+from gui.chart import DelayChartWidget, MoneyAxis, MonthTrendWidget, WholeNumberAxis, chart_font
+from gui.chartdialogs import DebtChartDialog
+from gui.filterwidget import CategoryFilterListWidget
 from gui.xlswriter import DisciplineXlsWriter, ExportSheet
 from tests.conftest import FakeSettingsHandler
+from tests.test_debtcalculator import debt_db  # noqa: F401
+
+
+def test_axis_shortens_millions(qapp):
+    axis = MoneyAxis(orientation="left")
+    assert axis.tickStrings([0, 200000, 1400000, 1500000], 1, 1) == ["0", "0,2 млн", "1,4 млн", "1,5 млн"]
+    assert WholeNumberAxis(orientation="left").tickStrings([0, 2000000], 1, 1) == ["0", "2 млн"]
+
+
+def test_axis_keeps_full_numbers_below_million(qapp):
+    assert MoneyAxis(orientation="left").tickStrings([0, 5000, 120000], 1, 1) == ["0", "5 000", "120 000"]
+
+
+def test_chart_font_uses_application_family(qapp):
+    from PySide6.QtWidgets import QApplication
+    font = chart_font(10)
+    assert font.family() == QApplication.font().family()
+    assert font.pointSize() == 10
+
+
+def test_debt_chart_dialog_lists_all_categories_with_their_names(debt_db):
+    dialog = DebtChartDialog(QDate(2026, 10, 1), QDate(2026, 10, 31))
+
+    list_widget = dialog.ui.lw_categories
+    categories = [list_widget.item(row).data(Qt.ItemDataRole.UserRole) for row in range(list_widget.count())]
+    assert categories == [member.value for member in LiabilityCategory][1:]
+    assert list_widget.item(0).text() == CategoryFilterListWidget.ITEMS[LiabilityCategory.SALARIES][0]
 
 
 def make_stats(*delays: int) -> DisciplineStats:

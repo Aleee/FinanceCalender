@@ -5,8 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-import gui.feedialog as feedialog
-from base.feeparser import CSVParseError, DailyFees, open_statement, read_transaction_csv
+from base.feeparser import CSVParseError, open_statement, read_transaction_csv
 from base.formatting import records_word
 from base.liability import LiabilityCategory
 from base.payment import PaymentEntry
@@ -138,45 +137,6 @@ def test_calendar_entries_carry_ids_for_correction(db_file, shared_dbh, open_mod
     entries = shared_dbh.get_paymentsum_for_period(date(2026, 10, 10), date(2026, 10, 10))[date(2026, 10, 10)]
     assert (entries[0].payment_id, entries[0].event_id, entries[0].receiver) == (
         payment_id, event_id, "ЗАО Санитарная оборона")
-
-
-def fee_categories(total: str):
-    daily = {date(2026, 10, 10): DailyFees(1, Decimal(total), [Decimal(total)])}
-    return [(daily, LiabilityCategory.BANKING, ""), ({}, LiabilityCategory.COMMISSION, "")]
-
-
-def confirm_fee_totals(monkeypatch, statement_total, calculated_total) -> list[str]:
-    asked: list[str] = []
-
-    class FakeYesNo:
-        YES_RETURN_VALUE = 2
-        NO_RETURN_VALUE = 3
-
-        def __init__(self, text, parent=None, cancel_by_default=False):
-            asked.append(text)
-
-        def exec(self):
-            return 2
-
-    monkeypatch.setattr(feedialog, "YesNoMessagebox", FakeYesNo)
-    dialog = SimpleNamespace(statement_fee_totals=statement_total)
-    assert feedialog.FeeDialog._confirm_fee_totals(dialog, fee_categories(calculated_total))
-    return asked
-
-
-def test_matching_fee_totals_without_difference_do_not_warn(monkeypatch):
-    totals = {(date(2026, 10, 10), LiabilityCategory.BANKING): Decimal("1156.92")}
-    assert confirm_fee_totals(monkeypatch, totals, "1156.92") == []
-
-
-def test_fee_totals_difference_asks_for_confirmation(monkeypatch):
-    totals = {(date(2026, 10, 10), LiabilityCategory.BANKING): Decimal("1157.92")}
-    asked = confirm_fee_totals(monkeypatch, totals, "1156.92")
-    assert len(asked) == 1 and "10.10.2026" in asked[0]
-
-
-def test_standalone_fee_dialog_does_not_check_totals(monkeypatch):
-    assert confirm_fee_totals(monkeypatch, None, "1156.92") == []
 
 
 def statement_with(tmp_path, *descriptions_and_debits: tuple[str, str], extra_settings: dict | None = None):

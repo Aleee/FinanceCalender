@@ -2,6 +2,8 @@ import shutil
 import sqlite3
 from pathlib import Path
 
+from PySide6.QtCore import qInstallMessageHandler
+
 import gui.recoverydialog as recmod
 from tests.conftest import FakeSettingsHandler
 from tests.dbtools import create_db
@@ -85,3 +87,35 @@ def test_damaged_pages_fail_integrity_check(dbh, work_db_path):
     data[last_page * page_size:last_page * page_size + 40] = bytes([255]) * 40
     work_db_path.write_bytes(bytes(data))
     assert not dbh.check_db_file_integrity()
+
+
+def test_helper_connections_leave_no_qt_warnings(dbh, work_db_path, tmp_path):
+    messages: list[str] = []
+    create_db(work_db_path, 4, {"marker": "a"})
+    assert dbh.migrate_db()
+    dbh.open_db_connection()
+    bad = tmp_path / "bad.db"
+    bad.write_bytes(b"not sqlite" * 100)
+    copy = tmp_path / "copy.db"
+    qInstallMessageHandler(lambda mode, context, message: messages.append(message))
+    try:
+        assert dbh.copy_db_file(str(copy))
+        assert dbh.check_file_integrity(str(copy))
+        assert dbh.read_file_settings(str(copy), ("db_uuid",))
+        assert dbh.create_sync_snapshot(str(tmp_path / "snapshot.db"), "token") is not None
+        assert not dbh.check_file_integrity(str(bad))
+        assert dbh.read_file_settings(str(bad), ("db_uuid",)) is None
+        assert not dbh.copy_db_file(str(copy))
+    finally:
+        qInstallMessageHandler(None)
+    assert [message for message in messages if "still in use" in message] == []
+
+
+def test_migration_closes_database_when_version_is_unreadable(dbh, work_db_path):
+    work_db_path.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(work_db_path)
+    con.execute("CREATE TABLE unrelated (x INTEGER)")
+    con.commit()
+    con.close()
+    assert not dbh.migrate_db()
+    assert not dbh.db.isOpen()

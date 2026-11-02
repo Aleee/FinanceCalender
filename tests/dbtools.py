@@ -154,10 +154,10 @@ def create_db(path: Path, version: int, meta: dict[str, str] | None = None, lega
     return path
 
 
-def fetch_all(path: Path, sql: str) -> list[tuple]:
+def fetch_all(path: Path, sql: str, *params) -> list[tuple]:
     con = sqlite3.connect(path)
     try:
-        return con.execute(sql).fetchall()
+        return con.execute(sql, params).fetchall()
     finally:
         con.close()
 

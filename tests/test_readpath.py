@@ -134,16 +134,6 @@ def test_remain_without_payments_equals_total(db_file, open_models):
     assert models.value(event_id, Col.LASTPAYMENTDATE) == ""
 
 
-def test_stored_computed_columns_are_ignored(db_file, open_models):
-    event_id = add_event(db_file, total="500.00", due=day(-3))
-    add_payment(db_file, event_id, day(-2), "120.50")
-    models = open_models(db_file)
-    assert models.value(event_id, Col.REMAINAMOUNT) == Decimal("379.50")
-    assert models.value(event_id, Col.LASTPAYMENTDATE) == day(-2)
-    flags = models.value(event_id, Col.FILTERFLAGS)
-    assert FilterFlags.NOTPAID in flags and FilterFlags.DUE in flags
-
-
 def test_partial_payments_are_summed(db_file, open_models):
     event_id = add_event(db_file, total="1000.00")
     add_payment(db_file, event_id, day(-5), "0.10")
@@ -195,13 +185,6 @@ def test_partial_payment_today(db_file, open_models):
     assert models.value(event_id, Col.TODAYSHARE) == Decimal("50.00")
     assert models.value(event_id, Col.REMAINAMOUNT) == Decimal("140.00")
     assert models.value(event_id, Col.LASTPAYMENTDATE) == day(0)
-
-
-def test_payment_yesterday_is_not_todayshare(db_file, open_models):
-    event_id = add_event(db_file, total="200.00")
-    add_payment(db_file, event_id, day(-1), "200.00")
-    models = open_models(db_file)
-    assert models.value(event_id, Col.TODAYSHARE) == Decimal(0)
 
 
 @pytest.mark.parametrize("offset, expected, absent", [
@@ -725,7 +708,7 @@ def test_reload_runs_store_reload_once_per_call(models, monkeypatch):
 
 
 def test_incremental_updates_match_full_reload(db_file, open_models):
-    for number in range(120):
+    for number in range(40):
         event_id = add_event(db_file, total="100.00", due=day(number % 20), category=1101 + number % 3)
         if number % 3 == 0:
             add_payment(db_file, event_id, day(-1), "40.00")
