@@ -20,7 +20,7 @@ th { color: #1f3a5f; }
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 0px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h1 id="s1">Раздел 13. Настройки</h1></td></tr></table>
 <p>Окно «Настройки» открывается кнопкой «Настройки» на панели инструментов. Разделы окна — список слева.</p>
 <ul>
-<li><strong>«ОК»</strong> сохраняет все разделы и сразу применяет их, <strong>«Отмена»</strong> отбрасывает всё. Исключение — перечень должностей: он сохраняется сразу.</li>
+<li><strong>«Сохранить»</strong> сохраняет все разделы и сразу применяет их, <strong>«Отмена»</strong> отбрасывает всё. Исключение — перечень должностей: он сохраняется сразу.</li>
 <li>Настройки синхронизации — в меню кнопки синхронизации (<a href="15-sync.html">раздел 15</a>).</li>
 </ul>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
@@ -55,7 +55,7 @@ th { color: #1f3a5f; }
 </tr>
 </tbody>
 </table>
-<p>По умолчанию просроченные платежи выделены красным текстом, сегодняшние — полужирным. Те же цвета попадают в экспорт (<a href="11-export.html">раздел 11</a>).</p>
+<p>У просроченных и сегодняшних платежей цвет текста и жирность применяются только к столбцам «Срок оплаты» и «Остаток», а заливка — ко всей строке. По умолчанию у просроченных платежей эти столбцы красные, у сегодняшних — полужирные. Те же цвета попадают в экспорт (<a href="11-export.html">раздел 11</a>).</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s3">Таблица</h2></td></tr></table>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Раздел «Таблица»" src="images/14-settings/table.png" /></p>
 <p align="center" style="margin-top: 0px; margin-bottom: 22px; line-height: 100%;"><span style="color: #6b7280; font-size: 9.5pt;"><em>Рис. 42. Раздел «Таблица».</em></span></p>
@@ -90,7 +90,7 @@ th { color: #1f3a5f; }
 <p>Календарь нужен для расчёта сроков оплаты (<a href="07-payment-terms.html">раздел 7</a>). Без внесённых дат все будни рабочие, а суббота и воскресенье выходные.</p>
 <ul>
 <li><strong>Год.</strong> Прошлый, текущий и следующий; для каждого года свои списки.</li>
-<li><strong>Списки.</strong> Дата добавляется кнопкой «+», убирается кнопкой «−» или клавишей <strong>Del</strong>. Изменения сохраняются по «ОК».</li>
+<li><strong>Списки.</strong> Дата добавляется кнопкой «+», убирается кнопкой «−» или клавишей <strong>Del</strong>. Изменения сохраняются по «Сохранить».</li>
 <li><strong>Какие дни в какой список.</strong> В «Праздничные» — только будни (Пн–Пт), в «Рабочие банковские» и «Рабочие небанковские» — только Сб и Вс. Одна дата не может быть в двух списках. Что означает каждый список — в <a href="07-payment-terms.html">разделе 7</a>.</li>
 </ul>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s5">Парсер выписки</h2></td></tr></table>
@@ -141,7 +141,7 @@ th { color: #1f3a5f; }
 <h3 id="s8">Должности</h3>
 <p>Должности добавляются, переименовываются и удаляются (<strong>Del</strong>) в выбранном подразделении; название не должно повторяться внутри подразделения.</p>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 6px; margin-bottom: 18px;"><tr><td width="5" bgcolor="#d98a00"></td><td bgcolor="#fff6e3" style="padding: 10px 16px 0px 16px;">
-<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Изменения во вкладке «Должности» сохраняются сразу, «Отмена» их не вернёт. При удалении должности сотрудники теряют привязку к ней и остаются в своём подразделении. Сотрудники, добавленные или изменённые во вкладке «Сотрудники», сохраняются только по «ОК».</p>
+<p>⚠️ <strong><font color="#d98a00">Внимание.</font></strong> Изменения во вкладке «Должности» сохраняются сразу, «Отмена» их не вернёт. При удалении должности сотрудники теряют привязку к ней и остаются в своём подразделении. Сотрудники, добавленные или изменённые во вкладке «Сотрудники», сохраняются только по «Сохранить».</p>
 </td></tr></table>
 <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px; margin-bottom: 10px;"><tr><td style="border-bottom: 1px solid #d9e0e9;" style="border-bottom: 1px solid #d9e0e9;"><h2 id="s9">Хранение</h2></td></tr></table>
 <p align="center" style="margin-top: 10px; margin-bottom: 4px; line-height: 100%;"><img alt="Раздел «Хранение»" src="images/14-settings/storage.png" /></p>
@@ -238,7 +238,7 @@ th { color: #1f3a5f; }
 <tr bgcolor="#f7f9fc">
 <td style="border-bottom: 1px solid #d9e0e9;">«Не удалось сохранить данные персонала (подробности см. в логе)»</td>
 <td style="border-bottom: 1px solid #d9e0e9;">Список сотрудников не записался. Остальные настройки к этому моменту уже сохранены</td>
-<td style="border-bottom: 1px solid #d9e0e9;">Нажмите «ОК» ещё раз; если не помогает, обратитесь к ответственному за программу</td>
+<td style="border-bottom: 1px solid #d9e0e9;">Нажмите «Сохранить» ещё раз; если не помогает, обратитесь к ответственному за программу</td>
 </tr>
 <tr>
 <td style="border-bottom: 1px solid #d9e0e9;">«При попытке восстановления произошла ошибка (подробности см. в логе)»</td>
