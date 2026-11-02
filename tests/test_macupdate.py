@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import threading
 
 import pytest
 
@@ -74,6 +75,7 @@ def test_waits_for_running_process(stand, monkeypatch):
     if os.name == "nt":
         pytest.skip("pid Windows не виден из msys bash")
     process = subprocess.Popen([BASH, "-c", "sleep 2"])
+    threading.Thread(target=process.wait, daemon=True).start()
     try:
         result = run_script(stand, str(process.pid))
     finally:

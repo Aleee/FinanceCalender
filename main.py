@@ -22,7 +22,9 @@ class App(QApplication):
         super().__init__(sys.argv)
 
         self.qt_translator: QTranslator = QTranslator(self)
-        if self.qt_translator.load("qtbase_ru", os.path.join(os.path.dirname(PySide6.__file__), "translations")):
+        pyside_dir: str = os.path.dirname(PySide6.__file__)
+        if any(self.qt_translator.load("qtbase_ru", os.path.join(pyside_dir, *parts))
+               for parts in (("translations",), ("Qt", "translations"))):
             self.installTranslator(self.qt_translator)
 
         QNetworkProxyFactory.setUseSystemConfiguration(True)

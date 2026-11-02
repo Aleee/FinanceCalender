@@ -1,11 +1,11 @@
 import re
 import sys
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QAction, QKeySequence
-from PySide6.QtWidgets import QLineEdit, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QLineEdit, QWidget
 
-SHORTCUT_IN_TEXT = re.compile(r"(?:(?:Ctrl|Shift|Alt)\+)+(?:Left|Right|[A-Z,←→])(?!\w)|(?<!\w)Del(?!\w)")
+SHORTCUT_IN_TEXT = re.compile(r"(?:(?:Ctrl|Shift|Alt)\+)+(?:Left|Right|F\d{1,2}|[A-Z,←→])(?!\w)|(?<!\w)Del(?!\w)")
 ARROW_NAMES = {"←": "Left", "→": "Right"}
 
 
@@ -30,6 +30,28 @@ def help_keys() -> list[QKeySequence]:
 def add_mac_keys(action: QAction, *keys: str) -> None:
     if is_mac():
         action.setShortcuts([*action.shortcuts(), *(QKeySequence(key) for key in keys)])
+
+
+class ReturnActivationFilter(QObject):
+
+    def __init__(self, view: QAbstractItemView):
+        super().__init__(view)
+        self.view = view
+
+    def eventFilter(self, watched, event) -> bool:
+        if (event.type() == QEvent.Type.KeyPress and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+                and event.modifiers() == Qt.KeyboardModifier.NoModifier
+                and self.view.state() != QAbstractItemView.State.EditingState):
+            index = self.view.currentIndex()
+            if index.isValid():
+                self.view.activated.emit(index)
+                return True
+        return False
+
+
+def add_return_activation(view: QAbstractItemView) -> None:
+    if is_mac():
+        view.installEventFilter(ReturnActivationFilter(view))
 
 
 def native_text(text: str) -> str:

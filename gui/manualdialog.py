@@ -13,7 +13,7 @@ from base.colors import COLOR_DANGER, COLOR_SEARCH_HIGHLIGHT, COLOR_TEXT
 from base.edition import is_viewer
 from base.paths import manual_dir
 from gui.settings import SettingsHandler
-from gui.shortcuts import help_keys
+from gui.shortcuts import help_keys, localize_shortcut_hints
 
 
 def normalize_text(text: str) -> str:
@@ -287,6 +287,7 @@ class ManualDialog(QDialog):
         QShortcut(QKeySequence("Ctrl+Shift+F"), self, self.focus_search)
         QShortcut(QKeySequence("F3"), self, self.find_text)
         QShortcut(QKeySequence("Shift+F3"), self, lambda: self.find_text(backward=True))
+        localize_shortcut_hints(self)
 
     @staticmethod
     def is_available() -> bool:

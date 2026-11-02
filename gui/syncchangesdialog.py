@@ -8,6 +8,7 @@ from gui.manualdialog import add_help_shortcut
 from base.diffview import ACTION_TITLES, ACTIONS, ADDED, CHANGED, REMOVED, SECTION_TITLES, DiffEntry, build_entries, format_time, summary_lines
 from base.colors import COLOR_ACCENT, COLOR_DANGER, COLOR_MUTED, COLOR_OK, COLOR_WARNING, COLOR_WARNING_BG
 from base.syncdiff import Conflict, DETAILED_TABLES, DbDiff, describe_other_table
+from gui.shortcuts import add_return_activation
 
 ENTRY_ROLE = Qt.ItemDataRole.UserRole
 SORT_ROLE = Qt.ItemDataRole.UserRole + 1
@@ -203,6 +204,7 @@ class DiffView(QWidget):
         if self.openable:
             table.doubleClicked.connect(self.activate_index)
             table.activated.connect(self.activate_index)
+            add_return_activation(table)
         return table
 
     def eventFilter(self, watched, event) -> bool:

@@ -15,7 +15,7 @@ from base.monthly import HiddenMonthly, MonthlyEntry, MonthlyState, MonthlyTempl
 from gui.commonwidgets.messagebox import ErrorInfoMessageBox
 from gui.liabilitytablemodel import LiabilityTableModel
 from gui.manualdialog import add_help_shortcut
-from gui.shortcuts import localize_shortcut_hints
+from gui.shortcuts import add_return_activation, localize_shortcut_hints
 from gui.ui.monthlydialog_ui import Ui_MonthlyDialog
 
 
@@ -111,6 +111,7 @@ class MonthlyDialog(QDialog):
         self.ui.chb_onlymissing.toggled.connect(self.fill_table)
         self.ui.chb_hidden.toggled.connect(self.fill_table)
         table.activated.connect(self.activate_row)
+        add_return_activation(table)
         table.itemSelectionChanged.connect(self.update_buttons)
         self.ui.pb_create.clicked.connect(lambda: self.create_or_open(self.selected_entry()))
         self.ui.pb_hide.clicked.connect(self.toggle_hidden)

@@ -13,6 +13,7 @@ from base.formatting import dec_strcommaspace
 from base.liability import Col, FilterFlags, STORED_INDEX
 from base.liabilitystore import CalendarDay, LiabilityStore
 from base.workcalendar import WEEKDAY_ABBR, is_working_day
+from gui.shortcuts import add_return_activation
 from gui.ui.calendarwidget_ui import Ui_CalendarWidget
 
 DAYS_IN_WEEK = 7
@@ -327,6 +328,8 @@ class CalendarWidget(QWidget):
         table.activated.connect(self.open_day_event)
         events.currentCellChanged.connect(self.on_event_row_changed)
         events.activated.connect(self.open_current_event)
+        add_return_activation(table)
+        add_return_activation(events)
 
         self.reload()
 

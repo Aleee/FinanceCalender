@@ -331,6 +331,7 @@ def test_start_reports_unwritable_folder(downloader, monkeypatch):
     def refuse():
         raise OSError("read only")
 
+    monkeypatch.setattr(updmod, "check_install_location", lambda: None)
     monkeypatch.setattr(downloader, "prepare_update_dir", refuse)
     monkeypatch.setattr(downloader, "request_link", lambda: pytest.fail("request after failure"))
     downloader.start(UpdateInfo("2999.01.01", DB_VERSION, "app.zip", "abc", ""))

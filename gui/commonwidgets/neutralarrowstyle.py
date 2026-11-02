@@ -1,3 +1,5 @@
+import sys
+
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtWidgets import QApplication, QDialogButtonBox, QProxyStyle, QStyle, QStyleOption, QStyleOptionToolButton, QToolButton
 
@@ -17,6 +19,8 @@ class NeutralArrowStyle(QProxyStyle):
     def styleHint(self, hint, option=None, widget=None, returnData=None):
         if hint == QStyle.StyleHint.SH_DialogButtonLayout:
             return QDialogButtonBox.ButtonLayout.MacLayout.value
+        if hint == QStyle.StyleHint.SH_UnderlineShortcut and sys.platform == "darwin":
+            return 0
         return super().styleHint(hint, option, widget, returnData)
 
     def pixelMetric(self, metric, option=None, widget=None):

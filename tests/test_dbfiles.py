@@ -1,5 +1,7 @@
 import shutil
 import sqlite3
+import subprocess
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import qInstallMessageHandler
@@ -7,6 +9,15 @@ from PySide6.QtCore import qInstallMessageHandler
 import gui.recoverydialog as recmod
 from tests.conftest import FakeSettingsHandler
 from tests.dbtools import create_db
+
+
+HOLD_LOCK_SCRIPT = (
+    "import sqlite3, sys\n"
+    "connection = sqlite3.connect(sys.argv[1], isolation_level=None)\n"
+    "connection.execute('BEGIN EXCLUSIVE')\n"
+    "print('locked', flush=True)\n"
+    "sys.stdin.read()\n"
+)
 
 
 def make_files(work_db_path: Path, tmp_path: Path) -> Path:
@@ -45,8 +56,9 @@ def test_switch_db_files_keeps_old_db_when_source_missing(dbh, work_db_path, tmp
 
 def test_locked_db_is_reported_as_busy_not_corrupt(dbh, work_db_path):
     create_db(work_db_path, dbh.DB_VERSION)
-    holder = sqlite3.connect(work_db_path, isolation_level=None)
-    holder.execute("BEGIN EXCLUSIVE")
+    holder = subprocess.Popen([sys.executable, "-I", "-c", HOLD_LOCK_SCRIPT, str(work_db_path)],
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    holder.stdout.readline()
     try:
         dbh.db.setConnectOptions("QSQLITE_BUSY_TIMEOUT=0")
         dbh.db.setDatabaseName(str(work_db_path))
@@ -54,7 +66,7 @@ def test_locked_db_is_reported_as_busy_not_corrupt(dbh, work_db_path):
         assert dbh.get_db_version() is None
         assert dbh.db_busy
     finally:
-        holder.close()
+        holder.communicate()
         dbh.db.close()
     assert dbh.check_db_file_integrity()
     assert not dbh.db_busy

@@ -52,7 +52,7 @@ from gui.recoverydialog import RecoveryDialog
 from gui.responsiblemodels import ResponsibleModel, ResponsibleCategorySortModel
 from gui.settings import FontSize, SettingsHandler
 from gui.settingsdialog import SettingsDialog
-from gui.shortcuts import add_mac_keys, delete_keys, help_keys, localize_shortcut_hints, native_text
+from gui.shortcuts import add_mac_keys, add_return_activation, delete_keys, help_keys, localize_shortcut_hints, native_text
 from gui.syncchangesdialog import SyncChangesDialog
 from gui.syncconflictdialog import SyncConflictDialog
 from gui.syncmanager import (SYNC_ACTION_MESSAGE, SYNC_PLANNED_STAGES, SYNC_RETRY_ATTEMPTS, SYNC_RETRY_DELAY_MS, SYNC_STALE_DAYS,
@@ -237,6 +237,7 @@ class MainWindow(QMainWindow):
             self.ui.act_export: "Экспорт",
             self.ui.act_contracts: "Договор",
             self.ui.act_settings: "Настройки",
+            self.ui.act_fulfillment: "План-факт",
         }
         if is_viewer():
             self.ui.act_edit.setText("Просмотр")
@@ -272,7 +273,7 @@ class MainWindow(QMainWindow):
         view_group.addAction(self.ui.act_view_calendar)
         view_menu_actions: list[QAction | None] = [self.ui.act_view_table, self.ui.act_view_calendar, None] + view_actions
         self.view_tooltip = view_tooltip
-        self.export_tooltip = self.ui.act_export.toolTip()
+        self.export_tooltip = native_text(self.ui.act_export.toolTip())
         tb_view = self.tb_view = self._make_toolbar_dropdown("Вид", ":/icon-toolbar/designer/icons/view.svg", view_menu_actions, view_tooltip)
         tb_bank = self._make_toolbar_split_button(
             self.ui.act_matching, bank_actions, "Сверка", ":/icon-toolbar/designer/icons/matching.svg", bank_tooltip)
@@ -453,6 +454,7 @@ class MainWindow(QMainWindow):
         self.calendar_widget.eventCleared.connect(self.ui.trw_event.selectionModel().clear)
         self.ui.act_view_calendar.toggled.connect(self.on_view_changed)
         self.ui.trw_event.activated.connect(lambda: self.ui.act_edit.trigger())
+        add_return_activation(self.ui.trw_event)
         # Сигналы таблицы платежей
         self.ui.tv_payment.selectionModel().selectionChanged.connect(self.check_payment_selection_visibility)
         self.ui.tv_payment.doubleClicked.connect(self.edit_payment)

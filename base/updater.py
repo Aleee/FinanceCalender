@@ -72,7 +72,7 @@ class UpdateInfo:
                        sha256=str(data["sha256"]).lower(), notes=str(data.get("notes", "")))
         except (ValueError, KeyError, TypeError) as e:
             raise UpdateError(f"Некорректный {VERSION_FILE}: {e!r}") from e
-        if os.path.basename(info.file) != info.file or not info.file:
+        if not info.file or os.path.basename(info.file) != info.file or "\\" in info.file or ":" in info.file:
             raise UpdateError(f"Недопустимое имя файла обновления: {info.file!r}")
         return info
 
