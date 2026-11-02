@@ -1183,6 +1183,7 @@ class MainWindow(QMainWindow):
             self.ui.dsb_paymentsum.setValue(max(current_index.siblingAtColumn(Col.REMAINAMOUNT).data(LiabilityTableModel.qtValueRole), Decimal(0)))
             # Обновить дату платежа по умолчанию
             self.ui.de_paymentdate.setDate(QDate.currentDate())
+            QTimer.singleShot(100, self.settings_handler.update_min_window_width)
         return True
 
     def set_bound_document(self, document_id: int) -> None:
