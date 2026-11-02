@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
             self.ui.act_edit: "Просмотр" if is_viewer() else "Изменить",
             self.ui.act_delete: "Удалить",
             self.ui.act_export: "Экспорт",
-            self.ui.act_contracts: "Договоры",
+            self.ui.act_contracts: "Договор",
             self.ui.act_settings: "Настройки",
         }
         if is_viewer():
@@ -258,13 +258,13 @@ class MainWindow(QMainWindow):
         if is_viewer():
             view_actions: list[QAction] = [self.ui.act_toggleheaders, self.ui.act_togglefooters]
             bank_actions: list[QAction] = []
-            planfact_actions: list[QAction] = [self.ui.act_finplan, self.ui.act_fulfillment]
+            planfact_actions: list[QAction] = [self.ui.act_fulfillment, self.ui.act_finplan]
             view_tooltip, bank_tooltip = "Таблица или календарь, заголовки и итоги разделов", "Сверка банковской выписки с календарем"
             planfact_tooltip = "Исполнение финансового плана и финансовый план"
         else:
             view_actions = [self.ui.act_featured, self.ui.act_toggleheaders, self.ui.act_togglefooters]
             bank_actions = [self.ui.act_matching, self.ui.act_fees]
-            planfact_actions = [self.ui.act_finplan, self.ui.act_fulfillment, self.ui.act_chart]
+            planfact_actions = [self.ui.act_fulfillment, self.ui.act_finplan, self.ui.act_chart]
             view_tooltip, bank_tooltip = "Таблица или календарь, на контроле, заголовки и итоги разделов", "Сверка банковской выписки и учет комиссий"
             planfact_tooltip = "Исполнение финансового плана, финансовый план и графики"
         view_group = QActionGroup(self)
@@ -277,8 +277,8 @@ class MainWindow(QMainWindow):
         tb_bank = self._make_toolbar_split_button(
             self.ui.act_matching, bank_actions, "Сверка", ":/icon-toolbar/designer/icons/matching.svg", bank_tooltip)
         tb_copy = None if is_viewer() else self._make_toolbar_split_button(self.ui.act_copy, copy_actions)
-        tb_contracts = None if is_viewer() else self._make_toolbar_split_button(self.ui.act_contracts,
-                                                                                [self.ui.act_monthly])
+        tb_contracts = None if is_viewer() else self._make_toolbar_split_button(
+            self.ui.act_contracts, [self.ui.act_contracts, self.ui.act_monthly])
         self.tb_planfact = self._make_toolbar_split_button(
             self.ui.act_fulfillment, planfact_actions, "План-факт", ":/icon-toolbar/designer/icons/fulfillment.svg",
             planfact_tooltip)
@@ -299,6 +299,9 @@ class MainWindow(QMainWindow):
                 self.ui.tlbr.removeAction(action)
                 action.setVisible(False)
 
+        icon_only_buttons: list[QToolButton] = [tb_view, self.ui.tlbr.widgetForAction(self.ui.act_settings)]
+        if not is_viewer():
+            icon_only_buttons.append(self.ui.tlbr.widgetForAction(self.ui.act_help))
         button_groups: list[list[QToolButton]] = [[]]
         for action in self.ui.tlbr.actions():
             if action.isSeparator():
@@ -307,8 +310,11 @@ class MainWindow(QMainWindow):
             button: QToolButton = self.ui.tlbr.widgetForAction(action)
             button.setStyleSheet(f"font-size: {FontSize.LARGE - 1}pt;")
             button.ensurePolished()
-            button_groups[-1].append(button)
+            if button not in icon_only_buttons:
+                button_groups[-1].append(button)
         for group in button_groups:
+            if not group:
+                continue
             widest: QToolButton = max(group, key=lambda b: self._toolbar_button_width(b) + self._toolbar_arrow_width(b))
             group_width: int = self._toolbar_button_width(widest) + self._toolbar_arrow_width(widest)
             plain_width: int = group_width - self._toolbar_arrow_width(widest)
@@ -317,14 +323,27 @@ class MainWindow(QMainWindow):
                     button.setFixedWidth(group_width)
                 else:
                     button.setFixedWidth(max(plain_width, self._toolbar_button_width(button)))
+        button_height: int = self.ui.tlbr.widgetForAction(self.ui.act_export).sizeHint().height()
+        for button in icon_only_buttons:
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        icon_only_width: int = max(button.iconSize().width() + 14 + self._toolbar_instant_arrow_width(button)
+                                   for button in icon_only_buttons)
+        for button in icon_only_buttons:
+            button.setFixedSize(icon_only_width, button_height)
 
     @staticmethod
     def _toolbar_button_width(button: QToolButton) -> int:
-        return button.fontMetrics().horizontalAdvance(button.text()) + 14
+        return max(button.fontMetrics().horizontalAdvance(button.text()), button.iconSize().width()) + 14
 
     @staticmethod
     def _toolbar_arrow_width(button: QToolButton) -> int:
         if button.popupMode() == QToolButton.ToolButtonPopupMode.MenuButtonPopup:
+            return button.style().pixelMetric(QStyle.PixelMetric.PM_MenuButtonIndicator, None, button)
+        return 0
+
+    @staticmethod
+    def _toolbar_instant_arrow_width(button: QToolButton) -> int:
+        if button.popupMode() == QToolButton.ToolButtonPopupMode.InstantPopup:
             return button.style().pixelMetric(QStyle.PixelMetric.PM_MenuButtonIndicator, None, button)
         return 0
 
@@ -1012,7 +1031,7 @@ class MainWindow(QMainWindow):
 
     def _apply_viewer_restrictions(self) -> None:
         for widget in (self.ui.label_2, self.ui.de_paymentdate, self.ui.dsb_paymentsum, self.ui.pb_addpayment,
-                       self.ui.line, self.ui.pb_editpayment, self.ui.pb_deletepayment):
+                       self.ui.pb_editpayment, self.ui.pb_deletepayment):
             widget.hide()
         self.ui.te_notes.setReadOnly(True)
 

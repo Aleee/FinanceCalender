@@ -423,20 +423,6 @@ class Ui_MainWindow(object):
         self.gridLayout_5.setObjectName(u"gridLayout_5")
         self.gridLayout_5.setVerticalSpacing(6)
         self.gridLayout_5.setContentsMargins(4, -1, -1, -1)
-        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout_5.addItem(self.verticalSpacer_3, 6, 0, 1, 1)
-
-        self.pb_editpayment = QPushButton(self.descr)
-        self.pb_editpayment.setObjectName(u"pb_editpayment")
-
-        self.gridLayout_5.addWidget(self.pb_editpayment, 7, 0, 1, 2)
-
-        self.pb_deletepayment = QPushButton(self.descr)
-        self.pb_deletepayment.setObjectName(u"pb_deletepayment")
-
-        self.gridLayout_5.addWidget(self.pb_deletepayment, 8, 0, 1, 2)
-
         self.dsb_paymentsum = QDoubleSpinBox(self.descr)
         self.dsb_paymentsum.setObjectName(u"dsb_paymentsum")
         self.dsb_paymentsum.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
@@ -452,13 +438,6 @@ class Ui_MainWindow(object):
 
         self.gridLayout_5.addWidget(self.pb_addpayment, 3, 0, 1, 2)
 
-        self.line = QFrame(self.descr)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShape(QFrame.Shape.HLine)
-        self.line.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.gridLayout_5.addWidget(self.line, 5, 0, 1, 2)
-
         self.de_paymentdate = QDateEdit(self.descr)
         self.de_paymentdate.setObjectName(u"de_paymentdate")
         self.de_paymentdate.setMinimumSize(QSize(84, 0))
@@ -471,6 +450,10 @@ class Ui_MainWindow(object):
         self.label_2.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
 
         self.gridLayout_5.addWidget(self.label_2, 0, 0, 1, 1)
+
+        self.verticalSpacer_payment = QSpacerItem(20, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_5.addItem(self.verticalSpacer_payment, 4, 0, 1, 1)
 
 
         self.gridLayout_4.addLayout(self.gridLayout_5, 1, 7, 2, 1)
@@ -486,7 +469,7 @@ class Ui_MainWindow(object):
 
         self.gridLayout_4.addItem(self.horizontalSpacer_3, 1, 8, 1, 1)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_4.addItem(self.verticalSpacer_2, 2, 0, 1, 1)
 
@@ -494,36 +477,52 @@ class Ui_MainWindow(object):
 
         self.gridLayout_4.addItem(self.horizontalSpacer_5, 1, 4, 1, 1)
 
+        self.verticalLayout_history = QVBoxLayout()
+        self.verticalLayout_history.setSpacing(4)
+        self.verticalLayout_history.setObjectName(u"verticalLayout_history")
         self.tv_payment = PaymentHistoryTableView(self.descr)
         self.tv_payment.setObjectName(u"tv_payment")
-        self.tv_payment.setMinimumSize(QSize(190, 0))
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Ignored)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.tv_payment.sizePolicy().hasHeightForWidth())
+        self.tv_payment.setSizePolicy(sizePolicy1)
+        self.tv_payment.setMinimumSize(QSize(190, 70))
         self.tv_payment.setMaximumSize(QSize(190, 16777215))
         self.tv_payment.horizontalHeader().setStretchLastSection(True)
 
-        self.gridLayout_4.addWidget(self.tv_payment, 1, 5, 2, 1)
+        self.verticalLayout_history.addWidget(self.tv_payment)
+
+        self.horizontalLayout_historybuttons = QHBoxLayout()
+        self.horizontalLayout_historybuttons.setSpacing(4)
+        self.horizontalLayout_historybuttons.setObjectName(u"horizontalLayout_historybuttons")
+        self.pb_editpayment = QPushButton(self.descr)
+        self.pb_editpayment.setObjectName(u"pb_editpayment")
+
+        self.horizontalLayout_historybuttons.addWidget(self.pb_editpayment)
+
+        self.pb_deletepayment = QPushButton(self.descr)
+        self.pb_deletepayment.setObjectName(u"pb_deletepayment")
+
+        self.horizontalLayout_historybuttons.addWidget(self.pb_deletepayment)
+
+
+        self.verticalLayout_history.addLayout(self.horizontalLayout_historybuttons)
+
+
+        self.gridLayout_4.addLayout(self.verticalLayout_history, 1, 5, 2, 1)
 
         self.wdg_eventinfo = QWidget(self.descr)
         self.wdg_eventinfo.setObjectName(u"wdg_eventinfo")
-        self.wdg_eventinfo.setMinimumSize(QSize(350, 0))
-        self.wdg_eventinfo.setMaximumSize(QSize(350, 16777215))
-        self.gridLayout_6 = QGridLayout(self.wdg_eventinfo)
-        self.gridLayout_6.setObjectName(u"gridLayout_6")
-        self.gridLayout_6.setVerticalSpacing(4)
-        self.gridLayout_6.setContentsMargins(-1, 0, 4, 0)
-        self.gridLayout_8 = QGridLayout()
-        self.gridLayout_8.setObjectName(u"gridLayout_8")
-        self.gridLayout_8.setHorizontalSpacing(6)
-        self.gridLayout_8.setVerticalSpacing(0)
-        self.te_notes = QPlainTextEdit(self.wdg_eventinfo)
-        self.te_notes.setObjectName(u"te_notes")
-        self.te_notes.setMinimumSize(QSize(0, 40))
-        self.te_notes.setTabChangesFocus(True)
-
-        self.gridLayout_8.addWidget(self.te_notes, 0, 0, 1, 1)
-
-
-        self.gridLayout_6.addLayout(self.gridLayout_8, 12, 0, 1, 5)
-
+        self.wdg_eventinfo.setMinimumSize(QSize(500, 0))
+        self.wdg_eventinfo.setMaximumSize(QSize(500, 16777215))
+        self.horizontalLayout_eventinfo = QHBoxLayout(self.wdg_eventinfo)
+        self.horizontalLayout_eventinfo.setSpacing(15)
+        self.horizontalLayout_eventinfo.setObjectName(u"horizontalLayout_eventinfo")
+        self.horizontalLayout_eventinfo.setContentsMargins(-1, 0, 4, 0)
+        self.verticalLayout_eventinfo_left = QVBoxLayout()
+        self.verticalLayout_eventinfo_left.setSpacing(4)
+        self.verticalLayout_eventinfo_left.setObjectName(u"verticalLayout_eventinfo_left")
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.la_remainsum_title = QLabel(self.wdg_eventinfo)
@@ -542,22 +541,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addItem(self.horizontalSpacer_6)
 
 
-        self.gridLayout_6.addLayout(self.horizontalLayout, 0, 0, 1, 5)
-
-        self.horizontalLayout_4 = QHBoxLayout()
-        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.la_contractbound_title = QLabel(self.wdg_eventinfo)
-        self.la_contractbound_title.setObjectName(u"la_contractbound_title")
-        self.la_contractbound_title.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-
-        self.horizontalLayout_4.addWidget(self.la_contractbound_title)
-
-        self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_4.addItem(self.horizontalSpacer_7)
-
-
-        self.gridLayout_6.addLayout(self.horizontalLayout_4, 5, 0, 1, 5)
+        self.verticalLayout_eventinfo_left.addLayout(self.horizontalLayout)
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
@@ -569,70 +553,102 @@ class Ui_MainWindow(object):
 
         self.la_paymenttype = QLabel(self.wdg_eventinfo)
         self.la_paymenttype.setObjectName(u"la_paymenttype")
-        self.la_paymenttype.setMinimumSize(QSize(65, 0))
 
         self.horizontalLayout_3.addWidget(self.la_paymenttype)
 
-        self.hs_paymenttype = QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.hs_paymenttype = QSpacerItem(0, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_3.addItem(self.hs_paymenttype)
 
-        self.ln_paymenttype = QFrame(self.wdg_eventinfo)
-        self.ln_paymenttype.setObjectName(u"ln_paymenttype")
-        self.ln_paymenttype.setFrameShape(QFrame.Shape.VLine)
-        self.ln_paymenttype.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.horizontalLayout_3.addWidget(self.ln_paymenttype)
+        self.verticalLayout_eventinfo_left.addLayout(self.horizontalLayout_3)
 
+        self.horizontalLayout_createdate = QHBoxLayout()
+        self.horizontalLayout_createdate.setObjectName(u"horizontalLayout_createdate")
         self.la_createdate_title = QLabel(self.wdg_eventinfo)
         self.la_createdate_title.setObjectName(u"la_createdate_title")
         self.la_createdate_title.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
-        self.horizontalLayout_3.addWidget(self.la_createdate_title)
+        self.horizontalLayout_createdate.addWidget(self.la_createdate_title)
 
         self.la_createdate = QLabel(self.wdg_eventinfo)
         self.la_createdate.setObjectName(u"la_createdate")
 
-        self.horizontalLayout_3.addWidget(self.la_createdate)
+        self.horizontalLayout_createdate.addWidget(self.la_createdate)
 
         self.horizontalSpacer = QSpacerItem(0, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_3.addItem(self.horizontalSpacer)
+        self.horizontalLayout_createdate.addItem(self.horizontalSpacer)
 
 
-        self.gridLayout_6.addLayout(self.horizontalLayout_3, 3, 0, 1, 5)
+        self.verticalLayout_eventinfo_left.addLayout(self.horizontalLayout_createdate)
+
+        self.la_contractbound_title = QLabel(self.wdg_eventinfo)
+        self.la_contractbound_title.setObjectName(u"la_contractbound_title")
+        self.la_contractbound_title.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
+
+        self.verticalLayout_eventinfo_left.addWidget(self.la_contractbound_title)
 
         self.la_contractbound = QLabel(self.wdg_eventinfo)
         self.la_contractbound.setObjectName(u"la_contractbound")
         self.la_contractbound.setWordWrap(True)
         self.la_contractbound.setOpenExternalLinks(False)
 
-        self.gridLayout_6.addWidget(self.la_contractbound, 6, 0, 1, 5)
+        self.verticalLayout_eventinfo_left.addWidget(self.la_contractbound)
 
-        self.label = QLabel(self.wdg_eventinfo)
-        self.label.setObjectName(u"label")
+        self.verticalSpacer_10 = QSpacerItem(20, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout_6.addWidget(self.label, 11, 0, 1, 4)
+        self.verticalLayout_eventinfo_left.addItem(self.verticalSpacer_10)
 
+
+        self.horizontalLayout_eventinfo.addLayout(self.verticalLayout_eventinfo_left)
+
+        self.verticalLayout_eventinfo_right = QVBoxLayout()
+        self.verticalLayout_eventinfo_right.setSpacing(4)
+        self.verticalLayout_eventinfo_right.setObjectName(u"verticalLayout_eventinfo_right")
         self.la_descr_title = QLabel(self.wdg_eventinfo)
         self.la_descr_title.setObjectName(u"la_descr_title")
         self.la_descr_title.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
 
-        self.gridLayout_6.addWidget(self.la_descr_title, 9, 0, 1, 4)
+        self.verticalLayout_eventinfo_right.addWidget(self.la_descr_title)
 
         self.te_descr = AutoResizingTextEdit(self.wdg_eventinfo)
         self.te_descr.setObjectName(u"te_descr")
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.te_descr.sizePolicy().hasHeightForWidth())
+        self.te_descr.setSizePolicy(sizePolicy2)
+        self.te_descr.setMinimumSize(QSize(0, 30))
         self.te_descr.setReadOnly(True)
 
-        self.gridLayout_6.addWidget(self.te_descr, 10, 0, 1, 5)
+        self.verticalLayout_eventinfo_right.addWidget(self.te_descr)
 
-        self.verticalSpacer_10 = QSpacerItem(20, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        self.label = QLabel(self.wdg_eventinfo)
+        self.label.setObjectName(u"label")
 
-        self.gridLayout_6.addItem(self.verticalSpacer_10, 4, 0, 1, 1)
+        self.verticalLayout_eventinfo_right.addWidget(self.label)
+
+        self.te_notes = QPlainTextEdit(self.wdg_eventinfo)
+        self.te_notes.setObjectName(u"te_notes")
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.te_notes.sizePolicy().hasHeightForWidth())
+        self.te_notes.setSizePolicy(sizePolicy3)
+        self.te_notes.setMinimumSize(QSize(0, 70))
+        self.te_notes.setTabChangesFocus(True)
+
+        self.verticalLayout_eventinfo_right.addWidget(self.te_notes)
+
+        self.verticalLayout_eventinfo_right.setStretch(3, 1)
+
+        self.horizontalLayout_eventinfo.addLayout(self.verticalLayout_eventinfo_right)
 
 
         self.gridLayout_4.addWidget(self.wdg_eventinfo, 1, 0, 1, 1)
 
+        self.gridLayout_4.setRowStretch(1, 1)
         self.stw_eventinfo.addWidget(self.descr)
         self.empty = QWidget()
         self.empty.setObjectName(u"empty")
@@ -674,11 +690,11 @@ class Ui_MainWindow(object):
         QWidget.setTabOrder(self.trw_event, self.te_descr)
         QWidget.setTabOrder(self.te_descr, self.te_notes)
         QWidget.setTabOrder(self.te_notes, self.tv_payment)
-        QWidget.setTabOrder(self.tv_payment, self.de_paymentdate)
+        QWidget.setTabOrder(self.tv_payment, self.pb_editpayment)
+        QWidget.setTabOrder(self.pb_editpayment, self.pb_deletepayment)
+        QWidget.setTabOrder(self.pb_deletepayment, self.de_paymentdate)
         QWidget.setTabOrder(self.de_paymentdate, self.dsb_paymentsum)
         QWidget.setTabOrder(self.dsb_paymentsum, self.pb_addpayment)
-        QWidget.setTabOrder(self.pb_addpayment, self.pb_editpayment)
-        QWidget.setTabOrder(self.pb_editpayment, self.pb_deletepayment)
 
         self.tlbr.addAction(self.act_new)
         self.tlbr.addAction(self.act_copy)
@@ -811,7 +827,7 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.act_matching.setToolTip(QCoreApplication.translate("MainWindow", u"\u0421\u0432\u0435\u0440\u0438\u0442\u044c \u0431\u0430\u043d\u043a\u043e\u0432\u0441\u043a\u0443\u044e \u0432\u044b\u043f\u0438\u0441\u043a\u0443 (CSV) \u0441 \u043f\u043b\u0430\u0442\u0435\u0436\u043d\u044b\u043c \u043a\u0430\u043b\u0435\u043d\u0434\u0430\u0440\u0435\u043c", None))
 #endif // QT_CONFIG(tooltip)
-        self.act_contracts.setText(QCoreApplication.translate("MainWindow", u"\u041a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u044b \u0438 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u044b", None))
+        self.act_contracts.setText(QCoreApplication.translate("MainWindow", u"\u0414\u043e\u0433\u043e\u0432\u043e\u0440\u044b \u0438 \u043a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u044b", None))
 #if QT_CONFIG(tooltip)
         self.act_contracts.setToolTip(QCoreApplication.translate("MainWindow", u"\u041a\u043e\u043d\u0442\u0440\u0430\u0433\u0435\u043d\u0442\u044b, \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u044b \u0438 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u044b \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u043e\u0432", None))
 #endif // QT_CONFIG(tooltip)
@@ -847,20 +863,20 @@ class Ui_MainWindow(object):
         self.chb_paytoday.setText(QCoreApplication.translate("MainWindow", u"\u041e\u041f\u041b\u0410\u0422\u0410 \u0421\u0415\u0413\u041e\u0414\u041d\u042f", None))
         self.spb_category.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U0000041a\U00000410\U00000422\U00000415\U00000413\U0000041e\U00000420\U00000418\U0000042f", None))
         self.spb_term.setText(QCoreApplication.translate("MainWindow", u"\U0001f846 \U0001f847 \U00000421\U00000420\U0000041e\U0000041a \U0000041e\U0000041f\U0000041b\U00000410\U00000422\U0000042b", None))
-        self.pb_editpayment.setText(QCoreApplication.translate("MainWindow", u"\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c", None))
-        self.pb_deletepayment.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c", None))
         self.pb_addpayment.setText(QCoreApplication.translate("MainWindow", u"\u041e\u043f\u043b\u0430\u0442\u0438\u0442\u044c", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"\u0414\u0430\u0442\u0430 \u0438 \u0441\u0443\u043c\u043c\u0430", None))
+        self.pb_editpayment.setText(QCoreApplication.translate("MainWindow", u"\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c", None))
+        self.pb_deletepayment.setText(QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0438\u0442\u044c", None))
         self.la_remainsum_title.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0441\u0442\u0430\u0442\u043e\u043a \u043f\u043b\u0430\u0442\u0435\u0436\u0430:  ", None))
         self.la_remainsum.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.la_contractbound_title.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u0438\u0432\u044f\u0437\u0430\u043d \u043a \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0443:", None))
         self.la_paymenttype_title.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0438\u0434:  ", None))
         self.la_paymenttype.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.la_createdate_title.setText(QCoreApplication.translate("MainWindow", u"   \u0414\u0430\u0442\u0430 \u0432\u043e\u0437\u043d\u0438\u043a\u043d\u043e\u0432\u0435\u043d\u0438\u044f:  ", None))
+        self.la_createdate_title.setText(QCoreApplication.translate("MainWindow", u"\u0414\u0430\u0442\u0430 \u0432\u043e\u0437\u043d\u0438\u043a\u043d\u043e\u0432\u0435\u043d\u0438\u044f:  ", None))
         self.la_createdate.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.la_contractbound_title.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u0438\u0432\u044f\u0437\u0430\u043d \u043a \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0443:", None))
         self.la_contractbound.setText("")
-        self.label.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043c\u0435\u0442\u043a\u0438:", None))
         self.la_descr_title.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0441\u043d\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043b\u0430\u0442\u0435\u0436\u0430:", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043c\u0435\u0442\u043a\u0438:", None))
         self.la_emptyinfo.setText(QCoreApplication.translate("MainWindow", u"\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043f\u043b\u0430\u0442\u0435\u0436 \u0432 \u0442\u0430\u0431\u043b\u0438\u0446\u0435 \u0438\u043b\u0438 \u043a\u0430\u043b\u0435\u043d\u0434\u0430\u0440\u0435, \u0447\u0442\u043e\u0431\u044b \u0443\u0432\u0438\u0434\u0435\u0442\u044c \u043f\u043e\u0434\u0440\u043e\u0431\u043d\u043e\u0441\u0442\u0438", None))
         self.tlbr.setWindowTitle(QCoreApplication.translate("MainWindow", u"\u041f\u0430\u043d\u0435\u043b\u044c \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u043e\u0432", None))
     # retranslateUi

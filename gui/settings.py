@@ -121,11 +121,13 @@ class SettingsHandler:
         ## Положение разделителей
         for splitter, setting_key, default_sizes in (
                 (self.mw.ui.spl_main, "Mainwindow/splittermain", (200, 1100)),
-                (self.mw.ui.spl_workarea, "Mainwindow/splitterworkarea", (440, 280)),
+                (self.mw.ui.spl_workarea, "Mainwindow/splitterworkareacompact", (520, 200)),
         ):
             saved_state = self.settings.value(setting_key)
             if not (saved_state and splitter.restoreState(saved_state)):
                 splitter.setSizes(default_sizes)
+        if not self.settings.value("Mainwindow/splitterworkareacompact"):
+            self.mw.ui.spl_workarea.wanted_top, self.mw.ui.spl_workarea.wanted_bottom = 520, 200
 
         # Интерфейс
         ## Состояние боковой панели
@@ -216,7 +218,7 @@ class SettingsHandler:
 
         # Установка ширины некоторых виджетов вручную
         forced_size = {
-            self.mw.ui.wdg_eventinfo: (350, 410, 470),
+            self.mw.ui.wdg_eventinfo: (420, 500, 580),
             self.mw.ui.tv_payment: (190, 210, 230),
         }
         for option in forced_size.items():
@@ -270,7 +272,7 @@ class SettingsHandler:
         self.settings.setValue("Sidepanel/periodfilter", int(self.mw.ui.spb_period.switch_state()))
         ## Положение разделителей
         self.settings.setValue("Mainwindow/splittermain", self.mw.ui.spl_main.saveState())
-        self.settings.setValue("Mainwindow/splitterworkarea", self.mw.ui.spl_workarea.saveState())
+        self.settings.setValue("Mainwindow/splitterworkareacompact", self.mw.ui.spl_workarea.saveState())
         ## Геометрия
         normal_geometry: QRect = self.mw.normalGeometry()
         if not normal_geometry.isValid():
@@ -280,5 +282,5 @@ class SettingsHandler:
         window_state: int = 2 if self.mw.isFullScreen() else int(self.mw.isMaximized())
         self.settings.setValue("Mainwindow/fullscreen", window_state)
 
-        for obsolete_key in ("Sidepanel/receiverfilter", "Matching/csvhash", "Matching/mainsplitter"):
+        for obsolete_key in ("Sidepanel/receiverfilter", "Matching/csvhash", "Matching/mainsplitter", "Mainwindow/splitterworkarea"):
             self.settings.remove(obsolete_key)
