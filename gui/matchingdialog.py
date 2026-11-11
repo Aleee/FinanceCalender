@@ -129,6 +129,8 @@ class MatchingDialog(QDialog):
 
         self.ui.la_summary.linkActivated.connect(self.show_resolved_tab)
 
+        for tw in (self.ui.tw_statement, self.ui.tw_calendar):
+            tw.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         for button in self.findChildren(QPushButton):
             button.setAutoDefault(False)
         self.set_data_available(False)
